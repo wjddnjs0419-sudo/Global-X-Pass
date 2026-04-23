@@ -1,0 +1,278 @@
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* =============================================
+     NCF × GLOBAL X — DESIGN SYSTEM TOKENS
+     2026 Brand Design System
+  ============================================= */
+
+  /* --- Brand Colors (Google 4 Palette — 솔리드, 컴포넌트 내부 참조용) --- */
+  --color-brand-blue:   #4285F4;
+  --color-brand-green:  #34A853;
+  --color-brand-yellow: #FBBC05;
+  --color-brand-red:    #EA4335;
+
+  /* --- Brand Gradients (키컬러) --- */
+  --gradient-ncf:    linear-gradient(135deg, #20D6A2 0%, #BEFFF9 100%);  /* NCF 키컬러 */
+  --gradient-green:  linear-gradient(135deg, #18A343 0%, #37AD9A 100%);  /* 창구 Green */
+  --gradient-blue:   linear-gradient(135deg, #4377F1 0%, #16DBBB 100%);  /* 창구 Blue  */
+  --gradient-yellow: linear-gradient(135deg, #FFEE56 0%, #FFC2B4 100%);  /* 창구 Yellow */
+  --gradient-red:    linear-gradient(135deg, #FF4340 0%, #FF7C44 100%);  /* 창구 Red   */
+
+  /* --- Background Scale (Deep Space) --- */
+  --color-bg-base:      #070d1a;   /* darkest — section base */
+  --color-bg-surface:   #0a1020;   /* default background */
+  --color-bg-elevated:  #0e1628;   /* slightly lighter panels */
+  --color-bg-overlay:   #131d30;   /* hover state / elevated cards */
+
+  /* --- Glass / Surface --- */
+  --color-glass-bg:        rgba(255, 255, 255, 0.04);
+  --color-glass-bg-hover:  rgba(255, 255, 255, 0.07);
+  --color-glass-border:    rgba(255, 255, 255, 0.10);
+  --color-glass-border-strong: rgba(255, 255, 255, 0.18);
+
+  /* --- Text Scale --- */
+  --color-text-primary:   #ffffff;
+  --color-text-secondary: rgba(255, 255, 255, 0.72);
+  --color-text-muted:     rgba(255, 255, 255, 0.42);
+  --color-text-disabled:  rgba(255, 255, 255, 0.22);
+
+  /* --- Glow Effects (per brand color) --- */
+  --glow-blue:   rgba(66,  133, 244, 0.50);
+  --glow-green:  rgba(52,  168,  83, 0.50);
+  --glow-yellow: rgba(251, 188,   5, 0.50);
+  --glow-red:    rgba(234,  67,  53, 0.50);
+
+  /* --- Typography — Pretendard --- */
+  --font-sans: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'SF Mono', 'Fira Code', monospace;
+
+  /* Font Sizes */
+  --text-display: clamp(40px, 6vw, 72px);  /* 히어로 메인 타이틀 */
+  --text-h1:      clamp(32px, 4vw, 52px);  /* 섹션 대표 제목 */
+  --text-h2:      clamp(26px, 3vw, 40px);  /* 섹션 부제목 */
+  --text-h3:      clamp(20px, 2vw, 28px);  /* 카드 제목 */
+  --text-h4:      20px;                     /* 소항목 제목 */
+  --text-body-lg: 18px;                     /* 주요 본문 */
+  --text-body:    16px;                     /* 기본 본문 */
+  --text-body-sm: 14px;                     /* 보조 본문 */
+  --text-caption: 12px;                     /* 캡션 / 메타 */
+  --text-label:   11px;                     /* 배지 라벨 (uppercase) */
+
+  /* Font Weights */
+  --weight-black:     900;
+  --weight-extrabold: 800;
+  --weight-bold:      700;
+  --weight-semibold:  600;
+  --weight-medium:    500;
+  --weight-regular:   400;
+
+  /* Letter Spacing */
+  --tracking-tight:  -0.05em;
+  --tracking-normal: -0.02em;
+  --tracking-wide:   0.05em;
+  --tracking-wider:  0.1em;
+  --tracking-label:  0.15em;   /* UPPERCASE 배지 전용 */
+
+  /* Line Height */
+  --leading-tight:  1.2;
+  --leading-snug:   1.4;
+  --leading-normal: 1.6;
+  --leading-relaxed: 1.75;
+  --leading-loose:  1.9;
+
+  /* --- Spacing Scale --- */
+  --space-2xs: 4px;
+  --space-xs:  8px;
+  --space-sm:  12px;
+  --space-md:  16px;
+  --space-lg:  24px;
+  --space-xl:  36px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+  --space-4xl: 100px;
+  --space-5xl: 120px;
+
+  /* Section padding */
+  --section-padding-y:  100px;
+  --section-padding-x:  40px;
+  --container-max:      1280px;
+
+  /* --- Border Radius --- */
+  --radius-sm:   8px;
+  --radius-md:   14px;
+  --radius-lg:   20px;
+  --radius-xl:   24px;
+  --radius-2xl:  32px;
+  --radius-pill: 100px;
+
+  /* --- Animation Easing --- */
+  --ease-spring:  cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out:     cubic-bezier(0.19, 1, 0.22, 1);
+  --ease-in-out:  cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* --- Backdrop Blur --- */
+  --blur-sm:  blur(8px);
+  --blur-md:  blur(16px);
+  --blur-lg:  blur(24px);
+
+  /* =============================================
+     Tailwind 기본 토큰 (호환성 유지)
+  ============================================= */
+  --font-size: 16px;
+  --background: var(--color-bg-surface);
+  --foreground: var(--color-text-primary);
+  --card: var(--color-bg-elevated);
+  --card-foreground: var(--color-text-primary);
+  --popover: var(--color-bg-elevated);
+  --popover-foreground: var(--color-text-primary);
+  --primary: var(--color-brand-blue);
+  --primary-foreground: #ffffff;
+  --secondary: var(--color-bg-overlay);
+  --secondary-foreground: var(--color-text-secondary);
+  --muted: var(--color-glass-bg);
+  --muted-foreground: var(--color-text-muted);
+  --accent: var(--color-glass-bg-hover);
+  --accent-foreground: var(--color-text-primary);
+  --destructive: var(--color-brand-red);
+  --destructive-foreground: #ffffff;
+  --border: var(--color-glass-border);
+  --input: var(--color-glass-bg);
+  --input-background: var(--color-bg-overlay);
+  --switch-background: rgba(255,255,255,0.2);
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --ring: var(--color-brand-blue);
+  --chart-1: var(--color-brand-blue);
+  --chart-2: var(--color-brand-green);
+  --chart-3: var(--color-brand-yellow);
+  --chart-4: var(--color-brand-red);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --radius: 0.625rem;
+  --sidebar: var(--color-bg-elevated);
+  --sidebar-foreground: var(--color-text-primary);
+  --sidebar-primary: var(--color-brand-blue);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: var(--color-glass-bg);
+  --sidebar-accent-foreground: var(--color-text-secondary);
+  --sidebar-border: var(--color-glass-border);
+  --sidebar-ring: var(--color-brand-blue);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-input-background: var(--input-background);
+  --color-switch-background: var(--switch-background);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    background-color: var(--color-bg-surface);
+    color: var(--color-text-primary);
+    font-family: var(--font-sans);
+    font-size: var(--font-size);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html {
+    font-size: var(--font-size);
+  }
+
+  h1 {
+    font-size: var(--text-h1);
+    font-weight: var(--weight-extrabold);
+    line-height: var(--leading-tight);
+    letter-spacing: var(--tracking-tight);
+    color: var(--color-text-primary);
+  }
+
+  h2 {
+    font-size: var(--text-h2);
+    font-weight: var(--weight-extrabold);
+    line-height: var(--leading-tight);
+    letter-spacing: var(--tracking-tight);
+    color: var(--color-text-primary);
+  }
+
+  h3 {
+    font-size: var(--text-h3);
+    font-weight: var(--weight-bold);
+    line-height: var(--leading-snug);
+    letter-spacing: var(--tracking-normal);
+    color: var(--color-text-primary);
+  }
+
+  h4 {
+    font-size: var(--text-h4);
+    font-weight: var(--weight-bold);
+    line-height: var(--leading-snug);
+    color: var(--color-text-primary);
+  }
+
+  p {
+    font-size: var(--text-body);
+    font-weight: var(--weight-regular);
+    line-height: var(--leading-relaxed);
+    color: var(--color-text-secondary);
+  }
+
+  label {
+    font-size: var(--text-body-sm);
+    font-weight: var(--weight-medium);
+    line-height: var(--leading-normal);
+    color: var(--color-text-secondary);
+  }
+
+  button {
+    font-size: var(--text-body);
+    font-weight: var(--weight-bold);
+    line-height: var(--leading-normal);
+    font-family: var(--font-sans);
+  }
+
+  input {
+    font-size: var(--text-body);
+    font-weight: var(--weight-regular);
+    line-height: var(--leading-normal);
+  }
+}
