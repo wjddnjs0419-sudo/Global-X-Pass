@@ -56,8 +56,12 @@ export function LoginPage() {
   const handleResetPassword = async (e: React.MouseEvent) => {
     e.preventDefault();
     if (!email) return alert("비밀번호를 찾을 이메일 주소를 위에 먼저 입력해 주세요.");
-
+  
     setLoading(true);
+    
+    // 💡 window.location.origin을 사용하면 
+    // localhost에서 보내면 localhost 주소가, 
+    // netlify에서 보내면 netlify 주소가 자동으로 들어갑니다.
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/update-password`,
     });
@@ -65,11 +69,10 @@ export function LoginPage() {
     if (error) {
       alert("비밀번호 찾기 실패: " + error.message);
     } else {
-      alert("가입된 계정이라면 비밀번호 재설정 링크가 발송되었습니다!\n(메일이 오지 않는다면 이메일 주소를 다시 확인하거나 스팸함을 확인해 주세요.)");
+      alert("비밀번호 재설정 링크가 발송되었습니다! 이메일을 확인해 주세요.");
     }
     setLoading(false);
   };
-
   return (
     <PageShell title="로그인" subtitle="NCF × Around X 회원 전용 서비스를 이용하세요." accentColor="#20D6A2">
       <div style={{ display: "flex", justifyContent: "center" }}>

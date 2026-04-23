@@ -1,3 +1,4 @@
+import { PostDetailPage } from "./pages/PostDetailPage";
 import { createBrowserRouter } from "react-router";
 import { RootLayout } from "./components/RootLayout";
 import { HomePage } from "./components/HomePage";
@@ -36,6 +37,7 @@ export const router = createBrowserRouter([
       // 💡 2. 여기에 'update-password' 경로를 추가했습니다.
       { path: "update-password", Component: UpdatePasswordPage }, 
       { path: "admin", Component: AdminPage },
+      { path: "post/:id", Component: PostDetailPage }, 
       { path: "design-system", Component: () => null },
     ],
   },
