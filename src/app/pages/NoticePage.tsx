@@ -1,66 +1,85 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
+import { useEffect, useState } from "react";
+import { Link } from "react-router";
+import { supabase } from "../../lib/supabaseClient";
 import { PageShell } from "../components/PageShell";
 import { useTheme } from "../ThemeContext";
-import { supabase } from "../../lib/supabaseClient";
 
 export function NoticePage() {
   const { isDark } = useTheme();
-  const navigate = useNavigate();
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // ── 사용자님의 AdminPage와 통일된 스타일 ──
   const card = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
-  const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)";
+  const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
   const textMain = isDark ? "rgba(255,255,255,0.92)" : "#0f172a";
-  const textMuted = isDark ? "rgba(255,255,255,0.45)" : "rgba(15,23,42,0.45)";
 
   useEffect(() => {
     const fetchPosts = async () => {
-      const { data } = await supabase.from('posts').select('*').eq('category', 'notice').order('created_at', { ascending: false });
-      setPosts(data || []);
+      // 💡 'posts' 테이블에서 'notice' 카테고리만 최신순으로 가져옵니다.
+      const { data, error } = await supabase
+        .from('posts')
+        .select('*')
+        .eq('category', 'notice') 
+        .order('created_at', { ascending: false });
+
+      if (data) setPosts(data);
       setLoading(false);
     };
+
     fetchPosts();
   }, []);
 
   return (
-    <PageShell title="공지사항" subtitle="중요한 안내 사항을 확인하세요.">
-      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+    <PageShell 
+      title="공지사항" 
+      subtitle="NCF의 새로운 소식과 주요 안내사항을 전해드립니다."
+    >
+      <div style={{ maxWidth: 800, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16 }}>
         {loading ? (
-          <p style={{ color: textMuted }}>공지사항을 불러오는 중...</p>
+          <div style={{ textAlign: "center", padding: "60px", color: textMain, fontSize: "15px" }}>데이터를 불러오는 중입니다...</div>
+        ) : posts.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "100px 0", color: "gray", background: card, borderRadius: 20, border: `1px solid ${border}` }}>
+            <div style={{ fontSize: "40px", marginBottom: "16px" }}>📝</div>
+            <p>아직 등록된 공지사항이 없습니다.</p>
+          </div>
         ) : (
           posts.map((post) => (
-            <div
-              key={post.id}
-              onClick={() => navigate(`/post/${post.id}`)}
-              style={{
-                background: card, border: `1px solid ${border}`, borderRadius: 24,
-                overflow: "hidden", display: "flex", flexDirection: "column",
-                cursor: "pointer", transition: "all 0.2s ease"
+            <Link 
+              key={post.id} 
+              to={`/post/${post.id}`} // 💡 상세 페이지 경로 연동
+              style={{ 
+                background: card, border: `1px solid ${border}`, borderRadius: 20, 
+                padding: "24px", display: "flex", gap: 24, textDecoration: "none",
+                transition: "all 0.2s ease-in-out",
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "translateY(-4px)";
-                e.currentTarget.style.boxShadow = isDark ? "0 12px 24px rgba(0,0,0,0.4)" : "0 12px 24px rgba(0,0,0,0.06)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "none";
-                e.currentTarget.style.boxShadow = "none";
-              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-4px)"}
+              onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0)"}
             >
-              <div style={{ padding: "32px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-                  <span style={{ padding: "4px 10px", background: "rgba(239, 68, 68, 0.1)", color: "#ef4444", fontSize: 13, fontWeight: 700, borderRadius: 6 }}>
-                    NOTICE
-                  </span>
-                  <span style={{ fontSize: 14, color: textMuted }}>{new Date(post.created_at).toLocaleDateString()}</span>
-                </div>
-                <h2 style={{ margin: "0 0 12px", fontSize: 22, fontWeight: 800, color: textMain }}>{post.title}</h2>
-                <p style={{ margin: 0, fontSize: 15, color: textMuted, lineHeight: 1.6, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+              {/* 이미지 섬네일 (있을 때만 노출) */}
+              {post.image_url && (
+                <img 
+                  src={post.image_url} 
+                  alt="" 
+                  style={{ width: 140, height: 100, objectFit: "cover", borderRadius: 12, background: "#f8fafc" }} 
+                />
+              )}
+              
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                <strong style={{ display: "block", fontSize: "19px", color: textMain, marginBottom: 10, fontWeight: 700 }}>
+                  {post.title}
+                </strong>
+                <p style={{ 
+                  margin: 0, fontSize: "15px", color: "gray", lineHeight: "1.6",
+                  display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" 
+                }}>
                   {post.content}
                 </p>
+                <div style={{ marginTop: 14, fontSize: "13px", color: "rgba(128,128,128,0.6)", fontWeight: 500 }}>
+                  {new Date(post.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
+                </div>
               </div>
-            </div>
+            </Link>
           ))
         )}
       </div>

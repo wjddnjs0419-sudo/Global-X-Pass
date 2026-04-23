@@ -1,79 +1,84 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
-import { PageShell } from "../components/PageShell";
-import { ImageWithFallback } from "../components/figma/ImageWithFallback";
-import { useTheme } from "../ThemeContext";
+import { useEffect, useState } from "react";
+import { Link } from "react-router";
 import { supabase } from "../../lib/supabaseClient";
+import { PageShell } from "../components/PageShell";
+import { useTheme } from "../ThemeContext";
 
 export function EventsPage() {
   const { isDark } = useTheme();
-  const navigate = useNavigate(); 
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // ── 공통 디자인 스타일 적용 ──
   const card = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
-  const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)";
+  const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
   const textMain = isDark ? "rgba(255,255,255,0.92)" : "#0f172a";
-  const textMuted = isDark ? "rgba(255,255,255,0.45)" : "rgba(15,23,42,0.45)";
 
   useEffect(() => {
     const fetchPosts = async () => {
-      const { data } = await supabase
+      // 💡 'posts' 테이블에서 'events' 카테고리 데이터만 가져옵니다.
+      const { data, error } = await supabase
         .from('posts')
         .select('*')
-        .eq('category', 'events')
+        .eq('category', 'events') 
         .order('created_at', { ascending: false });
-      setPosts(data || []);
+
+      if (data) setPosts(data);
       setLoading(false);
     };
+
     fetchPosts();
   }, []);
 
   return (
-    <PageShell title="행사" subtitle="NCF × Around X가 준비한 소식을 확인하세요.">
-      <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+    <PageShell 
+      title="행사" 
+      subtitle="NCF에서 진행하는 다양한 이벤트와 프로그램을 확인해 보세요."
+    >
+      <div style={{ maxWidth: 800, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16 }}>
         {loading ? (
-          <p style={{ color: textMuted }}>행사 정보를 불러오는 중...</p>
+          <div style={{ textAlign: "center", padding: "60px", color: textMain }}>행사 정보를 불러오는 중입니다...</div>
+        ) : posts.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "100px 0", color: "gray", background: card, borderRadius: 20, border: `1px solid ${border}` }}>
+            <div style={{ fontSize: "40px", marginBottom: "16px" }}>🗓️</div>
+            <p>아직 예정된 행사가 없습니다.</p>
+          </div>
         ) : (
           posts.map((post) => (
-            <div 
+            <Link 
               key={post.id} 
-              onClick={() => navigate(`/post/${post.id}`)}
+              to={`/post/${post.id}`} 
               style={{ 
-                background: card, border: `1px solid ${border}`, borderRadius: 24, 
-                overflow: "hidden", display: "grid", gridTemplateColumns: "minmax(200px, 280px) 1fr auto", 
-                cursor: "pointer", transition: "all 0.2s ease"
+                background: card, border: `1px solid ${border}`, borderRadius: 20, 
+                padding: "24px", display: "flex", gap: 24, textDecoration: "none",
+                transition: "all 0.2s ease"
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "translateY(-4px)";
-                e.currentTarget.style.boxShadow = "0 12px 24px rgba(0,0,0,0.08)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "none";
-                e.currentTarget.style.boxShadow = "none";
-              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-4px)"}
+              onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0)"}
             >
-              <div style={{ height: "100%", minHeight: 220 }}>
-                <ImageWithFallback src={post.image_url} alt={post.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-              </div>
-              <div style={{ padding: "32px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-                  <span style={{ padding: "4px 10px", background: "rgba(67, 119, 241, 0.1)", color: "#4377F1", fontSize: 13, fontWeight: 700, borderRadius: 6 }}>
-                    EVENT
-                  </span>
-                  <span style={{ fontSize: 14, color: textMuted }}>{new Date(post.created_at).toLocaleDateString()}</span>
-                </div>
-                <h2 style={{ margin: "0 0 12px", fontSize: 24, fontWeight: 800, color: textMain }}>{post.title}</h2>
-                <p style={{ margin: 0, fontSize: 15, color: textMuted, lineHeight: 1.6, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+              {post.image_url && (
+                <img 
+                  src={post.image_url} 
+                  alt="" 
+                  style={{ width: 140, height: 100, objectFit: "cover", borderRadius: 12 }} 
+                />
+              )}
+              
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                <strong style={{ display: "block", fontSize: "19px", color: textMain, marginBottom: 10, fontWeight: 700 }}>
+                  {post.title}
+                </strong>
+                <p style={{ 
+                  margin: 0, fontSize: "15px", color: "gray", lineHeight: "1.6",
+                  display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" 
+                }}>
                   {post.content}
                 </p>
+                <div style={{ marginTop: 14, fontSize: "13px", color: "rgba(128,128,128,0.6)" }}>
+                  {new Date(post.created_at).toLocaleDateString()}
+                </div>
               </div>
-              <div style={{ minWidth: 200, background: isDark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.01)", borderLeft: `1px solid ${border}`, padding: "32px 24px", display: "flex", alignItems: "center" }}>
-                 <button style={{ padding: "14px", borderRadius: 12, border: "none", background: "#4377F1", color: "#fff", fontWeight: 700, cursor: "pointer", width: "100%" }}>
-                   신청하기
-                 </button>
-              </div>
-            </div>
+            </Link>
           ))
         )}
       </div>

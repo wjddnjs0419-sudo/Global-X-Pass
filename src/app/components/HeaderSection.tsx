@@ -3,34 +3,38 @@ import { Link, useLocation, useNavigate } from "react-router";
 import logoImg from "../../imports/Logo.png";
 import { supabase } from "../../lib/supabaseClient";
 
+// 💡 1. 방금 만든 언어 컨텍스트 불러오기 (경로가 다르면 파일 위치에 맞게 수정해주세요!)
+import { useLanguage } from "../LanguageContext"; 
+
 type MenuKey = "resources" | "programs" | "news" | "support";
 
-const MENUS: { key: MenuKey; label: string; items: { label: string; path: string }[] }[] = [
+// 💡 2. 한글과 영어를 모두 지원하도록 메뉴 딕셔너리(사전) 수정
+const MENUS: { key: MenuKey; label: string; items: { label: { ko: string; en: string }; path: string }[] }[] = [
   {
     key: "resources", label: "Resources",
     items: [
-      { label: "자료실", path: "/resources" },
-      { label: "블로그", path: "/blog" },
+      { label: { ko: "자료실", en: "Resources" }, path: "/resources" },
+      { label: { ko: "블로그", en: "Blog" }, path: "/blog" },
     ],
   },
   {
     key: "programs", label: "Programs",
     items: [
-      { label: "행사", path: "/events" },
-      { label: "행사 아카이브", path: "/events/archive" },
+      { label: { ko: "행사", en: "Events" }, path: "/events" },
+      { label: { ko: "행사 아카이브", en: "Event Archive" }, path: "/events/archive" },
     ],
   },
   {
     key: "news", label: "News",
     items: [
-      { label: "공지사항", path: "/notice" },
-      { label: "뉴스", path: "/news" },
+      { label: { ko: "공지사항", en: "Notice" }, path: "/notice" },
+      { label: { ko: "뉴스", en: "News" }, path: "/news" },
     ],
   },
   {
     key: "support", label: "Support",
     items: [
-      { label: "FAQ", path: "/faq" },
+      { label: { ko: "자주 묻는 질문", en: "FAQ" }, path: "/faq" },
     ],
   },
 ];
@@ -47,6 +51,9 @@ export function HeaderSection({ isDark = false }: HeaderSectionProps) {
   
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // 💡 3. 현재 언어(lang)와 언어 변경 함수(toggleLang) 꺼내오기
+  const { lang, toggleLang } = useLanguage();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -63,7 +70,8 @@ export function HeaderSection({ isDark = false }: HeaderSectionProps) {
   const handleLogout = async (e: React.MouseEvent) => {
     e.preventDefault();
     await supabase.auth.signOut();
-    alert("안전하게 로그아웃 되었습니다.");
+    // 💡 로그아웃 알림창도 언어에 맞게 분기 처리
+    alert(lang === "ko" ? "안전하게 로그아웃 되었습니다." : "Logged out successfully.");
     navigate("/");
     setSidebarOpen(false);
   };
@@ -81,7 +89,6 @@ export function HeaderSection({ isDark = false }: HeaderSectionProps) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // 💡 관리자 계정일 때만 'Admin' 링크를 추가하도록 수정됨
   const utilLinks = session
     ? [
         ...(session.user?.email === "admin@test.com" ? [{ label: "Admin", path: "/admin" }] : []),
@@ -132,7 +139,10 @@ export function HeaderSection({ isDark = false }: HeaderSectionProps) {
               {openMenu === m.key && (
                 <div style={{ position: "absolute", top: "calc(100% + 6px)", left: "50%", transform: "translateX(-50%)", minWidth: 160, background: isDark ? "rgba(16,22,42,0.96)" : "rgba(255,255,255,0.98)", border: `1px solid ${isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.08)"}`, borderRadius: 12, boxShadow: "0 12px 32px rgba(0,0,0,0.18)", padding: 8, backdropFilter: "blur(20px)" }}>
                   {m.items.map((it) => (
-                    <Link key={it.path} to={it.path} onClick={() => setOpenMenu(null)} style={{ display: "block", padding: "10px 14px", borderRadius: 8, color: isDark ? "rgba(255,255,255,0.88)" : "rgba(10,16,32,0.82)", fontSize: 14, fontWeight: 500, textDecoration: "none", transition: "background 0.15s ease" }} onMouseEnter={(e) => (e.currentTarget.style.background = isDark ? "rgba(32,214,162,0.12)" : "rgba(32,214,162,0.10)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>{it.label}</Link>
+                    // 💡 드롭다운 메뉴 이름이 현재 설정된 언어에 따라 나옵니다 (it.label[lang])
+                    <Link key={it.path} to={it.path} onClick={() => setOpenMenu(null)} style={{ display: "block", padding: "10px 14px", borderRadius: 8, color: isDark ? "rgba(255,255,255,0.88)" : "rgba(10,16,32,0.82)", fontSize: 14, fontWeight: 500, textDecoration: "none", transition: "background 0.15s ease" }} onMouseEnter={(e) => (e.currentTarget.style.background = isDark ? "rgba(32,214,162,0.12)" : "rgba(32,214,162,0.10)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                      {it.label[lang]}
+                    </Link>
                   ))}
                 </div>
               )}
@@ -146,10 +156,25 @@ export function HeaderSection({ isDark = false }: HeaderSectionProps) {
           </Link>
         </div>
 
-        <div className="header-right-utils" style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6 }}>
-          {utilLinks.map((u) => (
-            <Link key={u.label} to={u.path} onClick={u.isLogout ? handleLogout : undefined} style={{ padding: "10px 14px", color: textColorMuted, fontSize: 13, fontWeight: 600, textDecoration: "none", transition: "color 0.2s ease" }} onMouseEnter={(e) => (e.currentTarget.style.color = textColor)} onMouseLeave={(e) => (e.currentTarget.style.color = textColorMuted)}>{u.label}</Link>
-          ))}
+        <div className="header-right-utils" style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12 }}>
+          
+          {/* ── 💡 4. 언어 전환 토글 버튼 추가 ── */}
+          <button 
+            onClick={toggleLang} 
+            style={{ display: "flex", alignItems: "center", gap: "6px", padding: "6px 12px", borderRadius: "20px", border: `1px solid ${textColorMuted}`, background: "transparent", color: textColor, fontSize: "12px", fontWeight: 700, cursor: "pointer", transition: "opacity 0.2s" }}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.8")}
+          >
+            <span style={{ opacity: lang === "ko" ? 1 : 0.4, transition: "opacity 0.2s" }}>KO</span>
+            <span style={{ opacity: 0.4 }}>|</span>
+            <span style={{ opacity: lang === "en" ? 1 : 0.4, transition: "opacity 0.2s" }}>EN</span>
+          </button>
+
+          <div style={{ display: "flex", gap: 6 }}>
+            {utilLinks.map((u) => (
+              <Link key={u.label} to={u.path} onClick={u.isLogout ? handleLogout : undefined} style={{ padding: "10px 14px", color: textColorMuted, fontSize: 13, fontWeight: 600, textDecoration: "none", transition: "color 0.2s ease" }} onMouseEnter={(e) => (e.currentTarget.style.color = textColor)} onMouseLeave={(e) => (e.currentTarget.style.color = textColorMuted)}>{u.label}</Link>
+            ))}
+          </div>
         </div>
       </header>
 
@@ -165,7 +190,10 @@ export function HeaderSection({ isDark = false }: HeaderSectionProps) {
             <div key={m.key} style={{ marginBottom: 18 }}>
               <div style={{ padding: "6px 12px", color: isDark ? "rgba(190,255,249,0.75)" : "rgba(32,214,162,0.95)", fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>{m.label}</div>
               {m.items.map((it) => (
-                <Link key={it.path} to={it.path} onClick={() => setSidebarOpen(false)} style={{ display: "block", padding: "10px 12px", borderRadius: 10, color: isDark ? "rgba(255,255,255,0.9)" : "rgba(10,16,32,0.85)", fontSize: 15, fontWeight: 600, textDecoration: "none", transition: "background 0.15s ease" }} onMouseEnter={(e) => (e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.06)" : "rgba(10,16,32,0.04)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>{it.label}</Link>
+                // 💡 모바일 사이드바 메뉴 이름도 현재 설정된 언어에 따라 나옵니다
+                <Link key={it.path} to={it.path} onClick={() => setSidebarOpen(false)} style={{ display: "block", padding: "10px 12px", borderRadius: 10, color: isDark ? "rgba(255,255,255,0.9)" : "rgba(10,16,32,0.85)", fontSize: 15, fontWeight: 600, textDecoration: "none", transition: "background 0.15s ease" }} onMouseEnter={(e) => (e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.06)" : "rgba(10,16,32,0.04)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                  {it.label[lang]}
+                </Link>
               ))}
             </div>
           ))}
