@@ -107,7 +107,7 @@ export function NoticeSection({ isDark = false }: NoticeSectionProps) {
                     </h3>
                   </div>
                   <p style={{ margin: 0, fontSize: "14px", color: textMuted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {notice.content}
+                    {(notice.content || "").replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()}
                   </p>
                 </div>
               </div>

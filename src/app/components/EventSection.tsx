@@ -1,26 +1,22 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router"; // 💡 useNavigate 추가
+import { Link, useNavigate } from "react-router"; 
 import { getSectionTheme } from "../utils/sectionTheme";
 import { supabase } from "../../lib/supabaseClient";
 
 interface EventSectionProps { isDark?: boolean; }
 
-// 💡 디자인 일관성을 위한 타입 컬러 맵
 const TYPE_COLORS = ["#18A343", "#4377F1", "#EA4335", "#FBBC05"];
 
 export function EventSection({ isDark = false }: EventSectionProps) {
   const th = getSectionTheme(isDark);
-  const navigate = useNavigate(); // 💡 이동 함수 선언
+  const navigate = useNavigate(); 
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 💡 에러의 주범이었던 변수들을 여기서 선언해줍니다.
-  const textMain = isDark ? "rgba(255,255,255,0.92)" : "#0f172a";
   const textMuted = isDark ? "rgba(255,255,255,0.45)" : "rgba(15,23,42,0.45)";
 
   useEffect(() => {
     const fetchEvents = async () => {
-      // 최신 행사 5개 가져오기
       const { data } = await supabase
         .from('posts')
         .select('*')
@@ -38,6 +34,9 @@ export function EventSection({ isDark = false }: EventSectionProps) {
 
   const featured = events[0];
   const upcomingEvents = events.slice(1);
+
+  // 💡 HTML 태그 제거 및 안전한 텍스트 반환 함수
+  const cleanText = (html: string) => (html || "").replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 
   return (
     <section style={{
@@ -99,8 +98,18 @@ export function EventSection({ isDark = false }: EventSectionProps) {
               </div>
 
               <h3 style={{ color: th.headingColor, fontSize: "clamp(20px,2.2vw,26px)", fontWeight: 800, margin: "0 0 12px", lineHeight: 1.3 }}>{featured.title}</h3>
-              <p style={{ color: th.subText, fontSize: "14px", margin: "0 0 20px", lineHeight: 1.7, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                {featured.content}
+              
+              <p style={{ 
+                color: th.subText, 
+                fontSize: "14px", 
+                lineHeight: 1.6, 
+                margin: "0 0 20px 0", 
+                display: "-webkit-box", 
+                WebkitLineClamp: 2, 
+                WebkitBoxOrient: "vertical", 
+                overflow: "hidden" 
+              }}>
+                {cleanText(featured.content)}
               </p>
 
               <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "20px" }}>
@@ -142,7 +151,9 @@ export function EventSection({ isDark = false }: EventSectionProps) {
                 <div style={{ width: "1px", background: th.rowDivider, flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ color: th.itemTitle, fontSize: "14px", fontWeight: 700, marginBottom: "4px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ev.title}</div>
-                  <div style={{ color: th.itemDesc, fontSize: "12px", lineHeight: 1.5, display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{ev.content}</div>
+                  <div style={{ color: th.itemDesc, fontSize: "12px", lineHeight: 1.5, display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                    {cleanText(ev.content)}
+                  </div>
                 </div>
               </div>
             ))}

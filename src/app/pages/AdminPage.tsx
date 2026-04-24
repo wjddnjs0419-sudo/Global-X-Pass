@@ -1,7 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router";
 import { useTheme } from "../ThemeContext";
 import { supabase } from "../../lib/supabaseClient";
+
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
 import { HeaderSection } from "../components/HeaderSection";
 import { FooterSection } from "../components/FooterSection";
@@ -16,12 +19,34 @@ const CATEGORIES = [
   { id: "faq", label: "FAQ" },
 ];
 
+const encodeFilename = (name: string) => {
+  const b64 = btoa(encodeURIComponent(name));
+  return "b64-" + b64.replace(/\+/g, '-',).replace(/\//g, '_').replace(/=/g, '');
+};
+
+const decodeFilename = (encoded: string) => {
+  if (encoded.startsWith('b64-')) {
+    try {
+      let b64 = encoded.substring(4).replace(/-/g, '+').replace(/_/g, '/');
+      while (b64.length % 4 !== 0) b64 += '=';
+      return decodeURIComponent(atob(b64));
+    } catch { return encoded; }
+  }
+  return decodeURIComponent(encoded);
+};
+
 const getFileNameFromUrl = (url: string | null) => {
   if (!url) return "첨부된 파일";
   try {
     const path = url.split('?')[0];
-    const filename = path.split('/').pop() || "첨부된 파일";
-    return decodeURIComponent(filename);
+    let filename = path.split('/').pop() || "첨부된 파일";
+    if (filename.includes('---')) {
+      filename = filename.split('---').pop()!;
+    } else if (filename.match(/^\d+_[a-z0-9]+_/)) {
+      const parts = filename.split('_');
+      filename = parts.slice(2).join('_');
+    }
+    return decodeFilename(filename);
   } catch { return "첨부된 파일"; }
 };
 
@@ -38,9 +63,11 @@ export default function AdminPage() {
   const [category, setCategory] = useState("notice");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [file, setFile] = useState<File | null>(null);
+  
+  const [files, setFiles] = useState<File[]>([]);
+  const [existingImages, setExistingImages] = useState<string[]>([]);
+  
   const [loading, setLoading] = useState(false);
-  const [removeExisting, setRemoveExisting] = useState(false);
   const [posts, setPosts] = useState<any[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -50,10 +77,11 @@ export default function AdminPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const postsPerPage = 10;
 
-  // ── 💡 차트 및 Top 5 상태 ──
-  const [chartPeriod, setChartPeriod] = useState<7 | 30>(7); // 7일 or 30일 상태
+  const [chartPeriod, setChartPeriod] = useState<7 | 30>(7);
   const [chartData, setChartData] = useState<{ fullDate: string; label: string; views: number; cumulative: number }[]>([]);
   const [topPosts, setTopPosts] = useState<any[]>([]);
+
+  const quillRef = useRef<ReactQuill>(null);
 
   const card = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
   const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
@@ -62,9 +90,13 @@ export default function AdminPage() {
   const inputBg = isDark ? "rgba(255,255,255,0.04)" : "#fff";
 
   const inputStyle = {
-    padding: "12px 16px", borderRadius: 10,
-    background: inputBg, border: `1px solid ${border}`,
-    color: textMain, outline: "none", boxSizing: "border-box" as const,
+    padding: "12px 16px", 
+    borderRadius: 10,
+    background: inputBg, 
+    border: `1px solid ${border}`,
+    color: textMain, 
+    outline: "none", 
+    boxSizing: "border-box" as const,
   };
 
   useEffect(() => {
@@ -72,10 +104,52 @@ export default function AdminPage() {
     fetchPosts();
   }, []);
 
-  // 💡 차트 기간(chartPeriod)이 바뀔 때마다 데이터를 다시 불러옵니다.
-  useEffect(() => {
-    fetchChartData(chartPeriod);
-  }, [chartPeriod]);
+  useEffect(() => { fetchChartData(chartPeriod); }, [chartPeriod]);
+
+  const imageHandler = () => {
+    const input = document.createElement('input');
+    input.setAttribute('type', 'file');
+    input.setAttribute('accept', 'image/*');
+    input.click();
+
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (file) {
+        try {
+          const safeName = encodeFilename(file.name);
+          const fileName = `${Date.now()}---editor---${Math.random().toString(36).substr(2, 9)}---${safeName}`;
+          
+          const { error: upError } = await supabase.storage.from('images').upload(fileName, file);
+          if (upError) throw upError;
+
+          const url = supabase.storage.from('images').getPublicUrl(fileName).data.publicUrl;
+          
+          const quill = quillRef.current?.getEditor();
+          const range = quill?.getSelection();
+          quill?.insertEmbed(range?.index || 0, 'image', url);
+        } catch (err) {
+          alert("에디터 이미지 업로드에 실패했습니다.");
+        }
+      }
+    };
+  };
+
+  const modules = useMemo(() => ({
+    toolbar: {
+      container: [
+        [{ 'header': [1, 2, 3, false] }], 
+        [{ 'size': ['small', false, 'large', 'huge'] }], 
+        ['bold', 'italic', 'underline', 'strike'], 
+        [{ 'color': [] }, { 'background': [] }], 
+        [{ 'align': [] }], 
+        ['blockquote', 'code-block'], 
+        [{ 'list': 'ordered'}, { 'list': 'bullet' }], 
+        ['link', 'image', 'video'], 
+        ['clean'] 
+      ],
+      handlers: { image: imageHandler }
+    }
+  }), []);
 
   const fetchStats = async () => {
     const { count: v } = await supabase.from('page_views').select('*', { count: 'exact', head: true });
@@ -94,14 +168,11 @@ export default function AdminPage() {
     }
   };
 
-  // ── 💡 7일 / 30일 유동적 데이터 로딩 로직 ──
   const fetchChartData = async (period: number) => {
     const today = new Date();
     const days = [...Array(period)].map((_, i) => {
       const d = new Date();
       d.setDate(today.getDate() - ((period - 1) - i));
-      
-      // 30일일 경우 라벨이 겹치지 않게 일부 날짜만 표시
       let label = "";
       if (period === 7) {
         label = i === period - 1 ? "오늘" : `${d.getMonth() + 1}/${d.getDate()}`;
@@ -110,7 +181,6 @@ export default function AdminPage() {
           label = i === period - 1 ? "오늘" : `${d.getMonth() + 1}/${d.getDate()}`;
         }
       }
-
       return { fullDate: getLocalDateString(d), label, views: 0, cumulative: 0 };
     });
 
@@ -128,7 +198,6 @@ export default function AdminPage() {
         const day = days.find(d => d.fullDate === dateStr);
         if (day) day.views += 1;
       });
-
       days.forEach(day => {
         runningTotal += day.views;
         day.cumulative = runningTotal;
@@ -161,24 +230,22 @@ export default function AdminPage() {
     setCategory(post.category);
     setTitle(post.title);
     setContent(post.content);
-    setFile(null);
-    setRemoveExisting(false);
+    setFiles([]);
+    setExistingImages(post.image_url ? post.image_url.split(',') : []);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile && selectedFile.size > 5 * 1024 * 1024) {
-      alert("파일 크기는 5MB를 초과할 수 없습니다.");
-      return;
-    }
-    setFile(selectedFile || null);
-    setRemoveExisting(false);
+    const selectedFiles = Array.from(e.target.files || []);
+    const validFiles = selectedFiles.filter(f => f.size <= 10 * 1024 * 1024);
+    if (validFiles.length < selectedFiles.length) alert("10MB 이하의 파일만 첨부할 수 있습니다.");
+    setFiles(prev => [...prev, ...validFiles]);
+    e.target.value = ""; 
   };
 
   const handleSubmitClick = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !content) return alert("제목과 내용을 입력해주세요.");
+    if (!title || !content || content === "<p><br></p>") return alert("제목과 내용을 입력해주세요.");
     setShowModal({ show: true, type: 'save' });
   };
 
@@ -188,33 +255,40 @@ export default function AdminPage() {
       if (showModal.type === 'delete' && selectedPostId) {
         await supabase.from('posts').delete().eq('id', selectedPostId);
       } else if (showModal.type === 'save') {
-        let imageUrl = posts.find(p => p.id === editingId)?.image_url || null;
-        if (removeExisting) imageUrl = null;
-        if (file) {
-          const fileName = `${Date.now()}.${file.name.split('.').pop()}`;
-          await supabase.storage.from('images').upload(fileName, file);
-          imageUrl = supabase.storage.from('images').getPublicUrl(fileName).data.publicUrl;
+        
+        let imageUrls = [...existingImages];
+
+        if (files.length > 0) {
+          for (const f of files) {
+            const safeName = encodeFilename(f.name);
+            const fileName = `${Date.now()}---${Math.random().toString(36).substr(2, 9)}---${safeName}`;
+            
+            const { error: upError } = await supabase.storage.from('images').upload(fileName, f);
+            if (upError) throw upError;
+            
+            const url = supabase.storage.from('images').getPublicUrl(fileName).data.publicUrl;
+            imageUrls.push(url);
+          }
         }
+        
+        const finalImageUrl = imageUrls.length > 0 ? imageUrls.join(',') : null;
+
         if (editingId) {
-          await supabase.from('posts').update({ category, title, content, image_url: imageUrl }).eq('id', editingId);
+          await supabase.from('posts').update({ category, title, content, image_url: finalImageUrl }).eq('id', editingId);
         } else {
-          await supabase.from('posts').insert([{ category, title, content, image_url: imageUrl }]);
+          await supabase.from('posts').insert([{ category, title, content, image_url: finalImageUrl }]);
         }
-        setEditingId(null); setTitle(""); setContent(""); setFile(null); setRemoveExisting(false);
+        
+        setEditingId(null); setTitle(""); setContent(""); setFiles([]); setExistingImages([]);
       }
-      fetchPosts(); fetchStats(); fetchChartData(chartPeriod); // 수정 완료 후 차트도 새로고침
+      fetchPosts(); fetchStats(); fetchChartData(chartPeriod);
     } catch (err: any) { alert(err.message); }
     finally { setLoading(false); setShowModal({ show: false, type: null }); setSelectedPostId(null); }
   };
 
-  const existingImageUrl = editingId ? posts.find(p => p.id === editingId)?.image_url : null;
-  const showExistingImage = existingImageUrl && !removeExisting && !file;
-
   const maxViews = Math.max(...chartData.map(d => d.views), 1);
   const maxCumul = Math.max(...chartData.map(d => d.cumulative), 1);
   const chartW = 400, chartH = 150;
-  
-  // 데이터 개수에 맞춰 X축 간격을 자동 조절
   const getPoints = (key: 'views' | 'cumulative', max: number) => 
     chartData.map((d, i) => `${(i * (chartW / (chartPeriod - 1)))},${chartH - (d[key] / max * chartH)}`).join(" ");
 
@@ -226,9 +300,8 @@ export default function AdminPage() {
       <main style={{ flex: 1, width: "100%", maxWidth: "1100px", margin: "0 auto", padding: "120px 20px 80px 20px" }}>
         <h2 style={{ fontSize: "32px", fontWeight: 800, color: textMain, marginBottom: "40px" }}>관리 대시보드</h2>
 
-        {/* 요약 통계 카드 */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "24px", marginBottom: "40px" }}>
-          {[{ label: "누적 페이지뷰", value: stats.views, icon: "👁️" }, { label: "누적 방문자", value: stats.visitors, icon: "👥" }, { label: "전체 게시물", value: stats.posts, icon: "📝" }].map((item) => (
+          {[{ label: "누적 접속량", value: stats.views, icon: "👁️" }, { label: "누적 방문자", value: stats.visitors, icon: "👥" }, { label: "전체 게시물", value: stats.posts, icon: "📝" }].map((item) => (
             <div key={item.label} style={{ background: card, padding: "32px", borderRadius: "24px", border: `1px solid ${border}` }}>
               <div style={{ color: textMuted, fontSize: "14px", fontWeight: 600, marginBottom: "12px" }}>{item.icon} {item.label}</div>
               <div style={{ fontSize: "36px", fontWeight: 900, color: textMain }}>{item.value.toLocaleString()}</div>
@@ -236,73 +309,49 @@ export default function AdminPage() {
           ))}
         </div>
 
-        {/* ── 💡 차트 & 랭킹 섹션 ── */}
         <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr", gap: "24px", marginBottom: "60px" }}>
-          
-          {/* 방문 추이 차트 */}
           <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "24px", padding: "32px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
                 <h3 style={{ margin: 0, color: textMain, fontSize: "18px", fontWeight: 800 }}>📈 방문 및 누적 추이</h3>
-                
-                {/* 💡 7일 / 30일 토글 버튼 */}
                 <div style={{ display: "flex", background: isDark ? "rgba(255,255,255,0.05)" : "#f1f5f9", padding: "4px", borderRadius: "8px" }}>
                   <button onClick={() => setChartPeriod(7)} style={{ padding: "4px 12px", fontSize: "12px", fontWeight: 700, borderRadius: "6px", border: "none", cursor: "pointer", background: chartPeriod === 7 ? "#fff" : "transparent", color: chartPeriod === 7 ? "#4377F1" : textMuted, boxShadow: chartPeriod === 7 ? "0 2px 4px rgba(0,0,0,0.05)" : "none", transition: "all 0.2s" }}>7일</button>
                   <button onClick={() => setChartPeriod(30)} style={{ padding: "4px 12px", fontSize: "12px", fontWeight: 700, borderRadius: "6px", border: "none", cursor: "pointer", background: chartPeriod === 30 ? "#fff" : "transparent", color: chartPeriod === 30 ? "#4377F1" : textMuted, boxShadow: chartPeriod === 30 ? "0 2px 4px rgba(0,0,0,0.05)" : "none", transition: "all 0.2s" }}>30일</button>
                 </div>
               </div>
-
               <div style={{ display: "flex", gap: "12px", fontSize: "11px" }}>
-                <span style={{ color: "#4377F1" }}>● 일간</span>
-                <span style={{ color: "#20D6A2" }}>● 누적</span>
+                <span style={{ color: "#4377F1" }}>● 일간</span><span style={{ color: "#20D6A2" }}>● 누적</span>
               </div>
             </div>
-
             <div style={{ width: "100%", height: "180px", position: "relative" }}>
               <svg viewBox={`0 0 ${chartW} ${chartH}`} style={{ width: "100%", height: "100%", overflow: "visible" }}>
                 <polyline fill="none" stroke="#4377F1" strokeWidth="3" strokeLinejoin="round" points={getPoints('views', maxViews)} style={{ transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)" }} />
                 <polyline fill="none" stroke="#20D6A2" strokeWidth="3" strokeLinejoin="round" points={getPoints('cumulative', maxCumul)} style={{ transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)", strokeDasharray: "4 2" }} />
               </svg>
-              
-              {/* 💡 날짜 라벨 (30일일 때 겹치지 않도록 절대 위치 사용) */}
               <div style={{ position: "relative", height: "20px", marginTop: "12px" }}>
                 {chartData.map((d, i) => d.label && (
-                  <span key={d.fullDate} style={{ position: "absolute", left: `${(i / (chartPeriod - 1)) * 100}%`, transform: "translateX(-50%)", fontSize: "11px", color: textMuted, fontWeight: 700 }}>
-                    {d.label}
-                  </span>
+                  <span key={d.fullDate} style={{ position: "absolute", left: `${(i / (chartPeriod - 1)) * 100}%`, transform: "translateX(-50%)", fontSize: "11px", color: textMuted, fontWeight: 700 }}>{d.label}</span>
                 ))}
               </div>
             </div>
           </div>
-
-          {/* 인기 게시물 Top 5 */}
           <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "24px", padding: "32px" }}>
             <h3 style={{ margin: "0 0 24px 0", color: textMain, fontSize: "18px", fontWeight: 800 }}>🔥 인기 게시물 Top 5</h3>
             <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-              {topPosts.length === 0 ? (
-                <div style={{ color: textMuted, fontSize: "14px", textAlign: "center", padding: "20px" }}>데이터가 없습니다.</div>
-              ) : (
-                topPosts.map((post, i) => (
-                  <div key={post.id} style={{ display: "flex", alignItems: "center", gap: "12px", cursor: "pointer", transition: "transform 0.2s" }} onClick={() => navigate(`/post/${post.id}`)} onMouseEnter={(e) => e.currentTarget.style.transform = "translateX(4px)"} onMouseLeave={(e) => e.currentTarget.style.transform = "translateX(0)"}>
+              {topPosts.length === 0 ? <div style={{ color: textMuted, fontSize: "14px", textAlign: "center", padding: "20px" }}>데이터가 없습니다.</div> : topPosts.map((post, i) => (
+                  <div key={post.id} style={{ display: "flex", alignItems: "center", gap: "12px", cursor: "pointer", transition: "transform 0.2s" }} onClick={() => navigate(`/post/${post.id}`)}>
                     <div style={{ width: "24px", height: "24px", borderRadius: "6px", background: i < 3 ? "#4377F1" : border, color: i < 3 ? "#fff" : textMuted, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: 800, flexShrink: 0 }}>{i + 1}</div>
-                    
-                    {/* 💡 카테고리 배지 추가 */}
                     <div style={{ flex: 1, display: "flex", alignItems: "center", gap: "8px", overflow: "hidden" }}>
-                      <span style={{ fontSize: "10px", background: isDark ? "rgba(67, 119, 241, 0.15)" : "#eef2ff", color: "#4377F1", padding: "3px 6px", borderRadius: "6px", fontWeight: 700, whiteSpace: "nowrap" }}>
-                        {CATEGORIES.find(c => c.id === post.category)?.label}
-                      </span>
+                      <span style={{ fontSize: "10px", background: isDark ? "rgba(67, 119, 241, 0.15)" : "#eef2ff", color: "#4377F1", padding: "3px 6px", borderRadius: "6px", fontWeight: 700, whiteSpace: "nowrap" }}>{CATEGORIES.find(c => c.id === post.category)?.label}</span>
                       <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: textMain, fontSize: "14px", fontWeight: 600 }}>{post.title}</div>
                     </div>
-
                     <div style={{ fontSize: "12px", color: "#4377F1", fontWeight: 700, flexShrink: 0 }}>{post.views || 0}회</div>
                   </div>
-                ))
-              )}
+                ))}
             </div>
           </div>
         </div>
 
-        {/* 게시물 등록 폼 */}
         <form onSubmit={handleSubmitClick} style={{ background: card, border: `1px solid ${border}`, borderRadius: "24px", padding: "40px", display: "flex", flexDirection: "column", gap: "20px", marginBottom: "80px" }}>
           <h3 style={{ margin: 0, color: textMain, fontSize: "22px", fontWeight: 800 }}>{editingId ? "✨ 게시물 수정" : "📝 새 게시물 등록"}</h3>
           <div style={{ display: "flex", gap: "16px" }}>
@@ -311,38 +360,50 @@ export default function AdminPage() {
             </select>
             <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="제목을 입력하세요" style={{ ...inputStyle, flex: 1 }} required />
           </div>
-          <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder="내용을 입력하세요" style={{ ...inputStyle, minHeight: "200px", resize: "none" }} required />
           
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            {file ? (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px", background: inputBg, border: `1px solid ${border}`, borderRadius: "16px" }}>
+          <div className={isDark ? "quill-dark" : "quill-light"} style={{ background: inputBg, borderRadius: "10px", border: `1px solid ${border}`, overflow: "hidden" }}>
+            <ReactQuill
+              ref={quillRef}
+              theme="snow"
+              value={content}
+              onChange={setContent}
+              modules={modules}
+              placeholder="자유롭게 글과 이미지를 작성해 보세요!"
+            />
+          </div>
+          
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "20px" }}>
+            <p style={{ margin: 0, fontWeight: 700, fontSize: "14px", color: textMuted }}>별도 첨부파일 관리 (문서, PDF 등)</p>
+            {existingImages.map((url, idx) => (
+              <div key={`exist-${idx}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px", background: inputBg, border: `1px solid ${border}`, borderRadius: "12px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px", color: textMain }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4377F1" strokeWidth="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
+                  <span style={{ fontWeight: 600, fontSize: "14px" }}>{getFileNameFromUrl(url)}</span>
+                </div>
+                <button type="button" onClick={() => setExistingImages(prev => prev.filter((_, i) => i !== idx))} style={{ border: "none", background: "rgba(239, 68, 68, 0.1)", color: "#ef4444", padding: "6px 12px", borderRadius: "8px", cursor: "pointer", fontWeight: 700, fontSize: "13px" }}>삭제</button>
+              </div>
+            ))}
+
+            {files.map((f, idx) => (
+              <div key={`new-${idx}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px", background: inputBg, border: `1px solid ${border}`, borderRadius: "12px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "12px", color: textMain }}>
                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4377F1" strokeWidth="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
-                   <span style={{ fontWeight: 600 }}>{file.name}</span>
+                   <span style={{ fontWeight: 600, fontSize: "14px" }}>{f.name}</span>
                 </div>
-                <button type="button" onClick={() => setFile(null)} style={{ border: "none", background: "#fee2e2", color: "#ef4444", padding: "8px 12px", borderRadius: "8px", cursor: "pointer" }}>제거</button>
+                <button type="button" onClick={() => setFiles(prev => prev.filter((_, i) => i !== idx))} style={{ border: "none", background: "rgba(239, 68, 68, 0.1)", color: "#ef4444", padding: "6px 12px", borderRadius: "8px", cursor: "pointer", fontWeight: 700, fontSize: "13px" }}>취소</button>
               </div>
-            ) : showExistingImage ? (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px", background: inputBg, border: `1px solid ${border}`, borderRadius: "16px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "12px", color: textMain }}>
-                  <img src={existingImageUrl} alt="" style={{ width: "44px", height: "44px", borderRadius: "8px", objectFit: "cover" }} />
-                  <span style={{ fontWeight: 600 }}>{getFileNameFromUrl(existingImageUrl)}</span>
-                </div>
-                <button type="button" onClick={() => setRemoveExisting(true)} style={{ border: "none", background: "#fee2e2", color: "#ef4444", padding: "8px 12px", borderRadius: "8px", cursor: "pointer" }}>기존 파일 삭제</button>
-              </div>
-            ) : (
-              <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "50px 20px", background: isDark ? "rgba(255,255,255,0.02)" : "#fafafa", border: `2px dashed ${border}`, borderRadius: "20px", cursor: "pointer", color: textMain, gap: "12px" }}>
-                <input type="file" accept="image/*" onChange={handleFileChange} style={{ display: "none" }} />
-                <span style={{ fontWeight: 700, color: "#4377F1" }}>+ 이미지 파일 첨부</span>
-                <span style={{ fontSize: "13px", color: "gray" }}>최대 5MB / JPG, PNG 지원</span>
-              </label>
-            )}
+            ))}
+
+            <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "30px 20px", background: isDark ? "rgba(255,255,255,0.02)" : "#fafafa", border: `2px dashed ${border}`, borderRadius: "16px", cursor: "pointer", color: textMain, gap: "10px", transition: "all 0.2s" }}>
+              <input type="file" multiple onChange={handleFileChange} style={{ display: "none" }} />
+              <span style={{ fontWeight: 700, color: "#4377F1" }}>+ 파일 추가하기</span>
+              <span style={{ fontSize: "13px", color: textMuted }}>최대 10MB / 여러 파일 동시 선택 가능</span>
+            </label>
           </div>
 
-          <button type="submit" disabled={loading} style={{ padding: "18px", borderRadius: "16px", border: "none", background: "#4377F1", color: "#fff", fontWeight: 800, cursor: "pointer" }}>{loading ? "처리 중..." : editingId ? "변경사항 저장" : "게시물 등록하기"}</button>
+          <button type="submit" disabled={loading} style={{ padding: "18px", borderRadius: "16px", border: "none", background: "#4377F1", color: "#fff", fontWeight: 800, fontSize: "16px", cursor: "pointer", marginTop: "10px" }}>{loading ? "처리 중..." : editingId ? "변경사항 저장" : "게시물 등록하기"}</button>
         </form>
 
-        {/* 게시물 목록 관리 */}
         <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <h3 style={{ fontSize: "22px", fontWeight: 800, color: textMain }}>📦 게시물 관리 ({filteredPosts.length})</h3>
@@ -368,61 +429,59 @@ export default function AdminPage() {
                      <strong style={{ color: textMain, fontSize: "16px" }}>{post.title}</strong>
                    </div>
                    <div style={{ display: "flex", gap: "10px" }}>
-                     <button onClick={() => startEdit(post)} style={{ padding: "10px 18px", borderRadius: "10px", border: `1px solid ${border}`, background: "none", color: "#4377F1", fontWeight: 700, cursor: "pointer" }}>수정</button>
-                     <button onClick={() => handleDeleteClick(post.id)} style={{ padding: "10px 18px", borderRadius: "10px", border: "none", background: "#fee2e2", color: "#ef4444", fontWeight: 700, cursor: "pointer" }}>삭제</button>
+                     
+                     {/* 💡 잘려나갔던 버튼 부분 완벽 복구 완료! */}
+                     <button 
+                       onClick={() => startEdit(post)} 
+                       style={{ padding: "10px 18px", borderRadius: "10px", border: `1px solid ${border}`, background: "none", color: "#4377F1", fontWeight: 700, cursor: "pointer" }}
+                     >
+                       수정
+                     </button>
+                     
+                     <button 
+                       onClick={() => handleDeleteClick(post.id)} 
+                       style={{ padding: "10px 18px", borderRadius: "10px", border: "none", background: "#fee2e2", color: "#ef4444", fontWeight: 700, cursor: "pointer" }}
+                     >
+                       삭제
+                     </button>
+
                    </div>
                  </div>
                ))
             )}
           </div>
 
-          {/* 페이지네이션 */}
           {totalPages > 1 && (
             <div style={{ display: "flex", justifyContent: "center", gap: "8px", marginTop: "20px" }}>
-              <button 
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                style={{ padding: "8px 14px", borderRadius: "8px", border: `1px solid ${border}`, background: card, color: textMain, cursor: currentPage === 1 ? "not-allowed" : "pointer", fontWeight: 600 }}
-              >
-                이전
-              </button>
+              <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} style={{ padding: "8px 14px", borderRadius: "8px", border: `1px solid ${border}`, background: card, color: textMain, cursor: currentPage === 1 ? "not-allowed" : "pointer", fontWeight: 600 }}>이전</button>
               {[...Array(totalPages)].map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setCurrentPage(i + 1)}
-                  style={{ 
-                    padding: "8px 16px", borderRadius: "8px", cursor: "pointer",
-                    border: currentPage === i + 1 ? `1px solid #4377F1` : `1px solid ${border}`, 
-                    background: currentPage === i + 1 ? "#4377F1" : card, 
-                    color: currentPage === i + 1 ? "#fff" : textMain, 
-                    fontWeight: currentPage === i + 1 ? 800 : 500,
-                  }}
-                >
-                  {i + 1}
-                </button>
+                <button key={i} onClick={() => setCurrentPage(i + 1)} style={{ padding: "8px 16px", borderRadius: "8px", cursor: "pointer", border: currentPage === i + 1 ? `1px solid #4377F1` : `1px solid ${border}`, background: currentPage === i + 1 ? "#4377F1" : card, color: currentPage === i + 1 ? "#fff" : textMain, fontWeight: currentPage === i + 1 ? 800 : 500 }}>{i + 1}</button>
               ))}
-              <button 
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                style={{ padding: "8px 14px", borderRadius: "8px", border: `1px solid ${border}`, background: card, color: textMain, cursor: currentPage === totalPages ? "not-allowed" : "pointer", fontWeight: 600 }}
-              >
-                다음
-              </button>
+              <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} style={{ padding: "8px 14px", borderRadius: "8px", border: `1px solid ${border}`, background: card, color: textMain, cursor: currentPage === totalPages ? "not-allowed" : "pointer", fontWeight: 600 }}>다음</button>
             </div>
           )}
         </div>
       </main>
       <FooterSection isDark={isDark} />
 
-      {/* 모달 */}
       {showModal.show && (
         <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000 }}>
-          <div style={{ background: isDark ? "#1e293b" : "#fff", padding: "40px", borderRadius: "32px", textAlign: "center", maxWidth: "420px", width: "90%" }}>
-            <h2 style={{ color: textMain, marginBottom: "16px" }}>{showModal.type === 'delete' ? '🗑️ 게시물 삭제' : '✅ 작업 확인'}</h2>
-            <p style={{ color: textMuted, marginBottom: "32px", lineHeight: 1.6 }}>{showModal.type === 'delete' ? '이 게시물을 삭제하시겠습니까?\n이 작업은 취소할 수 없습니다.' : '내용을 게시판에 즉시 반영하시겠습니까?'}</p>
-            <div style={{ display: "flex", gap: "12px" }}>
-              <button onClick={handleConfirmAction} style={{ flex: 1, padding: "16px", borderRadius: "16px", border: "none", background: showModal.type === 'delete' ? "#ef4444" : "#4377F1", color: "#fff", fontWeight: 700, cursor: "pointer" }}>확인</button>
-              <button onClick={() => setShowModal({ show: false, type: null })} style={{ flex: 1, padding: "16px", borderRadius: "16px", border: `1px solid ${border}`, background: "none", color: textMain, cursor: "pointer" }}>취소</button>
+          <div style={{ background: isDark ? "#1e293b" : "#fff", padding: "40px 32px", borderRadius: 24, textAlign: "center", maxWidth: 400, width: "90%", boxShadow: "0 20px 40px rgba(0,0,0,0.2)" }}>
+            <h2 style={{ color: textMain, marginBottom: 12, fontSize: 22 }}>
+              {showModal.type === 'delete' ? '게시물 삭제' : editingId ? '변경사항 저장' : '새 게시물 등록'}
+            </h2>
+            <p style={{ color: textMuted, marginBottom: 32, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
+              {showModal.type === 'delete'
+                ? '정말로 이 게시물을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.'
+                : editingId ? '수정한 내용을 게시판에 즉시 적용하시겠습니까?' : '새 게시물을 즉시 등록하시겠습니까?'}
+            </p>
+            <div style={{ display: "flex", gap: 12 }}>
+              <button onClick={handleConfirmAction} disabled={loading} style={{ flex: 1, padding: 14, borderRadius: 12, border: "none", background: showModal.type === 'delete' ? "#ff4d4f" : "#4377F1", color: "#fff", fontWeight: 700, cursor: "pointer", opacity: loading ? 0.5 : 1 }}>
+                {loading ? "처리 중..." : "확인"}
+              </button>
+              <button onClick={() => setShowModal({ show: false, type: null })} disabled={loading} style={{ flex: 1, padding: 14, borderRadius: 12, border: `1px solid ${border}`, background: "none", color: textMain, cursor: "pointer" }}>
+                취소
+              </button>
             </div>
           </div>
         </div>

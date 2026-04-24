@@ -181,7 +181,8 @@ export function NewsletterSection({ isDark = false }: NewsletterSectionProps) {
                     {news.title}
                   </div>
                   <div style={{ color: th.itemDesc, fontSize: "12px", lineHeight: 1.55, marginBottom: "10px", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                    {news.content}
+                    {/* 💡 HTML 태그 제거 로직 적용 */}
+                    {(news.content || "").replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()}
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "4px", color: accentColor }}>
                     <span style={{ fontSize: "12px", fontWeight: 700 }}>읽기 (5분)</span>

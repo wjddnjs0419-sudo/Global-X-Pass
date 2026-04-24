@@ -117,7 +117,7 @@ export function ResourceSection({ isDark = false }: ResourceSectionProps) {
                   lineHeight: 1.6, display: "-webkit-box",
                   WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden"
                 }}>
-                  {item.content}
+                  {(item.content || "").replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()}
                 </p>
               </div>
 

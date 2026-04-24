@@ -5,42 +5,66 @@ import { supabase } from "../../lib/supabaseClient";
 
 interface CommunitySectionProps { isDark?: boolean; }
 
-// 💡 DB 카테고리명을 UI 스타일로 변환하는 지도
 const CAT_MAP: Record<string, any> = {
   notice: { label: "공지사항", color: "#FF4340", bg: "linear-gradient(135deg, #FF4340, #FF7C44)" },
-  blog: { label: "인사이트", color: "#FBBC05", bg: "linear-gradient(135deg, #FFEE56, #FFC2B4)" },
+  news: { label: "인사이트", color: "#FBBC05", bg: "linear-gradient(135deg, #FFEE56, #FFC2B4)" },
+  blog: { label: "블로그", color: "#A855F7", bg: "linear-gradient(135deg, #A855F7, #D8B4FE)" },
   events: { label: "행사소식", color: "#20D6A2", bg: "linear-gradient(135deg, #20D6A2, #BEFFF9)" },
+  "events-archive": { label: "행사소식", color: "#20D6A2", bg: "linear-gradient(135deg, #20D6A2, #BEFFF9)" },
   resources: { label: "자료실", color: "#4377F1", bg: "linear-gradient(135deg, #4377F1, #16DBBB)" },
+  faq: { label: "FAQ", color: "#9CA3AF", bg: "linear-gradient(135deg, #9CA3AF, #D1D5DB)" }
 };
 
-const CATEGORIES = ["전체", "공지사항", "인사이트", "행사소식", "자료실"];
+const TABS = [
+  { id: "all", label: "전체", path: "" },
+  { id: "notice", label: "공지사항", path: "/notice" },
+  { id: "news", label: "인사이트", path: "/news" },
+  { id: "blog", label: "블로그", path: "/blog" },
+  { id: "events", label: "행사소식", path: "/events" },
+  { id: "resources", label: "자료실", path: "/resources" },
+];
+
+const POSTS_PER_TAB = 8; 
 
 export function CommunitySection({ isDark = false }: CommunitySectionProps) {
   const th = getSectionTheme(isDark);
   const navigate = useNavigate();
-  const [activeCat, setActiveCat] = useState("전체");
-  const [allPosts, setAllPosts] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState("all");
+  
+  const [displayPosts, setDisplayPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchLatestPosts = async () => {
-      // 💡 모든 게시판에서 최신순으로 6개를 가져옵니다.
-      const { data } = await supabase
+    const fetchTabPosts = async () => {
+      setLoading(true);
+      
+      let query = supabase
         .from('posts')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(6);
-      
-      setAllPosts(data || []);
+        .limit(POSTS_PER_TAB);
+
+      if (activeTab === "notice") {
+        query = query.eq("category", "notice");
+      } else if (activeTab === "news") {
+        query = query.eq("category", "news");
+      } else if (activeTab === "blog") {
+        query = query.eq("category", "blog");
+      } else if (activeTab === "events") {
+        query = query.in("category", ["events", "events-archive"]);
+      } else if (activeTab === "resources") {
+        query = query.eq("category", "resources");
+      }
+
+      const { data } = await query;
+      setDisplayPosts(data || []);
       setLoading(false);
     };
-    fetchLatestPosts();
-  }, []);
 
-  // 💡 필터링 로직 (DB 카테고리와 한글 라벨 매칭)
-  const filteredPosts = activeCat === "전체" 
-    ? allPosts 
-    : allPosts.filter(p => CAT_MAP[p.category]?.label === activeCat);
+    fetchTabPosts();
+  }, [activeTab]);
+
+  const currentTabInfo = TABS.find(t => t.id === activeTab);
 
   return (
     <section id="community-section" style={{
@@ -61,7 +85,6 @@ export function CommunitySection({ isDark = false }: CommunitySectionProps) {
       }} />
 
       <div style={{ position: "relative", zIndex: 1, maxWidth: "1280px", margin: "0 auto" }}>
-        {/* Header */}
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: "40px", flexWrap: "wrap", gap: "16px" }}>
           <div>
             <h2 style={{ color: th.headingColor, fontSize: "clamp(24px,3vw,40px)", fontWeight: 800, margin: "0 0 8px", letterSpacing: "-1.2px", lineHeight: 1.15 }}>
@@ -71,25 +94,28 @@ export function CommunitySection({ isDark = false }: CommunitySectionProps) {
               통합 게시판에서 업데이트되는 모든 최신 소식을 확인하세요.
             </p>
           </div>
+          
           <div style={{ display: "flex", gap: "8px" }}>
-            <Link to="/blog" style={{
-              display: "inline-flex", alignItems: "center", gap: "6px",
-              color: isDark ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.5)",
-              fontSize: "13px", fontWeight: 700, textDecoration: "none",
-              padding: "8px 16px", background: th.tagBg,
-              border: `1px solid ${th.tagBorder}`, borderRadius: "100px",
-            }}>
-              전체보기
-            </Link>
+            {activeTab !== "all" && currentTabInfo?.path && (
+              <Link to={currentTabInfo.path} style={{
+                display: "inline-flex", alignItems: "center", gap: "6px",
+                color: isDark ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.5)",
+                fontSize: "13px", fontWeight: 700, textDecoration: "none",
+                padding: "8px 16px", background: th.tagBg,
+                border: `1px solid ${th.tagBorder}`, borderRadius: "100px",
+                transition: "all 0.2s"
+              }}>
+                {currentTabInfo.label} 전체보기
+              </Link>
+            )}
           </div>
         </div>
 
-        {/* Category filter pills */}
         <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "28px" }}>
-          {CATEGORIES.map((cat) => {
-            const active = cat === activeCat;
+          {TABS.map((tab) => {
+            const active = tab.id === activeTab;
             return (
-              <button key={cat} onClick={() => setActiveCat(cat)} style={{
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
                 fontSize: "12px", fontWeight: 700,
                 padding: "6px 14px", borderRadius: "100px",
                 background: active ? "#FBBC05" : th.pillBg,
@@ -97,22 +123,21 @@ export function CommunitySection({ isDark = false }: CommunitySectionProps) {
                 color: active ? "#fff" : th.pillText,
                 cursor: "pointer", transition: "background 0.2s ease, color 0.2s ease",
               }}>
-                {cat}
+                {tab.label}
               </button>
             );
           })}
         </div>
 
-        {/* Posts grid */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))", gap: "16px" }}>
           {loading ? (
-             <div style={{ gridColumn: "1 / -1", padding: "60px 0", textAlign: "center", color: th.mutedText }}>불러오는 중...</div>
-          ) : filteredPosts.map((post) => (
+             <div style={{ gridColumn: "1 / -1", padding: "60px 0", textAlign: "center", color: th.mutedText }}>데이터를 불러오는 중입니다...</div>
+          ) : displayPosts.map((post) => (
             <CommunityCard key={post.id} post={post} isDark={isDark} th={th} onClick={() => navigate(`/post/${post.id}`)} />
           ))}
-          {!loading && filteredPosts.length === 0 && (
-            <div style={{ gridColumn: "1 / -1", padding: "60px 20px", textAlign: "center", color: th.mutedText, fontSize: "13px" }}>
-              해당 카테고리의 게시물이 아직 없습니다.
+          {!loading && displayPosts.length === 0 && (
+            <div style={{ gridColumn: "1 / -1", padding: "60px 20px", textAlign: "center", color: th.mutedText, fontSize: "14px" }}>
+              해당 카테고리에 등록된 게시물이 없습니다.
             </div>
           )}
         </div>
@@ -122,9 +147,12 @@ export function CommunitySection({ isDark = false }: CommunitySectionProps) {
 }
 
 function CommunityCard({ post, isDark, th, onClick }: { post: any; isDark: boolean; th: any; onClick: () => void }) {
-  // 💡 디자인을 위해 임의의 메타데이터 생성 (작성자 등)
   const meta = CAT_MAP[post.category] || CAT_MAP.notice;
-  const initial = post.title.charAt(0);
+  
+  // 💡 [핵심] 정규식을 활용하여 HTML 태그(<p>, <img> 등)를 완벽하게 제거하고 순수 텍스트만 뽑아냅니다!
+  const plainTextContent = post.content 
+    ? post.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() 
+    : "";
 
   return (
     <div
@@ -144,7 +172,6 @@ function CommunityCard({ post, isDark, th, onClick }: { post: any; isDark: boole
         (e.currentTarget as HTMLDivElement).style.boxShadow = th.cardShadow;
       }}
     >
-      {/* Top row */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <span style={{
           fontSize: "10px", fontWeight: 800, letterSpacing: "0.5px",
@@ -153,35 +180,24 @@ function CommunityCard({ post, isDark, th, onClick }: { post: any; isDark: boole
         }}>{meta.label}</span>
       </div>
 
-      {/* Title & desc */}
       <div style={{ flex: 1 }}>
         <h4 style={{ color: th.itemTitle, fontSize: "14px", fontWeight: 800, margin: "0 0 8px", lineHeight: 1.4, letterSpacing: "-0.2px", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
           {post.title}
         </h4>
+        {/* 💡 정제된 순수 텍스트(plainTextContent)를 출력합니다. 내용이 없으면 안내 문구 출력 */}
         <p style={{ color: th.itemDesc, fontSize: "12px", margin: 0, lineHeight: 1.6, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-          {post.content}
+          {plainTextContent || "이미지 또는 첨부파일이 포함된 게시물입니다."}
         </p>
       </div>
 
-      {/* Author + Meta (디자인 보존을 위한 생성 로직) */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: "10px", borderTop: `1px solid ${th.rowDivider}` }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <div style={{
-            width: "28px", height: "28px", borderRadius: "50%",
-            background: meta.bg, display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: "11px", fontWeight: 800, color: "#fff", flexShrink: 0,
-          }}>
-            {initial}
-          </div>
-          <div>
-            <div style={{ color: th.itemTitle, fontSize: "12px", fontWeight: 700 }}>관리자</div>
-            <div style={{ color: th.mutedText, fontSize: "10px" }}>{new Date(post.created_at).toLocaleDateString()}</div>
-          </div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: "12px", borderTop: `1px solid ${th.rowDivider}` }}>
+        <div style={{ color: th.mutedText, fontSize: "12px", fontWeight: 500 }}>
+          {new Date(post.created_at).toLocaleDateString()}
         </div>
         <div style={{ display: "flex", gap: "10px" }}>
-           <span style={{ display: "flex", alignItems: "center", gap: "3px", color: th.mutedText, fontSize: "11px" }}>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-              {Math.floor(Math.random() * 500) + 50}
+           <span style={{ display: "flex", alignItems: "center", gap: "4px", color: th.mutedText, fontSize: "12px", fontWeight: 500 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              {post.views || 0}
             </span>
         </div>
       </div>

@@ -1,3 +1,81 @@
 @import './fonts.css';
 @import './tailwind.css';
 @import './theme.css';
+
+/* 💡 Quill 에디터 한국어 툴팁 설정 */
+.ql-snow .ql-tooltip::before { content: "링크 주소:" !important; }
+.ql-snow .ql-tooltip.ql-editing a.ql-action::after { content: "저장" !important; }
+.ql-snow .ql-tooltip a.ql-action::after { content: "수정" !important; }
+.ql-snow .ql-tooltip a.ql-remove::before { content: "제거" !important; }
+
+/* 💡 에디터 본문 폰트 및 기본 스타일 설정 */
+.ql-editor {
+  font-family: 'Pretendard', sans-serif !important;
+  font-size: 16px !important;
+  line-height: 1.8 !important;
+  /* 핵심 수정: !important를 제거하여 각 페이지(FAQ 등)에서 높이를 개별 조절할 수 있게 합니다. */
+  min-height: 400px; 
+}
+
+/* 💡 Tailwind CSS 초기화(Reset)로부터 에디터 서식 보호 */
+.ql-editor h1 { font-size: 2em !important; font-weight: 800 !important; margin-bottom: 0.5em !important; }
+.ql-editor h2 { font-size: 1.5em !important; font-weight: 800 !important; margin-bottom: 0.5em !important; }
+.ql-editor h3 { font-size: 1.17em !important; font-weight: 800 !important; margin-bottom: 0.5em !important; }
+.ql-editor ul { list-style-type: disc !important; padding-left: 1.5em !important; margin-bottom: 1em !important; }
+.ql-editor ol { list-style-type: decimal !important; padding-left: 1.5em !important; margin-bottom: 1em !important; }
+.ql-editor a { color: #4377F1 !important; text-decoration: underline !important; }
+
+/* 💡 에디터 내 이미지 최적화 및 정렬 지원 */
+.ql-editor img {
+  max-width: 100% !important;
+  height: auto !important;
+  border-radius: 8px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+.ql-editor .ql-align-center img { margin: 0 auto; display: block; }
+.ql-editor .ql-align-right img { margin-left: auto; margin-right: 0; display: block; }
+
+/* =========================================
+   💡 라이트 모드 전용 세팅 (.quill-light)
+========================================= */
+.quill-light .ql-editor,
+.quill-light .ql-editor * {
+  color: #0a1020;
+}
+.quill-light .ql-editor.ql-blank::before { color: #9ca3af !important; font-style: normal !important; }
+
+/* =========================================
+   💡 다크 모드 전용 세팅 (.quill-dark)
+========================================= */
+.quill-dark .ql-editor,
+.quill-dark .ql-editor * {
+  color: #f8fafc;
+}
+.quill-dark .ql-editor.ql-blank::before { color: #64748b !important; font-style: normal !important; }
+
+/* 다크모드 툴바 아이콘 및 드롭다운 색상 반전 */
+.quill-dark .ql-toolbar .ql-stroke { stroke: #f8fafc !important; }
+.quill-dark .ql-toolbar .ql-fill { fill: #f8fafc !important; }
+.quill-dark .ql-toolbar .ql-picker { color: #f8fafc !important; }
+
+.quill-dark .ql-toolbar .ql-picker:hover,
+.quill-dark .ql-toolbar button:hover .ql-stroke,
+.quill-dark .ql-toolbar .ql-active .ql-stroke { stroke: #4377F1 !important; }
+
+.quill-dark .ql-toolbar button:hover .ql-fill,
+.quill-dark .ql-toolbar .ql-active .ql-fill { fill: #4377F1 !important; }
+
+.quill-dark .ql-picker-options { background-color: #1e293b !important; border-color: #334155 !important; }
+
+/* 💡 공통: 툴바 테두리 디자인 깔끔하게 다듬기 */
+.ql-toolbar.ql-snow {
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: 1px solid rgba(150, 150, 150, 0.2) !important;
+  padding: 12px 15px !important;
+}
+.ql-container.ql-snow {
+  border: none !important;
+}
