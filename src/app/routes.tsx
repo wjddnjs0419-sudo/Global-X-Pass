@@ -1,4 +1,3 @@
-import { PostDetailPage } from "./pages/PostDetailPage";
 import { createBrowserRouter } from "react-router";
 import { RootLayout } from "./components/RootLayout";
 import { HomePage } from "./components/HomePage";
@@ -13,9 +12,11 @@ import { LoginPage } from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import { MyPage } from "./pages/MyPage";
 import { SearchPage } from "./pages/SearchPage";
-// 💡 1. 여기에 새 페이지를 불러오는 코드를 추가했습니다.
-import UpdatePasswordPage from "./pages/UpdatePasswordPage"; 
+import UpdatePasswordPage from "./pages/UpdatePasswordPage";
 import AdminPage from "./pages/AdminPage";
+import { AdminRoute } from "./components/AdminRoute";
+import { PostDetailPage } from "./pages/PostDetailPage";
+import { NotFoundPage } from "./pages/NotFoundPage";
 
 export const router = createBrowserRouter([
   {
@@ -34,11 +35,11 @@ export const router = createBrowserRouter([
       { path: "signup", Component: SignupPage },
       { path: "mypage", Component: MyPage },
       { path: "search", Component: SearchPage },
-      // 💡 2. 여기에 'update-password' 경로를 추가했습니다.
-      { path: "update-password", Component: UpdatePasswordPage }, 
-      { path: "admin", Component: AdminPage },
-      { path: "post/:id", Component: PostDetailPage }, 
+      { path: "update-password", Component: UpdatePasswordPage },
+      { path: "admin", Component: AdminRoute, children: [{ index: true, Component: AdminPage }] },
+      { path: "post/:id", Component: PostDetailPage },
       { path: "design-system", Component: () => null },
+      { path: "*", Component: NotFoundPage },
     ],
   },
 ]);

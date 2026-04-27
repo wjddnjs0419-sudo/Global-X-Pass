@@ -49,31 +49,38 @@ export default function UpdatePasswordPage() {
 
   return (
     <PageShell title="비밀번호 재설정" subtitle="새로운 비밀번호를 입력해주세요." accentColor="#4377F1">
-      <div style={{ display: "flex", justifyContent: "center" }}>
-        <form onSubmit={handleUpdate} style={{ width: "100%", maxWidth: 460, background: card, border: `1px solid ${border}`, borderRadius: 20, padding: "40px 36px", display: "flex", flexDirection: "column", gap: 16 }}>
+      <div className="flex justify-center">
+        <form onSubmit={handleUpdate} className="w-full max-w-[460px] rounded-[20px] px-9 py-10 flex flex-col gap-4 m-0" style={{ background: card, border: `1px solid ${border}` }}>
           
           <div>
-            <div style={{ fontSize: 13, color: textMuted, marginBottom: 6 }}>새 비밀번호 (8자 이상)</div>
-            <div style={{ position: "relative" }}>
+            <div className="text-[13px] mb-1.5" style={{ color: textMuted }}>새 비밀번호 (8자 이상)</div>
+            <div className="relative">
               <input 
                 type={showPassword ? "text" : "password"} 
                 value={newPassword} 
                 onChange={(e) => setNewPassword(e.target.value)} 
                 placeholder="••••••••" 
-                style={{ width: "100%", padding: "14px 16px", paddingRight: 40, borderRadius: 12, background: inputBg, border: `1px solid ${inputBorder}`, color: textMain, fontSize: 14, outline: "none", boxSizing: "border-box" }} 
+                className="w-full pl-4 pr-10 py-[14px] rounded-xl text-[14px] outline-none box-border"
+                style={{ background: inputBg, border: `1px solid ${inputBorder}`, color: textMain }} 
                 required 
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: textMuted, display: "flex", alignItems: "center", padding: 0 }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 bg-none border-none cursor-pointer flex items-center p-0"
+                style={{ color: textMuted }}
               >
                 {showPassword ? <EyeOffIcon /> : <EyeIcon />}
               </button>
             </div>
           </div>
 
-          <button type="submit" disabled={loading} style={{ marginTop: 8, padding: "14px 0", borderRadius: 12, border: "none", background: loading ? "gray" : "linear-gradient(135deg, #4377F1 0%, #20D6A2 100%)", color: "#fff", fontSize: 15, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", boxShadow: loading ? "none" : "0 8px 24px rgba(67,119,241,0.3)" }}>
+          <button 
+            type="submit" 
+            disabled={loading} 
+            className={`mt-2 py-[14px] rounded-xl border-none text-white text-[15px] font-bold ${loading ? "bg-gray-500 cursor-not-allowed shadow-none" : "cursor-pointer shadow-[0_8px_24px_rgba(67,119,241,0.3)]"}`}
+            style={{ background: loading ? undefined : "linear-gradient(135deg, #4377F1 0%, #20D6A2 100%)" }}
+          >
             {loading ? "처리 중..." : "비밀번호 변경하기"}
           </button>
         </form>

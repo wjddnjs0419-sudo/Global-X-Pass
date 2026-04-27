@@ -3,40 +3,16 @@ import { Link } from "react-router";
 import { supabase } from "../../lib/supabaseClient";
 import { PageShell } from "../components/PageShell";
 import { useTheme } from "../ThemeContext";
-
-const decodeFilename = (encoded: string) => {
-  if (encoded.startsWith('b64-')) {
-    try {
-      let b64 = encoded.substring(4).replace(/-/g, '+').replace(/_/g, '/');
-      while (b64.length % 4 !== 0) b64 += '=';
-      return decodeURIComponent(atob(b64));
-    } catch { return encoded; }
-  }
-  return decodeURIComponent(encoded);
-};
-
-const getFileNameFromUrl = (url: string) => {
-  try {
-    const path = url.split('?')[0];
-    let filename = path.split('/').pop() || "";
-    if (filename.includes('---')) filename = filename.split('---').pop()!;
-    else if (filename.match(/^\d+_[a-z0-9]+_/)) filename = filename.split('_').slice(2).join('_');
-    return decodeFilename(filename);
-  } catch { return ""; }
-};
-
-const isImage = (url: string) => {
-  const fileName = getFileNameFromUrl(url);
-  if (fileName.match(/\.(jpeg|jpg|gif|png|webp|avif|svg|jfif|pjpeg|pjp|bmp|heic|heif)$/i)) return true;
-  if (url.match(/\.(jpeg|jpg|gif|png|webp|avif|svg|jfif|pjpeg|pjp|bmp|heic|heif)(?:\?.*)?$/i)) return true;
-  if (url.includes('unsplash.com') || url.includes('picsum.photos') || url.includes('placeholder.com')) return true;
-  return false;
-};
+import { LoadingSpinner, ErrorMessage } from "../components/LoadingSpinner";
+import { isImage } from "../../utils/file";
+import { cleanText } from "../../utils/text";
+import type { Post } from "../../lib/types";
 
 export function NoticePage() {
   const { isDark } = useTheme();
-  const [posts, setPosts] = useState<any[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   const card = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
   const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
@@ -45,12 +21,12 @@ export function NoticePage() {
   useEffect(() => {
     const fetchPosts = async () => {
       const { data, error } = await supabase
-        .from('posts')
-        .select('*')
-        .eq('category', 'notice') 
-        .order('created_at', { ascending: false });
-
-      if (data) setPosts(data);
+        .from("posts")
+        .select("*")
+        .eq("category", "notice")
+        .order("created_at", { ascending: false });
+      if (error) setError(true);
+      else setPosts(data as Post[]);
       setLoading(false);
     };
     fetchPosts();
@@ -58,49 +34,41 @@ export function NoticePage() {
 
   return (
     <PageShell title="공지사항" subtitle="NCF의 새로운 소식과 안내 사항을 확인하세요.">
-      <div style={{ maxWidth: 900, margin: "0 auto", paddingBottom: 100 }}>
+      <div className="max-w-[900px] mx-auto pb-[100px]">
         {loading ? (
-          <p style={{ textAlign: "center", color: "gray", padding: "80px 0" }}>불러오는 중입니다...</p>
+          <LoadingSpinner />
+        ) : error ? (
+          <ErrorMessage />
         ) : posts.length === 0 ? (
-          <p style={{ textAlign: "center", color: "gray", padding: "80px 0" }}>등록된 공지사항이 없습니다.</p>
+          <p className="text-center text-gray-500 py-[80px]">등록된 공지사항이 없습니다.</p>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div className="flex flex-col gap-4">
             {posts.map((post) => {
-              const attachmentImages = post.image_url?.split(',').filter(isImage) || [];
-              const thumbnailUrl = attachmentImages.length > 0 ? attachmentImages[0] : (post.content?.match(/<img[^>]+src="([^">]+)"/) || [])[1];
+              const attachmentImages = post.image_url?.split(",").filter(isImage) || [];
+              const thumbnailUrl = attachmentImages[0] ?? (post.content?.match(/<img[^>]+src="([^">]+)"/) || [])[1];
 
               return (
-                <Link 
-                  key={post.id} 
-                  to={`/post/${post.id}`} 
-                  style={{ 
-                    background: card, border: `1px solid ${border}`, borderRadius: 20, 
-                    padding: "24px", display: "flex", gap: 24, textDecoration: "none",
-                    transition: "all 0.2s ease-in-out",
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-4px)"}
-                  onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0)"}
+                <Link
+                  key={post.id}
+                  to={`/post/${post.id}`}
+                  className="rounded-[20px] p-6 flex gap-6 no-underline transition-all duration-200 ease-in-out hover:-translate-y-1"
+                  style={{ background: card, border: `1px solid ${border}` }}
                 >
                   {thumbnailUrl && (
-                    <img 
-                      src={thumbnailUrl} 
-                      alt="" 
-                      style={{ width: 140, height: 100, objectFit: "cover", borderRadius: 12, background: "#f8fafc" }} 
-                    />
+                    <img src={thumbnailUrl} alt="" className="w-[140px] h-[100px] object-cover rounded-xl bg-slate-50" />
                   )}
-                  
-                  <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                    <strong style={{ display: "block", fontSize: "19px", color: textMain, marginBottom: 10, fontWeight: 700 }}>
+                  <div className="flex-1 flex flex-col justify-center">
+                    <strong className="block text-[19px] mb-2.5 font-bold" style={{ color: textMain }}>
                       {post.title}
                     </strong>
-                    <p style={{ 
-                      margin: 0, fontSize: "15px", color: "gray", lineHeight: "1.6",
-                      display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" 
-                    }}>
-                      {(post.content || "").replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()}
+                    <p 
+                      className="m-0 text-[15px] text-gray-500 leading-[1.6] overflow-hidden" 
+                      style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}
+                    >
+                      {cleanText(post.content)}
                     </p>
-                    <div style={{ marginTop: 14, fontSize: "13px", color: "rgba(128,128,128,0.6)", fontWeight: 500 }}>
-                      {new Date(post.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
+                    <div className="mt-[14px] text-[13px] text-gray-500/60 font-medium">
+                      {new Date(post.created_at).toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" })}
                     </div>
                   </div>
                 </Link>

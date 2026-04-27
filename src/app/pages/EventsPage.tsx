@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { supabase } from "../../lib/supabaseClient";
 import { PageShell } from "../components/PageShell";
 import { useTheme } from "../ThemeContext";
+import { LoadingSpinner, ErrorMessage } from "../components/LoadingSpinner";
 
 const decodeFilename = (encoded: string) => {
   if (encoded.startsWith('b64-')) {
@@ -37,6 +38,7 @@ export function EventsPage() {
   const { isDark } = useTheme();
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   const card = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
   const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
@@ -44,8 +46,9 @@ export function EventsPage() {
 
   useEffect(() => {
     const fetchPosts = async () => {
-      const { data } = await supabase.from('posts').select('*').eq('category', 'events').order('created_at', { ascending: false });
-      if (data) setPosts(data);
+      const { data, error } = await supabase.from('posts').select('*').eq('category', 'events').order('created_at', { ascending: false });
+      if (error) setError(true);
+      else if (data) setPosts(data);
       setLoading(false);
     };
     fetchPosts();
@@ -53,20 +56,30 @@ export function EventsPage() {
 
   return (
     <PageShell title="행사" subtitle="NCF에서 진행하는 다양한 이벤트와 프로그램을 확인해 보세요.">
-      <div style={{ maxWidth: 900, margin: "0 auto", paddingBottom: 100 }}>
-        {loading ? ( <p style={{ textAlign: "center", color: "gray", padding: "80px 0" }}>불러오는 중입니다...</p> ) : posts.length === 0 ? ( <p style={{ textAlign: "center", color: "gray", padding: "80px 0" }}>현재 진행 중인 행사가 없습니다.</p> ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div className="max-w-[900px] mx-auto pb-[100px]">
+        {loading ? ( <LoadingSpinner /> ) : error ? ( <ErrorMessage /> ) : posts.length === 0 ? ( <p className="text-center text-gray-500 py-[80px]">현재 진행 중인 행사가 없습니다.</p> ) : (
+          <div className="flex flex-col gap-4">
             {posts.map((post) => {
               const attachmentImages = post.image_url?.split(',').filter(isImage) || [];
               const thumbnailUrl = attachmentImages.length > 0 ? attachmentImages[0] : (post.content?.match(/<img[^>]+src="([^">]+)"/) || [])[1];
 
               return (
-                <Link key={post.id} to={`/post/${post.id}`} style={{ background: card, border: `1px solid ${border}`, borderRadius: 20, padding: "24px", display: "flex", gap: 24, textDecoration: "none", transition: "all 0.2s ease" }} onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-4px)"} onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0)"}>
-                  {thumbnailUrl && <img src={thumbnailUrl} alt="" style={{ width: 140, height: 100, objectFit: "cover", borderRadius: 12 }} />}
-                  <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                    <strong style={{ display: "block", fontSize: "19px", color: textMain, marginBottom: 10, fontWeight: 700 }}>{post.title}</strong>
-                    <p style={{ margin: 0, fontSize: "15px", color: "gray", lineHeight: "1.6", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{(post.content || "").replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()}</p>
-                    <div style={{ marginTop: 14, fontSize: "13px", color: "rgba(128,128,128,0.6)" }}>{new Date(post.created_at).toLocaleDateString()}</div>
+                <Link 
+                  key={post.id} 
+                  to={`/post/${post.id}`} 
+                  className="rounded-[20px] p-6 flex gap-6 no-underline transition-all duration-200 ease-out hover:-translate-y-1"
+                  style={{ background: card, border: `1px solid ${border}` }}
+                >
+                  {thumbnailUrl && <img src={thumbnailUrl} alt="" className="w-[140px] h-[100px] object-cover rounded-xl" />}
+                  <div className="flex-1 flex flex-col justify-center">
+                    <strong className="block text-[19px] mb-2.5 font-bold" style={{ color: textMain }}>{post.title}</strong>
+                    <p 
+                      className="m-0 text-[15px] text-gray-500 leading-[1.6] overflow-hidden" 
+                      style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}
+                    >
+                      {(post.content || "").replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()}
+                    </p>
+                    <div className="mt-[14px] text-[13px] text-gray-500/60">{new Date(post.created_at).toLocaleDateString()}</div>
                   </div>
                 </Link>
               );

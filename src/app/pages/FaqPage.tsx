@@ -2,14 +2,14 @@ import { useState, useEffect } from "react";
 import { PageShell } from "../components/PageShell";
 import { useTheme } from "../ThemeContext";
 import { supabase } from "../../lib/supabaseClient";
-
-// 💡 스타일 적용을 위해 에디터 CSS 임포트
+import { LoadingSpinner, ErrorMessage } from "../components/LoadingSpinner";
 import 'react-quill/dist/quill.snow.css';
 
 export function FaqPage() {
   const { isDark } = useTheme();
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
 
   const card = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
@@ -19,13 +19,13 @@ export function FaqPage() {
 
   useEffect(() => {
     const fetchPosts = async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('posts')
         .select('*')
         .eq('category', 'faq')
         .order('created_at', { ascending: false });
-      
-      if (data) setPosts(data);
+      if (error) setError(true);
+      else if (data) setPosts(data);
       setLoading(false);
     };
     fetchPosts();
@@ -33,39 +33,46 @@ export function FaqPage() {
 
   return (
     <PageShell title="자주 묻는 질문" subtitle="궁금하신 점을 카테고리별로 빠르게 찾아보세요.">
-      <div style={{ maxWidth: 800, margin: "0 auto", paddingBottom: 100 }}>
+      <div className="max-w-[800px] mx-auto pb-[100px]">
         {loading ? (
-          <p style={{ textAlign: "center", color: "gray", padding: "80px 0" }}>데이터를 불러오는 중입니다...</p>
+          <LoadingSpinner />
+        ) : error ? (
+          <ErrorMessage />
         ) : posts.length === 0 ? (
-          <p style={{ textAlign: "center", color: "gray", padding: "80px 0" }}>등록된 FAQ가 없습니다.</p>
+          <p className="text-center text-gray-500 py-[80px]">등록된 FAQ가 없습니다.</p>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div className="flex flex-col gap-4">
             {posts.map((post) => {
               const isOpen = openId === post.id;
               return (
-                <div key={post.id} style={{ background: card, border: `1px solid ${border}`, borderRadius: 20, overflow: "hidden", transition: "all 0.3s ease" }}>
+                <div 
+                  key={post.id} 
+                  className="rounded-[20px] overflow-hidden transition-all duration-300 ease-in-out" 
+                  style={{ background: card, border: `1px solid ${border}` }}
+                >
                   <div 
                     onClick={() => setOpenId(isOpen ? null : post.id)}
-                    style={{ padding: "28px 32px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", background: isOpen ? (isDark ? "rgba(255,255,255,0.02)" : "#fcfcfc") : "transparent" }}
+                    className="px-8 py-7 flex items-center justify-between cursor-pointer"
+                    style={{ background: isOpen ? (isDark ? "rgba(255,255,255,0.02)" : "#fcfcfc") : "transparent" }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                      <span style={{ color: "#4377F1", fontWeight: 800, fontSize: 20 }}>Q.</span>
-                      <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: textMain }}>{post.title}</h2>
+                    <div className="flex items-center gap-4">
+                      <span className="text-[#4377F1] font-extrabold text-[20px]">Q.</span>
+                      <h2 className="m-0 text-[17px] font-bold" style={{ color: textMain }}>{post.title}</h2>
                     </div>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={textMuted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.3s" }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={textMuted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform duration-300" style={{ transform: isOpen ? "rotate(180deg)" : "rotate(0deg)" }}>
                       <polyline points="6 9 12 15 18 9"></polyline>
                     </svg>
                   </div>
                   
                   {isOpen && (
-                    <div style={{ padding: "0 32px 32px", borderTop: `1px solid ${border}`, background: isDark ? "rgba(255,255,255,0.01)" : "#fafafa" }}>
-                      <div style={{ paddingTop: 24, display: "flex", gap: 16 }}>
-                        <span style={{ color: textMuted, fontWeight: 800, fontSize: 20 }}>A.</span>
-                        <div className={isDark ? "quill-dark" : "quill-light"} style={{ flex: 1 }}>
+                    <div className="px-8 pb-8" style={{ borderTop: `1px solid ${border}`, background: isDark ? "rgba(255,255,255,0.01)" : "#fafafa" }}>
+                      <div className="pt-6 flex gap-4">
+                        <span className="font-extrabold text-[20px]" style={{ color: textMuted }}>A.</span>
+                        <div className={`flex-1 ${isDark ? "quill-dark" : "quill-light"}`}>
                           {/* 💡 minHeight를 unset으로 설정하여 내용 길이에 따라 높이가 적응되도록 수정 */}
                           <div 
-                            className="ql-editor" 
-                            style={{ padding: 0, margin: 0, color: textMain, fontSize: 15, opacity: 0.8, lineHeight: 1.7, minHeight: "unset" }} 
+                            className="ql-editor p-0 m-0 text-[15px] opacity-80 leading-[1.7] min-h-0" 
+                            style={{ color: textMain }} 
                             dangerouslySetInnerHTML={{ __html: post.content }} 
                           />
                         </div>

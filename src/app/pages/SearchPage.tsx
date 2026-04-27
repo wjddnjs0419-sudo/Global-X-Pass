@@ -42,12 +42,10 @@ export function SearchPage() {
     <PageShell title="통합 검색" subtitle="공지·행사·자료·뉴스레터를 한 번에 검색하세요." accentColor="#4377F1">
       {/* Search box */}
       <div
+        className="flex items-center gap-3 rounded-2xl py-2 pl-5 pr-2 mb-6"
         style={{
-          display: "flex", alignItems: "center", gap: 12,
           background: inputBg, border: `1px solid ${inputBorder}`,
-          borderRadius: 16, padding: "8px 8px 8px 20px",
           boxShadow: isDark ? "none" : "0 4px 24px rgba(0,0,0,0.04)",
-          marginBottom: 24,
         }}
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={textMuted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -58,30 +56,21 @@ export function SearchPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="검색어를 입력하세요 (예: 데모데이, IR 템플릿, 동남아)"
-          style={{
-            flex: 1, background: "transparent", border: "none", outline: "none",
-            color: textMain, fontSize: 15, padding: "14px 0",
-            fontFamily: "'Pretendard', sans-serif",
-          }}
+          className="flex-1 bg-transparent border-none outline-none text-[15px] py-[14px] font-['Pretendard',sans-serif]"
+          style={{ color: textMain }}
         />
         {query && (
           <button
             onClick={() => setQuery("")}
-            style={{
-              background: "transparent", border: "none", cursor: "pointer",
-              color: textMuted, fontSize: 18, padding: "0 8px",
-            }}
+            className="bg-transparent border-none cursor-pointer text-[18px] px-2"
+            style={{ color: textMuted }}
           >
             ×
           </button>
         )}
         <button
-          style={{
-            padding: "12px 22px", borderRadius: 12, border: "none",
-            background: "linear-gradient(135deg, #4377F1 0%, #20D6A2 100%)",
-            color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer",
-            fontFamily: "'Pretendard', sans-serif",
-          }}
+          className="px-[22px] py-3 rounded-xl border-none text-white text-[14px] font-bold cursor-pointer font-['Pretendard',sans-serif]"
+          style={{ background: "linear-gradient(135deg, #4377F1 0%, #20D6A2 100%)" }}
         >
           검색
         </button>
@@ -89,18 +78,14 @@ export function SearchPage() {
 
       {/* Popular */}
       {!query && (
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 28 }}>
-          <span style={{ fontSize: 12, color: textMuted, fontWeight: 700, letterSpacing: "0.06em" }}>인기 검색어</span>
+        <div className="flex items-center gap-2.5 flex-wrap mb-7">
+          <span className="text-[12px] font-bold tracking-[0.06em]" style={{ color: textMuted }}>인기 검색어</span>
           {POPULAR.map((p) => (
             <button
               key={p}
               onClick={() => setQuery(p)}
-              style={{
-                padding: "6px 14px", borderRadius: 100, border: `1px solid ${border}`,
-                background: card, color: textMain,
-                fontSize: 13, fontWeight: 500, cursor: "pointer",
-                fontFamily: "'Pretendard', sans-serif",
-              }}
+              className="px-3.5 py-1.5 rounded-full text-[13px] font-medium cursor-pointer font-['Pretendard',sans-serif]"
+              style={{ border: `1px solid ${border}`, background: card, color: textMain }}
             >
               #{p}
             </button>
@@ -109,18 +94,15 @@ export function SearchPage() {
       )}
 
       {/* Filter chips */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
+      <div className="flex gap-2 mb-6 flex-wrap">
         {FILTERS.map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
+            className="px-[18px] py-[7px] rounded-full border-none cursor-pointer font-['Pretendard',sans-serif] text-[13px] font-semibold transition-all duration-200 ease-in-out"
             style={{
-              padding: "7px 18px", borderRadius: 100, border: "none", cursor: "pointer",
-              fontFamily: "'Pretendard', sans-serif",
-              fontSize: 13, fontWeight: 600,
               background: filter === f ? "#4377F1" : isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)",
               color: filter === f ? "#fff" : textMuted,
-              transition: "all 0.2s ease",
             }}
           >
             {f}
@@ -129,7 +111,7 @@ export function SearchPage() {
       </div>
 
       {/* Result count */}
-      <div style={{ fontSize: 13, color: textMuted, marginBottom: 14 }}>
+      <div className="text-[13px] mb-3.5" style={{ color: textMuted }}>
         총 <strong style={{ color: textMain }}>{results.length}</strong>건의 결과
         {query && <> · 검색어 “<strong style={{ color: "#4377F1" }}>{query}</strong>”</>}
       </div>
@@ -137,50 +119,41 @@ export function SearchPage() {
       {/* Results */}
       {results.length === 0 ? (
         <div
+          className="rounded-[18px] text-center"
           style={{
             background: card, border: `1px solid ${border}`,
-            borderRadius: 18, padding: "clamp(40px, 8vw, 60px) clamp(20px, 5vw, 32px)", textAlign: "center",
+            padding: "clamp(40px, 8vw, 60px) clamp(20px, 5vw, 32px)",
           }}
         >
-          <div style={{ fontSize: 40, marginBottom: 12 }}>🔍</div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: textMain, marginBottom: 6 }}>검색 결과가 없습니다</div>
-          <div style={{ fontSize: 13, color: textMuted }}>다른 검색어 또는 필터를 시도해 보세요.</div>
+          <div className="text-[40px] mb-3">🔍</div>
+          <div className="text-[16px] font-bold mb-1.5" style={{ color: textMain }}>검색 결과가 없습니다</div>
+          <div className="text-[13px]" style={{ color: textMuted }}>다른 검색어 또는 필터를 시도해 보세요.</div>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div className="flex flex-col gap-3">
           {results.map((r) => (
             <Link
               key={r.id}
               to={r.to}
-              style={{
-                display: "block", padding: "20px 24px", borderRadius: 14,
-                background: card, border: `1px solid ${border}`,
-                textDecoration: "none", color: "inherit",
-                transition: "border-color 0.2s ease, transform 0.2s ease",
-              }}
+              className="block px-6 py-5 rounded-[14px] no-underline text-inherit transition-all duration-200 ease-in-out hover:translate-x-[3px]"
+              style={{ background: card, border: `1px solid ${border}` }}
               onMouseEnter={(e) => {
                 const el = e.currentTarget as HTMLAnchorElement;
                 el.style.borderColor = r.color;
-                el.style.transform = "translateX(3px)";
               }}
               onMouseLeave={(e) => {
                 const el = e.currentTarget as HTMLAnchorElement;
                 el.style.borderColor = border;
-                el.style.transform = "translateX(0)";
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                <span style={{
-                  padding: "3px 10px", borderRadius: 100,
-                  background: `${r.color}1A`, color: r.color,
-                  fontSize: 11, fontWeight: 700,
-                }}>{r.type}</span>
-                <span style={{ fontSize: 12, color: textMuted }}>{r.to}</span>
+              <div className="flex items-center gap-2.5 mb-2">
+                <span className="px-2.5 py-1 rounded-full text-[11px] font-bold" style={{ background: `${r.color}1A`, color: r.color }}>{r.type}</span>
+                <span className="text-[12px]" style={{ color: textMuted }}>{r.to}</span>
               </div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: textMain, marginBottom: 4, letterSpacing: "-0.02em" }}>
+              <div className="text-[16px] font-bold mb-1 tracking-[-0.02em]" style={{ color: textMain }}>
                 {highlight(r.title, query, r.color)}
               </div>
-              <div style={{ fontSize: 13, color: textMuted, lineHeight: 1.6 }}>
+              <div className="text-[13px] leading-[1.6]" style={{ color: textMuted }}>
                 {highlight(r.desc, query, r.color)}
               </div>
             </Link>
@@ -199,7 +172,7 @@ function highlight(text: string, q: string, color: string) {
   return (
     <>
       {text.slice(0, idx)}
-      <mark style={{ background: `${color}33`, color, padding: "0 2px", borderRadius: 4 }}>{text.slice(idx, end)}</mark>
+      <mark className="px-0.5 rounded-[4px]" style={{ background: `${color}33`, color }}>{text.slice(idx, end)}</mark>
       {text.slice(end)}
     </>
   );

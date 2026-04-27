@@ -7,57 +7,20 @@ import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 
 import { HeaderSection } from "../components/HeaderSection";
-import { FooterSection } from "../components/FooterSection";
-
-const CATEGORIES = [
-  { id: "notice", label: "공지사항" },
-  { id: "news", label: "뉴스" },
-  { id: "events", label: "행사" },
-  { id: "events-archive", label: "행사 아카이브" },
-  { id: "resources", label: "자료실" },
-  { id: "blog", label: "블로그" },
-  { id: "faq", label: "FAQ" },
-];
-
-const encodeFilename = (name: string) => {
-  const b64 = btoa(encodeURIComponent(name));
-  return "b64-" + b64.replace(/\+/g, '-',).replace(/\//g, '_').replace(/=/g, '');
-};
-
-const decodeFilename = (encoded: string) => {
-  if (encoded.startsWith('b64-')) {
-    try {
-      let b64 = encoded.substring(4).replace(/-/g, '+').replace(/_/g, '/');
-      while (b64.length % 4 !== 0) b64 += '=';
-      return decodeURIComponent(atob(b64));
-    } catch { return encoded; }
-  }
-  return decodeURIComponent(encoded);
-};
-
-const getFileNameFromUrl = (url: string | null) => {
-  if (!url) return "첨부된 파일";
-  try {
-    const path = url.split('?')[0];
-    let filename = path.split('/').pop() || "첨부된 파일";
-    if (filename.includes('---')) {
-      filename = filename.split('---').pop()!;
-    } else if (filename.match(/^\d+_[a-z0-9]+_/)) {
-      const parts = filename.split('_');
-      filename = parts.slice(2).join('_');
-    }
-    return decodeFilename(filename);
-  } catch { return "첨부된 파일"; }
-};
-
-const getLocalDateString = (d: Date) => {
-  const offset = d.getTimezoneOffset() * 60000;
-  return new Date(d.getTime() - offset).toISOString().split('T')[0];
-};
+import { encodeFilename, getFileNameFromUrl } from "../../utils/file";
+import { CATEGORIES, getLocalDateString } from "../components/admin/adminConstants";
+import { NotificationBell } from "../components/admin/NotificationBell";
+import { AdminDashboard } from "../components/admin/AdminDashboard";
+import { AdminUserManagement } from "../components/admin/AdminUserManagement";
+import { AdminPostCreate } from "../components/admin/AdminPostCreate";
+import { AdminPostManage } from "../components/admin/AdminPostManage";
 
 export default function AdminPage() {
   const { isDark } = useTheme();
   const navigate = useNavigate();
+
+  // 상단 탭 상태
+  const [activeTab, setActiveTab] = useState<"dashboard" | "users" | "create" | "manage">("dashboard");
 
   const [stats, setStats] = useState({ views: 0, posts: 0, visitors: 0 });
   const [category, setCategory] = useState("notice");
@@ -81,27 +44,38 @@ export default function AdminPage() {
   const [chartData, setChartData] = useState<{ fullDate: string; label: string; views: number; cumulative: number }[]>([]);
   const [topPosts, setTopPosts] = useState<any[]>([]);
 
+  // 회원 관리용 상태
+  const [users, setUsers] = useState<any[]>([]);
+  const [currentUsersPage, setCurrentUsersPage] = useState(1);
+  const usersPerPage = 10;
+  const [csvLoading, setCsvLoading] = useState(false);
+
   const quillRef = useRef<ReactQuill>(null);
 
-  const card = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
   const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
   const textMain = isDark ? "rgba(255,255,255,0.92)" : "rgba(10,16,32,0.88)";
   const textMuted = isDark ? "rgba(255,255,255,0.45)" : "rgba(10,16,32,0.45)";
-  const inputBg = isDark ? "rgba(255,255,255,0.04)" : "#fff";
-
-  const inputStyle = {
-    padding: "12px 16px", 
-    borderRadius: 10,
-    background: inputBg, 
-    border: `1px solid ${border}`,
-    color: textMain, 
-    outline: "none", 
-    boxSizing: "border-box" as const,
-  };
 
   useEffect(() => {
     fetchStats();
     fetchPosts();
+    fetchUsers();
+
+    // 💡 추가된 코드: Supabase 실시간(Realtime) 감지 로직
+    const profileChannel = supabase
+      .channel('realtime-profiles-admin')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles' },
+        () => {
+          fetchUsers(); // DB에 변화가 생기면 새로고침 없이 즉시 유저 목록을 재호출합니다.
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(profileChannel);
+    };
   }, []);
 
   useEffect(() => { fetchChartData(chartPeriod); }, [chartPeriod]);
@@ -168,6 +142,12 @@ export default function AdminPage() {
     }
   };
 
+  const fetchUsers = async () => {
+    const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+    if (error) console.error("회원 데이터 불러오기 오류:", error.message);
+    if (data) setUsers(data);
+  };
+
   const fetchChartData = async (period: number) => {
     const today = new Date();
     const days = [...Array(period)].map((_, i) => {
@@ -215,6 +195,9 @@ export default function AdminPage() {
   const totalPages = Math.ceil(filteredPosts.length / postsPerPage);
   const currentPosts = filteredPosts.slice((currentPage - 1) * postsPerPage, currentPage * postsPerPage);
 
+  const totalUsersPages = Math.ceil(users.length / usersPerPage);
+  const currentUsersList = users.slice((currentUsersPage - 1) * usersPerPage, currentUsersPage * usersPerPage);
+
   useEffect(() => { setCurrentPage(1); }, [searchTerm, filterCategory]);
   useEffect(() => {
     if (currentPage > totalPages && totalPages > 0) setCurrentPage(totalPages);
@@ -232,6 +215,7 @@ export default function AdminPage() {
     setContent(post.content);
     setFiles([]);
     setExistingImages(post.image_url ? post.image_url.split(',') : []);
+    setActiveTab("create"); // 수정 클릭 시 탭 자동 전환
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -253,7 +237,8 @@ export default function AdminPage() {
     setLoading(true);
     try {
       if (showModal.type === 'delete' && selectedPostId) {
-        await supabase.from('posts').delete().eq('id', selectedPostId);
+        const { error } = await supabase.from('posts').delete().eq('id', selectedPostId);
+        if (error) throw error;
       } else if (showModal.type === 'save') {
         
         let imageUrls = [...existingImages];
@@ -264,7 +249,10 @@ export default function AdminPage() {
             const fileName = `${Date.now()}---${Math.random().toString(36).substr(2, 9)}---${safeName}`;
             
             const { error: upError } = await supabase.storage.from('images').upload(fileName, f);
-            if (upError) throw upError;
+            if (upError) {
+              console.error("Supabase Storage Upload Error:", upError);
+              throw new Error(`파일 업로드 실패 (${f.name}): ${upError.message}`);
+            }
             
             const url = supabase.storage.from('images').getPublicUrl(fileName).data.publicUrl;
             imageUrls.push(url);
@@ -274,195 +262,198 @@ export default function AdminPage() {
         const finalImageUrl = imageUrls.length > 0 ? imageUrls.join(',') : null;
 
         if (editingId) {
-          await supabase.from('posts').update({ category, title, content, image_url: finalImageUrl }).eq('id', editingId);
+          const { error: updateError } = await supabase.from('posts').update({ category, title, content, image_url: finalImageUrl }).eq('id', editingId);
+          if (updateError) {
+            console.error("Supabase Post Update Error:", updateError);
+            throw updateError;
+          }
         } else {
-          await supabase.from('posts').insert([{ category, title, content, image_url: finalImageUrl }]);
+          const { error: insertError } = await supabase.from('posts').insert([{ category, title, content, image_url: finalImageUrl }]);
+          if (insertError) {
+            console.error("Supabase Post Insert Error:", insertError);
+            throw insertError;
+          }
         }
         
         setEditingId(null); setTitle(""); setContent(""); setFiles([]); setExistingImages([]);
+        setActiveTab("manage"); // 저장 후 게시물 관리 탭으로 자동 이동
       }
       fetchPosts(); fetchStats(); fetchChartData(chartPeriod);
-    } catch (err: any) { alert(err.message); }
+    } catch (err: any) { 
+      alert("처리 중 오류가 발생했습니다!\n\n" + err.message); 
+    }
     finally { setLoading(false); setShowModal({ show: false, type: null }); setSelectedPostId(null); }
+  };
+
+  const handleDeleteUser = async (id: string) => {
+    if (!window.confirm("이 회원을 삭제하시겠습니까?")) return;
+    const { error } = await supabase.from('profiles').delete().eq('id', id);
+    if (error) alert("삭제 실패: " + error.message);
+    // Realtime 구독으로 인해 fetchUsers()를 수동으로 부르지 않아도 즉각 반영됩니다.
+  };
+
+  const handleGrantAdmin = async (id: string, currentRole: string) => {
+    const newRole = currentRole === 'admin' ? 'user' : 'admin';
+    if (!window.confirm(`권한을 ${newRole === 'admin' ? '관리자' : '일반 회원'}로 변경하시겠습니까?`)) return;
+    const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', id);
+    if (error) alert("권한 변경 실패: " + error.message);
+    // Realtime 구독으로 인해 자동으로 권한이 업데이트됩니다.
+  };
+
+  const handleCsvUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setCsvLoading(true);
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const text = event.target?.result as string;
+        const rows = text.split('\n').filter(row => row.trim() !== '');
+        if (rows.length < 2) throw new Error("데이터가 없습니다.");
+        
+        const headers = rows[0].split(',').map(h => h.trim());
+        const newUsers = rows.slice(1).map(row => {
+          const values = row.split(',');
+          const userObj: any = {};
+          headers.forEach((h, i) => {
+            if (h) userObj[h] = values[i]?.trim() || "";
+          });
+          if (!userObj.id) userObj.id = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
+          return userObj;
+        });
+
+        const { error } = await supabase.from('profiles').insert(newUsers);
+        if (error) throw error;
+        
+        alert(`${newUsers.length}명의 회원이 일괄 추가되었습니다.`);
+        // Realtime 구독으로 인해 fetchUsers()를 수동 호출하지 않아도 자동 갱신됩니다.
+      } catch (err: any) {
+        alert("CSV 처리 실패: " + err.message);
+      } finally {
+        setCsvLoading(false);
+        e.target.value = "";
+      }
+    };
+    reader.readAsText(file);
   };
 
   const maxViews = Math.max(...chartData.map(d => d.views), 1);
   const maxCumul = Math.max(...chartData.map(d => d.cumulative), 1);
   const chartW = 400, chartH = 150;
-  const getPoints = (key: 'views' | 'cumulative', max: number) => 
+  const fmtNum = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n);
+  const getPoints = (key: 'views' | 'cumulative', max: number) =>
     chartData.map((d, i) => `${(i * (chartW / (chartPeriod - 1)))},${chartH - (d[key] / max * chartH)}`).join(" ");
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: isDark ? "#0a1020" : "#F7F8FC", width: "100%", position: "relative" }}>
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "72px", background: "#0a1020", zIndex: 999 }} />
       <HeaderSection isDark={isDark} />
+      
+      <NotificationBell isDark={isDark} />
 
       <main style={{ flex: 1, width: "100%", maxWidth: "1100px", margin: "0 auto", padding: "120px 20px 80px 20px" }}>
-        <h2 style={{ fontSize: "32px", fontWeight: 800, color: textMain, marginBottom: "40px" }}>관리 대시보드</h2>
+        
+        <h2 style={{ fontSize: "32px", fontWeight: 800, color: textMain, marginBottom: "20px" }}>관리자 페이지</h2>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "24px", marginBottom: "40px" }}>
-          {[{ label: "누적 접속량", value: stats.views, icon: "👁️" }, { label: "누적 방문자", value: stats.visitors, icon: "👥" }, { label: "전체 게시물", value: stats.posts, icon: "📝" }].map((item) => (
-            <div key={item.label} style={{ background: card, padding: "32px", borderRadius: "24px", border: `1px solid ${border}` }}>
-              <div style={{ color: textMuted, fontSize: "14px", fontWeight: 600, marginBottom: "12px" }}>{item.icon} {item.label}</div>
-              <div style={{ fontSize: "36px", fontWeight: 900, color: textMain }}>{item.value.toLocaleString()}</div>
-            </div>
+        {/* 탭 필터 메뉴 추가 */}
+        <div className="flex gap-[12px] mb-[40px] pb-[16px] overflow-x-auto whitespace-nowrap scrollbar-hide" style={{ borderBottom: `1px solid ${border}` }}>
+          {[
+            { id: "dashboard", label: "관리 대시보드" },
+            { id: "users", label: "회원 관리" },
+            { id: "create", label: "새 게시물 등록" },
+            { id: "manage", label: "게시물 관리" }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => {
+                setActiveTab(tab.id as any);
+                // "새 게시물 등록" 탭을 직접 누를 경우 수정 모드 초기화
+                if (tab.id === "create" && editingId) {
+                  setEditingId(null); setTitle(""); setContent(""); setFiles([]); setExistingImages([]);
+                }
+              }}
+              className="px-[20px] py-[10px] rounded-[12px] text-[15px] cursor-pointer transition-all duration-200 flex-shrink-0"
+              style={{
+                background: activeTab === tab.id ? "#4377F1" : "transparent",
+                color: activeTab === tab.id ? "#fff" : textMuted,
+                fontWeight: activeTab === tab.id ? 800 : 600,
+                border: "none",
+              }}
+            >
+              {tab.label}
+            </button>
           ))}
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr", gap: "24px", marginBottom: "60px" }}>
-          <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "24px", padding: "32px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-                <h3 style={{ margin: 0, color: textMain, fontSize: "18px", fontWeight: 800 }}>📈 방문 및 누적 추이</h3>
-                <div style={{ display: "flex", background: isDark ? "rgba(255,255,255,0.05)" : "#f1f5f9", padding: "4px", borderRadius: "8px" }}>
-                  <button onClick={() => setChartPeriod(7)} style={{ padding: "4px 12px", fontSize: "12px", fontWeight: 700, borderRadius: "6px", border: "none", cursor: "pointer", background: chartPeriod === 7 ? "#fff" : "transparent", color: chartPeriod === 7 ? "#4377F1" : textMuted, boxShadow: chartPeriod === 7 ? "0 2px 4px rgba(0,0,0,0.05)" : "none", transition: "all 0.2s" }}>7일</button>
-                  <button onClick={() => setChartPeriod(30)} style={{ padding: "4px 12px", fontSize: "12px", fontWeight: 700, borderRadius: "6px", border: "none", cursor: "pointer", background: chartPeriod === 30 ? "#fff" : "transparent", color: chartPeriod === 30 ? "#4377F1" : textMuted, boxShadow: chartPeriod === 30 ? "0 2px 4px rgba(0,0,0,0.05)" : "none", transition: "all 0.2s" }}>30일</button>
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: "12px", fontSize: "11px" }}>
-                <span style={{ color: "#4377F1" }}>● 일간</span><span style={{ color: "#20D6A2" }}>● 누적</span>
-              </div>
-            </div>
-            <div style={{ width: "100%", height: "180px", position: "relative" }}>
-              <svg viewBox={`0 0 ${chartW} ${chartH}`} style={{ width: "100%", height: "100%", overflow: "visible" }}>
-                <polyline fill="none" stroke="#4377F1" strokeWidth="3" strokeLinejoin="round" points={getPoints('views', maxViews)} style={{ transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)" }} />
-                <polyline fill="none" stroke="#20D6A2" strokeWidth="3" strokeLinejoin="round" points={getPoints('cumulative', maxCumul)} style={{ transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)", strokeDasharray: "4 2" }} />
-              </svg>
-              <div style={{ position: "relative", height: "20px", marginTop: "12px" }}>
-                {chartData.map((d, i) => d.label && (
-                  <span key={d.fullDate} style={{ position: "absolute", left: `${(i / (chartPeriod - 1)) * 100}%`, transform: "translateX(-50%)", fontSize: "11px", color: textMuted, fontWeight: 700 }}>{d.label}</span>
-                ))}
-              </div>
-            </div>
-          </div>
-          <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "24px", padding: "32px" }}>
-            <h3 style={{ margin: "0 0 24px 0", color: textMain, fontSize: "18px", fontWeight: 800 }}>🔥 인기 게시물 Top 5</h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-              {topPosts.length === 0 ? <div style={{ color: textMuted, fontSize: "14px", textAlign: "center", padding: "20px" }}>데이터가 없습니다.</div> : topPosts.map((post, i) => (
-                  <div key={post.id} style={{ display: "flex", alignItems: "center", gap: "12px", cursor: "pointer", transition: "transform 0.2s" }} onClick={() => navigate(`/post/${post.id}`)}>
-                    <div style={{ width: "24px", height: "24px", borderRadius: "6px", background: i < 3 ? "#4377F1" : border, color: i < 3 ? "#fff" : textMuted, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: 800, flexShrink: 0 }}>{i + 1}</div>
-                    <div style={{ flex: 1, display: "flex", alignItems: "center", gap: "8px", overflow: "hidden" }}>
-                      <span style={{ fontSize: "10px", background: isDark ? "rgba(67, 119, 241, 0.15)" : "#eef2ff", color: "#4377F1", padding: "3px 6px", borderRadius: "6px", fontWeight: 700, whiteSpace: "nowrap" }}>{CATEGORIES.find(c => c.id === post.category)?.label}</span>
-                      <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: textMain, fontSize: "14px", fontWeight: 600 }}>{post.title}</div>
-                    </div>
-                    <div style={{ fontSize: "12px", color: "#4377F1", fontWeight: 700, flexShrink: 0 }}>{post.views || 0}회</div>
-                  </div>
-                ))}
-            </div>
-          </div>
-        </div>
+        {/* 탭 1: 관리 대시보드 영역 */}
+        {activeTab === "dashboard" && (
+          <AdminDashboard 
+            stats={stats}
+            chartPeriod={chartPeriod}
+            setChartPeriod={setChartPeriod}
+            chartData={chartData}
+            topPosts={topPosts}
+          />
+        )}
 
-        <form onSubmit={handleSubmitClick} style={{ background: card, border: `1px solid ${border}`, borderRadius: "24px", padding: "40px", display: "flex", flexDirection: "column", gap: "20px", marginBottom: "80px" }}>
-          <h3 style={{ margin: 0, color: textMain, fontSize: "22px", fontWeight: 800 }}>{editingId ? "✨ 게시물 수정" : "📝 새 게시물 등록"}</h3>
-          <div style={{ display: "flex", gap: "16px" }}>
-            <select value={category} onChange={(e) => setCategory(e.target.value)} style={{ ...inputStyle, width: "200px" }}>
-              {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-            </select>
-            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="제목을 입력하세요" style={{ ...inputStyle, flex: 1 }} required />
-          </div>
-          
-          <div className={isDark ? "quill-dark" : "quill-light"} style={{ background: inputBg, borderRadius: "10px", border: `1px solid ${border}`, overflow: "hidden" }}>
-            <ReactQuill
-              ref={quillRef}
-              theme="snow"
-              value={content}
-              onChange={setContent}
-              modules={modules}
-              placeholder="자유롭게 글과 이미지를 작성해 보세요!"
-            />
-          </div>
-          
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "20px" }}>
-            <p style={{ margin: 0, fontWeight: 700, fontSize: "14px", color: textMuted }}>별도 첨부파일 관리 (문서, PDF 등)</p>
-            {existingImages.map((url, idx) => (
-              <div key={`exist-${idx}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px", background: inputBg, border: `1px solid ${border}`, borderRadius: "12px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "12px", color: textMain }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4377F1" strokeWidth="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
-                  <span style={{ fontWeight: 600, fontSize: "14px" }}>{getFileNameFromUrl(url)}</span>
-                </div>
-                <button type="button" onClick={() => setExistingImages(prev => prev.filter((_, i) => i !== idx))} style={{ border: "none", background: "rgba(239, 68, 68, 0.1)", color: "#ef4444", padding: "6px 12px", borderRadius: "8px", cursor: "pointer", fontWeight: 700, fontSize: "13px" }}>삭제</button>
-              </div>
-            ))}
+        {/* 탭 2: 회원 관리 영역 */}
+        {activeTab === "users" && (
+          <AdminUserManagement 
+            users={users}
+            currentUsersList={currentUsersList}
+            currentUsersPage={currentUsersPage}
+            setCurrentUsersPage={setCurrentUsersPage}
+            totalUsersPages={totalUsersPages}
+            csvLoading={csvLoading}
+            handleGrantAdmin={handleGrantAdmin}
+            handleDeleteUser={handleDeleteUser}
+            handleCsvUpload={handleCsvUpload}
+          />
+        )}
 
-            {files.map((f, idx) => (
-              <div key={`new-${idx}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px", background: inputBg, border: `1px solid ${border}`, borderRadius: "12px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "12px", color: textMain }}>
-                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4377F1" strokeWidth="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
-                   <span style={{ fontWeight: 600, fontSize: "14px" }}>{f.name}</span>
-                </div>
-                <button type="button" onClick={() => setFiles(prev => prev.filter((_, i) => i !== idx))} style={{ border: "none", background: "rgba(239, 68, 68, 0.1)", color: "#ef4444", padding: "6px 12px", borderRadius: "8px", cursor: "pointer", fontWeight: 700, fontSize: "13px" }}>취소</button>
-              </div>
-            ))}
+        {/* 탭 3: 새 게시물 등록 (작성 및 수정) 영역 */}
+        {activeTab === "create" && (
+          <AdminPostCreate 
+            editingId={editingId}
+            setEditingId={setEditingId}
+            category={category}
+            setCategory={setCategory}
+            title={title}
+            setTitle={setTitle}
+            content={content}
+            setContent={setContent}
+            existingImages={existingImages}
+            setExistingImages={setExistingImages}
+            files={files}
+            setFiles={setFiles}
+            loading={loading}
+            handleSubmitClick={handleSubmitClick}
+            quillRef={quillRef}
+            modules={modules}
+            handleFileChange={handleFileChange}
+            setActiveTab={setActiveTab}
+          />
+        )}
 
-            <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "30px 20px", background: isDark ? "rgba(255,255,255,0.02)" : "#fafafa", border: `2px dashed ${border}`, borderRadius: "16px", cursor: "pointer", color: textMain, gap: "10px", transition: "all 0.2s" }}>
-              <input type="file" multiple onChange={handleFileChange} style={{ display: "none" }} />
-              <span style={{ fontWeight: 700, color: "#4377F1" }}>+ 파일 추가하기</span>
-              <span style={{ fontSize: "13px", color: textMuted }}>최대 10MB / 여러 파일 동시 선택 가능</span>
-            </label>
-          </div>
+        {/* 탭 4: 게시물 관리 영역 */}
+        {activeTab === "manage" && (
+          <AdminPostManage 
+            filteredPosts={filteredPosts}
+            currentPosts={currentPosts}
+            filterCategory={filterCategory}
+            setFilterCategory={setFilterCategory}
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            currentPage={currentPage}
+            setCurrentPage={setCurrentPage}
+            totalPages={totalPages}
+            startEdit={startEdit}
+            handleDeleteClick={handleDeleteClick}
+          />
+        )}
 
-          <button type="submit" disabled={loading} style={{ padding: "18px", borderRadius: "16px", border: "none", background: "#4377F1", color: "#fff", fontWeight: 800, fontSize: "16px", cursor: "pointer", marginTop: "10px" }}>{loading ? "처리 중..." : editingId ? "변경사항 저장" : "게시물 등록하기"}</button>
-        </form>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h3 style={{ fontSize: "22px", fontWeight: 800, color: textMain }}>📦 게시물 관리 ({filteredPosts.length})</h3>
-            <div style={{ display: "flex", gap: "12px" }}>
-              <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} style={{ ...inputStyle, padding: "10px 16px" }}>
-                <option value="all">전체 카테고리</option>
-                {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-              </select>
-              <input type="text" placeholder="검색어 입력..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{ ...inputStyle, width: "240px" }} />
-            </div>
-          </div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: "14px", minHeight: "800px" }}>
-            {currentPosts.length === 0 ? (
-               <div style={{ padding: "60px", textAlign: "center", color: textMuted }}>게시물이 없습니다.</div>
-            ) : (
-               currentPosts.map(post => (
-                 <div key={post.id} style={{ background: card, border: `1px solid ${border}`, borderRadius: "20px", padding: "20px 30px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                   <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-                     <span style={{ fontSize: "12px", background: "#eef2ff", color: "#4377F1", padding: "6px 10px", borderRadius: "8px", fontWeight: 700 }}>
-                       {CATEGORIES.find(c => c.id === post.category)?.label}
-                     </span>
-                     <strong style={{ color: textMain, fontSize: "16px" }}>{post.title}</strong>
-                   </div>
-                   <div style={{ display: "flex", gap: "10px" }}>
-                     
-                     {/* 💡 잘려나갔던 버튼 부분 완벽 복구 완료! */}
-                     <button 
-                       onClick={() => startEdit(post)} 
-                       style={{ padding: "10px 18px", borderRadius: "10px", border: `1px solid ${border}`, background: "none", color: "#4377F1", fontWeight: 700, cursor: "pointer" }}
-                     >
-                       수정
-                     </button>
-                     
-                     <button 
-                       onClick={() => handleDeleteClick(post.id)} 
-                       style={{ padding: "10px 18px", borderRadius: "10px", border: "none", background: "#fee2e2", color: "#ef4444", fontWeight: 700, cursor: "pointer" }}
-                     >
-                       삭제
-                     </button>
-
-                   </div>
-                 </div>
-               ))
-            )}
-          </div>
-
-          {totalPages > 1 && (
-            <div style={{ display: "flex", justifyContent: "center", gap: "8px", marginTop: "20px" }}>
-              <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} style={{ padding: "8px 14px", borderRadius: "8px", border: `1px solid ${border}`, background: card, color: textMain, cursor: currentPage === 1 ? "not-allowed" : "pointer", fontWeight: 600 }}>이전</button>
-              {[...Array(totalPages)].map((_, i) => (
-                <button key={i} onClick={() => setCurrentPage(i + 1)} style={{ padding: "8px 16px", borderRadius: "8px", cursor: "pointer", border: currentPage === i + 1 ? `1px solid #4377F1` : `1px solid ${border}`, background: currentPage === i + 1 ? "#4377F1" : card, color: currentPage === i + 1 ? "#fff" : textMain, fontWeight: currentPage === i + 1 ? 800 : 500 }}>{i + 1}</button>
-              ))}
-              <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} style={{ padding: "8px 14px", borderRadius: "8px", border: `1px solid ${border}`, background: card, color: textMain, cursor: currentPage === totalPages ? "not-allowed" : "pointer", fontWeight: 600 }}>다음</button>
-            </div>
-          )}
-        </div>
       </main>
-      <FooterSection isDark={isDark} />
 
       {showModal.show && (
         <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000 }}>

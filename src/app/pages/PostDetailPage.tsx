@@ -3,67 +3,37 @@ import { useParams, useNavigate } from "react-router";
 import { PageShell } from "../components/PageShell";
 import { useTheme } from "../ThemeContext";
 import { supabase } from "../../lib/supabaseClient";
+import { isImage, getFileNameFromUrl } from "../../utils/file";
+import { useAdmin } from "../../hooks/useAdmin";
+import type { Post } from "../../lib/types";
 
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
 
 const BOARD_INFO: Record<string, { title: string; subtitle: string }> = {
-  notice: { title: "공지사항", subtitle: "중요한 안내 사항을 확인하세요." },
-  news: { title: "뉴스", subtitle: "새로운 소식을 확인하세요." },
-  events: { title: "행사", subtitle: "NCF × Around X가 준비한 소식을 확인하세요." },
-  "events-archive": { title: "행사 아카이브", subtitle: "지나간 행사의 기록을 확인하세요." },
-  resources: { title: "자료실", subtitle: "필요한 서식과 자료를 다운로드하세요." },
-  blog: { title: "블로그", subtitle: "다양한 인사이트와 이야기를 만나보세요." },
-  faq: { title: "자주 묻는 질문", subtitle: "궁금한 점을 빠르게 찾아보세요." },
-};
-
-const decodeFilename = (encoded: string) => {
-  if (encoded.startsWith('b64-')) {
-    try {
-      let b64 = encoded.substring(4).replace(/-/g, '+').replace(/_/g, '/');
-      while (b64.length % 4 !== 0) b64 += '=';
-      return decodeURIComponent(atob(b64));
-    } catch { return encoded; }
-  }
-  return decodeURIComponent(encoded);
-};
-
-const getFileNameFromUrl = (url: string) => {
-  try {
-    const path = url.split('?')[0];
-    let filename = path.split('/').pop() || "첨부파일";
-    if (filename.includes('---')) {
-      filename = filename.split('---').pop()!;
-    } else if (filename.match(/^\d+_[a-z0-9]+_/)) {
-      const parts = filename.split('_');
-      filename = parts.slice(2).join('_');
-    }
-    return decodeFilename(filename);
-  } catch { return "첨부파일"; }
-};
-
-const isImageAttachment = (url: string) => {
-  const fileName = getFileNameFromUrl(url);
-  if (fileName.match(/\.(jpeg|jpg|gif|png|webp|avif|svg|jfif|pjpeg|pjp|bmp|heic|heif)$/i)) return true;
-  if (url.match(/\.(jpeg|jpg|gif|png|webp|avif|svg|jfif|pjpeg|pjp|bmp|heic|heif)(?:\?.*)?$/i)) return true;
-  if (url.includes('unsplash.com') || url.includes('picsum.photos') || url.includes('placeholder.com')) return true;
-  return false;
+  notice:           { title: "공지사항",       subtitle: "중요한 안내 사항을 확인하세요." },
+  news:             { title: "뉴스",           subtitle: "새로운 소식을 확인하세요." },
+  events:           { title: "행사",           subtitle: "NCF × Around X가 준비한 소식을 확인하세요." },
+  "events-archive": { title: "행사 아카이브",   subtitle: "지나간 행사의 기록을 확인하세요." },
+  resources:        { title: "자료실",          subtitle: "필요한 서식과 자료를 다운로드하세요." },
+  blog:             { title: "블로그",          subtitle: "다양한 인사이트와 이야기를 만나보세요." },
+  faq:              { title: "자주 묻는 질문",  subtitle: "궁금한 점을 빠르게 찾아보세요." },
 };
 
 export function PostDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { isDark } = useTheme();
-  const [post, setPost] = useState<any>(null);
+  const { isAdmin } = useAdmin();
+  const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
   const [editFiles, setEditFiles] = useState<File[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false); 
-  const [showModal, setShowModal] = useState<{ show: boolean; type: 'save' | 'delete' | null }>({ show: false, type: null });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showModal, setShowModal] = useState<{ show: boolean; type: "save" | "delete" | null }>({ show: false, type: null });
   const quillRef = useRef<ReactQuill>(null);
 
   const textMain = isDark ? "rgba(255,255,255,0.92)" : "#0f172a";
@@ -72,201 +42,218 @@ export function PostDetailPage() {
   const card = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
 
   useEffect(() => {
-    const checkAdmin = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-        setIsAdmin(profile?.role === 'admin' || user.email === "admin@test.com");
-      }
-    };
-
     const fetchPost = async () => {
       if (!id) return;
-      const { data } = await supabase.from('posts').select('*').eq('id', id).single();
-      
-      if (data) { 
-        const newViews = (data.views || 0) + 1;
-        
-        // 💡 1. 조회수 증가 RPC 호출
-        const { error: rpcError } = await supabase.rpc('increment_view_count', { row_id: id });
-        
-        if (rpcError) {
-          console.error("🚨 [조회수 RPC 에러]:", rpcError.message); // 에러가 나면 콘솔에 빨간색으로 찍힙니다!
-          
-          // 💡 2. RPC 실패 시 기존 방식(업데이트)으로 백업 시도
-          const { error: updateError } = await supabase.from('posts').update({ views: newViews }).eq('id', id);
-          if (updateError) console.error("🚨 [조회수 Update 에러]:", updateError.message);
-        } else {
-          console.log("✅ 조회수 1 증가 성공!"); // 성공하면 초록색으로 찍힙니다!
-        }
+      const { data } = await supabase.from("posts").select("*").eq("id", id).single();
 
-        setPost({ ...data, views: newViews }); 
-        setEditTitle(data.title); 
-        setEditContent(data.content); 
-        setExistingImages(data.image_url ? data.image_url.split(',') : []); 
+      if (data) {
+        const newViews = (data.views || 0) + 1;
+        const { error: rpcError } = await supabase.rpc("increment_view_count", { row_id: id });
+        if (rpcError) {
+          await supabase.from("posts").update({ views: newViews }).eq("id", id);
+        }
+        setPost({ ...data, views: newViews } as Post);
+        setEditTitle(data.title);
+        setEditContent(data.content);
+        setExistingImages(data.image_url ? data.image_url.split(",") : []);
       }
       setLoading(false);
     };
 
-    checkAdmin(); 
     fetchPost();
   }, [id]);
 
+  const encodeFilename = (name: string) => {
+    return encodeURIComponent(name);
+  };
+
   const imageHandler = () => {
-    const input = document.createElement('input');
-    input.setAttribute('type', 'file'); input.setAttribute('accept', 'image/*'); input.click();
+    const input = document.createElement("input");
+    input.setAttribute("type", "file");
+    input.setAttribute("accept", "image/*");
+    input.click();
     input.onchange = async () => {
       const file = input.files?.[0];
       if (file) {
         try {
-          const fileName = `${Date.now()}---editor---${file.name}`;
-          const { error: upError } = await supabase.storage.from('images').upload(fileName, file);
+          const safeName = encodeFilename(file.name);
+          const fileName = `${Date.now()}---editor---${Math.random().toString(36).substr(2, 9)}---${safeName}`;
+          const { error: upError } = await supabase.storage.from("images").upload(fileName, file);
           if (upError) throw upError;
-          const url = supabase.storage.from('images').getPublicUrl(fileName).data.publicUrl;
+          const url = supabase.storage.from("images").getPublicUrl(fileName).data.publicUrl;
           const quill = quillRef.current?.getEditor();
           const range = quill?.getSelection();
-          quill?.insertEmbed(range?.index || 0, 'image', url);
-        } catch (err) { alert("에디터 이미지 업로드에 실패했습니다."); }
+          quill?.insertEmbed(range?.index || 0, "image", url);
+        } catch (err) {
+          alert("에디터 이미지 업로드에 실패했습니다. " + (err instanceof Error ? err.message : ""));
+        }
       }
     };
   };
 
   const modules = useMemo(() => ({
     toolbar: {
-      container: [ 
-        [{ 'header': [1, 2, 3, false] }], 
-        [{ 'size': ['small', false, 'large', 'huge'] }], 
-        ['bold', 'italic', 'underline', 'strike'], 
-        [{ 'color': [] }, { 'background': [] }], 
-        [{ 'align': [] }], 
-        ['blockquote', 'code-block'], 
-        [{ 'list': 'ordered'}, { 'list': 'bullet' }], 
-        ['link', 'image', 'video'], 
-        ['clean'] 
+      container: [
+        [{ header: [1, 2, 3, false] }],
+        [{ size: ["small", false, "large", "huge"] }],
+        ["bold", "italic", "underline", "strike"],
+        [{ color: [] }, { background: [] }],
+        [{ align: [] }],
+        ["blockquote", "code-block"],
+        [{ list: "ordered" }, { list: "bullet" }],
+        ["link", "image", "video"],
+        ["clean"],
       ],
-      handlers: { image: imageHandler }
-    }
+      handlers: { image: imageHandler },
+    },
   }), []);
 
   const handleConfirmAction = async () => {
     setIsSubmitting(true);
     try {
-      if (showModal.type === 'delete') { 
-        await supabase.from('posts').delete().eq('id', id); 
-        navigate(-1); 
-      }
-      else if (showModal.type === 'save') {
+      if (showModal.type === "delete") {
+        await supabase.from("posts").delete().eq("id", id);
+        navigate(-1);
+      } else if (showModal.type === "save") {
         let imageUrls = [...existingImages];
-        if (editFiles.length > 0) {
-          for (const f of editFiles) {
-            const fileName = `${Date.now()}---${Math.random().toString(36).substr(2, 9)}---${f.name}`;
-            const { error: upError } = await supabase.storage.from('images').upload(fileName, f);
-            if (upError) throw upError;
-            const url = supabase.storage.from('images').getPublicUrl(fileName).data.publicUrl;
-            imageUrls.push(url);
-          }
+        for (const f of editFiles) {
+          const safeName = encodeFilename(f.name);
+          const fileName = `${Date.now()}---${Math.random().toString(36).substr(2, 9)}---${safeName}`;
+          const { error: upError } = await supabase.storage.from("images").upload(fileName, f);
+          if (upError) throw upError;
+          const url = supabase.storage.from("images").getPublicUrl(fileName).data.publicUrl;
+          imageUrls.push(url);
         }
-        const finalImageUrl = imageUrls.length > 0 ? imageUrls.join(',') : null;
-        const { data } = await supabase.from('posts').update({ 
-          title: editTitle, 
-          content: editContent, 
-          image_url: finalImageUrl 
-        }).eq('id', id).select();
+        const { data, error } = await supabase
+          .from("posts")
+          .update({ title: editTitle, content: editContent, image_url: imageUrls.join(",") || null })
+          .eq("id", id)
+          .select();
         
-        if (data && data.length > 0) { 
-          setPost(data[0]); 
-          setIsEditing(false); 
-          setEditFiles([]); 
+        if (error) throw error;
+        
+        if (data?.[0]) {
+          setPost(data[0] as Post);
+          setIsEditing(false);
+          setEditFiles([]);
+        } else {
+          throw new Error("게시물을 업데이트하지 못했습니다. (데이터가 반환되지 않음)");
         }
       }
-    } catch (err: any) { 
-      alert("오류 발생: " + err.message); 
-    } finally { 
-      setIsSubmitting(false); 
-      setShowModal({ show: false, type: null }); 
+    } catch (err: unknown) {
+      alert("오류 발생: " + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setIsSubmitting(false);
+      setShowModal({ show: false, type: null });
     }
   };
 
   if (loading) return <PageShell title="로딩 중..."><p>불러오는 중입니다.</p></PageShell>;
   if (!post && !isSubmitting) return <PageShell title="오류"><p>게시물을 찾을 수 없습니다.</p></PageShell>;
 
-  const headerInfo = BOARD_INFO[post?.category] || { title: "게시판", subtitle: "상세 보기" };
-  const attachmentUrls = post.image_url ? post.image_url.split(',') : [];
-  const images = attachmentUrls.filter(isImageAttachment);
-  const files = attachmentUrls.filter((url: string) => !isImageAttachment(url));
+  const headerInfo = BOARD_INFO[post?.category ?? ""] ?? { title: "게시판", subtitle: "상세 보기" };
+  const attachmentUrls = post?.image_url ? post.image_url.split(",") : [];
+  const images = attachmentUrls.filter(isImage);
+  const files = attachmentUrls.filter((url) => !isImage(url));
 
   return (
     <PageShell title={headerInfo.title} subtitle={headerInfo.subtitle}>
-      <div style={{ maxWidth: 900, margin: "0 auto", paddingBottom: 100 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32 }}>
-           <button onClick={() => navigate(-1)} style={{ background: "none", border: "none", color: "#4377F1", fontWeight: 700, cursor: "pointer" }}>← 목록으로 돌아가기</button>
-           {isAdmin && (
-             <div style={{ display: "flex", gap: 10 }}>
-               {isEditing ? (
-                 <>
-                   <button onClick={() => setShowModal({ show: true, type: 'save' })} disabled={isSubmitting} style={{ padding: "8px 20px", borderRadius: 8, background: "#4377F1", color: "#fff", border: "none", fontWeight: 700, cursor: "pointer", opacity: isSubmitting ? 0.5 : 1 }}>
-                     {isSubmitting ? "저장 중..." : "저장하기"}
-                   </button>
-                   <button onClick={() => { setIsEditing(false); setEditFiles([]); }} style={{ padding: "8px 20px", borderRadius: 8, border: `1px solid ${border}`, background: card, color: textMain, cursor: "pointer" }}>취소</button>
-                 </>
-               ) : (
-                 <>
-                   <button onClick={() => setIsEditing(true)} style={{ padding: "8px 20px", borderRadius: 8, border: `1px solid ${border}`, background: card, color: "#4377F1", fontWeight: 700, cursor: "pointer" }}>수정</button>
-                   <button onClick={() => setShowModal({ show: true, type: 'delete' })} style={{ padding: "8px 20px", borderRadius: 8, background: "rgba(255,0,0,0.1)", color: "#ff4d4f", border: "none", fontWeight: 700, cursor: "pointer" }}>삭제</button>
-                 </>
-               )}
-             </div>
-           )}
+      <div className="max-w-[900px] mx-auto pb-[100px]">
+        <div className="flex justify-between items-center mb-8">
+          <button onClick={() => navigate(-1)} className="bg-none border-none text-[#4377F1] font-bold cursor-pointer p-0">← 목록으로 돌아가기</button>
+          {isAdmin && (
+            <div className="flex gap-2.5">
+              {isEditing ? (
+                <>
+                  <button 
+                    onClick={() => setShowModal({ show: true, type: "save" })} 
+                    disabled={isSubmitting} 
+                    className={`px-5 py-2 rounded-lg bg-[#4377F1] text-white border-none font-bold cursor-pointer ${isSubmitting ? 'opacity-50' : 'opacity-100'}`}
+                  >
+                    {isSubmitting ? "저장 중..." : "저장하기"}
+                  </button>
+                  <button 
+                    onClick={() => { setIsEditing(false); setEditFiles([]); }} 
+                    className="px-5 py-2 rounded-lg cursor-pointer"
+                    style={{ border: `1px solid ${border}`, background: card, color: textMain }}
+                  >
+                    취소
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button 
+                    onClick={() => setIsEditing(true)} 
+                    className="px-5 py-2 rounded-lg text-[#4377F1] font-bold cursor-pointer"
+                    style={{ border: `1px solid ${border}`, background: card }}
+                  >
+                    수정
+                  </button>
+                  <button 
+                    onClick={() => setShowModal({ show: true, type: "delete" })} 
+                    className="px-5 py-2 rounded-lg bg-[#ff4d4f]/10 text-[#ff4d4f] border-none font-bold cursor-pointer"
+                  >
+                    삭제
+                  </button>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         {isEditing ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-            <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} style={{ width: "100%", padding: 16, borderRadius: 12, border: `1px solid ${border}`, background: card, color: textMain, fontSize: 24, fontWeight: 800, outline: "none" }} />
-            <div className={isDark ? "quill-dark" : "quill-light"} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", borderRadius: "10px", border: `1px solid ${border}`, overflow: "hidden" }}>
+          <div className="flex flex-col gap-5">
+            <input 
+              value={editTitle} 
+              onChange={(e) => setEditTitle(e.target.value)} 
+              className="w-full p-4 rounded-xl text-[24px] font-extrabold outline-none"
+              style={{ border: `1px solid ${border}`, background: card, color: textMain }} 
+            />
+            <div className={`overflow-hidden rounded-[10px] ${isDark ? "quill-dark" : "quill-light"}`} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", border: `1px solid ${border}` }}>
               <ReactQuill ref={quillRef} theme="snow" value={editContent} onChange={setEditContent} modules={modules} placeholder="자유롭게 글과 이미지를 작성해 보세요!" />
             </div>
-            <div style={{ padding: 20, border: `1px solid ${border}`, borderRadius: 12, background: card, display: "flex", flexDirection: "column", gap: 12 }}>
-              <p style={{ margin: 0, fontSize: 14, color: textMuted, fontWeight: 700 }}>첨부파일 관리</p>
+            <div className="p-5 rounded-xl flex flex-col gap-3" style={{ border: `1px solid ${border}`, background: card }}>
+              <p className="m-0 text-[14px] font-bold" style={{ color: textMuted }}>첨부파일 관리</p>
               {existingImages.map((url, idx) => (
-                <div key={`exist-${idx}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px", background: isDark ? "rgba(255,255,255,0.02)" : "#f8fafc", borderRadius: "8px" }}>
-                  <span style={{ fontSize: "14px", color: textMain, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{getFileNameFromUrl(url)}</span>
-                  <button onClick={() => setExistingImages(prev => prev.filter((_, i) => i !== idx))} style={{ background: "rgba(255,0,0,0.1)", color: "#ef4444", border: "none", padding: "4px 8px", borderRadius: 6, cursor: "pointer", fontWeight: 700 }}>삭제</button>
+                <div key={`exist-${idx}`} className="flex items-center justify-between p-3 rounded-lg" style={{ background: isDark ? "rgba(255,255,255,0.02)" : "#f8fafc" }}>
+                  <span className="text-[14px] overflow-hidden text-ellipsis whitespace-nowrap" style={{ color: textMain }}>{getFileNameFromUrl(url)}</span>
+                  <button onClick={() => setExistingImages((prev) => prev.filter((_, i) => i !== idx))} className="bg-[#ef4444]/10 text-[#ef4444] border-none px-2 py-1 rounded-md cursor-pointer font-bold">삭제</button>
                 </div>
               ))}
               {editFiles.map((f, idx) => (
-                <div key={`new-${idx}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px", background: isDark ? "rgba(255,255,255,0.02)" : "#f8fafc", borderRadius: "8px" }}>
-                  <span style={{ fontSize: "14px", color: "#4377F1" }}>{f.name} (새 파일)</span>
-                  <button onClick={() => setEditFiles(prev => prev.filter((_, i) => i !== idx))} style={{ background: "rgba(255,0,0,0.1)", color: "#ef4444", border: "none", padding: "4px 8px", borderRadius: 6, cursor: "pointer", fontWeight: 700 }}>취소</button>
+                <div key={`new-${idx}`} className="flex items-center justify-between p-3 rounded-lg" style={{ background: isDark ? "rgba(255,255,255,0.02)" : "#f8fafc" }}>
+                  <span className="text-[14px] text-[#4377F1]">{f.name} (새 파일)</span>
+                  <button onClick={() => setEditFiles((prev) => prev.filter((_, i) => i !== idx))} className="bg-[#ef4444]/10 text-[#ef4444] border-none px-2 py-1 rounded-md cursor-pointer font-bold">취소</button>
                 </div>
               ))}
-              <label style={{ display: "inline-block", marginTop: 10, padding: "10px 16px", background: isDark ? "rgba(255,255,255,0.05)" : "#f1f5f9", borderRadius: 8, color: "#4377F1", fontWeight: 700, cursor: "pointer", textAlign: "center" }}>
-                <input type="file" multiple onChange={(e) => setEditFiles(prev => [...prev, ...Array.from(e.target.files || [])])} style={{ display: "none" }} />
+              <label className="inline-block mt-2.5 px-4 py-2.5 rounded-lg text-[#4377F1] font-bold cursor-pointer text-center" style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#f1f5f9" }}>
+                <input type="file" multiple onChange={(e) => setEditFiles((prev) => [...prev, ...Array.from(e.target.files || [])])} className="hidden" />
                 + 문서 및 기타 파일 추가
               </label>
             </div>
           </div>
         ) : (
           <>
-            <h1 style={{ fontSize: 32, fontWeight: 800, color: textMain, marginBottom: 12 }}>{post.title}</h1>
-            <p style={{ fontSize: 14, color: textMuted, marginBottom: 40 }}>{new Date(post.created_at).toLocaleDateString()}</p>
-            <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 24, padding: "40px", boxShadow: "0 10px 30px rgba(0,0,0,0.02)" }}>
+            <h1 className="text-[32px] font-extrabold mb-3 mt-0" style={{ color: textMain }}>{post?.title}</h1>
+            <p className="text-[14px] mb-10 m-0" style={{ color: textMuted }}>{post && new Date(post.created_at).toLocaleDateString()}</p>
+            <div className="rounded-3xl p-10 shadow-[0_10px_30px_rgba(0,0,0,0.02)]" style={{ background: card, border: `1px solid ${border}` }}>
               {files.length > 0 && (
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, marginBottom: 32 }}>
-                  {files.map((url: string, idx: number) => ( 
-                    <a key={idx} href={url} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 13, color: "#4377F1", background: isDark ? "rgba(67, 119, 241, 0.1)" : "#eef2ff", padding: "8px 16px", borderRadius: 8, textDecoration: "none", fontWeight: 600 }}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                      {getFileNameFromUrl(url)}
-                    </a> 
+                <div className="flex flex-col items-end gap-2 mb-8">
+                  {files.map((url, idx) => (
+                    <a key={idx} href={url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-[13px] text-[#4377F1] px-4 py-2 rounded-lg no-underline font-semibold" style={{ background: isDark ? "rgba(67,119,241,0.1)" : "#eef2ff" }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                      {getFileNameFromUrl(url, "첨부파일")}
+                    </a>
                   ))}
                 </div>
               )}
               <div className={isDark ? "quill-dark" : "quill-light"}>
-                <div className="ql-editor" style={{ padding: 0, margin: 0, color: textMain }} dangerouslySetInnerHTML={{ __html: post.content }} />
+                <div className="ql-editor p-0 m-0" style={{ color: textMain }} dangerouslySetInnerHTML={{ __html: post?.content ?? "" }} />
               </div>
               {images.length > 0 && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 24, alignItems: "center", borderTop: `1px solid ${border}`, paddingTop: 40, marginTop: 40 }}>
-                  {images.map((url: string, idx: number) => ( 
-                    <img key={idx} src={url} alt={`첨부 이미지 ${idx + 1}`} style={{ maxWidth: "100%", maxHeight: 600, objectFit: "contain", borderRadius: 16, border: `1px solid ${border}` }} /> 
+                <div className="flex flex-col gap-6 items-center pt-10 mt-10" style={{ borderTop: `1px solid ${border}` }}>
+                  {images.map((url, idx) => (
+                    <img key={idx} src={url} alt={`첨부 이미지 ${idx + 1}`} className="max-w-full max-h-[600px] object-contain rounded-2xl" style={{ border: `1px solid ${border}` }} />
                   ))}
                 </div>
               )}
@@ -274,25 +261,38 @@ export function PostDetailPage() {
           </>
         )}
       </div>
-      {showModal.show && ( 
-        <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-          <div style={{ background: isDark ? "#1e293b" : "#fff", padding: "40px 32px", borderRadius: 24, textAlign: "center", maxWidth: 400, width: "90%", boxShadow: "0 20px 40px rgba(0,0,0,0.2)" }}>
-            <h2 style={{ color: textMain, marginBottom: 12, fontSize: 22 }}>{showModal.type === 'delete' ? '게시물 삭제' : '변경사항 저장'}</h2>
-            <p style={{ color: textMuted, marginBottom: 32, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
-              {showModal.type === 'delete' 
-                ? '정말로 이 게시물을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.' 
-                : '수정한 내용을 게시판에 즉시 적용하시겠습니까?'}
+
+      {showModal.show && (
+        <div className="fixed top-0 left-0 w-full h-full bg-black/60 flex items-center justify-center z-[1000]">
+          <div className="py-10 px-8 rounded-3xl text-center max-w-[400px] w-[90%] shadow-[0_20px_40px_rgba(0,0,0,0.2)]" style={{ background: isDark ? "#1e293b" : "#fff" }}>
+            <h2 className="mb-3 text-[22px] mt-0" style={{ color: textMain }}>
+              {showModal.type === "delete" ? "게시물 삭제" : "변경사항 저장"}
+            </h2>
+            <p className="mb-8 leading-[1.6] whitespace-pre-wrap m-0" style={{ color: textMuted }}>
+              {showModal.type === "delete"
+                ? "정말로 이 게시물을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다."
+                : "수정한 내용을 게시판에 즉시 적용하시겠습니까?"}
             </p>
-            <div style={{ display: "flex", gap: 12 }}>
-              <button onClick={handleConfirmAction} disabled={isSubmitting} style={{ flex: 1, padding: 14, borderRadius: 12, border: "none", background: showModal.type === 'delete' ? "#ff4d4f" : "#4377F1", color: "#fff", fontWeight: 700, cursor: "pointer", opacity: isSubmitting ? 0.5 : 1 }}>
+            <div className="flex gap-3">
+              <button 
+                onClick={handleConfirmAction} 
+                disabled={isSubmitting} 
+                className={`flex-1 p-[14px] rounded-xl border-none text-white font-bold cursor-pointer ${isSubmitting ? 'opacity-50' : 'opacity-100'}`}
+                style={{ background: showModal.type === "delete" ? "#ff4d4f" : "#4377F1" }}
+              >
                 {isSubmitting ? "처리 중..." : "확인"}
               </button>
-              <button onClick={() => setShowModal({ show: false, type: null })} disabled={isSubmitting} style={{ flex: 1, padding: 14, borderRadius: 12, border: `1px solid ${border}`, background: "none", color: textMain, cursor: "pointer" }}>
+              <button 
+                onClick={() => setShowModal({ show: false, type: null })} 
+                disabled={isSubmitting} 
+                className="flex-1 p-[14px] rounded-xl bg-transparent cursor-pointer m-0"
+                style={{ border: `1px solid ${border}`, color: textMain }}
+              >
                 취소
               </button>
             </div>
           </div>
-        </div> 
+        </div>
       )}
     </PageShell>
   );

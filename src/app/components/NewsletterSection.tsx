@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router";
 import { getSectionTheme } from "../utils/sectionTheme";
 import { supabase } from "../../lib/supabaseClient";
+import { cleanText } from "../../utils/text";
+import type { Post } from "../../lib/types";
 
 interface NewsletterSectionProps { isDark?: boolean; }
 
@@ -10,24 +12,21 @@ export function NewsletterSection({ isDark = false }: NewsletterSectionProps) {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
-  const [newsList, setNewsList] = useState<any[]>([]);
+  const [newsList, setNewsList] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 💡 디자인에 필요한 색상 변수 정의
   const textMuted = isDark ? "rgba(255,255,255,0.45)" : "rgba(15,23,42,0.45)";
   const accentColor = "#FF4340";
 
   useEffect(() => {
     const fetchNews = async () => {
-      // 💡 뉴스 카테고리에서 최신 4개 가져오기
       const { data } = await supabase
-        .from('posts')
-        .select('*')
-        .eq('category', 'news')
-        .order('created_at', { ascending: false })
+        .from("posts")
+        .select("*")
+        .eq("category", "news")
+        .order("created_at", { ascending: false })
         .limit(4);
-      
-      setNewsList(data || []);
+      setNewsList((data as Post[]) || []);
       setLoading(false);
     };
     fetchNews();
@@ -52,17 +51,12 @@ export function NewsletterSection({ isDark = false }: NewsletterSectionProps) {
       boxSizing: "border-box", overflow: "hidden",
       transition: "background 0.4s ease",
     }}>
-      <div style={{
-        position: "absolute", inset: 0, pointerEvents: "none", zIndex: 0,
-        backgroundImage: `radial-gradient(${th.dotGrid} 1px, transparent 1px)`,
-        backgroundSize: "36px 36px",
-      }} />
+      <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 0, backgroundImage: `radial-gradient(${th.dotGrid} 1px, transparent 1px)`, backgroundSize: "36px 36px" }} />
 
       <div style={{ position: "relative", zIndex: 1, maxWidth: "1280px", margin: "0 auto" }}>
         <div className="newsletter-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "60px", alignItems: "start" }}>
           <style>{`@media (max-width: 900px) { .newsletter-grid { grid-template-columns: 1fr !important; gap: 40px !important; } }`}</style>
 
-          {/* ── Left: Subscribe ── */}
           <div>
             <h2 style={{ color: th.headingColor, fontSize: "clamp(24px,3vw,42px)", fontWeight: 800, margin: "0 0 16px", letterSpacing: "-1.5px", lineHeight: 1.15 }}>
               주간 마켓 트렌드<br />뉴스레터
@@ -94,33 +88,18 @@ export function NewsletterSection({ isDark = false }: NewsletterSectionProps) {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleSubscribe()}
-                    style={{
-                      flex: 1, background: th.inputBg, border: `1px solid ${th.inputBorder}`,
-                      borderRadius: "12px", padding: "13px 16px", fontSize: "14px",
-                      color: th.inputText, outline: "none", fontFamily: "'Pretendard', sans-serif",
-                    }}
+                    style={{ flex: 1, background: th.inputBg, border: `1px solid ${th.inputBorder}`, borderRadius: "12px", padding: "13px 16px", fontSize: "14px", color: th.inputText, outline: "none", fontFamily: "'Pretendard', sans-serif" }}
                   />
-                  <button
-                    onClick={handleSubscribe}
-                    style={{
-                      background: "linear-gradient(135deg, #FF4340 0%, #FF7C44 100%)",
-                      color: "#fff", border: "none", borderRadius: "12px", padding: "13px 22px",
-                      fontSize: "14px", fontWeight: 800, cursor: "pointer",
-                      boxShadow: "0 4px 14px rgba(255,67,64,0.35)", whiteSpace: "nowrap", flexShrink: 0,
-                    }}
-                  >
+                  <button onClick={handleSubscribe} style={{ background: "linear-gradient(135deg, #FF4340 0%, #FF7C44 100%)", color: "#fff", border: "none", borderRadius: "12px", padding: "13px 22px", fontSize: "14px", fontWeight: 800, cursor: "pointer", boxShadow: "0 4px 14px rgba(255,67,64,0.35)", whiteSpace: "nowrap", flexShrink: 0 }}>
                     구독하기
                   </button>
                 </div>
                 <p style={{ color: textMuted, fontSize: "12px", margin: 0, lineHeight: 1.5 }}>
-                  무료 구독이며, 언제든지 수신 거부할 수 있습니다. 개인정보는 뉴스레터 발송 목적으로만 사용됩니다.
+                  무료 구독이며, 언제든지 수신 거부할 수 있습니다.
                 </p>
               </div>
             ) : (
-              <div style={{
-                background: "rgba(24,163,67,0.1)", border: "1px solid rgba(24,163,67,0.25)",
-                borderRadius: "14px", padding: "20px 24px", display: "flex", alignItems: "center", gap: "12px",
-              }}>
+              <div style={{ background: "rgba(24,163,67,0.1)", border: "1px solid rgba(24,163,67,0.25)", borderRadius: "14px", padding: "20px 24px", display: "flex", alignItems: "center", gap: "12px" }}>
                 <span style={{ fontSize: "24px" }}>🎉</span>
                 <div>
                   <div style={{ color: "#18A343", fontSize: "15px", fontWeight: 800, marginBottom: "4px" }}>구독 완료!</div>
@@ -130,63 +109,39 @@ export function NewsletterSection({ isDark = false }: NewsletterSectionProps) {
             )}
           </div>
 
-          {/* ── Right: Recent issues (DB 연동) ── */}
           <div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
-              <span style={{ color: textMuted, fontSize: "11px", fontWeight: 800, letterSpacing: "1.5px" }}>
-                최근 발행호
-              </span>
-              <Link to="/news" style={{
-                color: accentColor, fontSize: "12px", fontWeight: 700, textDecoration: "none",
-                display: "inline-flex", alignItems: "center", gap: "4px",
-              }}>
+              <span style={{ color: textMuted, fontSize: "11px", fontWeight: 800, letterSpacing: "1.5px" }}>최근 발행호</span>
+              <Link to="/news" style={{ color: accentColor, fontSize: "12px", fontWeight: 700, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "4px" }}>
                 전체보기 →
               </Link>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
               {loading ? (
                 <div style={{ color: textMuted, fontSize: "13px" }}>발행호를 불러오는 중...</div>
-              ) : newsList.map((news, i) => (
+              ) : newsList.map((news) => (
                 <div
                   key={news.id}
                   onClick={() => navigate(`/post/${news.id}`)}
-                  style={{
-                    background: th.cardBg, border: `1px solid ${th.cardBorder}`,
-                    borderRadius: "16px", padding: "20px 22px",
-                    boxShadow: th.cardShadow, cursor: "pointer",
-                    transition: "transform 0.25s ease, box-shadow 0.25s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLDivElement).style.transform = "translateX(4px)";
-                    (e.currentTarget as HTMLDivElement).style.boxShadow = isDark ? "0 4px 20px rgba(0,0,0,0.3)" : "0 4px 20px rgba(0,0,0,0.08)";
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLDivElement).style.transform = "translateX(0)";
-                    (e.currentTarget as HTMLDivElement).style.boxShadow = th.cardShadow;
-                  }}
+                  style={{ background: th.cardBg, border: `1px solid ${th.cardBorder}`, borderRadius: "16px", padding: "20px 22px", boxShadow: th.cardShadow, cursor: "pointer", transition: "transform 0.25s ease, box-shadow 0.25s ease" }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.transform = "translateX(4px)"; (e.currentTarget as HTMLDivElement).style.boxShadow = isDark ? "0 4px 20px rgba(0,0,0,0.3)" : "0 4px 20px rgba(0,0,0,0.08)"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.transform = "translateX(0)"; (e.currentTarget as HTMLDivElement).style.boxShadow = th.cardShadow; }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
                     <span style={{ color: textMuted, fontSize: "12px", fontWeight: 700 }}>NEW</span>
                     <span style={{ color: textMuted, fontSize: "11px" }}>·</span>
-                    <span style={{
-                      fontSize: "10px", fontWeight: 800, letterSpacing: "0.5px",
-                      color: accentColor, background: `${accentColor}15`,
-                      border: `1px solid ${accentColor}35`, padding: "2px 8px", borderRadius: "5px",
-                    }}>인사이트</span>
-                    <span style={{ color: textMuted, fontSize: "11px", marginLeft: "auto" }}>
-                      {new Date(news.created_at).toLocaleDateString()}
-                    </span>
+                    <span style={{ fontSize: "10px", fontWeight: 800, letterSpacing: "0.5px", color: accentColor, background: `${accentColor}15`, border: `1px solid ${accentColor}35`, padding: "2px 8px", borderRadius: "5px" }}>인사이트</span>
+                    <span style={{ color: textMuted, fontSize: "11px", marginLeft: "auto" }}>{new Date(news.created_at).toLocaleDateString()}</span>
                   </div>
                   <div style={{ color: th.itemTitle, fontSize: "14px", fontWeight: 700, marginBottom: "6px", lineHeight: 1.35, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {news.title}
                   </div>
                   <div style={{ color: th.itemDesc, fontSize: "12px", lineHeight: 1.55, marginBottom: "10px", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                    {/* 💡 HTML 태그 제거 로직 적용 */}
-                    {(news.content || "").replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()}
+                    {cleanText(news.content)}
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "4px", color: accentColor }}>
                     <span style={{ fontSize: "12px", fontWeight: 700 }}>읽기 (5분)</span>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
                   </div>
                 </div>
               ))}
@@ -194,7 +149,6 @@ export function NewsletterSection({ isDark = false }: NewsletterSectionProps) {
           </div>
         </div>
 
-        {/* Bottom divider */}
         <div style={{ marginTop: "80px", display: "flex", alignItems: "center", gap: "24px" }}>
           <div style={{ flex: 1, height: "1px", background: `linear-gradient(to right, transparent, ${th.dividerColor})` }} />
           <span style={{ color: th.footerText, fontSize: "12px", fontWeight: 500, whiteSpace: "nowrap", letterSpacing: "0.05em" }}>

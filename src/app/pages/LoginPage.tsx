@@ -23,11 +23,10 @@ export function LoginPage() {
   const inputBg = isDark ? "rgba(255,255,255,0.04)" : "#fff";
   const inputBorder = isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.12)";
 
-  const inputStyle: React.CSSProperties = {
-    width: "100%", padding: "14px 16px", borderRadius: 12,
-    background: inputBg, border: `1px solid ${inputBorder}`,
-    color: textMain, fontSize: 14, outline: "none",
-    fontFamily: "'Pretendard', sans-serif", boxSizing: "border-box",
+  const inputDynamicStyle: React.CSSProperties = {
+    background: inputBg,
+    border: `1px solid ${inputBorder}`,
+    color: textMain,
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -75,47 +74,66 @@ export function LoginPage() {
   };
   return (
     <PageShell title="로그인" subtitle="NCF × Around X 회원 전용 서비스를 이용하세요." accentColor="#20D6A2">
-      <div style={{ display: "flex", justifyContent: "center" }}>
-        <form onSubmit={handleSubmit} style={{ width: "100%", maxWidth: 460, background: card, border: `1px solid ${border}`, borderRadius: 20, padding: "40px 36px", display: "flex", flexDirection: "column", gap: 16 }}>
-          <div style={{ marginBottom: 8 }}>
-            <div style={{ fontSize: 13, color: textMuted, marginBottom: 6 }}>이메일</div>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" style={inputStyle} required />
+      <div className="flex justify-center">
+        <form 
+          onSubmit={handleSubmit} 
+          className="w-full max-w-[460px] rounded-[20px] px-9 py-10 flex flex-col gap-4"
+          style={{ background: card, border: `1px solid ${border}` }}
+        >
+          <div className="mb-2">
+            <div className="text-[13px] mb-1.5" style={{ color: textMuted }}>이메일</div>
+            <input 
+              type="email" 
+              value={email} 
+              onChange={(e) => setEmail(e.target.value)} 
+              placeholder="you@example.com" 
+              className="w-full px-4 py-[14px] rounded-xl text-[14px] outline-none font-['Pretendard',sans-serif] box-border"
+              style={inputDynamicStyle} 
+              required 
+            />
           </div>
 
           <div>
-            <div style={{ fontSize: 13, color: textMuted, marginBottom: 6 }}>비밀번호</div>
-            <div style={{ position: "relative" }}>
+            <div className="text-[13px] mb-1.5" style={{ color: textMuted }}>비밀번호</div>
+            <div className="relative">
               <input 
                 type={showPassword ? "text" : "password"} 
                 value={password} 
                 onChange={(e) => setPassword(e.target.value)} 
                 placeholder="••••••••" 
-                style={{ ...inputStyle, paddingRight: 40 }} 
+                className="w-full pl-4 pr-10 py-[14px] rounded-xl text-[14px] outline-none font-['Pretendard',sans-serif] box-border"
+                style={inputDynamicStyle} 
                 required 
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: textMuted, display: "flex", alignItems: "center", padding: 0 }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 bg-none border-none cursor-pointer flex items-center p-0"
+                style={{ color: textMuted }}
               >
                 {showPassword ? <EyeOffIcon /> : <EyeIcon />}
               </button>
             </div>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 13 }}>
-            <label style={{ display: "flex", alignItems: "center", gap: 8, color: textMuted, cursor: "pointer" }}>
+          <div className="flex items-center justify-between text-[13px]">
+            <label className="flex items-center gap-2 cursor-pointer" style={{ color: textMuted }}>
               <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
               로그인 유지
             </label>
-            <a href="#" onClick={handleResetPassword} style={{ color: "#20D6A2", textDecoration: "none", fontWeight: 600 }}>비밀번호 찾기</a>
+            <a href="#" onClick={handleResetPassword} className="text-[#20D6A2] no-underline font-semibold">비밀번호 찾기</a>
           </div>
 
-          <button type="submit" disabled={loading} style={{ marginTop: 8, padding: "14px 0", borderRadius: 12, border: "none", background: loading ? "gray" : "linear-gradient(135deg, #20D6A2 0%, #4377F1 100%)", color: "#fff", fontSize: 15, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", fontFamily: "'Pretendard', sans-serif", boxShadow: loading ? "none" : "0 8px 24px rgba(32,214,162,0.3)" }}>
+          <button 
+            type="submit" 
+            disabled={loading} 
+            className={`mt-2 py-[14px] rounded-xl border-none text-white text-[15px] font-bold font-['Pretendard',sans-serif] ${loading ? "bg-gray-500 cursor-not-allowed shadow-none" : "cursor-pointer shadow-[0_8px_24px_rgba(32,214,162,0.3)]"}`}
+            style={{ background: loading ? undefined : "linear-gradient(135deg, #20D6A2 0%, #4377F1 100%)" }}
+          >
             {loading ? "처리 중..." : "로그인"}
           </button>
-          <p style={{ textAlign: "center", color: textMuted, fontSize: 13, margin: "12px 0 0" }}>
-            아직 회원이 아니신가요? <Link to="/signup" style={{ color: "#20D6A2", fontWeight: 700, textDecoration: "none" }}>회원가입</Link>
+          <p className="text-center text-[13px] m-0 mt-3" style={{ color: textMuted }}>
+            아직 회원이 아니신가요? <Link to="/signup" className="text-[#20D6A2] font-bold no-underline">회원가입</Link>
           </p>
         </form>
       </div>
