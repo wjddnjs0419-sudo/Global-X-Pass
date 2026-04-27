@@ -13,7 +13,7 @@ export function PageShell({ title, subtitle, accentColor = "#20D6A2", children }
   return (
     <div
       style={{
-        minHeight: "100vh",
+        minHeight: "100dvh",
         background: isDark ? "#0a1020" : "#F7F8FC",
         fontFamily: "'Pretendard', sans-serif",
         transition: "background 0.4s ease",

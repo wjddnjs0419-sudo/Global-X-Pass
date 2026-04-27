@@ -4,42 +4,17 @@ import { PageShell } from "../components/PageShell";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { useTheme } from "../ThemeContext";
 import { supabase } from "../../lib/supabaseClient";
-
-const decodeFilename = (encoded: string) => {
-  if (encoded.startsWith('b64-')) {
-    try {
-      let b64 = encoded.substring(4).replace(/-/g, '+').replace(/_/g, '/');
-      while (b64.length % 4 !== 0) b64 += '=';
-      return decodeURIComponent(atob(b64));
-    } catch { return encoded; }
-  }
-  return decodeURIComponent(encoded);
-};
-
-const getFileNameFromUrl = (url: string) => {
-  try {
-    const path = url.split('?')[0];
-    let filename = path.split('/').pop() || "";
-    if (filename.includes('---')) filename = filename.split('---').pop()!;
-    else if (filename.match(/^\d+_[a-z0-9]+_/)) filename = filename.split('_').slice(2).join('_');
-    return decodeFilename(filename);
-  } catch { return ""; }
-};
-
-// 💡 [핵심 패치] 확장자가 없어도 외부 이미지 도메인이면 이미지로 판단합니다.
-const isImage = (url: string) => {
-  const fileName = getFileNameFromUrl(url);
-  if (fileName.match(/\.(jpeg|jpg|gif|png|webp|avif|svg|jfif|pjpeg|pjp|bmp|heic|heif)$/i)) return true;
-  if (url.match(/\.(jpeg|jpg|gif|png|webp|avif|svg|jfif|pjpeg|pjp|bmp|heic|heif)(?:\?.*)?$/i)) return true;
-  if (url.includes('unsplash.com') || url.includes('picsum.photos') || url.includes('placeholder.com')) return true;
-  return false;
-};
+import { LoadingSpinner, ErrorMessage } from "../components/LoadingSpinner";
+import { isImage } from "../../utils/file";
+import { cleanText } from "../../utils/text";
+import type { Post } from "../../lib/types";
 
 export function BlogPage() {
   const { isDark } = useTheme();
-  const navigate = useNavigate(); 
-  const [posts, setPosts] = useState<any[]>([]);
+  const navigate = useNavigate();
+  const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   const cardBg = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
   const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
@@ -47,8 +22,13 @@ export function BlogPage() {
 
   useEffect(() => {
     const fetchPosts = async () => {
-      const { data } = await supabase.from('posts').select('*').eq('category', 'blog').order('created_at', { ascending: false });
-      setPosts(data || []);
+      const { data, error } = await supabase
+        .from("posts")
+        .select("*")
+        .eq("category", "blog")
+        .order("created_at", { ascending: false });
+      if (error) setError(true);
+      else setPosts((data as Post[]) || []);
       setLoading(false);
     };
     fetchPosts();
@@ -56,21 +36,48 @@ export function BlogPage() {
 
   return (
     <PageShell title="블로그" subtitle="NCF와 Around X가 전하는 다양한 인사이트와 비즈니스 이야기를 만나보세요.">
-      <div style={{ maxWidth: 1200, margin: "0 auto", paddingBottom: 100 }}>
-        {loading ? ( <p style={{ textAlign: "center", color: "gray", padding: "100px 0" }}>불러오는 중입니다...</p> ) : posts.length === 0 ? ( <p style={{ textAlign: "center", color: "gray", padding: "100px 0" }}>등록된 게시물이 없습니다.</p> ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 32 }}>
+      <div className="max-w-[1200px] mx-auto pb-[100px]">
+        {loading ? (
+          <LoadingSpinner />
+        ) : error ? (
+          <ErrorMessage />
+        ) : posts.length === 0 ? (
+          <p className="text-center text-gray-500 py-[100px]">등록된 게시물이 없습니다.</p>
+        ) : (
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-8">
             {posts.map((post) => {
-              const attachmentImages = post.image_url?.split(',').filter(isImage) || [];
-              const thumbnailUrl = attachmentImages.length > 0 ? attachmentImages[0] : (post.content?.match(/<img[^>]+src="([^">]+)"/) || [])[1];
+              const attachmentImages = post.image_url?.split(",").filter(isImage) || [];
+              const thumbnailUrl = attachmentImages[0] ?? (post.content?.match(/<img[^>]+src="([^">]+)"/) || [])[1];
 
               return (
-                <div key={post.id} onClick={() => navigate(`/post/${post.id}`)} style={{ background: cardBg, border: `1px solid ${border}`, borderRadius: 24, overflow: "hidden", cursor: "pointer", transition: "transform 0.2s ease" }} onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-6px)"} onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0)"}>
-                  <div style={{ height: 200, width: "100%", background: "#f0f0f0", overflow: "hidden" }}><ImageWithFallback src={thumbnailUrl} alt={post.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} /></div>
-                  <div style={{ padding: 28 }}>
-                    <div style={{ marginBottom: 16 }}><span style={{ padding: "6px 12px", background: "rgba(67, 119, 241, 0.1)", color: "#4377F1", fontSize: 12, fontWeight: 800, borderRadius: 8 }}>INSIGHT</span></div>
-                    <h2 style={{ margin: "0 0 12px", fontSize: 20, fontWeight: 800, color: textMain, lineHeight: "1.4", height: "2.8em", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{post.title}</h2>
-                    <p style={{ margin: "0 0 20px", fontSize: 15, color: "gray", lineHeight: 1.6, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{(post.content || "").replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()}</p>
-                    <div style={{ fontSize: 13, color: "rgba(128,128,128,0.6)", fontWeight: 500 }}>{new Date(post.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                <div
+                  key={post.id}
+                  onClick={() => navigate(`/post/${post.id}`)}
+                  className="rounded-3xl overflow-hidden cursor-pointer transition-transform duration-200 ease-out hover:-translate-y-1.5"
+                  style={{ background: cardBg, border: `1px solid ${border}` }}
+                >
+                  <div className="h-[200px] w-full bg-[#f0f0f0] overflow-hidden">
+                    <ImageWithFallback src={thumbnailUrl} alt={post.title} className="w-full h-full object-cover" />
+                  </div>
+                  <div className="p-7">
+                    <div className="mb-4">
+                      <span className="px-3 py-1.5 bg-[#4377F1]/10 text-[#4377F1] text-xs font-extrabold rounded-lg">INSIGHT</span>
+                    </div>
+                    <h2 
+                      className="m-0 mb-3 text-[20px] font-extrabold leading-[1.4] h-[2.8em] overflow-hidden" 
+                      style={{ color: textMain, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}
+                    >
+                      {post.title}
+                    </h2>
+                    <p 
+                      className="m-0 mb-5 text-[15px] text-gray-500 leading-[1.6] overflow-hidden" 
+                      style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}
+                    >
+                      {cleanText(post.content)}
+                    </p>
+                    <div className="text-[13px] text-gray-500/60 font-medium">
+                      {new Date(post.created_at).toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" })}
+                    </div>
                   </div>
                 </div>
               );

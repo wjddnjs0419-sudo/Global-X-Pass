@@ -2,37 +2,44 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import logoImg from "../../imports/Logo.png";
 import { supabase } from "../../lib/supabaseClient";
-
-// 💡 1. 방금 만든 언어 컨텍스트 불러오기 (경로가 다르면 파일 위치에 맞게 수정해주세요!)
-import { useLanguage } from "../LanguageContext"; 
+import { useLanguage } from "../LanguageContext";
+import { useTheme } from "../ThemeContext";
+import { useAdmin } from "../../hooks/useAdmin";
 
 type MenuKey = "resources" | "programs" | "news" | "support";
 
-// 💡 2. 한글과 영어를 모두 지원하도록 메뉴 딕셔너리(사전) 수정
-const MENUS: { key: MenuKey; label: string; items: { label: { ko: string; en: string }; path: string }[] }[] = [
+const MENUS: {
+  key: MenuKey;
+  label: string;
+  items: { label: { ko: string; en: string }; path: string }[];
+}[] = [
   {
-    key: "resources", label: "Resources",
+    key: "resources",
+    label: "Resources",
     items: [
       { label: { ko: "자료실", en: "Resources" }, path: "/resources" },
       { label: { ko: "블로그", en: "Blog" }, path: "/blog" },
     ],
   },
   {
-    key: "programs", label: "Programs",
+    key: "programs",
+    label: "Programs",
     items: [
       { label: { ko: "행사", en: "Events" }, path: "/events" },
       { label: { ko: "행사 아카이브", en: "Event Archive" }, path: "/events/archive" },
     ],
   },
   {
-    key: "news", label: "News",
+    key: "news",
+    label: "News",
     items: [
       { label: { ko: "공지사항", en: "Notice" }, path: "/notice" },
       { label: { ko: "뉴스", en: "News" }, path: "/news" },
     ],
   },
   {
-    key: "support", label: "Support",
+    key: "support",
+    label: "Support",
     items: [
       { label: { ko: "자주 묻는 질문", en: "FAQ" }, path: "/faq" },
     ],
@@ -47,12 +54,12 @@ export function HeaderSection({ isDark = false }: HeaderSectionProps) {
   const [scrolled, setScrolled] = useState(false);
   const [openMenu, setOpenMenu] = useState<MenuKey | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [session, setSession] = useState<any>(null); 
-  
+  const [session, setSession] = useState<{ user: { email?: string; id: string } } | null>(null);
+  const { isAdmin } = useAdmin();
+  const { isDark: themeDark, toggle: toggleTheme } = useTheme();
+
   const navigate = useNavigate();
   const location = useLocation();
-  
-  // 💡 3. 현재 언어(lang)와 언어 변경 함수(toggleLang) 꺼내오기
   const { lang, toggleLang } = useLanguage();
 
   useEffect(() => {
@@ -67,10 +74,15 @@ export function HeaderSection({ isDark = false }: HeaderSectionProps) {
     return () => subscription.unsubscribe();
   }, []);
 
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 40);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   const handleLogout = async (e: React.MouseEvent) => {
     e.preventDefault();
     await supabase.auth.signOut();
-    // 💡 로그아웃 알림창도 언어에 맞게 분기 처리
     alert(lang === "ko" ? "안전하게 로그아웃 되었습니다." : "Logged out successfully.");
     navigate("/");
     setSidebarOpen(false);
@@ -83,15 +95,9 @@ export function HeaderSection({ isDark = false }: HeaderSectionProps) {
     }
   };
 
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 40);
-    window.addEventListener("scroll", onScroll);
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
   const utilLinks = session
     ? [
-        ...(session.user?.email === "admin@test.com" ? [{ label: "Admin", path: "/admin" }] : []),
+        ...(isAdmin ? [{ label: "Admin", path: "/admin" }] : []),
         { label: "Mypage", path: "/mypage" },
         { label: "Search", path: "/search" },
         { label: "Logout", path: "#", isLogout: true },
@@ -105,42 +111,36 @@ export function HeaderSection({ isDark = false }: HeaderSectionProps) {
   const useLightText = !scrolled;
   const textColor = useLightText ? "rgba(255,255,255,0.92)" : isDark ? "rgba(255,255,255,0.92)" : "rgba(10,16,32,0.88)";
   const textColorMuted = useLightText ? "rgba(255,255,255,0.7)" : isDark ? "rgba(255,255,255,0.7)" : "rgba(10,16,32,0.65)";
-  const headerBg = scrolled
-    ? isDark ? "rgba(10,16,32,0.82)" : "rgba(255,255,255,0.86)"
-    : "transparent";
-  const headerBorder = scrolled
-    ? isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.06)"
-    : "1px solid transparent";
+  const headerBg = scrolled ? (isDark ? "rgba(10,16,32,0.82)" : "rgba(255,255,255,0.86)") : "transparent";
+  const headerBorder = scrolled ? (isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.06)") : "1px solid transparent";
 
   return (
     <>
       <header
-        style={{
-          position: "fixed", top: 0, left: 0, right: 0, zIndex: 1000, height: "72px",
-          display: "flex", alignItems: "center", padding: "0 clamp(12px, 3vw, 32px)",
-          background: headerBg, backdropFilter: scrolled ? "blur(18px)" : "none",
-          borderBottom: headerBorder, transition: "background 0.3s ease, border-color 0.3s ease",
-          fontFamily: "'Pretendard', sans-serif",
-        }}
+        className={`fixed top-0 left-0 right-0 z-[1000] h-[72px] flex items-center px-[clamp(12px,3vw,32px)] font-['Pretendard',sans-serif] transition-colors duration-300 ease-out ${scrolled ? "backdrop-blur-[18px]" : ""}`}
+        style={{ background: headerBg, borderBottom: headerBorder }}
         onMouseLeave={() => setOpenMenu(null)}
       >
         <button
           aria-label="메뉴 열기"
           onClick={() => setSidebarOpen(true)}
-          style={{ width: 40, height: 40, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", border: "none", cursor: "pointer", marginRight: 12 }}
+          className="w-[40px] h-[40px] rounded-[10px] flex items-center justify-center bg-transparent border-none cursor-pointer mr-[12px]"
         >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={textColor} strokeWidth="2" strokeLinecap="round"><path d="M3 6h18M3 12h18M3 18h18" /></svg>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={textColor} strokeWidth="2" strokeLinecap="round">
+            <path d="M3 6h18M3 12h18M3 18h18" />
+          </svg>
         </button>
 
-        <nav className="header-left-nav" style={{ display: "flex", alignItems: "center", gap: 4 }}>
+        <nav className="header-left-nav flex items-center gap-[4px] max-[900px]:hidden">
           {MENUS.map((m) => (
-            <div key={m.key} onMouseEnter={() => setOpenMenu(m.key)} style={{ position: "relative" }}>
-              <button style={{ background: "transparent", border: "none", cursor: "pointer", padding: "10px 16px", color: textColor, fontFamily: "'Pretendard', sans-serif", fontSize: 14, fontWeight: 600, letterSpacing: "-0.01em", transition: "color 0.2s ease" }}>{m.label}</button>
+            <div key={m.key} onMouseEnter={() => setOpenMenu(m.key)} className="relative">
+              <button className="bg-transparent border-none cursor-pointer px-[16px] py-[10px] font-['Pretendard',sans-serif] text-[14px] font-semibold tracking-[-0.01em] transition-colors duration-200 ease-in-out" style={{ color: textColor }}>
+                {m.label}
+              </button>
               {openMenu === m.key && (
-                <div style={{ position: "absolute", top: "calc(100% + 6px)", left: "50%", transform: "translateX(-50%)", minWidth: 160, background: isDark ? "rgba(16,22,42,0.96)" : "rgba(255,255,255,0.98)", border: `1px solid ${isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.08)"}`, borderRadius: 12, boxShadow: "0 12px 32px rgba(0,0,0,0.18)", padding: 8, backdropFilter: "blur(20px)" }}>
+                <div className="absolute top-[calc(100%+6px)] left-1/2 -translate-x-1/2 min-w-[160px] rounded-[12px] shadow-[0_12px_32px_rgba(0,0,0,0.18)] p-[8px] backdrop-blur-[20px]" style={{ background: isDark ? "rgba(16,22,42,0.96)" : "rgba(255,255,255,0.98)", border: `1px solid ${isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.08)"}` }}>
                   {m.items.map((it) => (
-                    // 💡 드롭다운 메뉴 이름이 현재 설정된 언어에 따라 나옵니다 (it.label[lang])
-                    <Link key={it.path} to={it.path} onClick={() => setOpenMenu(null)} style={{ display: "block", padding: "10px 14px", borderRadius: 8, color: isDark ? "rgba(255,255,255,0.88)" : "rgba(10,16,32,0.82)", fontSize: 14, fontWeight: 500, textDecoration: "none", transition: "background 0.15s ease" }} onMouseEnter={(e) => (e.currentTarget.style.background = isDark ? "rgba(32,214,162,0.12)" : "rgba(32,214,162,0.10)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                    <Link key={it.path} to={it.path} onClick={() => setOpenMenu(null)} className="block px-[14px] py-[10px] rounded-[8px] text-[14px] font-medium no-underline transition-colors duration-150 ease-in-out" style={{ color: isDark ? "rgba(255,255,255,0.88)" : "rgba(10,16,32,0.82)" }} onMouseEnter={(e) => (e.currentTarget.style.background = isDark ? "rgba(32,214,162,0.12)" : "rgba(32,214,162,0.10)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
                       {it.label[lang]}
                     </Link>
                   ))}
@@ -150,60 +150,100 @@ export function HeaderSection({ isDark = false }: HeaderSectionProps) {
           ))}
         </nav>
 
-        <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", display: "flex", alignItems: "center" }}>
-          <Link to="/" onClick={handleLogoClick} style={{ display: "flex", alignItems: "center", textDecoration: "none", cursor: "pointer" }}>
-            <img src={logoImg} alt="로고" style={{ height: 24, width: "auto", objectFit: "contain", filter: useLightText ? "brightness(0) invert(1)" : isDark ? "brightness(0) invert(1)" : "none", transition: "filter 0.3s ease" }} />
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center pointer-events-none">
+          <Link to="/" onClick={handleLogoClick} className="flex items-center no-underline cursor-pointer pointer-events-auto">
+            <img src={logoImg} alt="로고" className="h-[24px] max-[640px]:h-[20px] w-auto object-contain transition-all duration-300 ease-in-out" style={{ filter: useLightText ? "brightness(0) invert(1)" : isDark ? "brightness(0) invert(1)" : "none" }} />
           </Link>
         </div>
 
-        <div className="header-right-utils" style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12 }}>
-          
-          {/* ── 💡 4. 언어 전환 토글 버튼 추가 ── */}
-          <button 
-            onClick={toggleLang} 
-            style={{ display: "flex", alignItems: "center", gap: "6px", padding: "6px 12px", borderRadius: "20px", border: `1px solid ${textColorMuted}`, background: "transparent", color: textColor, fontSize: "12px", fontWeight: 700, cursor: "pointer", transition: "opacity 0.2s" }}
+        <div className="header-right-utils ml-auto flex items-center gap-[12px] max-[640px]:gap-[4px] relative z-[10]">
+          <button
+            onClick={toggleLang}
+            className="flex items-center gap-[6px] max-[640px]:gap-[2px] px-[12px] py-[6px] max-[640px]:px-[6px] max-[640px]:py-[4px] rounded-[20px] bg-transparent text-[12px] max-[640px]:text-[10px] font-bold cursor-pointer transition-opacity duration-200"
+            style={{ border: `1px solid ${textColorMuted}`, color: textColor }}
             onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
             onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.8")}
           >
-            <span style={{ opacity: lang === "ko" ? 1 : 0.4, transition: "opacity 0.2s" }}>KO</span>
-            <span style={{ opacity: 0.4 }}>|</span>
-            <span style={{ opacity: lang === "en" ? 1 : 0.4, transition: "opacity 0.2s" }}>EN</span>
+            <span className="transition-opacity duration-200" style={{ opacity: lang === "ko" ? 1 : 0.4 }}>KO</span>
+            <span className="opacity-40">|</span>
+            <span className="transition-opacity duration-200" style={{ opacity: lang === "en" ? 1 : 0.4 }}>EN</span>
+          </button>
+          <button
+            onClick={toggleTheme}
+            aria-label="테마 전환"
+            className="w-[40px] h-[40px] rounded-[10px] flex items-center justify-center bg-transparent border-none cursor-pointer"
+          >
+            {themeDark ? (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={textColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="5" />
+                <line x1="12" y1="1" x2="12" y2="3" />
+                <line x1="12" y1="21" x2="12" y2="23" />
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                <line x1="1" y1="12" x2="3" y2="12" />
+                <line x1="21" y1="12" x2="23" y2="12" />
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+              </svg>
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={textColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+              </svg>
+            )}
           </button>
 
-          <div style={{ display: "flex", gap: 6 }}>
+          <div className="flex gap-[6px] max-[900px]:hidden">
             {utilLinks.map((u) => (
-              <Link key={u.label} to={u.path} onClick={u.isLogout ? handleLogout : undefined} style={{ padding: "10px 14px", color: textColorMuted, fontSize: 13, fontWeight: 600, textDecoration: "none", transition: "color 0.2s ease" }} onMouseEnter={(e) => (e.currentTarget.style.color = textColor)} onMouseLeave={(e) => (e.currentTarget.style.color = textColorMuted)}>{u.label}</Link>
+              <Link key={u.label} to={u.path} onClick={u.isLogout ? handleLogout : undefined} className="px-[14px] py-[10px] text-[13px] font-semibold no-underline transition-colors duration-200 ease-in-out max-[640px]:px-[8px] max-[640px]:py-[8px] max-[640px]:text-[12px]" style={{ color: textColorMuted }} onMouseEnter={(e) => (e.currentTarget.style.color = textColor)} onMouseLeave={(e) => (e.currentTarget.style.color = textColorMuted)}>
+                {u.label}
+              </Link>
             ))}
           </div>
         </div>
       </header>
 
-      {sidebarOpen && <div onClick={() => setSidebarOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(5,8,20,0.55)", backdropFilter: "blur(4px)", animation: "fadeIn 0.25s ease" }} />}
+      {sidebarOpen && (
+        <div onClick={() => setSidebarOpen(false)} className="fixed inset-0 z-[1100] bg-[rgba(5,8,20,0.55)] backdrop-blur-[4px] animate-[fadeIn_0.25s_ease]" />
+      )}
 
-      <aside style={{ position: "fixed", top: 0, left: 0, bottom: 0, width: 320, zIndex: 1200, background: isDark ? "#0a1020" : "#ffffff", boxShadow: "8px 0 40px rgba(0,0,0,0.25)", transform: sidebarOpen ? "translateX(0)" : "translateX(-100%)", transition: "transform 0.35s cubic-bezier(0.22, 1, 0.36, 1)", display: "flex", flexDirection: "column", fontFamily: "'Pretendard', sans-serif" }}>
-        <div style={{ height: 72, padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"}` }}>
-          <Link to="/" onClick={() => setSidebarOpen(false)}><img src={logoImg} alt="로고" style={{ height: 22, filter: isDark ? "brightness(0) invert(1)" : "none", objectFit: "contain" }} /></Link>
-          <button onClick={() => setSidebarOpen(false)} style={{ width: 36, height: 36, borderRadius: 10, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={isDark ? "rgba(255,255,255,0.85)" : "rgba(10,16,32,0.75)"} strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg></button>
+      <aside className={`fixed top-0 left-0 bottom-0 w-[320px] z-[1200] shadow-[8px_0_40px_rgba(0,0,0,0.25)] flex flex-col font-['Pretendard',sans-serif] transition-transform duration-[350ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`} style={{ background: isDark ? "#0a1020" : "#ffffff" }}>
+        <div className="h-[72px] px-[24px] flex items-center justify-between" style={{ borderBottom: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"}` }}>
+          <Link to="/" onClick={() => setSidebarOpen(false)}>
+            <img src={logoImg} alt="로고" className="h-[22px] object-contain" style={{ filter: isDark ? "brightness(0) invert(1)" : "none" }} />
+          </Link>
+          <button onClick={() => setSidebarOpen(false)} className="w-[36px] h-[36px] rounded-[10px] bg-transparent border-none cursor-pointer flex items-center justify-center">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={isDark ? "rgba(255,255,255,0.85)" : "rgba(10,16,32,0.75)"} strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+          </button>
         </div>
-        <nav style={{ flex: 1, overflowY: "auto", padding: "20px 16px" }}>
+        <nav className="flex-1 overflow-y-auto px-[16px] py-[20px]">
           {MENUS.map((m) => (
-            <div key={m.key} style={{ marginBottom: 18 }}>
-              <div style={{ padding: "6px 12px", color: isDark ? "rgba(190,255,249,0.75)" : "rgba(32,214,162,0.95)", fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>{m.label}</div>
+            <div key={m.key} className="mb-[18px]">
+              <div className="px-[12px] py-[6px] text-[12px] font-extrabold tracking-[0.08em] uppercase" style={{ color: isDark ? "rgba(190,255,249,0.75)" : "rgba(32,214,162,0.95)" }}>
+                {m.label}
+              </div>
               {m.items.map((it) => (
-                // 💡 모바일 사이드바 메뉴 이름도 현재 설정된 언어에 따라 나옵니다
-                <Link key={it.path} to={it.path} onClick={() => setSidebarOpen(false)} style={{ display: "block", padding: "10px 12px", borderRadius: 10, color: isDark ? "rgba(255,255,255,0.9)" : "rgba(10,16,32,0.85)", fontSize: 15, fontWeight: 600, textDecoration: "none", transition: "background 0.15s ease" }} onMouseEnter={(e) => (e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.06)" : "rgba(10,16,32,0.04)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                <Link key={it.path} to={it.path} onClick={() => setSidebarOpen(false)} className="block px-[12px] py-[10px] rounded-[10px] text-[15px] font-semibold no-underline transition-colors duration-150 ease-in-out" style={{ color: isDark ? "rgba(255,255,255,0.9)" : "rgba(10,16,32,0.85)" }} onMouseEnter={(e) => (e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.06)" : "rgba(10,16,32,0.04)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
                   {it.label[lang]}
                 </Link>
               ))}
             </div>
           ))}
+
+          <div className="mt-[24px] pt-[20px] hidden max-[900px]:block" style={{ borderTop: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"}` }}>
+            <div className="px-[12px] py-[6px] text-[12px] font-extrabold tracking-[0.08em] uppercase" style={{ color: isDark ? "rgba(190,255,249,0.75)" : "rgba(32,214,162,0.95)" }}>
+              ACCOUNT
+            </div>
+            {utilLinks.map((u) => (
+              <Link key={u.label} to={u.path} onClick={(e) => { if(u.isLogout) handleLogout(e); else setSidebarOpen(false); }} className="block px-[12px] py-[10px] rounded-[10px] text-[15px] font-semibold no-underline transition-colors duration-150 ease-in-out" style={{ color: isDark ? "rgba(255,255,255,0.9)" : "rgba(10,16,32,0.85)" }} onMouseEnter={(e) => (e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.06)" : "rgba(10,16,32,0.04)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                {u.label}
+              </Link>
+            ))}
+          </div>
         </nav>
       </aside>
 
       <style>{`
         @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
-        @media (max-width: 900px) { .header-left-nav { display: none !important; } }
-        @media (max-width: 640px) { .header-right-utils a { padding: 8px 8px !important; font-size: 12px !important; } }
       `}</style>
     </>
   );
