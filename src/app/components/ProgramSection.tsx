@@ -1,9 +1,13 @@
 // ─── 지원 프로그램 섹션 (Global X Pass 4가지 프로그램) ──────────────
+import { useNavigate } from "react-router";
 import { getSectionTheme } from "../utils/sectionTheme";
 
 interface ProgramSectionProps { isDark?: boolean; }
 
-const programs = [
+const programs: {
+  badge: string; badgeColor: string; gradient: string; glowFrom: string;
+  icon: React.ReactNode; title: string; desc: string; tags: string[]; path?: string;
+}[] = [
   {
     badge: "PLATFORM",
     badgeColor: "#4377F1",
@@ -32,6 +36,7 @@ const programs = [
     title: "1:1 전문가 컨설팅",
     desc: "Google 현직 전문가와 1:1로 연결되는 개인 맞춤 컨설팅. 제품 전략부터 해외 론칭 계획까지, 기업 상황에 맞는 실질적 조언을 제공합니다.",
     tags: ["Google 전문가 매칭", "월 2회 세션", "전략 리포트"],
+    path: "/consulting",
   },
   {
     badge: "COMMUNITY",
@@ -47,6 +52,7 @@ const programs = [
     title: "Founder's Club",
     desc: "창구 프로그램 수료 스타트업 CEO들의 폐쇄형 네트워크. 분기별 오프라인 밋업, 공동 IR 피칭, 크로스 파트너십 기회를 제공합니다.",
     tags: ["폐쇄형 CEO 네트워크", "분기 오프라인 밋업", "공동 IR"],
+    path: "/founders-club",
   },
   {
     badge: "INSIGHT",
@@ -65,6 +71,7 @@ const programs = [
 ];
 
 export function ProgramSection({ isDark = false }: ProgramSectionProps) {
+  const navigate = useNavigate();
   const th = getSectionTheme(isDark);
   return (
     <section style={{
@@ -99,7 +106,7 @@ export function ProgramSection({ isDark = false }: ProgramSectionProps) {
         {/* Program grid — 4 cols on desktop, 2 on tablet, 1 on mobile */}
         <div className="program-grid">
           {programs.map((p, i) => (
-            <ProgramCard key={i} program={p} isDark={isDark} th={th} />
+            <ProgramCard key={i} program={p} isDark={isDark} th={th} onClick={p.path ? () => navigate(p.path!) : undefined} />
           ))}
         </div>
         <style>{`
@@ -121,9 +128,10 @@ export function ProgramSection({ isDark = false }: ProgramSectionProps) {
   );
 }
 
-function ProgramCard({ program: p, isDark, th }: { program: typeof programs[0]; isDark: boolean; th: ReturnType<typeof getSectionTheme> }) {
+function ProgramCard({ program: p, isDark, th, onClick }: { program: typeof programs[0]; isDark: boolean; th: ReturnType<typeof getSectionTheme>; onClick?: () => void }) {
   return (
     <div
+      onClick={onClick}
       style={{
         background: th.cardBg,
         border: `1px solid ${th.cardBorder}`,
@@ -137,7 +145,7 @@ function ProgramCard({ program: p, isDark, th }: { program: typeof programs[0]; 
         gap: "16px",
         height: "100%",
         transition: "transform 0.3s ease, box-shadow 0.3s ease",
-        cursor: "default",
+        cursor: onClick ? "pointer" : "default",
       }}
       onMouseEnter={(e) => {
         (e.currentTarget as HTMLDivElement).style.transform = "translateY(-4px)";

@@ -14,13 +14,15 @@ import { AdminDashboard } from "../components/admin/AdminDashboard";
 import { AdminUserManagement } from "../components/admin/AdminUserManagement";
 import { AdminPostCreate } from "../components/admin/AdminPostCreate";
 import { AdminPostManage } from "../components/admin/AdminPostManage";
+import { AdminConsultingManagement } from "../components/admin/AdminConsultingManagement";
+import { AdminFoundersClubManagement } from "../components/admin/AdminFoundersClubManagement";
 
 export default function AdminPage() {
   const { isDark } = useTheme();
   const navigate = useNavigate();
 
   // 상단 탭 상태
-  const [activeTab, setActiveTab] = useState<"dashboard" | "users" | "create" | "manage">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "users" | "create" | "manage" | "consulting" | "founders">("dashboard");
 
   const [stats, setStats] = useState({ views: 0, posts: 0, visitors: 0 });
   const [category, setCategory] = useState("notice");
@@ -292,12 +294,11 @@ export default function AdminPage() {
     // Realtime 구독으로 인해 fetchUsers()를 수동으로 부르지 않아도 즉각 반영됩니다.
   };
 
-  const handleGrantAdmin = async (id: string, currentRole: string) => {
-    const newRole = currentRole === 'admin' ? 'user' : 'admin';
-    if (!window.confirm(`권한을 ${newRole === 'admin' ? '관리자' : '일반 회원'}로 변경하시겠습니까?`)) return;
+  const handleSetRole = async (id: string, newRole: string) => {
+    const labels: Record<string, string> = { admin: "관리자", participant: "참여사 담당자", user: "일반 회원" };
+    if (!window.confirm(`역할을 '${labels[newRole]}'로 변경하시겠습니까?`)) return;
     const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', id);
-    if (error) alert("권한 변경 실패: " + error.message);
-    // Realtime 구독으로 인해 자동으로 권한이 업데이트됩니다.
+    if (error) alert("역할 변경 실패: " + error.message);
   };
 
   const handleCsvUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -359,10 +360,12 @@ export default function AdminPage() {
         {/* 탭 필터 메뉴 추가 */}
         <div className="flex gap-[12px] mb-[40px] pb-[16px] overflow-x-auto whitespace-nowrap scrollbar-hide" style={{ borderBottom: `1px solid ${border}` }}>
           {[
-            { id: "dashboard", label: "관리 대시보드" },
-            { id: "users", label: "회원 관리" },
-            { id: "create", label: "새 게시물 등록" },
-            { id: "manage", label: "게시물 관리" }
+            { id: "dashboard",  label: "관리 대시보드" },
+            { id: "users",      label: "회원 관리" },
+            { id: "create",     label: "새 게시물 등록" },
+            { id: "manage",     label: "게시물 관리" },
+            { id: "consulting", label: "컨설팅 관리" },
+            { id: "founders",   label: "Founder's Club" },
           ].map(tab => (
             <button
               key={tab.id}
@@ -399,14 +402,14 @@ export default function AdminPage() {
 
         {/* 탭 2: 회원 관리 영역 */}
         {activeTab === "users" && (
-          <AdminUserManagement 
+          <AdminUserManagement
             users={users}
             currentUsersList={currentUsersList}
             currentUsersPage={currentUsersPage}
             setCurrentUsersPage={setCurrentUsersPage}
             totalUsersPages={totalUsersPages}
             csvLoading={csvLoading}
-            handleGrantAdmin={handleGrantAdmin}
+            handleSetRole={handleSetRole}
             handleDeleteUser={handleDeleteUser}
             handleCsvUpload={handleCsvUpload}
           />
@@ -438,7 +441,7 @@ export default function AdminPage() {
 
         {/* 탭 4: 게시물 관리 영역 */}
         {activeTab === "manage" && (
-          <AdminPostManage 
+          <AdminPostManage
             filteredPosts={filteredPosts}
             currentPosts={currentPosts}
             filterCategory={filterCategory}
@@ -452,6 +455,12 @@ export default function AdminPage() {
             handleDeleteClick={handleDeleteClick}
           />
         )}
+
+        {/* 탭 5: 컨설팅 관리 */}
+        {activeTab === "consulting" && <AdminConsultingManagement />}
+
+        {/* 탭 6: Founder's Club */}
+        {activeTab === "founders" && <AdminFoundersClubManagement />}
 
       </main>
 

@@ -4,17 +4,21 @@ import { getSectionTheme, SectionTheme } from "../utils/sectionTheme";
 import { supabase } from "../../lib/supabaseClient";
 import { cleanText } from "../../utils/text";
 import type { Post } from "../../lib/types";
+import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
 
 interface CommunitySectionProps { isDark?: boolean; }
 
-const CAT_MAP: Record<string, { label: string; color: string; bg: string }> = {
-  notice:          { label: "공지사항", color: "#FF4340", bg: "linear-gradient(135deg, #FF4340, #FF7C44)" },
-  news:            { label: "인사이트", color: "#FBBC05", bg: "linear-gradient(135deg, #FFEE56, #FFC2B4)" },
-  blog:            { label: "블로그",   color: "#A855F7", bg: "linear-gradient(135deg, #A855F7, #D8B4FE)" },
-  events:          { label: "행사소식", color: "#20D6A2", bg: "linear-gradient(135deg, #20D6A2, #BEFFF9)" },
-  "events-archive":{ label: "행사소식", color: "#20D6A2", bg: "linear-gradient(135deg, #20D6A2, #BEFFF9)" },
-  resources:       { label: "자료실",  color: "#4377F1", bg: "linear-gradient(135deg, #4377F1, #16DBBB)" },
-  faq:             { label: "FAQ",      color: "#9CA3AF", bg: "linear-gradient(135deg, #9CA3AF, #D1D5DB)" },
+type BadgeVariant = "default" | "secondary" | "destructive" | "outline" | "blue" | "green" | "yellow" | "red" | "purple" | "glass";
+
+const CAT_MAP: Record<string, { label: string; variant: BadgeVariant }> = {
+  notice:           { label: "공지사항", variant: "red"    },
+  news:             { label: "인사이트", variant: "blue"   },
+  blog:             { label: "블로그",   variant: "purple" },
+  events:           { label: "행사소식", variant: "green"  },
+  "events-archive": { label: "행사소식", variant: "green"  },
+  resources:        { label: "자료실",   variant: "blue"   },
+  faq:              { label: "FAQ",      variant: "yellow" },
 };
 
 const TABS = [
@@ -87,9 +91,11 @@ export function CommunitySection({ isDark = false }: CommunitySectionProps) {
           </div>
 
           {activeTab !== "all" && currentTabInfo?.path && (
-            <Link to={currentTabInfo.path} style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: isDark ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.5)", fontSize: "13px", fontWeight: 700, textDecoration: "none", padding: "8px 16px", background: th.tagBg, border: `1px solid ${th.tagBorder}`, borderRadius: "100px", transition: "all 0.2s" }}>
-              {currentTabInfo.label} 전체보기
-            </Link>
+            <Button variant="outline" shape="pill" size="sm" asChild className={isDark ? "border-white/20 text-white/70" : "border-black/20 text-black/70"}>
+              <Link to={currentTabInfo.path}>
+                {currentTabInfo.label} 전체보기
+              </Link>
+            </Button>
           )}
         </div>
 
@@ -97,9 +103,19 @@ export function CommunitySection({ isDark = false }: CommunitySectionProps) {
           {TABS.map((tab) => {
             const active = tab.id === activeTab;
             return (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{ fontSize: "12px", fontWeight: 700, padding: "6px 14px", borderRadius: "100px", background: active ? "#FBBC05" : th.pillBg, border: active ? "none" : `1px solid ${th.pillBorder}`, color: active ? "#fff" : th.pillText, cursor: "pointer", transition: "background 0.2s ease, color 0.2s ease" }}>
+              <Button
+                key={tab.id}
+                variant={active ? "default" : "outline"}
+                shape="pill"
+                size="sm"
+                onClick={() => setActiveTab(tab.id)}
+                className={active 
+                  ? "bg-[#A855F7] hover:bg-[#9333EA] border-transparent text-white shadow-[0_4px_12px_rgba(168,85,247,0.3)]" 
+                  : (isDark ? "border-white/20 text-white/70 hover:bg-white/5" : "border-black/10 text-black/60 hover:bg-black/5")
+                }
+              >
                 {tab.label}
-              </button>
+              </Button>
             );
           })}
         </div>
@@ -141,9 +157,9 @@ function CommunityCard({ post, isDark, th, onClick }: { post: Post; isDark: bool
       }}
     >
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span style={{ fontSize: "10px", fontWeight: 800, letterSpacing: "0.5px", color: meta.color, background: `${meta.color}15`, border: `1px solid ${meta.color}35`, padding: "3px 8px", borderRadius: "6px" }}>
+        <Badge variant={meta.variant} shape="pill" showDot>
           {meta.label}
-        </span>
+        </Badge>
       </div>
 
       <div style={{ flex: 1 }}>

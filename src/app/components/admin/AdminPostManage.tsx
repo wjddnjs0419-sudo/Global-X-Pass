@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router";
 import { useTheme } from "../../ThemeContext";
-import { CATEGORIES } from "./adminConstants";
+import { CATEGORIES, CATEGORY_COLOR } from "./adminConstants";
 
 interface AdminPostManageProps {
   filteredPosts: any[];
@@ -68,12 +68,18 @@ export function AdminPostManage({
            currentPosts.map(post => (
              <div key={post.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-[16px] sm:gap-0" style={{ background: card, border: `1px solid ${border}`, borderRadius: "20px", padding: "20px 30px" }}>
                <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-                 <span style={{ fontSize: "12px", background: "#eef2ff", color: "#4377F1", padding: "6px 10px", borderRadius: "8px", fontWeight: 700 }}>
-                   {CATEGORIES.find(c => c.id === post.category)?.label}
-                 </span>
+                 {(() => {
+                   const cat = CATEGORIES.find(c => c.id === post.category);
+                   const clr = CATEGORY_COLOR[post.category] ?? CATEGORY_COLOR["news"];
+                   return (
+                     <span style={{ fontSize: "12px", background: isDark ? clr.bgDark : clr.bg, color: clr.color, padding: "6px 12px", borderRadius: "8px", fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0 }}>
+                       {cat?.label ?? post.category}
+                     </span>
+                   );
+                 })()}
                  <strong
                    onClick={() => navigate(`/post/${post.id}`)}
-                   style={{ color: "#4377F1", fontSize: "16px", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3 }}
+                   style={{ color: textMain, fontSize: "16px", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3, textDecorationColor: "rgba(67,119,241,0.4)" }}
                  >
                    {post.title}
                  </strong>

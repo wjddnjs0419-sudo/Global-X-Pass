@@ -5,7 +5,6 @@ import { FooterSection } from "./FooterSection";
 import { DesignSystemPage } from "./DesignSystemPage";
 import { useTracker } from "../../hooks/useTracker";
 import { useAdmin } from "../../hooks/useAdmin";
-import { AnimatePresence, motion } from "framer-motion";
 
 const NAV_TABS = [
   { id: "site", label: "🌐 사이트 미리보기", path: "/" },
@@ -40,18 +39,7 @@ export function RootLayout() {
       {!isDesignSystem && !isAdminPage && <HeaderSection isDark={isDark} />}
 
       <main style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={location.pathname}
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -15 }}
-            transition={{ duration: 0.35, ease: "easeInOut" }}
-            style={{ flex: 1, display: "flex", flexDirection: "column" }}
-          >
-            {isDesignSystem ? <DesignSystemPage isDark={isDark} /> : <Outlet />}
-          </motion.div>
-        </AnimatePresence>
+        {isDesignSystem ? <DesignSystemPage isDark={isDark} /> : <Outlet />}
       </main>
 
       {!isDesignSystem && <FooterSection isDark={isDark} />}

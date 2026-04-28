@@ -19,6 +19,7 @@ const MENUS: {
     items: [
       { label: { ko: "자료실", en: "Resources" }, path: "/resources" },
       { label: { ko: "블로그", en: "Blog" }, path: "/blog" },
+      { label: { ko: "사업비 자료실", en: "Expense Center" }, path: "/expenses" },
     ],
   },
   {
@@ -27,6 +28,8 @@ const MENUS: {
     items: [
       { label: { ko: "행사", en: "Events" }, path: "/events" },
       { label: { ko: "행사 아카이브", en: "Event Archive" }, path: "/events/archive" },
+      { label: { ko: "1:1 컨설팅", en: "Consulting" }, path: "/consulting" },
+      { label: { ko: "Founder's Club", en: "Founder's Club" }, path: "/founders-club" },
     ],
   },
   {
