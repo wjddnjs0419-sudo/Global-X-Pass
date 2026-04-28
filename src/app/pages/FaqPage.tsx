@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import DOMPurify from "dompurify";
 import { PageShell } from "../components/PageShell";
 import { useTheme } from "../ThemeContext";
 import { supabase } from "../../lib/supabaseClient";
@@ -73,7 +74,7 @@ export function FaqPage() {
                           <div 
                             className="ql-editor p-0 m-0 text-[15px] opacity-80 leading-[1.7] min-h-0" 
                             style={{ color: textMain }} 
-                            dangerouslySetInnerHTML={{ __html: post.content }} 
+                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.content) }} 
                           />
                         </div>
                       </div>

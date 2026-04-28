@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
+import DOMPurify from "dompurify";
 import { useParams, useNavigate } from "react-router";
 import { PageShell } from "../components/PageShell";
 import { useTheme } from "../ThemeContext";
@@ -75,6 +76,10 @@ export function PostDetailPage() {
     input.onchange = async () => {
       const file = input.files?.[0];
       if (file) {
+        if (file.size > 10 * 1024 * 1024) {
+          alert("이미지 파일은 10MB 이하만 업로드 가능합니다.");
+          return;
+        }
         try {
           const safeName = encodeFilename(file.name);
           const fileName = `${Date.now()}---editor---${Math.random().toString(36).substr(2, 9)}---${safeName}`;
@@ -117,6 +122,10 @@ export function PostDetailPage() {
       } else if (showModal.type === "save") {
         let imageUrls = [...existingImages];
         for (const f of editFiles) {
+          if (f.size > 10 * 1024 * 1024) {
+            alert(`"${f.name}" 파일이 10MB를 초과합니다. 10MB 이하 파일만 업로드 가능합니다.`);
+            return;
+          }
           const safeName = encodeFilename(f.name);
           const fileName = `${Date.now()}---${Math.random().toString(36).substr(2, 9)}---${safeName}`;
           const { error: upError } = await supabase.storage.from("images").upload(fileName, f);
@@ -248,7 +257,7 @@ export function PostDetailPage() {
                 </div>
               )}
               <div className={isDark ? "quill-dark" : "quill-light"}>
-                <div className="ql-editor p-0 m-0" style={{ color: textMain }} dangerouslySetInnerHTML={{ __html: post?.content ?? "" }} />
+                <div className="ql-editor p-0 m-0" style={{ color: textMain }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post?.content ?? "") }} />
               </div>
               {images.length > 0 && (
                 <div className="flex flex-col gap-6 items-center pt-10 mt-10" style={{ borderTop: `1px solid ${border}` }}>
