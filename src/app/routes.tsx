@@ -17,6 +17,9 @@ import AdminPage from "./pages/AdminPage";
 import { AdminRoute } from "./components/AdminRoute";
 import { PostDetailPage } from "./pages/PostDetailPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
+import { ExpensesPage } from "./pages/ExpensesPage";
+import { ConsultingPage } from "./pages/ConsultingPage";
+import { FoundersClubPage } from "./pages/FoundersClubPage";
 
 export const router = createBrowserRouter([
   {
@@ -37,6 +40,9 @@ export const router = createBrowserRouter([
       { path: "search", Component: SearchPage },
       { path: "update-password", Component: UpdatePasswordPage },
       { path: "admin", Component: AdminRoute, children: [{ index: true, Component: AdminPage }] },
+      { path: "expenses", Component: ExpensesPage },
+      { path: "consulting", Component: ConsultingPage },
+      { path: "founders-club", Component: FoundersClubPage },
       { path: "post/:id", Component: PostDetailPage },
       { path: "design-system", Component: () => null },
       { path: "*", Component: NotFoundPage },

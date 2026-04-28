@@ -4,6 +4,9 @@ import { getSectionTheme } from "../utils/sectionTheme";
 import { supabase } from "../../lib/supabaseClient";
 import { cleanText } from "../../utils/text";
 import type { Post } from "../../lib/types";
+import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
+import { Skeleton } from "./ui/skeleton";
 
 interface NoticeSectionProps { isDark?: boolean; }
 
@@ -30,7 +33,9 @@ export function NoticeSection({ isDark = false }: NoticeSectionProps) {
     fetchNotices();
   }, []);
 
-  if (loading || notices.length === 0) return null;
+  if (!loading && notices.length === 0) return null;
+
+  const skCls = isDark ? "bg-white/[0.07]" : "bg-black/[0.07]";
 
   return (
     <section style={{
@@ -44,56 +49,80 @@ export function NoticeSection({ isDark = false }: NoticeSectionProps) {
     }}>
       <div style={{ position: "relative", zIndex: 1, maxWidth: "1280px", margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: "40px" }}>
-          <h2 style={{ color: th.headingColor, fontSize: "clamp(24px,3vw,36px)", fontWeight: 800, margin: 0, letterSpacing: "-1.2px" }}>
-            공지사항
-          </h2>
-          <Link to="/notice" style={{
-            display: "inline-flex", alignItems: "center", gap: "6px",
-            color: "#ef4444", fontSize: "13px", fontWeight: 700, textDecoration: "none",
-            padding: "8px 16px", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: "100px",
-          }}>
-            전체 공지 보기
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
-          </Link>
+          {loading ? (
+            <>
+              <Skeleton className={`h-9 w-36 ${skCls}`} />
+              <Skeleton className={`h-8 w-28 rounded-full ${skCls}`} />
+            </>
+          ) : (
+            <>
+              <h2 style={{ color: th.headingColor, fontSize: "clamp(24px,3vw,36px)", fontWeight: 800, margin: 0, letterSpacing: "-1.2px" }}>
+                공지사항
+              </h2>
+              <Button variant="outline" shape="pill" size="sm" asChild className={isDark ? "border-red-500/30 text-red-400 hover:bg-red-500/10" : "border-red-500/20 text-red-600 hover:bg-red-50"}>
+                <Link to="/notice">
+                  전체 공지 보기
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="ml-1"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+                </Link>
+              </Button>
+            </>
+          )}
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          {notices.map((notice) => (
-            <div
-              key={notice.id}
-              onClick={() => navigate(`/post/${notice.id}`)}
-              style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "24px 32px", background: th.cardBg, border: `1px solid ${th.cardBorder}`, borderRadius: "20px", cursor: "pointer", transition: "all 0.2s ease", boxShadow: th.cardShadow }}
-              onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.borderColor = "#ef444455"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.transform = "none"; e.currentTarget.style.borderColor = th.cardBorder; }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: "24px", flex: 1, minWidth: 0 }}>
-                <div style={{ flexShrink: 0, width: "60px", textAlign: "center" }}>
-                  <div style={{ fontSize: "18px", fontWeight: 800, color: textMain }}>{new Date(notice.created_at).getDate()}</div>
-                  <div style={{ fontSize: "11px", fontWeight: 600, color: textMuted, textTransform: "uppercase" }}>
-                    {new Date(notice.created_at).toLocaleString("en-US", { month: "short" })}
-                  </div>
-                </div>
-
+          {loading ? (
+            [0, 1, 2].map((i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: "24px", padding: "24px 32px", background: th.cardBg, border: `1px solid ${th.cardBorder}`, borderRadius: "20px" }}>
+                <Skeleton className={`h-12 w-14 shrink-0 ${skCls}`} />
                 <div style={{ width: "1px", height: "30px", background: th.rowDivider, flexShrink: 0 }} />
-
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-                    <span style={{ fontSize: "10px", fontWeight: 800, color: "#ef4444", background: "rgba(239,68,68,0.1)", padding: "2px 6px", borderRadius: "4px" }}>NOTICE</span>
-                    <h3 style={{ margin: 0, fontSize: "17px", fontWeight: 700, color: textMain, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                      {notice.title}
-                    </h3>
+                <div className="flex-1 min-w-0 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Skeleton className={`h-5 w-16 rounded-full shrink-0 ${skCls}`} />
+                    <Skeleton className={`h-5 w-52 ${skCls}`} />
                   </div>
-                  <p style={{ margin: 0, fontSize: "14px", color: textMuted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {cleanText(notice.content)}
-                  </p>
+                  <Skeleton className={`h-4 w-3/4 ${skCls}`} />
                 </div>
+                <Skeleton className={`h-5 w-5 shrink-0 ${skCls}`} />
               </div>
-
-              <div style={{ color: textMuted, marginLeft: "20px" }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
-              </div>
-            </div>
-          ))}
+            ))
+          ) : (
+            notices.map((notice) => {
+              const date = new Date(notice.created_at);
+              return (
+                <div
+                  key={notice.id}
+                  onClick={() => navigate(`/post/${notice.id}`)}
+                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "24px 32px", background: th.cardBg, border: `1px solid ${th.cardBorder}`, borderRadius: "20px", cursor: "pointer", transition: "all 0.2s ease", boxShadow: th.cardShadow }}
+                  onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.borderColor = "#ef444455"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.transform = "none"; e.currentTarget.style.borderColor = th.cardBorder; }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "24px", flex: 1, minWidth: 0 }}>
+                    <div style={{ flexShrink: 0, width: "60px", textAlign: "center" }}>
+                      <div style={{ fontSize: "18px", fontWeight: 800, color: textMain }}>{date.getDate()}</div>
+                      <div style={{ fontSize: "11px", fontWeight: 600, color: textMuted, textTransform: "uppercase" }}>
+                        {date.toLocaleString("en-US", { month: "short" })}
+                      </div>
+                    </div>
+                    <div style={{ width: "1px", height: "30px", background: th.rowDivider, flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
+                        <Badge variant="red" shape="pill" showDot>NOTICE</Badge>
+                        <h3 style={{ margin: 0, fontSize: "17px", fontWeight: 700, color: textMain, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {notice.title}
+                        </h3>
+                      </div>
+                      <p style={{ margin: 0, fontSize: "14px", color: textMuted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {cleanText(notice.content)}
+                      </p>
+                    </div>
+                  </div>
+                  <div style={{ color: textMuted, marginLeft: "20px" }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
     </section>

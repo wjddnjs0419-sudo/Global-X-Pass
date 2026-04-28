@@ -7,6 +7,7 @@ import { EventSection } from "./EventSection";
 import { CommunitySection } from "./CommunitySection";
 import { ResourceSection } from "./ResourceSection";
 import { NewsletterSection } from "./NewsletterSection";
+import { FoundersClubCalendarWidget } from "./FoundersClubCalendarWidget";
 
 export function HomePage() {
   const { isDark } = useTheme();
@@ -18,6 +19,7 @@ export function HomePage() {
       <NoticeSection isDark={isDark} />
       <EventSection isDark={isDark} />
       <CommunitySection isDark={isDark} />
+      <FoundersClubCalendarWidget isDark={isDark} />
       <ResourceSection isDark={isDark} />
       <NewsletterSection isDark={isDark} />
     </>

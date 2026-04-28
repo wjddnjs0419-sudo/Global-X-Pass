@@ -16,6 +16,8 @@ export function MyPage() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [consultingReservations, setConsultingReservations] = useState<any[]>([]);
+  const [clubApplications, setClubApplications] = useState<any[]>([]);
 
   const card = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
   const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
@@ -40,6 +42,20 @@ export function MyPage() {
         setUser(user as typeof user & { user_metadata: Record<string, string> });
         const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
         if (data) setProfile(data as Profile);
+
+        const { data: resData } = await supabase
+          .from("consulting_reservations")
+          .select("*, consulting_slots(slot_date, slot_time, consultants(name, category))")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false });
+        setConsultingReservations(resData || []);
+
+        const { data: clubData } = await supabase
+          .from("founders_club_applications")
+          .select("*, founders_club_sessions(theme, session_date, status)")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false });
+        setClubApplications(clubData || []);
       }
     };
     fetchUserAndProfile();
@@ -82,8 +98,8 @@ export function MyPage() {
 
   return (
     <PageShell title="마이페이지" subtitle="내 정보 확인 및 설정" accentColor="#4377F1">
-      <div className="flex justify-center pb-[60px]">
-        <div 
+      <div className="flex flex-col items-center pb-[60px] gap-6">
+        <div
           className="w-full max-w-[500px] rounded-[20px] px-9 py-10 flex flex-col gap-8"
           style={{ background: card, border: `1px solid ${border}` }}
         >
@@ -160,8 +176,8 @@ export function MyPage() {
               <hr className="border-none mt-2 mb-0" style={{ borderTop: `1px solid ${border}` }} />
               <div>
                 <h3 className="mb-4 text-[18px]" style={{ color: textMain }}>관리자 권한</h3>
-                <button 
-                  onClick={() => navigate("/admin")} 
+                <button
+                  onClick={() => navigate("/admin")}
                   className="w-full py-[14px] rounded-xl border-none text-white text-[15px] font-bold cursor-pointer font-['Pretendard',sans-serif] shadow-[0_8px_24px_rgba(0,0,0,0.15)]"
                   style={{ background: "linear-gradient(135deg, #0f172a 0%, #334155 100%)" }}
                 >
@@ -171,6 +187,57 @@ export function MyPage() {
             </>
           )}
         </div>
+
+        {/* Consulting reservations */}
+        {consultingReservations.length > 0 && (
+          <div className="w-full max-w-[500px] rounded-[20px] px-9 py-8 flex flex-col gap-4" style={{ background: card, border: `1px solid ${border}` }}>
+            <h3 style={{ color: textMain, fontSize: 18, margin: 0 }}>나의 컨설팅 신청</h3>
+            {consultingReservations.map((r: any) => {
+              const slot = r.consulting_slots;
+              const consultant = slot?.consultants;
+              const statusCfg: Record<string, { label: string; color: string }> = {
+                pending: { label: "대기중", color: "#FBBC05" },
+                confirmed: { label: "확정", color: "#18A343" },
+                rejected: { label: "거절", color: "#EA4335" },
+              };
+              const cfg = statusCfg[r.status] ?? { label: r.status, color: "#888" };
+              return (
+                <div key={r.id} style={{ padding: "14px 18px", borderRadius: 14, border: `1px solid ${border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <div style={{ fontWeight: 700, color: textMain, fontSize: 14, marginBottom: 4 }}>{consultant?.name}</div>
+                    <div style={{ fontSize: 12, color: textMuted }}>{slot?.slot_date} {slot?.slot_time?.slice(0, 5)}</div>
+                  </div>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: cfg.color, background: cfg.color + "22", padding: "3px 10px", borderRadius: 99 }}>{cfg.label}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Founder's Club applications */}
+        {clubApplications.length > 0 && (
+          <div className="w-full max-w-[500px] rounded-[20px] px-9 py-8 flex flex-col gap-4" style={{ background: card, border: `1px solid ${border}` }}>
+            <h3 style={{ color: textMain, fontSize: 18, margin: 0 }}>나의 Founder's Club 신청</h3>
+            {clubApplications.map((a: any) => {
+              const session = a.founders_club_sessions;
+              const statusCfg: Record<string, { label: string; color: string }> = {
+                pending: { label: "검토중", color: "#FBBC05" },
+                accepted: { label: "수락됨", color: "#18A343" },
+                rejected: { label: "거절됨", color: "#EA4335" },
+              };
+              const cfg = statusCfg[a.status] ?? { label: a.status, color: "#888" };
+              return (
+                <div key={a.id} style={{ padding: "14px 18px", borderRadius: 14, border: `1px solid ${border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <div style={{ fontWeight: 700, color: textMain, fontSize: 14, marginBottom: 4 }}>{session?.theme}</div>
+                    <div style={{ fontSize: 12, color: textMuted }}>{session?.session_date ?? "날짜 미정"}</div>
+                  </div>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: cfg.color, background: cfg.color + "22", padding: "3px 10px", borderRadius: 99 }}>{cfg.label}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </PageShell>
   );

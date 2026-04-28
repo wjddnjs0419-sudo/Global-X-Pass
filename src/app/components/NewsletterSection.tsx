@@ -4,6 +4,8 @@ import { getSectionTheme } from "../utils/sectionTheme";
 import { supabase } from "../../lib/supabaseClient";
 import { cleanText } from "../../utils/text";
 import type { Post } from "../../lib/types";
+import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
 
 interface NewsletterSectionProps { isDark?: boolean; }
 
@@ -12,11 +14,13 @@ export function NewsletterSection({ isDark = false }: NewsletterSectionProps) {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
+  const [subscribing, setSubscribing] = useState(false);
+  const [subscribeError, setSubscribeError] = useState("");
   const [newsList, setNewsList] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
 
   const textMuted = isDark ? "rgba(255,255,255,0.45)" : "rgba(15,23,42,0.45)";
-  const accentColor = "#FF4340";
+  const accentColor = "#FBBC05";
 
   useEffect(() => {
     const fetchNews = async () => {
@@ -32,11 +36,33 @@ export function NewsletterSection({ isDark = false }: NewsletterSectionProps) {
     fetchNews();
   }, []);
 
-  const handleSubscribe = () => {
-    if (email.includes("@")) {
-      setSubscribed(true);
-      setEmail("");
+  const handleSubscribe = async () => {
+    const trimmed = email.trim();
+    if (!trimmed.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+      setSubscribeError("올바른 이메일 주소를 입력해주세요.");
+      return;
     }
+
+    setSubscribing(true);
+    setSubscribeError("");
+
+    const { error } = await supabase
+      .from("subscribers")
+      .insert({ email: trimmed });
+
+    setSubscribing(false);
+
+    if (error) {
+      if (error.code === "23505") {
+        setSubscribeError("이미 구독 중인 이메일입니다.");
+      } else {
+        setSubscribeError("오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+      }
+      return;
+    }
+
+    setSubscribed(true);
+    setEmail("");
   };
 
   return (
@@ -45,8 +71,8 @@ export function NewsletterSection({ isDark = false }: NewsletterSectionProps) {
       left: "50%", transform: "translateX(-50%)",
       padding: "clamp(60px, 10vw, 100px) clamp(20px, 5vw, 40px) clamp(72px, 12vw, 120px)",
       background: isDark
-        ? "radial-gradient(circle at 20% 50%, rgba(255,67,64,0.06) 0%, transparent 50%), linear-gradient(180deg, #0a1020 0%, #070d1a 100%)"
-        : "radial-gradient(circle at 20% 50%, rgba(255,67,64,0.04) 0%, transparent 50%), linear-gradient(180deg, #ffffff 0%, #F4F6FB 100%)",
+        ? "radial-gradient(circle at 20% 50%, rgba(251,188,5,0.06) 0%, transparent 50%), linear-gradient(180deg, #0a1020 0%, #070d1a 100%)"
+        : "radial-gradient(circle at 20% 50%, rgba(251,188,5,0.04) 0%, transparent 50%), linear-gradient(180deg, #ffffff 0%, #F4F6FB 100%)",
       fontFamily: "'Pretendard', -apple-system, sans-serif",
       boxSizing: "border-box", overflow: "hidden",
       transition: "background 0.4s ease",
@@ -54,8 +80,7 @@ export function NewsletterSection({ isDark = false }: NewsletterSectionProps) {
       <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 0, backgroundImage: `radial-gradient(${th.dotGrid} 1px, transparent 1px)`, backgroundSize: "36px 36px" }} />
 
       <div style={{ position: "relative", zIndex: 1, maxWidth: "1280px", margin: "0 auto" }}>
-        <div className="newsletter-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "60px", alignItems: "start" }}>
-          <style>{`@media (max-width: 900px) { .newsletter-grid { grid-template-columns: 1fr !important; gap: 40px !important; } }`}</style>
+        <div className="grid grid-cols-1 min-[900px]:grid-cols-2 gap-[40px] min-[900px]:gap-[60px] items-start">
 
           <div>
             <h2 style={{ color: th.headingColor, fontSize: "clamp(24px,3vw,42px)", fontWeight: 800, margin: "0 0 16px", letterSpacing: "-1.5px", lineHeight: 1.15 }}>
@@ -86,17 +111,26 @@ export function NewsletterSection({ isDark = false }: NewsletterSectionProps) {
                     type="email"
                     placeholder="이메일 주소를 입력하세요"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => { setEmail(e.target.value); setSubscribeError(""); }}
                     onKeyDown={(e) => e.key === "Enter" && handleSubscribe()}
-                    style={{ flex: 1, background: th.inputBg, border: `1px solid ${th.inputBorder}`, borderRadius: "12px", padding: "13px 16px", fontSize: "14px", color: th.inputText, outline: "none", fontFamily: "'Pretendard', sans-serif" }}
+                    style={{ flex: 1, background: th.inputBg, border: `1px solid ${subscribeError ? "#EA4335" : th.inputBorder}`, borderRadius: "12px", padding: "13px 16px", fontSize: "14px", color: th.inputText, outline: "none", fontFamily: "'Pretendard', sans-serif", transition: "border-color 0.2s" }}
                   />
-                  <button onClick={handleSubscribe} style={{ background: "linear-gradient(135deg, #FF4340 0%, #FF7C44 100%)", color: "#fff", border: "none", borderRadius: "12px", padding: "13px 22px", fontSize: "14px", fontWeight: 800, cursor: "pointer", boxShadow: "0 4px 14px rgba(255,67,64,0.35)", whiteSpace: "nowrap", flexShrink: 0 }}>
-                    구독하기
-                  </button>
+                  <Button
+                    onClick={handleSubscribe}
+                    disabled={subscribing}
+                    shape="pill"
+                    className="bg-gradient-to-r from-[#FBBC05] to-[#FFEE56] hover:brightness-110 text-black border-none shadow-[0_4px_14px_rgba(251,188,5,0.35)] px-6 disabled:opacity-60"
+                  >
+                    {subscribing ? "처리 중..." : "구독하기"}
+                  </Button>
                 </div>
-                <p style={{ color: textMuted, fontSize: "12px", margin: 0, lineHeight: 1.5 }}>
-                  무료 구독이며, 언제든지 수신 거부할 수 있습니다.
-                </p>
+                {subscribeError ? (
+                  <p style={{ color: "#EA4335", fontSize: "12px", margin: 0, lineHeight: 1.5 }}>{subscribeError}</p>
+                ) : (
+                  <p style={{ color: textMuted, fontSize: "12px", margin: 0, lineHeight: 1.5 }}>
+                    무료 구독이며, 언제든지 수신 거부할 수 있습니다.
+                  </p>
+                )}
               </div>
             ) : (
               <div style={{ background: "rgba(24,163,67,0.1)", border: "1px solid rgba(24,163,67,0.25)", borderRadius: "14px", padding: "20px 24px", display: "flex", alignItems: "center", gap: "12px" }}>
@@ -112,9 +146,9 @@ export function NewsletterSection({ isDark = false }: NewsletterSectionProps) {
           <div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
               <span style={{ color: textMuted, fontSize: "11px", fontWeight: 800, letterSpacing: "1.5px" }}>최근 발행호</span>
-              <Link to="/news" style={{ color: accentColor, fontSize: "12px", fontWeight: 700, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "4px" }}>
-                전체보기 →
-              </Link>
+              <Button variant="outline" shape="pill" size="sm" asChild className={isDark ? "border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10" : "border-yellow-500/20 text-yellow-600 hover:bg-yellow-50"}>
+                <Link to="/news">전체보기 →</Link>
+              </Button>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
               {loading ? (
@@ -130,7 +164,7 @@ export function NewsletterSection({ isDark = false }: NewsletterSectionProps) {
                   <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
                     <span style={{ color: textMuted, fontSize: "12px", fontWeight: 700 }}>NEW</span>
                     <span style={{ color: textMuted, fontSize: "11px" }}>·</span>
-                    <span style={{ fontSize: "10px", fontWeight: 800, letterSpacing: "0.5px", color: accentColor, background: `${accentColor}15`, border: `1px solid ${accentColor}35`, padding: "2px 8px", borderRadius: "5px" }}>인사이트</span>
+                    <Badge variant="blue" shape="pill" showDot>인사이트</Badge>
                     <span style={{ color: textMuted, fontSize: "11px", marginLeft: "auto" }}>{new Date(news.created_at).toLocaleDateString()}</span>
                   </div>
                   <div style={{ color: th.itemTitle, fontSize: "14px", fontWeight: 700, marginBottom: "6px", lineHeight: 1.35, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>

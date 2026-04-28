@@ -21,7 +21,7 @@ interface AdminPostCreateProps {
   quillRef: React.RefObject<ReactQuill>;
   modules: any;
   handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  setActiveTab: React.Dispatch<React.SetStateAction<"dashboard" | "users" | "create" | "manage">>;
+  setActiveTab: React.Dispatch<React.SetStateAction<"dashboard" | "users" | "create" | "manage" | "groups" | "consulting" | "founders">>;
 }
 
 export function AdminPostCreate({
