@@ -91,10 +91,14 @@ export default function AdminPage() {
     input.onchange = async () => {
       const file = input.files?.[0];
       if (file) {
+        if (file.size > 10 * 1024 * 1024) {
+          alert("이미지 파일은 10MB 이하만 업로드 가능합니다.");
+          return;
+        }
         try {
           const safeName = encodeFilename(file.name);
           const fileName = `${Date.now()}---editor---${Math.random().toString(36).substr(2, 9)}---${safeName}`;
-          
+
           const { error: upError } = await supabase.storage.from('images').upload(fileName, file);
           if (upError) throw upError;
 
@@ -247,9 +251,14 @@ export default function AdminPage() {
 
         if (files.length > 0) {
           for (const f of files) {
+            if (f.size > 10 * 1024 * 1024) {
+              alert(`"${f.name}" 파일이 10MB를 초과합니다. 10MB 이하 파일만 업로드 가능합니다.`);
+              setLoading(false);
+              return;
+            }
             const safeName = encodeFilename(f.name);
             const fileName = `${Date.now()}---${Math.random().toString(36).substr(2, 9)}---${safeName}`;
-            
+
             const { error: upError } = await supabase.storage.from('images').upload(fileName, f);
             if (upError) {
               console.error("Supabase Storage Upload Error:", upError);

@@ -171,7 +171,7 @@ export function MyPage() {
             )}
           </div>
 
-          {(user.email === "admin@test.com" || profile?.role === "admin") && (
+          {profile?.role === "admin" && (
             <>
               <hr className="border-none mt-2 mb-0" style={{ borderTop: `1px solid ${border}` }} />
               <div>
