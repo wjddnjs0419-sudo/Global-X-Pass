@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import { useLocation } from "react-router";
 import { supabase } from "../lib/supabaseClient";
 
+const THROTTLE_MS = 30 * 60 * 1000; // 같은 페이지 30분 내 재방문은 기록 안 함
+
 export function useTracker() {
   const location = useLocation();
 
@@ -12,6 +14,11 @@ export function useTracker() {
         visitorId = crypto.randomUUID();
         localStorage.setItem("visitor_id", visitorId);
       }
+
+      const cacheKey = `pv_${location.pathname}`;
+      const lastTracked = localStorage.getItem(cacheKey);
+      if (lastTracked && Date.now() - parseInt(lastTracked) < THROTTLE_MS) return;
+      localStorage.setItem(cacheKey, Date.now().toString());
 
       const { error } = await supabase.from("page_views").insert({
         visitor_id: visitorId,
