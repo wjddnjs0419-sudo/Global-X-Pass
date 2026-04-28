@@ -8,9 +8,10 @@ import { useAdmin } from "../../hooks/useAdmin";
 import { useIdleLogout } from "../../hooks/useIdleLogout";
 
 const NAV_TABS = [
-  { id: "site", label: "🌐 사이트 미리보기", path: "/" },
-  { id: "admin", label: "📊 관리자 페이지", path: "/admin" },
-  { id: "design-system", label: "🎨 디자인 시스템", path: "/design-system" },
+  { id: "site",         label: "🌐 사이트 미리보기", path: "/" },
+  { id: "admin",        label: "📊 관리자 페이지",   path: "/admin" },
+  { id: "design-system",label: "🎨 디자인 시스템",   path: "/design-system" },
+  { id: "flow-map",     label: "🗂 서비스 흐름도",    path: "/flow-map" },
 ] as const;
 
 export function RootLayout() {
@@ -27,6 +28,8 @@ export function RootLayout() {
 
   const currentTab = isDesignSystem
     ? "design-system"
+    : location.pathname.startsWith("/flow-map")
+    ? "flow-map"
     : location.pathname.startsWith("/admin")
     ? "admin"
     : "site";

@@ -18,7 +18,7 @@ export function AdminConsultingManagement() {
   // Consultant form
   const [form, setForm] = useState({ name: "", category: "legal" as Consultant["category"], bio: "", expertise: "", image_url: "" });
   // Slot form
-  const [slotForm, setSlotForm] = useState({ consultant_id: "", slot_date: "", slot_time: "", duration_minutes: 60 });
+  const [slotForm, setSlotForm] = useState({ consultant_id: "", slot_date_y: "", slot_date_m: "", slot_date_d: "", slot_time: "", duration_minutes: 60 });
   const [loading, setLoading] = useState(false);
 
   const card = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
@@ -71,9 +71,11 @@ export function AdminConsultingManagement() {
   };
 
   const handleCreateSlot = async () => {
-    if (!slotForm.consultant_id || !slotForm.slot_date || !slotForm.slot_time) return alert("전문가, 날짜, 시간을 모두 입력해주세요.");
+    const { slot_date_y: y, slot_date_m: m, slot_date_d: d } = slotForm;
+    const slot_date = y && m && d ? `${y}-${m}-${d}` : "";
+    if (!slotForm.consultant_id || !slot_date || !slotForm.slot_time) return alert("전문가, 날짜, 시간을 모두 입력해주세요.");
     setLoading(true);
-    const { error } = await supabase.from("consulting_slots").insert(slotForm);
+    const { error } = await supabase.from("consulting_slots").insert({ consultant_id: slotForm.consultant_id, slot_date, slot_time: slotForm.slot_time, duration_minutes: slotForm.duration_minutes });
     if (error) alert("슬롯 생성 실패: " + error.message);
     else { fetchSlots(slotForm.consultant_id); setSelectedConsultant(slotForm.consultant_id); }
     setLoading(false);
@@ -165,10 +167,101 @@ export function AdminConsultingManagement() {
               <option value="">전문가 선택...</option>
               {consultants.map(c => <option key={c.id} value={c.id}>{c.name} — {CATEGORY_LABELS[c.category]}</option>)}
             </select>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 120px", gap: 10 }}>
-              <input style={inputStyle} type="date" value={slotForm.slot_date} onChange={e => setSlotForm(f => ({ ...f, slot_date: e.target.value }))} />
-              <input style={inputStyle} type="time" value={slotForm.slot_time} onChange={e => setSlotForm(f => ({ ...f, slot_time: e.target.value }))} />
-              <input style={inputStyle} type="number" placeholder="분" value={slotForm.duration_minutes} onChange={e => setSlotForm(f => ({ ...f, duration_minutes: Number(e.target.value) }))} />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <span style={{ fontSize: 12, color: textMuted, fontWeight: 600 }}>날짜</span>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <select
+                    style={{ ...inputStyle, flex: 2 }}
+                    value={slotForm.slot_date_y}
+                    onChange={e => setSlotForm(f => ({ ...f, slot_date_y: e.target.value }))}
+                  >
+                    <option value="">년</option>
+                    {Array.from({ length: 4 }, (_, i) => String(new Date().getFullYear() + i)).map(y => (
+                      <option key={y} value={y}>{y}년</option>
+                    ))}
+                  </select>
+                  <select
+                    style={{ ...inputStyle, flex: 1 }}
+                    value={slotForm.slot_date_m}
+                    onChange={e => {
+                      const m = e.target.value;
+                      const maxD = slotForm.slot_date_y && m ? new Date(Number(slotForm.slot_date_y), Number(m), 0).getDate() : 31;
+                      const validD = slotForm.slot_date_d && Number(slotForm.slot_date_d) <= maxD ? slotForm.slot_date_d : "";
+                      setSlotForm(f => ({ ...f, slot_date_m: m, slot_date_d: validD }));
+                    }}
+                  >
+                    <option value="">월</option>
+                    {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0")).map(m => (
+                      <option key={m} value={m}>{Number(m)}월</option>
+                    ))}
+                  </select>
+                  <select
+                    style={{ ...inputStyle, flex: 1 }}
+                    value={slotForm.slot_date_d}
+                    onChange={e => setSlotForm(f => ({ ...f, slot_date_d: e.target.value }))}
+                  >
+                    <option value="">일</option>
+                    {(() => {
+                      const days = slotForm.slot_date_y && slotForm.slot_date_m
+                        ? new Date(Number(slotForm.slot_date_y), Number(slotForm.slot_date_m), 0).getDate()
+                        : 31;
+                      return Array.from({ length: days }, (_, i) => String(i + 1).padStart(2, "0")).map(d => (
+                        <option key={d} value={d}>{Number(d)}일</option>
+                      ));
+                    })()}
+                  </select>
+                </div>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <span style={{ fontSize: 12, color: textMuted, fontWeight: 600 }}>시간</span>
+                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  <select
+                    style={{ ...inputStyle, flex: 1 }}
+                    value={slotForm.slot_time ? slotForm.slot_time.split(":")[0] : ""}
+                    onChange={e => {
+                      const h = e.target.value;
+                      const m = slotForm.slot_time?.split(":")[1] || "00";
+                      setSlotForm(f => ({ ...f, slot_time: h ? `${h}:${m}` : "" }));
+                    }}
+                  >
+                    <option value="">시</option>
+                    {Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0")).map(h => (
+                      <option key={h} value={h}>{h}시</option>
+                    ))}
+                  </select>
+                  <span style={{ color: textMuted, fontWeight: 700 }}>:</span>
+                  <select
+                    style={{ ...inputStyle, flex: 1 }}
+                    value={slotForm.slot_time ? slotForm.slot_time.split(":")[1] : ""}
+                    onChange={e => {
+                      const m = e.target.value;
+                      const h = slotForm.slot_time?.split(":")[0] || "";
+                      if (h) setSlotForm(f => ({ ...f, slot_time: `${h}:${m}` }));
+                    }}
+                  >
+                    <option value="">분</option>
+                    {[0, 10, 20, 30, 40, 50].map(m => {
+                      const val = String(m).padStart(2, "0");
+                      return <option key={val} value={val}>{val}분</option>;
+                    })}
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <span style={{ fontSize: 12, color: textMuted, fontWeight: 600 }}>소요 시간</span>
+              <select
+                style={inputStyle}
+                value={slotForm.duration_minutes}
+                onChange={e => setSlotForm(f => ({ ...f, duration_minutes: Number(e.target.value) }))}
+              >
+                <option value={30}>30분</option>
+                <option value={45}>45분</option>
+                <option value={60}>60분</option>
+                <option value={90}>90분</option>
+                <option value={120}>120분</option>
+              </select>
             </div>
             <button onClick={handleCreateSlot} disabled={loading} style={{ padding: "10px", borderRadius: 10, border: "none", background: "#4377F1", color: "#fff", fontWeight: 700, cursor: "pointer" }}>슬롯 추가</button>
           </div>

@@ -16,6 +16,7 @@ import { AdminPostCreate } from "../components/admin/AdminPostCreate";
 import { AdminPostManage } from "../components/admin/AdminPostManage";
 import { AdminConsultingManagement } from "../components/admin/AdminConsultingManagement";
 import { AdminFoundersClubManagement } from "../components/admin/AdminFoundersClubManagement";
+import { AdminFlowMap } from "../components/admin/AdminFlowMap";
 
 export default function AdminPage() {
   const { isDark } = useTheme();
@@ -31,6 +32,9 @@ export default function AdminPage() {
   
   const [files, setFiles] = useState<File[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>([]);
+
+  // 행사·블로그 확장 필드
+  const [eventMeta, setEventMeta] = useState({ event_date: "", location: "", event_status: "접수예정", capacity: "", slots_remaining: "", tags: "" });
   
   const [loading, setLoading] = useState(false);
   const [posts, setPosts] = useState<any[]>([]);
@@ -221,8 +225,24 @@ export default function AdminPage() {
     setContent(post.content);
     setFiles([]);
     setExistingImages(post.image_url ? post.image_url.split(',') : []);
-    setActiveTab("create"); // 수정 클릭 시 탭 자동 전환
+    setEventMeta({
+      event_date: post.event_date || "",
+      location: post.location || "",
+      event_status: post.event_status || "접수예정",
+      capacity: post.capacity != null ? String(post.capacity) : "",
+      slots_remaining: post.slots_remaining != null ? String(post.slots_remaining) : "",
+      tags: post.tags || "",
+    });
+    setActiveTab("create");
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const toggleFeatured = async (id: string, current: boolean) => {
+    if (!current) {
+      await supabase.from('posts').update({ is_featured: false }).eq('category', 'blog');
+    }
+    await supabase.from('posts').update({ is_featured: !current }).eq('id', id);
+    fetchPosts();
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -272,21 +292,33 @@ export default function AdminPage() {
         
         const finalImageUrl = imageUrls.length > 0 ? imageUrls.join(',') : null;
 
+        const extraFields = category === 'events' ? {
+          event_date: eventMeta.event_date || null,
+          location: eventMeta.location || null,
+          event_status: eventMeta.event_status || null,
+          capacity: eventMeta.capacity ? Number(eventMeta.capacity) : null,
+          slots_remaining: eventMeta.slots_remaining ? Number(eventMeta.slots_remaining) : null,
+          tags: eventMeta.tags || null,
+        } : category === 'blog' ? {
+          tags: eventMeta.tags || null,
+        } : {};
+
         if (editingId) {
-          const { error: updateError } = await supabase.from('posts').update({ category, title, content, image_url: finalImageUrl }).eq('id', editingId);
+          const { error: updateError } = await supabase.from('posts').update({ category, title, content, image_url: finalImageUrl, ...extraFields }).eq('id', editingId);
           if (updateError) {
             console.error("Supabase Post Update Error:", updateError);
             throw updateError;
           }
         } else {
-          const { error: insertError } = await supabase.from('posts').insert([{ category, title, content, image_url: finalImageUrl }]);
+          const { error: insertError } = await supabase.from('posts').insert([{ category, title, content, image_url: finalImageUrl, ...extraFields }]);
           if (insertError) {
             console.error("Supabase Post Insert Error:", insertError);
             throw insertError;
           }
         }
-        
+
         setEditingId(null); setTitle(""); setContent(""); setFiles([]); setExistingImages([]);
+        setEventMeta({ event_date: "", location: "", event_status: "접수예정", capacity: "", slots_remaining: "", tags: "" });
         setActiveTab("manage"); // 저장 후 게시물 관리 탭으로 자동 이동
       }
       fetchPosts(); fetchStats(); fetchChartData(chartPeriod);
@@ -426,7 +458,7 @@ export default function AdminPage() {
 
         {/* 탭 3: 새 게시물 등록 (작성 및 수정) 영역 */}
         {activeTab === "create" && (
-          <AdminPostCreate 
+          <AdminPostCreate
             editingId={editingId}
             setEditingId={setEditingId}
             category={category}
@@ -445,6 +477,8 @@ export default function AdminPage() {
             modules={modules}
             handleFileChange={handleFileChange}
             setActiveTab={setActiveTab}
+            eventMeta={eventMeta}
+            setEventMeta={setEventMeta}
           />
         )}
 
@@ -462,6 +496,7 @@ export default function AdminPage() {
             totalPages={totalPages}
             startEdit={startEdit}
             handleDeleteClick={handleDeleteClick}
+            toggleFeatured={toggleFeatured}
           />
         )}
 
@@ -470,6 +505,7 @@ export default function AdminPage() {
 
         {/* 탭 6: Founder's Club */}
         {activeTab === "founders" && <AdminFoundersClubManagement />}
+
 
       </main>
 

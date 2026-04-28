@@ -1,0 +1,329 @@
+import { useState } from "react";
+import { useTheme } from "../../ThemeContext";
+
+type Filter = "all" | "s01" | "s02" | "s03" | "s04" | "s05";
+
+export function AdminFlowMap() {
+  const { isDark } = useTheme();
+  const [active, setActive] = useState<Filter>("all");
+
+  const textMain  = isDark ? "rgba(255,255,255,0.92)" : "#111827";
+  const textMuted = isDark ? "rgba(255,255,255,0.45)" : "#6b7280";
+  const border    = isDark ? "rgba(255,255,255,0.08)" : "#e5e7eb";
+  const cardBg    = isDark ? "rgba(255,255,255,0.04)" : "#fafafa";
+  const filterBg  = isDark ? "rgba(255,255,255,0.03)" : "#f9fafb";
+  const connectorColor = isDark ? "rgba(255,255,255,0.1)" : "#e5e7eb";
+  const secItemBg = isDark ? "rgba(168,85,247,0.06)" : "#fdfcff";
+  const secBorder = isDark ? "rgba(168,85,247,0.2)"  : "#e9d5ff";
+  const codeBg    = isDark ? "rgba(168,85,247,0.15)" : "#f5f3ff";
+  const codeColor = isDark ? "#c4b5fd" : "#7c3aed";
+
+  // 노드 스타일
+  const N = (type: "user" | "admin" | "sys" | "ok" | "sec") => {
+    const map = {
+      user:  { bg: isDark ? "rgba(67,119,241,0.15)"  : "#eff6ff", bd: isDark ? "rgba(67,119,241,0.35)"  : "#bfdbfe", cl: isDark ? "#93b4f8" : "#1d4ed8" },
+      admin: { bg: isDark ? "rgba(234,67,53,0.13)"   : "#fef2f2", bd: isDark ? "rgba(234,67,53,0.32)"   : "#fecaca", cl: isDark ? "#f8a09a" : "#dc2626" },
+      sys:   { bg: isDark ? "rgba(255,255,255,0.05)" : "#f9fafb", bd: isDark ? "rgba(255,255,255,0.12)" : "#e5e7eb", cl: textMuted },
+      ok:    { bg: isDark ? "rgba(24,163,67,0.12)"   : "#f0fdf4", bd: isDark ? "rgba(24,163,67,0.30)"   : "#bbf7d0", cl: isDark ? "#86efac" : "#15803d" },
+      sec:   { bg: isDark ? "rgba(168,85,247,0.12)"  : "#faf5ff", bd: isDark ? "rgba(168,85,247,0.30)"  : "#e9d5ff", cl: isDark ? "#c4b5fd" : "#7c3aed" },
+    }[type];
+    return {
+      display: "inline-flex" as const, alignItems: "center", padding: "8px 14px",
+      borderRadius: 8, fontSize: 13, fontWeight: 600, border: `1px solid ${map.bd}`,
+      background: map.bg, color: map.cl, whiteSpace: "nowrap" as const,
+    };
+  };
+
+  // 스텝 도트 스타일
+  const dot = (type: "user" | "admin" | "sys" | "ok" | "sec") => {
+    const map = {
+      user:  { bg: isDark ? "rgba(67,119,241,0.15)"  : "#eff6ff", bd: isDark ? "#93b4f8" : "#93c5fd", cl: isDark ? "#93b4f8" : "#2563eb" },
+      admin: { bg: isDark ? "rgba(234,67,53,0.13)"   : "#fef2f2", bd: isDark ? "#f8a09a" : "#fca5a5", cl: isDark ? "#f8a09a" : "#dc2626" },
+      sys:   { bg: isDark ? "rgba(255,255,255,0.05)" : "#f9fafb", bd: isDark ? "rgba(255,255,255,0.2)": "#d1d5db", cl: textMuted },
+      ok:    { bg: isDark ? "rgba(24,163,67,0.12)"   : "#f0fdf4", bd: isDark ? "#86efac" : "#86efac",  cl: isDark ? "#86efac" : "#15803d" },
+      sec:   { bg: isDark ? "rgba(168,85,247,0.12)"  : "#faf5ff", bd: isDark ? "#c4b5fd" : "#c4b5fd",  cl: isDark ? "#c4b5fd" : "#7c3aed" },
+    }[type];
+    return {
+      width: 26, height: 26, borderRadius: "99px", border: `1.5px solid ${map.bd}`,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      fontSize: 10, fontWeight: 800, flexShrink: 0, marginTop: 2,
+      background: map.bg, color: map.cl,
+    };
+  };
+
+  const arr   = <span style={{ color: textMuted, padding: "0 6px", userSelect: "none" as const }}>→</span>;
+  const conn  = <div style={{ width: 1, height: 12, background: connectorColor, marginLeft: 12 }} />;
+
+  const Step = ({ type, actor, desc, sub }: { type: "user"|"admin"|"sys"|"ok"|"sec"; actor: string; desc: string; sub?: string }) => (
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+      <div style={dot(type)}>{type === "ok" ? "✓" : type[0].toUpperCase()}</div>
+      <div style={{ flex: 1, paddingBottom: 14 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase" as const, marginBottom: 3, color: dot(type).color }}>{actor}</div>
+        <div style={{ fontSize: 13, fontWeight: 500, color: textMain }}>{desc}</div>
+        {sub && <div style={{ fontSize: 11, color: textMuted, marginTop: 2 }}>{sub}</div>}
+      </div>
+    </div>
+  );
+
+  const Card = ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <div style={{ background: cardBg, border: `1px solid ${border}`, borderRadius: 12, padding: 24, ...style }}>{children}</div>
+  );
+
+  const SectionWrap = ({ id, title, num, children }: { id: Filter; title: string; num: string; children: React.ReactNode }) => {
+    if (active !== "all" && active !== id) return null;
+    return (
+      <div style={{ marginBottom: 48 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 20 }}>
+          <span style={{ fontSize: 11, color: textMuted, fontWeight: 600 }}>{num}</span>
+          <h3 style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: textMain }}>{title}</h3>
+          <div style={{ flex: 1, height: 1, background: border }} />
+        </div>
+        {children}
+      </div>
+    );
+  };
+
+  const Code = ({ children }: { children: string }) => (
+    <code style={{ fontFamily: `"SF Mono", monospace`, fontSize: 11, color: codeColor, background: codeBg, padding: "2px 6px", borderRadius: 4 }}>{children}</code>
+  );
+
+  const filters: { id: Filter; label: string }[] = [
+    { id: "all",  label: "전체" },
+    { id: "s01",  label: "01  접속 및 권한 분기" },
+    { id: "s02",  label: "02  핵심 기능 흐름" },
+    { id: "s03",  label: "03  어드민 대시보드" },
+    { id: "s04",  label: "04  보안 구조" },
+    { id: "s05",  label: "05  실시간 동기화" },
+  ];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+      <h3 style={{ fontSize: 22, fontWeight: 800, color: textMain, marginBottom: 8 }}>서비스 흐름도</h3>
+      <p style={{ fontSize: 13, color: textMuted, marginBottom: 28 }}>기능 흐름 및 보안 구조 · 어드민 전용</p>
+
+      {/* 범례 */}
+      <div style={{ display: "flex", gap: 20, flexWrap: "wrap", marginBottom: 20 }}>
+        {[
+          { color: "#2563eb", label: "참여사 행동" },
+          { color: "#dc2626", label: "어드민 행동" },
+          { color: textMuted, label: "시스템 자동 처리" },
+          { color: "#15803d", label: "완료" },
+          { color: "#7c3aed", label: "보안 검사" },
+        ].map(l => (
+          <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, color: textMuted }}>
+            <div style={{ width: 24, height: 3, borderRadius: 2, background: l.color }} />
+            {l.label}
+          </div>
+        ))}
+      </div>
+
+      {/* 필터 바 */}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", padding: 14, background: filterBg, border: `1px solid ${border}`, borderRadius: 12, marginBottom: 40 }}>
+        {filters.map(f => (
+          <button
+            key={f.id}
+            onClick={() => setActive(f.id)}
+            style={{
+              padding: "8px 16px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer",
+              fontFamily: "inherit", transition: "all 0.15s",
+              background: active === f.id ? (isDark ? "rgba(255,255,255,0.92)" : "#111827") : "transparent",
+              color: active === f.id ? (isDark ? "#111827" : "#fff") : textMuted,
+              border: active === f.id ? "none" : `1px solid ${border}`,
+            }}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {/* 01 — 접속 및 권한 분기 */}
+      <SectionWrap id="s01" num="01" title="접속 및 권한 분기">
+        <Card>
+          <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6, marginBottom: 24 }}>
+            <div style={N("user")}>사이트 접속</div>{arr}
+            <div style={N("user")}>이메일 + 비밀번호 로그인</div>{arr}
+            <div style={N("sec")}>아이디 · 비밀번호 검증</div>{arr}
+            <div style={N("sys")}>profiles.role 조회</div>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {[
+              { label: "admin",      type: "admin" as const, text: "어드민 대시보드 + 모든 페이지 접근" },
+              { label: "participant",type: "user"  as const, text: "일반 페이지 + 사업비 자료실 (/expenses)" },
+              { label: "user",       type: "sys"   as const, text: "일반 페이지 (공지 · 컨설팅 · Founder's Club)" },
+              { label: "비로그인",   type: "sys"   as const, text: "메인 페이지 · 공개 공지만 열람" },
+            ].map(r => (
+              <div key={r.label} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <span style={{ fontSize: 11, color: textMuted, width: 80, textAlign: "right", flexShrink: 0 }}>{r.label}</span>
+                <div style={N(r.type)}>{r.text}</div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </SectionWrap>
+
+      {/* 02 — 핵심 기능 흐름 */}
+      <SectionWrap id="s02" num="02" title="핵심 기능 흐름">
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+
+          {/* 공지·행사 */}
+          <Card>
+            <div style={{ fontSize: 12, fontWeight: 700, color: textMuted, marginBottom: 16, paddingBottom: 12, borderBottom: `1px solid ${border}` }}>공지 · 행사 확인</div>
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <Step type="admin" actor="어드민" desc="게시물 작성 및 카테고리 지정" sub="공지 / 행사 / 뉴스레터 / 커뮤니티 / FAQ" />
+              {conn}
+              <Step type="sys" actor="시스템" desc="카테고리별 섹션에 자동 노출" sub="posts 테이블 → 각 섹션 컴포넌트" />
+              {conn}
+              <Step type="user" actor="참여사" desc="공지 확인 및 상세 열람" sub="한국어 / 영어 전환 가능" />
+              {conn}
+              <Step type="ok" actor="완료" desc="조회수 +1 기록" sub="30분 내 재방문은 중복 집계 안 함" />
+            </div>
+          </Card>
+
+          {/* 컨설팅 예약 */}
+          <Card>
+            <div style={{ fontSize: 12, fontWeight: 700, color: textMuted, marginBottom: 16, paddingBottom: 12, borderBottom: `1px solid ${border}` }}>컨설팅 예약</div>
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <Step type="admin" actor="어드민" desc="전문가 등록" sub="법률 / 글로벌 / 기술 분야" />
+              {conn}
+              <Step type="admin" actor="어드민" desc="슬롯 추가" sub="날짜 · 시간 · 소요 시간 설정" />
+              {conn}
+              <Step type="user" actor="참여사" desc="전문가 목록 확인 후 시간대 선택" />
+              {conn}
+              <Step type="user" actor="참여사" desc="신청 사유 작성 후 제출" />
+              {conn}
+              <Step type="sys" actor="시스템" desc="중복 예약 차단" sub="슬롯당 1건만 허용 (DB UNIQUE 제약)" />
+              {conn}
+              <Step type="admin" actor="어드민" desc="예약 확정 또는 거절" />
+              {conn}
+              <Step type="ok" actor="완료" desc='슬롯 상태 → "예약됨" 전환' />
+            </div>
+          </Card>
+
+          {/* Founder's Club */}
+          <Card>
+            <div style={{ fontSize: 12, fontWeight: 700, color: textMuted, marginBottom: 16, paddingBottom: 12, borderBottom: `1px solid ${border}` }}>Founder's Club</div>
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <Step type="admin" actor="어드민" desc="세션 개설" sub="주제 · 날짜 · 시간 · 최대 정원 (최대 10명)" />
+              {conn}
+              <Step type="user" actor="참여사" desc="모집 중 세션 확인 및 신청" sub="진행 바로 잔여 자리 시각 표시" />
+              {conn}
+              <Step type="sys" actor="시스템" desc="중복 신청 차단" sub="동일 사용자 · 동일 세션 재신청 불가" />
+              {conn}
+              <Step type="admin" actor="어드민" desc="신청자 수락 또는 거절" />
+              {conn}
+              <Step type="sys" actor="시스템" desc="수락 인원 = 정원 도달 시 자동 마감" sub='status → "closed" 전환' />
+              {conn}
+              <Step type="ok" actor="완료" desc="수락된 참여자 목록 확정" />
+            </div>
+          </Card>
+        </div>
+      </SectionWrap>
+
+      {/* 03 — 어드민 대시보드 구조 */}
+      <SectionWrap id="s03" num="03" title="어드민 대시보드 구조">
+        <Card>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10 }}>
+            {[
+              { title: "대시보드",        desc: "방문자 수\n게시물 통계\n가입자 추이" },
+              { title: "회원 관리",        desc: "역할 변경\nuser → participant\n→ admin" },
+              { title: "게시물 작성",      desc: "공지 · 행사 등\n이미지 업로드\n한/영 입력" },
+              { title: "게시물 관리",      desc: "수정 · 삭제\n카테고리 · 상태\n변경" },
+              { title: "컨설팅 관리",      desc: "전문가 등록\n슬롯 추가\n예약 승인" },
+              { title: "Founder's Club",  desc: "세션 개설\n신청자\n수락 / 거절" },
+            ].map(t => (
+              <div key={t.title} style={{ border: `1px solid ${border}`, borderRadius: 10, padding: "16px 10px", textAlign: "center" }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: textMain, marginBottom: 8 }}>{t.title}</div>
+                <div style={{ fontSize: 11, color: textMuted, lineHeight: 1.7, whiteSpace: "pre-line" }}>{t.desc}</div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </SectionWrap>
+
+      {/* 04 — 보안 구조 */}
+      <SectionWrap id="s04" num="04" title="보안 구조">
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+
+          <div style={{ border: `1px solid ${secBorder}`, borderRadius: 10, padding: "18px 20px", background: secItemBg }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: codeColor, marginBottom: 8 }}>라우트 보호 (Frontend Gate)</div>
+            <div style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,0.6)" : "#374151", lineHeight: 1.7 }}>
+              <Code>/admin</Code> 경로는 <Code>AdminRoute</Code> 컴포넌트가 감싸고 있어, admin이 아닌 사용자가 URL을 직접 입력해도 메인 페이지(/)로 강제 이동됩니다.<br /><br />
+              <Code>/expenses</Code>는 페이지 진입 후 DB에서 role을 직접 조회해 participant 또는 admin이 아니면 접근을 차단합니다.
+            </div>
+          </div>
+
+          <div style={{ border: `1px solid ${secBorder}`, borderRadius: 10, padding: "18px 20px", background: secItemBg }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: codeColor, marginBottom: 8 }}>데이터베이스 RLS (Row Level Security)</div>
+            <div style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,0.6)" : "#374151", lineHeight: 1.7 }}>
+              Supabase의 RLS 정책으로 DB 레벨에서 접근을 이중 차단합니다. 프론트엔드를 우회하더라도 데이터를 읽거나 쓸 수 없습니다.<br /><br />
+              어드민 쓰기 작업은 DB 내 <Code>is_admin()</Code> 함수로 검증합니다. profiles는 본인 행만 조회 가능.
+            </div>
+          </div>
+
+          <div style={{ border: `1px solid ${secBorder}`, borderRadius: 10, padding: "18px 20px", background: secItemBg }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: codeColor, marginBottom: 8 }}>XSS 방지 (Cross-Site Scripting)</div>
+            <div style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,0.6)" : "#374151", lineHeight: 1.7 }}>
+              게시물 본문 렌더링 전 항상 <Code>DOMPurify.sanitize()</Code>를 통과시켜 악성 스크립트 삽입을 방지합니다.<br /><br />
+              적용 위치: PostDetailPage, FaqPage
+            </div>
+          </div>
+
+          <div style={{ border: `1px solid ${secBorder}`, borderRadius: 10, padding: "18px 20px", background: secItemBg }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: codeColor, marginBottom: 8 }}>자동 로그아웃 (Idle Logout)</div>
+            <div style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,0.6)" : "#374151", lineHeight: 1.7 }}>
+              <Code>useIdleLogout</Code> 훅이 모든 페이지에서 실행됩니다. 마우스 이동 · 클릭 · 키 입력이 <strong>30분간 없으면</strong> 자동으로 세션을 종료합니다.
+            </div>
+          </div>
+
+          <div style={{ border: `1px solid ${secBorder}`, borderRadius: 10, padding: "18px 20px", background: secItemBg }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: codeColor, marginBottom: 8 }}>이중 예약 방지 (DB Constraint)</div>
+            <div style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,0.6)" : "#374151", lineHeight: 1.7 }}>
+              <Code>consulting_reservations.slot_id</Code>에 UNIQUE 제약 — 슬롯당 1건만 허용.<br /><br />
+              Founder's Club도 <Code>(session_id, user_id)</Code> 조합 UNIQUE 제약으로 중복 신청 차단.
+            </div>
+          </div>
+
+          <div style={{ border: `1px solid ${secBorder}`, borderRadius: 10, padding: "18px 20px", background: secItemBg }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: codeColor, marginBottom: 8 }}>어드민 권한 분리 (Least Privilege)</div>
+            <div style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,0.6)" : "#374151", lineHeight: 1.7 }}>
+              프론트엔드 라우트 차단 + Supabase RLS + <Code>is_admin()</Code> DB 함수, 세 겹 보호.<br /><br />
+              이미지 업로드는 10MB 제한을 클라이언트에서 먼저 검사합니다.
+            </div>
+          </div>
+
+          {/* 보안 흐름 요약 - 전체 폭 */}
+          <div style={{ gridColumn: "1 / -1", border: `1px solid ${secBorder}`, borderRadius: 10, padding: "18px 20px", background: secItemBg }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: codeColor, marginBottom: 12 }}>보안 검사 흐름 요약</div>
+            <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
+              <div style={N("user")}>사용자 요청</div>{arr}
+              <div style={N("sec")}>Frontend Route Guard</div>{arr}
+              <div style={N("sec")}>Supabase Auth 세션 확인</div>{arr}
+              <div style={N("sec")}>RLS 정책 (DB 레벨)</div>{arr}
+              <div style={N("sec")}>is_admin() 검증 (쓰기 시)</div>{arr}
+              <div style={N("ok")}>응답 반환</div>
+            </div>
+            <div style={{ marginTop: 10, fontSize: 11, color: textMuted }}>
+              어느 단계에서든 검증 실패 시 요청이 거부됩니다. 프론트엔드 우회만으로는 데이터에 접근할 수 없습니다.
+            </div>
+          </div>
+        </div>
+      </SectionWrap>
+
+      {/* 05 — 실시간 동기화 */}
+      <SectionWrap id="s05" num="05" title="실시간 동기화">
+        <Card>
+          <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
+            <div style={N("user")}>신규 회원 가입</div>{arr}
+            <div style={N("sys")}>Supabase Realtime — profiles 테이블 변경 감지</div>{arr}
+            <div style={N("admin")}>어드민 회원 목록 자동 갱신</div>{arr}
+            <div style={N("ok")}>새로고침 없이 반영</div>
+          </div>
+          <div style={{ marginTop: 14, fontSize: 12, color: textMuted, borderTop: `1px solid ${border}`, paddingTop: 12 }}>
+            컨설팅 예약 · Founder's Club 신청은 어드민이 해당 탭 진입 시 최신 데이터를 새로 불러옵니다.
+          </div>
+        </Card>
+      </SectionWrap>
+
+    </div>
+  );
+}

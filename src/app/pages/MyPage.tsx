@@ -43,19 +43,21 @@ export function MyPage() {
         const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
         if (data) setProfile(data as Profile);
 
-        const { data: resData } = await supabase
-          .from("consulting_reservations")
-          .select("*, consulting_slots(slot_date, slot_time, consultants(name, category))")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false });
-        setConsultingReservations(resData || []);
+        if (data?.role !== "admin") {
+          const { data: resData } = await supabase
+            .from("consulting_reservations")
+            .select("*, consulting_slots(slot_date, slot_time, consultants(name, category))")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false });
+          setConsultingReservations(resData || []);
 
-        const { data: clubData } = await supabase
-          .from("founders_club_applications")
-          .select("*, founders_club_sessions(theme, session_date, status)")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false });
-        setClubApplications(clubData || []);
+          const { data: clubData } = await supabase
+            .from("founders_club_applications")
+            .select("*, founders_club_sessions(theme, session_date, status)")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false });
+          setClubApplications(clubData || []);
+        }
       }
     };
     fetchUserAndProfile();
@@ -188,8 +190,8 @@ export function MyPage() {
           )}
         </div>
 
-        {/* Consulting reservations */}
-        {consultingReservations.length > 0 && (
+        {/* Consulting reservations — admin 제외 */}
+        {profile?.role !== "admin" && consultingReservations.length > 0 && (
           <div className="w-full max-w-[500px] rounded-[20px] px-9 py-8 flex flex-col gap-4" style={{ background: card, border: `1px solid ${border}` }}>
             <h3 style={{ color: textMain, fontSize: 18, margin: 0 }}>나의 컨설팅 신청</h3>
             {consultingReservations.map((r: any) => {
@@ -214,8 +216,8 @@ export function MyPage() {
           </div>
         )}
 
-        {/* Founder's Club applications */}
-        {clubApplications.length > 0 && (
+        {/* Founder's Club applications — admin 제외 */}
+        {profile?.role !== "admin" && clubApplications.length > 0 && (
           <div className="w-full max-w-[500px] rounded-[20px] px-9 py-8 flex flex-col gap-4" style={{ background: card, border: `1px solid ${border}` }}>
             <h3 style={{ color: textMain, fontSize: 18, margin: 0 }}>나의 Founder's Club 신청</h3>
             {clubApplications.map((a: any) => {
