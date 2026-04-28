@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm run dev      # Start dev server (Vite, default port 5173)
+npm run dev      # Start dev server (Vite, default port 5173 or 5174 if occupied)
 npm run build    # Production build → dist/
 ```
 
@@ -25,6 +25,8 @@ VITE_SUPABASE_ANON_KEY=...
 
 **Layout:** All routes share `RootLayout` which wraps `HeaderSection` + `FooterSection`. The admin route is protected by `AdminRoute` (`src/app/components/AdminRoute.tsx`), which redirects non-admins to `/`.
 
+`RootLayout` runs two global hooks on every page: `useTracker()` (page view analytics) and `useIdleLogout()` (30-min inactivity auto-logout).
+
 ### Key pages and what drives them
 
 | Route | Page | Notes |
@@ -32,7 +34,7 @@ VITE_SUPABASE_ANON_KEY=...
 | `/` | `HomePage` | Assembles section components |
 | `/expenses` | `ExpensesPage` | Role-gated: `admin` or `participant` only |
 | `/consulting` | `ConsultingPage` | Reads `consultants` + `consulting_slots` tables |
-| `/founders-club` | `FoundersClubPage` | Reads `founders_club_sessions` + applications |
+| `/founders-club` | `FoundersClubPage` | Reads `founders_club_sessions` + applications; admin view shows accepted participant list |
 | `/admin` | `AdminPage` | Admin-only, 6-tab dashboard |
 
 ### State and data fetching
@@ -58,8 +60,8 @@ Role is checked at two levels:
 ### Supabase database tables
 
 Beyond standard `profiles` and `posts`, the project adds:
-- `consultants`, `consulting_slots`, `consulting_reservations` — 1:1 consulting flow
-- `founders_club_sessions`, `founders_club_applications` — Founder's Club FCFS system
+- `consultants`, `consulting_slots`, `consulting_reservations` — 1:1 consulting flow; `consulting_reservations` has a `UNIQUE (slot_id)` constraint to prevent double-booking
+- `founders_club_sessions`, `founders_club_applications` — Founder's Club FCFS system; `founders_club_applications` has `UNIQUE (session_id, user_id)`
 - `subscribers` — newsletter signups
 - `page_views`, `activity_logs` — analytics
 
@@ -83,6 +85,7 @@ Realtime updates for the `profiles` table are subscribed in `AdminPage.tsx` so t
 - Consulting / News / Resources / Admin accent → `blue` / `#4377F1`
 - FAQ → `yellow` / `#FBBC05`
 - Expenses (사업비) → `red` / `#EA4335`
+- Founder's Club → `purple` / `#A855F7`
 
 The canonical color map for all post categories is `CATEGORY_COLOR` in `src/app/components/admin/adminConstants.ts`.
 
@@ -96,5 +99,13 @@ The canonical color map for all post categories is `CATEGORY_COLOR` in `src/app/
 
 - Storage bucket for images: `images`
 - File uploads use `encodeFilename()` from `src/utils/file.ts` to handle special characters
+- Image uploads are limited to **10MB** client-side before calling Supabase storage
 - Admin writes require the `is_admin()` Postgres function to exist; all new admin-writable tables need a `FOR ALL` policy using it
-- Public-readable tables (e.g. `consultants`) need an explicit `SELECT` policy for the `anon` role
+- Public-readable tables (e.g. `consultants`, `founders_club_sessions`) need an explicit `SELECT` policy for the `anon` role
+- `profiles` SELECT is restricted to own row (`id = auth.uid()`) or admin — do not add a public/anon SELECT policy
+
+## Security notes
+
+- **XSS:** All post HTML content rendered via `dangerouslySetInnerHTML` must be wrapped with `DOMPurify.sanitize()` — see `PostDetailPage.tsx` and `FaqPage.tsx` for the pattern
+- **Idle logout:** `useIdleLogout` (`src/hooks/useIdleLogout.ts`) auto-signs-out after 30 min of inactivity; it is mounted in `RootLayout`
+- **Page view throttle:** `useTracker` skips recording if the same path was visited within 30 min (stored in `localStorage`)
