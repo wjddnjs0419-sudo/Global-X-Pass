@@ -5,6 +5,7 @@ import { FooterSection } from "./FooterSection";
 import { DesignSystemPage } from "./DesignSystemPage";
 import { useTracker } from "../../hooks/useTracker";
 import { useAdmin } from "../../hooks/useAdmin";
+import { useIdleLogout } from "../../hooks/useIdleLogout";
 
 const NAV_TABS = [
   { id: "site", label: "🌐 사이트 미리보기", path: "/" },
@@ -19,6 +20,7 @@ export function RootLayout() {
   const { isAdmin } = useAdmin();
 
   useTracker();
+  useIdleLogout();
 
   const isAdminPage = location.pathname.startsWith("/admin");
   const isDesignSystem = location.pathname === "/design-system";
