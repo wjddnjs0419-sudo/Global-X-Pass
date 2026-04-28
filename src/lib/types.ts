@@ -7,6 +7,16 @@ export interface Post {
   created_at: string;
   views: number;
   allowed_group_id?: string | null;
+  // event fields
+  status?: string | null;
+  event_date?: string | null;
+  location?: string | null;
+  event_status?: string | null;
+  capacity?: number | null;
+  slots_remaining?: number | null;
+  tags?: string | null;
+  // blog
+  is_featured?: boolean | null;
 }
 
 // ── RBAC ──────────────────────────────────────────────────────────

@@ -14,6 +14,7 @@ interface AdminPostManageProps {
   totalPages: number;
   startEdit: (post: any) => void;
   handleDeleteClick: (id: string) => void;
+  toggleFeatured: (id: string, current: boolean) => void;
 }
 
 export function AdminPostManage({
@@ -27,7 +28,8 @@ export function AdminPostManage({
   setCurrentPage,
   totalPages,
   startEdit,
-  handleDeleteClick
+  handleDeleteClick,
+  toggleFeatured,
 }: AdminPostManageProps) {
   const { isDark } = useTheme();
   const navigate = useNavigate();
@@ -85,21 +87,27 @@ export function AdminPostManage({
                  </strong>
                </div>
                <div style={{ display: "flex", gap: "10px" }}>
-                 
-                 <button 
-                   onClick={() => startEdit(post)} 
+                 {post.category === "blog" && (
+                   <button
+                     onClick={() => toggleFeatured(post.id, !!post.is_featured)}
+                     title={post.is_featured ? "추천 해제" : "추천 아티클로 설정"}
+                     style={{ padding: "10px 14px", borderRadius: "10px", border: `1px solid ${post.is_featured ? "rgba(168,85,247,0.4)" : border}`, background: post.is_featured ? "rgba(168,85,247,0.12)" : "none", color: post.is_featured ? "#A855F7" : textMuted, fontWeight: 700, cursor: "pointer", fontSize: 14 }}
+                   >
+                     {post.is_featured ? "★ 추천중" : "☆ 추천"}
+                   </button>
+                 )}
+                 <button
+                   onClick={() => startEdit(post)}
                    style={{ padding: "10px 18px", borderRadius: "10px", border: `1px solid ${border}`, background: "none", color: "#4377F1", fontWeight: 700, cursor: "pointer" }}
                  >
                    수정
                  </button>
-                 
-                 <button 
-                   onClick={() => handleDeleteClick(post.id)} 
+                 <button
+                   onClick={() => handleDeleteClick(post.id)}
                    style={{ padding: "10px 18px", borderRadius: "10px", border: "none", background: "#fee2e2", color: "#ef4444", fontWeight: 700, cursor: "pointer" }}
                  >
                    삭제
                  </button>
-
                </div>
              </div>
            ))

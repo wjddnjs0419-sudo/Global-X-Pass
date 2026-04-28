@@ -32,9 +32,13 @@ VITE_SUPABASE_ANON_KEY=...
 | Route | Page | Notes |
 |---|---|---|
 | `/` | `HomePage` | Assembles section components |
+| `/events` | `EventsPage` | Lists `posts` where `category = "events"`; 4-state status system (`event_status`) |
+| `/events/archive` | `EventArchivePage` | Past events, 4-column grid + stats boxes |
+| `/blog` | `BlogPage` | Featured banner + tag filter + 4-column grid; `is_featured` marks the hero post |
 | `/expenses` | `ExpensesPage` | Role-gated: `admin` or `participant` only |
 | `/consulting` | `ConsultingPage` | Reads `consultants` + `consulting_slots` tables |
 | `/founders-club` | `FoundersClubPage` | Reads `founders_club_sessions` + applications; admin view shows accepted participant list |
+| `/flow-map` | `FlowMapPage` | Admin-only (guarded by `AdminRoute`) |
 | `/admin` | `AdminPage` | Admin-only, 6-tab dashboard |
 
 ### State and data fetching
@@ -65,6 +69,15 @@ Beyond standard `profiles` and `posts`, the project adds:
 - `subscribers` — newsletter signups
 - `page_views`, `activity_logs` — analytics
 
+**`posts` extended columns** (added via migration, defined in `src/lib/types.ts`):
+- `event_date` TEXT — display string for event date/time (e.g. "2026.05.08 (목) 18:00")
+- `location` TEXT — venue string
+- `event_status` TEXT — one of `접수예정` | `접수중` | `마감임박` | `마감`
+- `capacity` INT — total seats
+- `slots_remaining` INT — remaining seats
+- `tags` TEXT — comma-separated tags for events; single tag for blog posts
+- `is_featured` BOOLEAN — marks the hero/featured post on `BlogPage` (only one per category should be `true`)
+
 ### Admin dashboard (`AdminPage.tsx`)
 
 `AdminPage.tsx` is a single large component that owns all shared state (posts, users, chart data) and passes it down to 6 panel components in `src/app/components/admin/`:
@@ -72,6 +85,8 @@ Beyond standard `profiles` and `posts`, the project adds:
 `AdminDashboard` → `AdminUserManagement` → `AdminPostCreate` → `AdminPostManage` → `AdminConsultingManagement` → `AdminFoundersClubManagement`
 
 Realtime updates for the `profiles` table are subscribed in `AdminPage.tsx` so the user list auto-refreshes without manual refetch.
+
+**Admin date inputs:** Date fields (e.g. `slot_date` in consulting, `session_date` in Founder's Club) use three separate state fields (`*_y`, `*_m`, `*_d`) populated by individual `<select>` dropdowns. The full `YYYY-MM-DD` string is assembled only at insert/update time: `const date = y && m && d ? \`${y}-${m}-${d}\` : null`. Never store a date as a single assembled string in state — the split approach avoids cascading re-render bugs.
 
 ## Design System
 
@@ -92,6 +107,8 @@ The canonical color map for all post categories is `CATEGORY_COLOR` in `src/app/
 **Shared components** live in `src/app/components/ui/`. Do not add per-section custom badge or button styles — always use `<Badge variant="red" shape="pill">` etc.
 
 **Theme-aware inline styles:** Since most sections use inline styles (not Tailwind classes) for theme handling, always branch on `isDark` from `useTheme()`. Use `bg-transparent` not `bg-background` for ghost/outline variants to avoid the light-mode dark-background bug.
+
+**Tailwind vs inline style conflict:** Never mix Tailwind responsive classes and inline `style={{}}` for the same CSS property on the same element. Inline styles always win over Tailwind utilities, so a `style={{ width: "100%" }}` will silently break `sm:w-[260px]`. Use only one approach per property — prefer Tailwind for structural layout (width, flex, grid) and inline styles only for dynamic/theme-driven values (colors, backgrounds).
 
 **`PageShell`** (`src/app/components/PageShell.tsx`) is the standard wrapper for all content pages — pass `title`, `subtitle`, and `accentColor`.
 
