@@ -345,10 +345,10 @@ export default function AdminPage() {
   };
 
   const handleDeleteUser = async (id: string) => {
-    if (!window.confirm("이 회원을 삭제하시겠습니까?")) return;
-    const { error } = await supabase.from('profiles').delete().eq('id', id);
+    if (!window.confirm("이 회원을 삭제하시겠습니까?\n삭제 후 해당 이메일로 재가입이 가능합니다.")) return;
+    const { error } = await supabase.functions.invoke("delete-user", { body: { userId: id } });
     if (error) alert("삭제 실패: " + error.message);
-    // Realtime 구독으로 인해 fetchUsers()를 수동으로 부르지 않아도 즉각 반영됩니다.
+    // auth.users 삭제 시 cascade로 profiles도 삭제됨 → Realtime 구독이 자동 감지
   };
 
   const handleSetRole = async (id: string, newRole: string) => {
