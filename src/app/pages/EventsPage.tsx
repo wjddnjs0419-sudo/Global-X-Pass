@@ -19,6 +19,7 @@ export function EventsPage() {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [activeTag, setActiveTag] = useState("전체");
 
   const card = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
   const textMain = isDark ? "rgba(255,255,255,0.92)" : "#0f172a";
@@ -50,9 +51,31 @@ export function EventsPage() {
           <ErrorMessage />
         ) : posts.length === 0 ? (
           <p className="text-center text-gray-500 py-[80px]">현재 진행 중인 행사가 없습니다.</p>
-        ) : (
+        ) : (() => {
+          const allTags = posts.flatMap(p => p.tags ? p.tags.split(',').map((t: string) => t.trim()).filter(Boolean) : []);
+          const uniqueTags = [...new Set(allTags)];
+          const filteredPosts = activeTag === "전체" ? posts : posts.filter(p => p.tags?.split(',').map((t: string) => t.trim()).includes(activeTag));
+          return (
           <div className="flex flex-col gap-5">
-            {posts.map((post) => {
+            {uniqueTags.length > 0 && (
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+                {["전체", ...uniqueTags].map(tag => (
+                  <button
+                    key={tag}
+                    onClick={() => setActiveTag(tag)}
+                    style={{
+                      padding: "8px 18px", borderRadius: 99, border: "none", cursor: "pointer",
+                      fontWeight: 700, fontSize: 14, transition: "all 0.15s",
+                      background: activeTag === tag ? "#18A343" : isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)",
+                      color: activeTag === tag ? "#fff" : textMuted,
+                    }}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            )}
+            {filteredPosts.map((post) => {
               const attachmentImages = post.image_url?.split(",").filter(isImage) || [];
               const thumbnailUrl =
                 attachmentImages.length > 0
@@ -216,7 +239,8 @@ export function EventsPage() {
               );
             })}
           </div>
-        )}
+          );
+        })()}
       </div>
     </PageShell>
   );

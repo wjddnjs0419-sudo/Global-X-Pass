@@ -41,6 +41,7 @@ export function EventArchivePage() {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [activeTag, setActiveTag] = useState("전체");
 
   const card = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
   const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
@@ -61,13 +62,15 @@ export function EventArchivePage() {
       });
   }, []);
 
-  const years = [...new Set(posts.map(p => new Date(p.created_at).getFullYear()))].sort();
-  const yearRange = years.length === 0 ? "-" : years.length === 1 ? String(years[0]) : `${years[0]} ~ ${years[years.length - 1]}`;
+  const allTags = posts.flatMap(p => p.tags ? p.tags.split(',').map((t: string) => t.trim()).filter(Boolean) : []);
+  const uniqueTags = [...new Set(allTags)];
+  const categoryCount = uniqueTags.length;
+  const filteredPosts = activeTag === "전체" ? posts : posts.filter(p => p.tags?.split(',').map((t: string) => t.trim()).includes(activeTag));
 
   const stats = [
-    { label: "총 행사",      value: `${posts.length}건`, color: "#18A343" },
-    { label: "누적 참가 인원", value: "집계 예정",          color: "#4377F1" },
-    { label: "운영 기간",     value: yearRange,            color: "#A855F7" },
+    { label: "총 행사",      value: `${posts.length}건`,             color: "#18A343" },
+    { label: "누적 참가 인원", value: "집계 예정",                     color: "#18A343" },
+    { label: "카테고리",      value: `${categoryCount || 0}개`, color: "#18A343" },
   ];
 
   return (
@@ -88,7 +91,7 @@ export function EventArchivePage() {
                   key={stat.label}
                   style={{ background: card, border: `1px solid ${border}`, borderRadius: 20, padding: "28px 24px", textAlign: "center" }}
                 >
-                  <div style={{ fontSize: "clamp(26px,3.5vw,42px)", fontWeight: 900, color: stat.color, letterSpacing: "-1px", lineHeight: 1.1 }}>
+                  <div style={{ fontSize: "clamp(23px,3.15vw,38px)", fontWeight: 900, color: stat.color, letterSpacing: "-1px", lineHeight: 1.1 }}>
                     {stat.value}
                   </div>
                   <div style={{ fontSize: 14, color: textMuted, marginTop: 8, fontWeight: 500 }}>
@@ -98,9 +101,29 @@ export function EventArchivePage() {
               ))}
             </div>
 
+            {/* Tag filter */}
+            {uniqueTags.length > 0 && (
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 28 }}>
+                {["전체", ...uniqueTags].map(tag => (
+                  <button
+                    key={tag}
+                    onClick={() => setActiveTag(tag)}
+                    style={{
+                      padding: "8px 18px", borderRadius: 99, border: "none", cursor: "pointer",
+                      fontWeight: 700, fontSize: 14, transition: "all 0.15s",
+                      background: activeTag === tag ? "#18A343" : isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)",
+                      color: activeTag === tag ? "#fff" : textMuted,
+                    }}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            )}
+
             {/* 4-column grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              {posts.map((post) => {
+              {filteredPosts.map((post) => {
                 const attachmentImages = post.image_url?.split(',').filter(isImage) || [];
                 const thumbnailUrl =
                   attachmentImages.length > 0
@@ -147,7 +170,14 @@ export function EventArchivePage() {
                     {/* Card body */}
                     <div style={{ padding: "16px 18px 20px", flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
-                        <Badge variant="green" shape="pill" style={{ fontSize: 11 }}>행사</Badge>
+                        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                          {post.tags
+                            ? post.tags.split(',').map((t: string) => t.trim()).filter(Boolean).map((tag: string) => (
+                                <Badge key={tag} variant="green" shape="pill" style={{ fontSize: 11 }}>{tag}</Badge>
+                              ))
+                            : <Badge variant="green" shape="pill" style={{ fontSize: 11 }}>행사</Badge>
+                          }
+                        </div>
                         <span style={{ fontSize: 12, color: textMuted, flexShrink: 0 }}>{dateStr}</span>
                       </div>
                       <strong style={{

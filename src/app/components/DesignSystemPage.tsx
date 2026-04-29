@@ -511,6 +511,7 @@ export function DesignSystemPage({ isDark = false }: DesignSystemPageProps) {
                   { label: "GREEN",   color: "#34A853" },
                   { label: "YELLOW",  color: "#FBBC05" },
                   { label: "RED",     color: "#EA4335" },
+                  { label: "PURPLE",  color: "#A855F7" },
                   { label: "DEFAULT", color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.4)" },
                 ].map((b) => (
                   <span key={b.label} style={{
@@ -542,6 +543,12 @@ export function DesignSystemPage({ isDark = false }: DesignSystemPageProps) {
                   borderRadius: "100px", padding: "12px 28px",
                   fontSize: "14px", fontWeight: 700, cursor: "pointer",
                 }}>Secondary</button>
+                <button style={{
+                  background: "#A855F7", color: "#fff", border: "none",
+                  borderRadius: "100px", padding: "12px 28px",
+                  fontSize: "14px", fontWeight: 800, cursor: "pointer",
+                  boxShadow: "0 4px 16px rgba(168,85,247,0.35)",
+                }}>Purple CTA</button>
                 <button style={{
                   background: "rgba(66,133,244,0.08)",
                   color: "#4285F4", border: "1px solid rgba(66,133,244,0.25)",

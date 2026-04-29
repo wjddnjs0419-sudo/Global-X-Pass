@@ -4,6 +4,7 @@ import { PageShell } from "../components/PageShell";
 import { useTheme } from "../ThemeContext";
 import { supabase } from "../../lib/supabaseClient";
 import type { Profile } from "../../lib/types";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "../components/ui/input-otp";
 
 export function MyPage() {
   const { isDark } = useTheme();
@@ -18,6 +19,12 @@ export function MyPage() {
   const [loading, setLoading] = useState(false);
   const [consultingReservations, setConsultingReservations] = useState<any[]>([]);
   const [clubApplications, setClubApplications] = useState<any[]>([]);
+
+  // MFA States
+  const [mfaQr, setMfaQr] = useState<string | null>(null);
+  const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
+  const [otpCode, setOtpCode] = useState("");
+  const [isMfaEnabled, setIsMfaEnabled] = useState(false);
 
   const card = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
   const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
@@ -42,6 +49,12 @@ export function MyPage() {
         setUser(user as typeof user & { user_metadata: Record<string, string> });
         const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
         if (data) setProfile(data as Profile);
+
+        // MFA Factor check
+        const { data: factors } = await supabase.auth.mfa.listFactors();
+        if (factors?.totp?.some(f => f.status === "verified")) {
+          setIsMfaEnabled(true);
+        }
 
         if (data?.role !== "admin") {
           const { data: resData } = await supabase
@@ -86,6 +99,71 @@ export function MyPage() {
     else {
       alert("비밀번호가 성공적으로 변경되었습니다!");
       setOldPassword(""); setNewPassword(""); setIsVerified(false);
+    }
+    setLoading(false);
+  };
+
+  // MFA Functions
+  const handleMfaEnroll = async () => {
+    setLoading(true);
+    const { data, error } = await supabase.auth.mfa.enroll({
+      factorType: "totp",
+      issuer: "Global X Pass",
+      friendlyName: user?.email ?? "Admin",
+    });
+
+    if (error) {
+      alert("MFA 설정 중 오류: " + error.message);
+    } else {
+      setMfaQr(data.totp.qr_code);
+      setMfaFactorId(data.id);
+    }
+    setLoading(false);
+  };
+
+  const handleMfaVerify = async () => {
+    if (!mfaFactorId || !otpCode) return;
+    setLoading(true);
+
+    const { data: challengeData, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: mfaFactorId });
+    if (challengeError) {
+      alert("인증 오류: " + challengeError.message);
+      setLoading(false);
+      return;
+    }
+
+    const { error: verifyError } = await supabase.auth.mfa.verify({
+      factorId: mfaFactorId,
+      challengeId: challengeData.id,
+      code: otpCode,
+    });
+
+    if (verifyError) {
+      alert("번호가 올바르지 않습니다.");
+    } else {
+      alert("MFA 설정이 완료되었습니다! 이제 다음 로그인부터 2단계 인증이 필요합니다.");
+      setIsMfaEnabled(true);
+      setMfaQr(null);
+      setMfaFactorId(null);
+      setOtpCode("");
+    }
+    setLoading(false);
+  };
+
+  const handleMfaUnenroll = async () => {
+    if (!confirm("2단계 인증을 해제하시겠습니까? 관리자 계정 보안이 취약해질 수 있습니다.")) return;
+    setLoading(true);
+    
+    const { data: factors } = await supabase.auth.mfa.listFactors();
+    const verifiedFactor = factors?.totp?.find(f => f.status === "verified");
+    
+    if (verifiedFactor) {
+      const { error } = await supabase.auth.mfa.unenroll({ factorId: verifiedFactor.id });
+      if (error) alert("해제 실패: " + error.message);
+      else {
+        alert("2단계 인증이 해제되었습니다.");
+        setIsMfaEnabled(false);
+      }
     }
     setLoading(false);
   };
@@ -175,6 +253,87 @@ export function MyPage() {
 
           {profile?.role === "admin" && (
             <>
+              <hr className="border-none mt-2 mb-0" style={{ borderTop: `1px solid ${border}` }} />
+              <div>
+                <h3 className="mb-4 text-[18px]" style={{ color: textMain }}>관리자 보안 (MFA)</h3>
+                {!isMfaEnabled && !mfaQr && (
+                  <div style={{ padding: "20px", borderRadius: 16, background: isDark ? "rgba(32,214,162,0.08)" : "#f0fdf4", border: "1px solid rgba(32,214,162,0.2)" }}>
+                    <p style={{ margin: "0 0 12px", fontSize: 14, color: textMain, fontWeight: 600 }}>2단계 인증(OTP)이 설정되어 있지 않습니다.</p>
+                    <p style={{ margin: "0 0 20px", fontSize: 13, color: textMuted, lineHeight: 1.5 }}>관리자 계정 보안을 위해 Google Authenticator 등 OTP 앱을 통한 2단계 인증 설정을 강력히 권장합니다.</p>
+                    <button
+                      onClick={handleMfaEnroll}
+                      disabled={loading}
+                      className="w-full py-3 rounded-xl border-none text-white text-[14px] font-bold cursor-pointer"
+                      style={{ background: "#20D6A2" }}
+                    >
+                      {loading ? "준비 중..." : "2단계 인증 설정하기"}
+                    </button>
+                  </div>
+                )}
+
+                {!isMfaEnabled && mfaQr && (
+                  <div style={{ padding: "20px", borderRadius: 16, background: card, border: `1px solid ${border}`, textAlign: "center" }}>
+                    <p style={{ margin: "0 0 16px", fontSize: 14, color: textMain, fontWeight: 700 }}>OTP 앱으로 QR 코드를 스캔하세요</p>
+                    <div 
+                      dangerouslySetInnerHTML={{ __html: mfaQr }} 
+                      style={{ background: "#fff", padding: 12, borderRadius: 12, display: "inline-block", marginBottom: 20 }}
+                    />
+                    <div className="text-left">
+                      <p style={{ margin: "0 0 12px", fontSize: 13, color: textMuted }}>인증 앱에 표시된 6자리 번호를 입력하세요</p>
+                      <div className="flex justify-center mb-6">
+                        <InputOTP
+                          maxLength={6}
+                          value={otpCode}
+                          onChange={(val) => setOtpCode(val)}
+                        >
+                          <InputOTPGroup>
+                            {[0, 1, 2, 3, 4, 5].map((idx) => (
+                              <InputOTPSlot 
+                                key={idx} 
+                                index={idx} 
+                                style={{ width: 40, height: 50, fontSize: 18, fontWeight: 700, background: inputBg, borderColor: inputBorder, color: textMain }} 
+                              />
+                            ))}
+                          </InputOTPGroup>
+                        </InputOTP>
+                      </div>
+                      <button
+                        onClick={handleMfaVerify}
+                        disabled={loading || otpCode.length !== 6}
+                        className="w-full py-3 rounded-xl border-none text-white text-[14px] font-bold cursor-pointer mt-4"
+                        style={{ background: "#4377F1", opacity: otpCode.length === 6 ? 1 : 0.5 }}
+                      >
+                        {loading ? "확인 중..." : "인증 완료 및 활성화"}
+                      </button>
+                      <button
+                        onClick={() => { setMfaQr(null); setMfaFactorId(null); setOtpCode(""); }}
+                        style={{ width: "100%", background: "none", border: "none", color: textMuted, fontSize: 13, marginTop: 12, cursor: "pointer", textDecoration: "underline" }}
+                      >
+                        취소
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {isMfaEnabled && (
+                  <div style={{ padding: "20px", borderRadius: 16, background: isDark ? "rgba(67,119,241,0.08)" : "#eff6ff", border: "1px solid rgba(67,119,241,0.2)" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                      <span style={{ fontSize: 20 }}>🛡️</span>
+                      <p style={{ margin: 0, fontSize: 14, color: textMain, fontWeight: 600 }}>2단계 인증(MFA)이 활성화되어 있습니다.</p>
+                    </div>
+                    <p style={{ margin: "0 0 20px", fontSize: 13, color: textMuted, lineHeight: 1.5 }}>현재 관리자 계정이 보호되고 있습니다. 로그아웃 후 다시 로그인할 때 OTP 번호 입력이 필요합니다.</p>
+                    <button
+                      onClick={handleMfaUnenroll}
+                      disabled={loading}
+                      className="w-full py-3 rounded-xl border-none text-[#ea4335] text-[13px] font-semibold cursor-pointer"
+                      style={{ background: isDark ? "rgba(234,67,53,0.1)" : "#fef2f2", border: "1px solid rgba(234,67,53,0.2)" }}
+                    >
+                      {loading ? "처리 중..." : "2단계 인증 해제하기"}
+                    </button>
+                  </div>
+                )}
+              </div>
+
               <hr className="border-none mt-2 mb-0" style={{ borderTop: `1px solid ${border}` }} />
               <div>
                 <h3 className="mb-4 text-[18px]" style={{ color: textMain }}>관리자 권한</h3>
