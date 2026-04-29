@@ -40,7 +40,7 @@ export default function SignupPage() {
     form.name.trim() !== "" &&
     form.phone.trim() !== "" &&
     form.email.trim() !== "" &&
-    form.password.length >= 6 &&
+    form.password.length >= 8 &&
     isPasswordMatch &&
     form.company.trim() !== "" &&
     agree.terms &&
@@ -61,17 +61,18 @@ export default function SignupPage() {
       if (authError) throw authError;
 
       if (authData.user) {
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .upsert([{ id: authData.user.id, email: form.email, name: form.name, phone: form.phone, company: form.company, user_type: form.role }]);
-        if (profileError) throw profileError;
-
+        // handle_new_user 트리거가 profiles 행을 자동 생성하므로 별도 upsert 불필요
         await supabase.auth.signOut();
         alert("회원가입이 완료되었습니다! 로그인해 주세요.");
         navigate("/login");
       }
     } catch (err: unknown) {
-      alert((err instanceof Error ? err.message : String(err)) || "회원가입 중 오류가 발생했습니다.");
+      const msg = (err instanceof Error ? err.message : String(err)) || "";
+      if (msg.toLowerCase().includes("already registered")) {
+        alert("이미 가입된 이메일 주소입니다.\n로그인 페이지에서 로그인하거나 '비밀번호 찾기'를 이용해주세요.");
+      } else {
+        alert(msg || "회원가입 중 오류가 발생했습니다.");
+      }
     } finally {
       setLoading(false);
     }
@@ -105,14 +106,20 @@ export default function SignupPage() {
             </Field>
           </div>
 
-          <Field label="이메일 주소" textMuted={textMuted}>
-            <input type="email" className={inputClasses} style={inputDynamicStyle} placeholder="example@email.com" value={form.email} onChange={(e) => setForm({ ...form, email: blockKorean(e.target.value) })} required />
-          </Field>
+          <div>
+            <Field label="이메일 주소" textMuted={textMuted}>
+              <input type="email" className={inputClasses} style={inputDynamicStyle} placeholder="example@email.com" value={form.email} onChange={(e) => setForm({ ...form, email: blockKorean(e.target.value) })} required />
+            </Field>
+            <div className="text-[11px] mt-1.5 ml-0.5" style={{ color: textMuted }}>영문 이메일 주소를 입력해주세요 (한글 입력 불가)</div>
+          </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="비밀번호" textMuted={textMuted}>
-              <input type="password" className={inputClasses} style={inputDynamicStyle} placeholder="6자 이상" value={form.password} onChange={(e) => setForm({ ...form, password: blockKorean(e.target.value) })} required />
-            </Field>
+            <div>
+              <Field label="비밀번호" textMuted={textMuted}>
+                <input type="password" className={inputClasses} style={inputDynamicStyle} placeholder="8자 이상" value={form.password} onChange={(e) => setForm({ ...form, password: blockKorean(e.target.value) })} required />
+              </Field>
+              <div className="text-[11px] mt-1.5 ml-0.5" style={{ color: textMuted }}>영문·숫자·특수문자만 입력 가능</div>
+            </div>
             <Field label="비밀번호 확인" textMuted={textMuted}>
               <input type="password" className={inputClasses} style={inputDynamicStyle} placeholder="다시 입력" value={form.confirm} onChange={(e) => setForm({ ...form, confirm: blockKorean(e.target.value) })} required />
             </Field>
