@@ -161,7 +161,7 @@ export default function AdminPage() {
   };
 
   const fetchUsers = async () => {
-    const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+    const { data, error } = await supabase.functions.invoke('decrypt-profiles');
     if (error) console.error("회원 데이터 불러오기 오류:", error.message);
     if (data) setUsers(data);
   };

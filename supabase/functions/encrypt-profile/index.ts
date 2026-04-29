@@ -1,0 +1,113 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const ENC_PREFIX = "enc:v1:";
+
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+};
+
+// ── Crypto helpers ─────────────────────────────────────────────────────────
+
+async function deriveKey(secret: string): Promise<CryptoKey> {
+  const rawKey = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(secret)
+  );
+  return crypto.subtle.importKey("raw", rawKey, { name: "AES-GCM" }, false, [
+    "encrypt",
+  ]);
+}
+
+function bytesToHex(bytes: Uint8Array): string {
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function encrypt(plaintext: string | null, key: CryptoKey): Promise<string | null> {
+  if (!plaintext || plaintext.startsWith(ENC_PREFIX)) return plaintext;
+
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encoded = new TextEncoder().encode(plaintext);
+
+  // Web Crypto AES-GCM returns ciphertext + authTag concatenated (last 16 bytes = authTag)
+  const encrypted = new Uint8Array(
+    await crypto.subtle.encrypt({ name: "AES-GCM", iv, tagLength: 128 }, key, encoded)
+  );
+
+  const ciphertext = encrypted.slice(0, encrypted.length - 16);
+  const authTag    = encrypted.slice(encrypted.length - 16);
+
+  return `${ENC_PREFIX}${bytesToHex(iv)}:${bytesToHex(ciphertext)}:${bytesToHex(authTag)}`;
+}
+
+// ── Handler ────────────────────────────────────────────────────────────────
+
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: CORS });
+  }
+
+  try {
+    const { userId } = await req.json();
+    if (!userId) {
+      return new Response("userId is required", { status: 400, headers: CORS });
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const encSecret   = Deno.env.get("ENCRYPTION_SECRET_KEY");
+
+    if (!encSecret) {
+      throw new Error("ENCRYPTION_SECRET_KEY is not configured");
+    }
+
+    const supabase = createClient(supabaseUrl, serviceKey);
+    const key = await deriveKey(encSecret);
+
+    const { data: profile, error: fetchErr } = await supabase
+      .from("profiles")
+      .select("id, name, email, phone")
+      .eq("id", userId)
+      .single();
+
+    if (fetchErr || !profile) {
+      return new Response("Profile not found", { status: 404, headers: CORS });
+    }
+
+    // Skip if already fully encrypted
+    const allEncrypted =
+      (!profile.name  || profile.name.startsWith(ENC_PREFIX))  &&
+      (!profile.email || profile.email.startsWith(ENC_PREFIX)) &&
+      (!profile.phone || profile.phone.startsWith(ENC_PREFIX));
+
+    if (allEncrypted) {
+      return new Response(JSON.stringify({ skipped: true }), {
+        headers: { ...CORS, "Content-Type": "application/json" },
+      });
+    }
+
+    const { error: updateErr } = await supabase
+      .from("profiles")
+      .update({
+        name:  await encrypt(profile.name, key),
+        email: await encrypt(profile.email, key),
+        phone: await encrypt(profile.phone, key),
+      })
+      .eq("id", userId);
+
+    if (updateErr) throw updateErr;
+
+    return new Response(JSON.stringify({ encrypted: true }), {
+      headers: { ...CORS, "Content-Type": "application/json" },
+    });
+  } catch (err) {
+    console.error("[encrypt-profile]", err);
+    return new Response(JSON.stringify({ error: (err as Error).message }), {
+      status: 500,
+      headers: { ...CORS, "Content-Type": "application/json" },
+    });
+  }
+});

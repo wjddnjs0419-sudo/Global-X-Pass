@@ -62,6 +62,7 @@ export default function SignupPage() {
 
       if (authData.user) {
         // handle_new_user 트리거가 profiles 행을 자동 생성하므로 별도 upsert 불필요
+        await supabase.functions.invoke("encrypt-profile", { body: { userId: authData.user.id } });
         await supabase.auth.signOut();
         alert("회원가입이 완료되었습니다! 로그인해 주세요.");
         navigate("/login");
