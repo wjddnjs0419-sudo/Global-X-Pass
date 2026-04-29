@@ -4,9 +4,10 @@ import { useParams, useNavigate } from "react-router";
 import { PageShell } from "../components/PageShell";
 import { useTheme } from "../ThemeContext";
 import { supabase } from "../../lib/supabaseClient";
-import { isImage, getFileNameFromUrl } from "../../utils/file";
+import { isImage, getFileNameFromUrl, encodeFilename } from "../../utils/file";
 import { useAdmin } from "../../hooks/useAdmin";
 import type { Post } from "../../lib/types";
+import { getActivePresets, addCategory, deleteCategory } from "../../utils/categoryStore";
 
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
@@ -31,6 +32,14 @@ export function PostDetailPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
+  const [editTags, setEditTags] = useState("");
+  const [tagInput, setTagInput] = useState("");
+  const [tagPresets, setTagPresets] = useState(() => getActivePresets());
+  const [editEventStatus, setEditEventStatus] = useState("접수예정");
+  const [editEventDate, setEditEventDate] = useState("");
+  const [editLocation, setEditLocation] = useState("");
+  const [editCapacity, setEditCapacity] = useState("");
+  const [editSlotsRemaining, setEditSlotsRemaining] = useState("");
   const [editFiles, setEditFiles] = useState<File[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -56,17 +65,19 @@ export function PostDetailPage() {
         setPost({ ...data, views: newViews } as Post);
         setEditTitle(data.title);
         setEditContent(data.content);
+        setEditTags(data.tags || "");
         setExistingImages(data.image_url ? data.image_url.split(",") : []);
+        setEditEventStatus(data.event_status || "접수예정");
+        setEditEventDate(data.event_date || "");
+        setEditLocation(data.location || "");
+        setEditCapacity(data.capacity != null ? String(data.capacity) : "");
+        setEditSlotsRemaining(data.slots_remaining != null ? String(data.slots_remaining) : "");
       }
       setLoading(false);
     };
 
     fetchPost();
   }, [id]);
-
-  const encodeFilename = (name: string) => {
-    return encodeURIComponent(name);
-  };
 
   const imageHandler = () => {
     const input = document.createElement("input");
@@ -81,6 +92,9 @@ export function PostDetailPage() {
           return;
         }
         try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) { alert("로그인이 필요합니다."); return; }
+
           const safeName = encodeFilename(file.name);
           const fileName = `${Date.now()}---editor---${Math.random().toString(36).substr(2, 9)}---${safeName}`;
           const { error: upError } = await supabase.storage.from("images").upload(fileName, file);
@@ -133,9 +147,22 @@ export function PostDetailPage() {
           const url = supabase.storage.from("images").getPublicUrl(fileName).data.publicUrl;
           imageUrls.push(url);
         }
+        const isEvent = post?.category === "events";
         const { data, error } = await supabase
           .from("posts")
-          .update({ title: editTitle, content: editContent, image_url: imageUrls.join(",") || null })
+          .update({
+            title: editTitle,
+            content: editContent,
+            image_url: imageUrls.join(",") || null,
+            tags: editTags || null,
+            ...(isEvent ? {
+              event_status: editEventStatus,
+              event_date: editEventDate || null,
+              location: editLocation || null,
+              capacity: editCapacity ? Number(editCapacity) : null,
+              slots_remaining: editSlotsRemaining ? Number(editSlotsRemaining) : null,
+            } : {}),
+          })
           .eq("id", id)
           .select();
         
@@ -212,12 +239,86 @@ export function PostDetailPage() {
 
         {isEditing ? (
           <div className="flex flex-col gap-5">
-            <input 
-              value={editTitle} 
-              onChange={(e) => setEditTitle(e.target.value)} 
+            <input
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
               className="w-full p-4 rounded-xl text-[24px] font-extrabold outline-none"
-              style={{ border: `1px solid ${border}`, background: card, color: textMain }} 
+              style={{ border: `1px solid ${border}`, background: card, color: textMain }}
             />
+
+            {/* 카테고리 태그 피커 */}
+            {(post?.category === "events" || post?.category === "events-archive" || post?.category === "blog" || post?.category === "notice" || post?.category === "news") && (() => {
+              const accent = post.category === "blog" ? "#A855F7" : post.category === "notice" ? "#EA4335" : post.category === "news" ? "#4377F1" : "#18A343";
+              const bgAlpha = post.category === "blog" ? "168,85,247" : post.category === "notice" ? "234,67,53" : post.category === "news" ? "67,119,241" : "24,163,67";
+              const inputBg2 = isDark ? "rgba(255,255,255,0.04)" : "#fff";
+              const inputStyle2 = { padding: "10px 14px", borderRadius: 10, border: `1px solid ${border}`, background: inputBg2, color: textMain, outline: "none", fontSize: 13, boxSizing: "border-box" as const };
+              return (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "16px 20px", background: isDark ? `rgba(${bgAlpha},0.06)` : `rgba(${bgAlpha},0.04)`, border: `1px solid rgba(${bgAlpha},0.2)`, borderRadius: 16 }}>
+                  <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: accent }}>카테고리 <span style={{ fontWeight: 400, fontSize: 12, color: textMuted }}>(1개 선택)</span></p>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {tagPresets.map(tag => {
+                      const selected = editTags === tag;
+                      return (
+                        <div key={tag} style={{ position: "relative", display: "inline-flex" }}>
+                          <button type="button" onClick={() => setEditTags(prev => prev === tag ? "" : tag)} style={{ padding: "5px 12px", borderRadius: 99, fontSize: 13, fontWeight: selected ? 700 : 500, cursor: "pointer", border: selected ? "none" : `1px solid rgba(${bgAlpha},0.4)`, background: selected ? accent : isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", color: selected ? "#fff" : textMuted }}>
+                            {tag}
+                          </button>
+                          <button type="button" onClick={() => { deleteCategory(tag); setTagPresets(getActivePresets()); if (editTags === tag) setEditTags(""); }} style={{ position: "absolute", top: -5, right: -5, width: 16, height: 16, borderRadius: "50%", background: isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.18)", border: "none", color: "#fff", fontSize: 10, fontWeight: 900, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1, padding: 0 }}>×</button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input value={tagInput} onChange={e => setTagInput(e.target.value)} placeholder="목록에 없으면 직접 입력 후 추가" style={{ ...inputStyle2, flex: 1 }} />
+                    <button type="button" onClick={() => { const t = tagInput.trim(); if (t) { addCategory(t); setTagPresets(getActivePresets()); setEditTags(t); setTagInput(""); } }} style={{ padding: "8px 16px", borderRadius: 10, border: "none", background: accent, color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}>추가</button>
+                  </div>
+                  {editTags && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ fontSize: 12, color: textMuted }}>선택됨:</span>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", background: accent, color: "#fff", borderRadius: 99, fontSize: 13, fontWeight: 600 }}>
+                        {editTags}
+                        <button type="button" onClick={() => setEditTags("")} style={{ background: "none", border: "none", color: "#fff", cursor: "pointer", padding: 0, fontSize: 14 }}>×</button>
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* 행사 전용 필드 */}
+            {post?.category === "events" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "20px 24px", background: isDark ? "rgba(24,163,67,0.06)" : "rgba(24,163,67,0.04)", border: "1px solid rgba(24,163,67,0.2)", borderRadius: 16 }}>
+                <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: "#18A343" }}>행사 상세 정보</p>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: textMuted }}>상태</label>
+                    <select style={{ padding: "12px 16px", borderRadius: 10, background: isDark ? "rgba(255,255,255,0.04)" : "#fff", border: `1px solid ${border}`, color: textMain, outline: "none", fontSize: 14 }} value={editEventStatus} onChange={e => setEditEventStatus(e.target.value)}>
+                      <option value="접수예정">접수예정</option>
+                      <option value="접수중">접수중</option>
+                      <option value="마감임박">마감임박</option>
+                      <option value="마감">마감</option>
+                    </select>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: textMuted }}>일시 (예: 2026.05.08 (목) 18:00)</label>
+                    <input style={{ padding: "12px 16px", borderRadius: 10, background: isDark ? "rgba(255,255,255,0.04)" : "#fff", border: `1px solid ${border}`, color: textMain, outline: "none", fontSize: 14 }} placeholder="2026.05.08 (목) 18:00" value={editEventDate} onChange={e => setEditEventDate(e.target.value)} />
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: textMuted }}>장소</label>
+                    <input style={{ padding: "12px 16px", borderRadius: 10, background: isDark ? "rgba(255,255,255,0.04)" : "#fff", border: `1px solid ${border}`, color: textMain, outline: "none", fontSize: 14 }} placeholder="서울 강남 NCF 센터" value={editLocation} onChange={e => setEditLocation(e.target.value)} />
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: textMuted }}>정원 (명)</label>
+                    <input type="number" min={0} style={{ padding: "12px 16px", borderRadius: 10, background: isDark ? "rgba(255,255,255,0.04)" : "#fff", border: `1px solid ${border}`, color: textMain, outline: "none", fontSize: 14 }} placeholder="200" value={editCapacity} onChange={e => setEditCapacity(e.target.value)} />
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: textMuted }}>잔여석 (명)</label>
+                    <input type="number" min={0} style={{ padding: "12px 16px", borderRadius: 10, background: isDark ? "rgba(255,255,255,0.04)" : "#fff", border: `1px solid ${border}`, color: textMain, outline: "none", fontSize: 14 }} placeholder="47" value={editSlotsRemaining} onChange={e => setEditSlotsRemaining(e.target.value)} />
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className={`overflow-hidden rounded-[10px] ${isDark ? "quill-dark" : "quill-light"}`} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", border: `1px solid ${border}` }}>
               <ReactQuill ref={quillRef} theme="snow" value={editContent} onChange={setEditContent} modules={modules} placeholder="자유롭게 글과 이미지를 작성해 보세요!" />
             </div>
