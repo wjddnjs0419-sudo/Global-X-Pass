@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { useNavigate } from "react-router";
+import { Navigate } from "react-router";
 import { useTheme } from "../ThemeContext";
 import { supabase } from "../../lib/supabaseClient";
+import { useAdmin } from "../../hooks/useAdmin";
 
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
@@ -20,7 +21,7 @@ import { AdminFlowMap } from "../components/admin/AdminFlowMap";
 
 export default function AdminPage() {
   const { isDark } = useTheme();
-  const navigate = useNavigate();
+  const { isAdmin, loading: adminLoading } = useAdmin();
 
   // 상단 탭 상태
   const [activeTab, setActiveTab] = useState<"dashboard" | "users" | "create" | "manage" | "consulting" | "founders">("dashboard");
@@ -95,11 +96,18 @@ export default function AdminPage() {
     input.onchange = async () => {
       const file = input.files?.[0];
       if (file) {
+        if (!file.type.startsWith("image/")) {
+          alert("이미지 파일만 업로드 가능합니다.");
+          return;
+        }
         if (file.size > 10 * 1024 * 1024) {
           alert("이미지 파일은 10MB 이하만 업로드 가능합니다.");
           return;
         }
         try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) { alert("로그인이 필요합니다."); return; }
+
           const safeName = encodeFilename(file.name);
           const fileName = `${Date.now()}---editor---${Math.random().toString(36).substr(2, 9)}---${safeName}`;
 
@@ -196,11 +204,17 @@ export default function AdminPage() {
     }
   };
 
-  const filteredPosts = posts.filter(post => {
-    const matchesSearch = post.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = filterCategory === "all" || post.category === filterCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const filteredPosts = posts
+    .filter(post => {
+      const matchesSearch = post.title.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = filterCategory === "all" || post.category === filterCategory;
+      return matchesSearch && matchesCategory;
+    })
+    .sort((a, b) => {
+      const aTime = new Date(a.updated_at ?? a.created_at).getTime();
+      const bTime = new Date(b.updated_at ?? b.created_at).getTime();
+      return bTime - aTime;
+    });
 
   const totalPages = Math.ceil(filteredPosts.length / postsPerPage);
   const currentPosts = filteredPosts.slice((currentPage - 1) * postsPerPage, currentPage * postsPerPage);
@@ -247,10 +261,12 @@ export default function AdminPage() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files || []);
-    const validFiles = selectedFiles.filter(f => f.size <= 10 * 1024 * 1024);
-    if (validFiles.length < selectedFiles.length) alert("10MB 이하의 파일만 첨부할 수 있습니다.");
-    setFiles(prev => [...prev, ...validFiles]);
-    e.target.value = ""; 
+    const typeValid = selectedFiles.filter(f => f.type.startsWith("image/"));
+    const sizeValid = typeValid.filter(f => f.size <= 10 * 1024 * 1024);
+    if (typeValid.length < selectedFiles.length) alert("이미지 파일만 업로드 가능합니다.");
+    if (sizeValid.length < typeValid.length) alert("10MB 이하의 파일만 첨부할 수 있습니다.");
+    setFiles(prev => [...prev, ...sizeValid]);
+    e.target.value = "";
   };
 
   const handleSubmitClick = (e: React.FormEvent) => {
@@ -299,12 +315,12 @@ export default function AdminPage() {
           capacity: eventMeta.capacity ? Number(eventMeta.capacity) : null,
           slots_remaining: eventMeta.slots_remaining ? Number(eventMeta.slots_remaining) : null,
           tags: eventMeta.tags || null,
-        } : category === 'blog' ? {
+        } : category === 'blog' || category === 'events-archive' || category === 'notice' || category === 'news' ? {
           tags: eventMeta.tags || null,
         } : {};
 
         if (editingId) {
-          const { error: updateError } = await supabase.from('posts').update({ category, title, content, image_url: finalImageUrl, ...extraFields }).eq('id', editingId);
+          const { error: updateError } = await supabase.from('posts').update({ category, title, content, image_url: finalImageUrl, updated_at: new Date().toISOString(), ...extraFields }).eq('id', editingId);
           if (updateError) {
             console.error("Supabase Post Update Error:", updateError);
             throw updateError;
@@ -354,21 +370,25 @@ export default function AdminPage() {
         const rows = text.split('\n').filter(row => row.trim() !== '');
         if (rows.length < 2) throw new Error("데이터가 없습니다.");
         
+        const ALLOWED_FIELDS = new Set(["id", "name", "email", "phone", "company", "role"]);
         const headers = rows[0].split(',').map(h => h.trim());
-        const newUsers = rows.slice(1).map(row => {
+        const invalidHeaders = headers.filter(h => h && !ALLOWED_FIELDS.has(h));
+        if (invalidHeaders.length > 0) throw new Error(`허용되지 않은 컬럼: ${invalidHeaders.join(", ")}`);
+
+        const newUsers = rows.slice(1).map((row, rowIdx) => {
           const values = row.split(',');
-          const userObj: any = {};
+          const userObj: Record<string, string> = {};
           headers.forEach((h, i) => {
-            if (h) userObj[h] = values[i]?.trim() || "";
+            if (h && ALLOWED_FIELDS.has(h)) userObj[h] = values[i]?.trim() || "";
           });
-          if (!userObj.id) userObj.id = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
+          if (!userObj.id) throw new Error(`${rowIdx + 2}행: 'id' 필드가 없습니다. CSV에 Supabase 사용자 ID(uuid)를 포함해주세요.`);
           return userObj;
         });
 
-        const { error } = await supabase.from('profiles').insert(newUsers);
+        const { error } = await supabase.from('profiles').upsert(newUsers, { onConflict: 'id' });
         if (error) throw error;
-        
-        alert(`${newUsers.length}명의 회원이 일괄 추가되었습니다.`);
+
+        alert(`${newUsers.length}명의 회원 정보가 저장되었습니다. (신규 추가 또는 기존 정보 갱신)`);
         // Realtime 구독으로 인해 fetchUsers()를 수동 호출하지 않아도 자동 갱신됩니다.
       } catch (err: any) {
         alert("CSV 처리 실패: " + err.message);
@@ -386,6 +406,9 @@ export default function AdminPage() {
   const fmtNum = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n);
   const getPoints = (key: 'views' | 'cumulative', max: number) =>
     chartData.map((d, i) => `${(i * (chartW / (chartPeriod - 1)))},${chartH - (d[key] / max * chartH)}`).join(" ");
+
+  if (adminLoading) return null;
+  if (!isAdmin) return <Navigate to="/" replace />;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: isDark ? "#0a1020" : "#F7F8FC", width: "100%", position: "relative" }}>

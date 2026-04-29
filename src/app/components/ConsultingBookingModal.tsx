@@ -42,7 +42,19 @@ export function ConsultingBookingModal({ consultant, isDark, onClose }: Props) {
     const { error } = await supabase.from("consulting_reservations").insert({ slot_id: selectedSlot, user_id: user.id, description: description.trim() });
     if (error) { alert("신청 실패: " + error.message); setLoading(false); return; }
 
-    await supabase.from("consulting_slots").update({ status: "booked" }).eq("id", selectedSlot);
+    const { data: updatedSlots } = await supabase
+      .from("consulting_slots")
+      .update({ status: "booked" })
+      .eq("id", selectedSlot)
+      .eq("status", "available")
+      .select("id");
+
+    if (!updatedSlots || updatedSlots.length === 0) {
+      alert("이미 다른 분이 예약한 슬롯입니다. 다른 시간을 선택해주세요.");
+      setLoading(false);
+      return;
+    }
+
     setDone(true);
     setLoading(false);
   };
