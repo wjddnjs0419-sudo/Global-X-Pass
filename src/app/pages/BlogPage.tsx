@@ -8,14 +8,7 @@ import { isImage } from "../../utils/file";
 import { cleanText } from "../../utils/text";
 import type { Post } from "../../lib/types";
 
-const TAG_COLORS: Record<string, string> = {
-  창업: "#18A343", 투자: "#4377F1", 글로벌: "#0FA37F",
-  커뮤니티: "#A855F7", 기술: "#F59E0B",
-};
-
-function getTagColor(tag: string) {
-  return TAG_COLORS[tag] ?? "#4377F1";
-}
+const BLOG_COLOR = "#A855F7";
 
 function readingMinutes(content: string) {
   const words = cleanText(content).split(/\s+/).filter(Boolean).length;
@@ -73,7 +66,7 @@ export function BlogPage() {
               const attachmentImages = featured.image_url?.split(",").filter(isImage) || [];
               const thumbnailUrl = attachmentImages[0] ?? (featured.content?.match(/<img[^>]+src="([^">]+)"/) || [])[1];
               const mins = readingMinutes(featured.content);
-              const tagColor = getTagColor(featured.tags ?? "");
+              const tagColor = BLOG_COLOR;
               return (
                 <div
                   onClick={() => navigate(`/post/${featured.id}`)}
@@ -131,7 +124,7 @@ export function BlogPage() {
                       padding: "8px 18px", borderRadius: 99, border: "none", cursor: "pointer",
                       fontWeight: 700, fontSize: 14,
                       background: activeTag === tag
-                        ? (tag === "전체" ? "#18A343" : getTagColor(tag))
+                        ? BLOG_COLOR
                         : (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)"),
                       color: activeTag === tag ? "#fff" : textMuted,
                       transition: "all 0.15s",
@@ -149,7 +142,7 @@ export function BlogPage() {
                 const attachmentImages = post.image_url?.split(",").filter(isImage) || [];
                 const thumbnailUrl = attachmentImages[0] ?? (post.content?.match(/<img[^>]+src="([^">]+)"/) || [])[1];
                 const mins = readingMinutes(post.content);
-                const tagColor = getTagColor(post.tags ?? "");
+                const tagColor = BLOG_COLOR;
                 const dateStr = new Date(post.created_at).toLocaleDateString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" }).replace(/ /g, "");
 
                 return (
@@ -171,7 +164,7 @@ export function BlogPage() {
                             {post.tags}
                           </span>
                         ) : (
-                          <span style={{ fontSize: 11, fontWeight: 700, color: "#4377F1", background: "rgba(67,119,241,0.1)", padding: "3px 10px", borderRadius: 99 }}>인사이트</span>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: BLOG_COLOR, background: "rgba(168,85,247,0.1)", padding: "3px 10px", borderRadius: 99 }}>인사이트</span>
                         )}
                         <span style={{ fontSize: 11, color: textMuted }}>{mins}분 읽기</span>
                       </div>

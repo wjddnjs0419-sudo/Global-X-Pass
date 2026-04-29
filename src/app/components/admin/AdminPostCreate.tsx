@@ -1,7 +1,9 @@
+import { useState } from "react";
 import ReactQuill from 'react-quill';
 import { useTheme } from "../../ThemeContext";
 import { CATEGORIES } from "./adminConstants";
 import { getFileNameFromUrl } from "../../../utils/file";
+import { getActivePresets, addCategory, deleteCategory } from "../../../utils/categoryStore";
 
 type EventMeta = { event_date: string; location: string; event_status: string; capacity: string; slots_remaining: string; tags: string };
 
@@ -44,6 +46,8 @@ export function AdminPostCreate({
   eventMeta, setEventMeta,
 }: AdminPostCreateProps) {
   const { isDark } = useTheme();
+  const [tagInput, setTagInput] = useState("");
+  const [presets, setPresets] = useState(() => getActivePresets());
 
   const card = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
   const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
@@ -60,6 +64,75 @@ export function AdminPostCreate({
     outline: "none", 
     boxSizing: "border-box" as const,
   };
+
+  const selectedTag = eventMeta.tags ? eventMeta.tags.trim() : "";
+
+  const selectTag = (tag: string) => {
+    setEventMeta(m => ({ ...m, tags: m.tags === tag ? "" : tag }));
+  };
+
+  const addCustomTag = () => {
+    const trimmed = tagInput.trim();
+    if (trimmed) {
+      addCategory(trimmed);
+      setPresets(getActivePresets());
+      setEventMeta(m => ({ ...m, tags: trimmed }));
+    }
+    setTagInput("");
+  };
+
+  const removePreset = (tag: string) => {
+    deleteCategory(tag);
+    setPresets(getActivePresets());
+    setEventMeta(m => m.tags === tag ? { ...m, tags: "" } : m);
+  };
+
+  const renderTagPicker = (accentColor: string, bgAlpha: string) => (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "16px 20px", background: isDark ? `rgba(${bgAlpha},0.06)` : `rgba(${bgAlpha},0.04)`, border: `1px solid rgba(${bgAlpha},0.2)`, borderRadius: 16 }}>
+      <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: accentColor }}>카테고리 <span style={{ fontWeight: 400, color: isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.35)", fontSize: 12 }}>(1개 선택)</span></p>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        {presets.map(tag => {
+          const isSelected = selectedTag === tag;
+          return (
+            <div key={tag} style={{ position: "relative", display: "inline-flex" }}>
+              <button type="button" onClick={() => selectTag(tag)} style={{
+                padding: "5px 12px", borderRadius: 99, fontSize: 13, fontWeight: isSelected ? 700 : 500, cursor: "pointer",
+                border: isSelected ? "none" : `1px solid rgba(${bgAlpha},0.4)`,
+                background: isSelected ? accentColor : isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)",
+                color: isSelected ? "#fff" : isDark ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.5)",
+              }}>
+                {tag}
+              </button>
+              <button type="button" onClick={() => removePreset(tag)} style={{
+                position: "absolute", top: -5, right: -5, width: 16, height: 16, borderRadius: "50%",
+                background: isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.18)", border: "none",
+                color: isDark ? "#fff" : "#fff", fontSize: 10, fontWeight: 900, cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1, padding: 0,
+              }}>×</button>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ display: "flex", gap: 8 }}>
+        <input
+          value={tagInput}
+          onChange={e => setTagInput(e.target.value)}
+          placeholder="목록에 없으면 직접 입력 후 추가"
+          style={{ ...inputStyle, flex: 1, fontSize: 13 }}
+        />
+        <button type="button" onClick={addCustomTag} style={{ padding: "8px 16px", borderRadius: 10, border: "none", background: accentColor, color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}>추가</button>
+      </div>
+      {selectedTag && (
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.4)" }}>선택됨:</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", background: accentColor, color: "#fff", borderRadius: 99, fontSize: 13, fontWeight: 600 }}>
+            {selectedTag}
+            <button type="button" onClick={() => setEventMeta(m => ({ ...m, tags: "" }))} style={{ background: "none", border: "none", color: "#fff", cursor: "pointer", padding: 0, lineHeight: 1, fontSize: 14 }}>×</button>
+          </span>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <form onSubmit={handleSubmitClick} style={{ background: card, border: `1px solid ${border}`, borderRadius: "24px", padding: "40px", display: "flex", flexDirection: "column", gap: "20px", marginBottom: "40px" }}>
@@ -82,6 +155,12 @@ export function AdminPostCreate({
         <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="제목을 입력하세요" style={{ ...inputStyle, flex: 1 }} required />
       </div>
       
+      {/* 카테고리 태그 (Quill 위에 배치해 항상 보이도록) */}
+      {(category === "events" || category === "blog" || category === "events-archive" || category === "notice" || category === "news") && renderTagPicker(
+        category === "blog" ? "#A855F7" : category === "notice" ? "#EA4335" : category === "news" ? "#4377F1" : "#18A343",
+        category === "blog" ? "168,85,247" : category === "notice" ? "234,67,53" : category === "news" ? "67,119,241" : "24,163,67"
+      )}
+
       <div className={isDark ? "quill-dark" : "quill-light"} style={{ background: inputBg, borderRadius: "10px", border: `1px solid ${border}`, overflow: "hidden" }}>
         <ReactQuill
           ref={quillRef}
@@ -92,8 +171,8 @@ export function AdminPostCreate({
           placeholder="자유롭게 글과 이미지를 작성해 보세요!"
         />
       </div>
-      
-      {/* 행사 전용 필드 */}
+
+      {/* 행사 전용 필드 (날짜·장소·정원 — 카테고리 태그는 위에서 처리) */}
       {category === "events" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "20px 24px", background: isDark ? "rgba(24,163,67,0.06)" : "rgba(24,163,67,0.04)", border: `1px solid rgba(24,163,67,0.2)`, borderRadius: 16 }}>
           <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: "#18A343" }}>행사 상세 정보</p>
@@ -116,10 +195,6 @@ export function AdminPostCreate({
               <input style={{ ...inputStyle, fontSize: 14 }} placeholder="서울 강남 NCF 센터" value={eventMeta.location} onChange={e => setEventMeta(m => ({ ...m, location: e.target.value }))} />
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: textMuted }}>태그 (쉼표로 구분, 예: 네트워킹,피칭)</label>
-              <input style={{ ...inputStyle, fontSize: 14 }} placeholder="네트워킹,피칭,투자자" value={eventMeta.tags} onChange={e => setEventMeta(m => ({ ...m, tags: e.target.value }))} />
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               <label style={{ fontSize: 12, fontWeight: 600, color: textMuted }}>정원 (명)</label>
               <input type="number" min={0} style={{ ...inputStyle, fontSize: 14 }} placeholder="200" value={eventMeta.capacity} onChange={e => setEventMeta(m => ({ ...m, capacity: e.target.value }))} />
             </div>
@@ -131,13 +206,6 @@ export function AdminPostCreate({
         </div>
       )}
 
-      {/* 블로그 전용 필드 */}
-      {category === "blog" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "16px 20px", background: isDark ? "rgba(168,85,247,0.06)" : "rgba(168,85,247,0.04)", border: `1px solid rgba(168,85,247,0.2)`, borderRadius: 16 }}>
-          <label style={{ fontSize: 12, fontWeight: 700, color: "#A855F7" }}>카테고리 태그 (예: 창업, 투자, 글로벌, 커뮤니티, 기술)</label>
-          <input style={{ ...inputStyle, fontSize: 14 }} placeholder="투자" value={eventMeta.tags} onChange={e => setEventMeta(m => ({ ...m, tags: e.target.value }))} />
-        </div>
-      )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "20px" }}>
         <p style={{ margin: 0, fontWeight: 700, fontSize: "14px", color: textMuted }}>별도 첨부파일 관리 (문서, PDF 등)</p>

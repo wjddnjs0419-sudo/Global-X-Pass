@@ -4,15 +4,32 @@ import { supabase } from "../lib/supabaseClient";
 export function useAdmin() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [aal, setAal] = useState<string>("aal1");
+  const [mfaRequired, setMfaRequired] = useState(false);
 
   useEffect(() => {
     const check = async (userId: string) => {
-      const { data } = await supabase
+      // 1. Role check
+      const { data: profile } = await supabase
         .from("profiles")
         .select("role")
         .eq("id", userId)
         .single();
-      setIsAdmin(data?.role === "admin");
+      
+      const isUserAdmin = profile?.role === "admin";
+      setIsAdmin(isUserAdmin);
+
+      // 2. MFA check
+      const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      setAal(aalData?.currentLevel || "aal1");
+      
+      // If admin and nextLevel is aal2, it means MFA is enrolled but not verified in this session
+      if (isUserAdmin && aalData?.nextLevel === "aal2" && aalData?.currentLevel !== "aal2") {
+        setMfaRequired(true);
+      } else {
+        setMfaRequired(false);
+      }
+      
       setLoading(false);
     };
 
@@ -27,6 +44,8 @@ export function useAdmin() {
         check(session.user.id);
       } else {
         setIsAdmin(false);
+        setAal("aal1");
+        setMfaRequired(false);
         setLoading(false);
       }
     });
@@ -34,5 +53,5 @@ export function useAdmin() {
     return () => subscription.unsubscribe();
   }, []);
 
-  return { isAdmin, loading };
+  return { isAdmin, loading, aal, mfaRequired };
 }

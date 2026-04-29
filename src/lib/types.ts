@@ -5,6 +5,7 @@ export interface Post {
   category: string;
   image_url: string | null;
   created_at: string;
+  updated_at?: string | null;
   views: number;
   allowed_group_id?: string | null;
   // event fields

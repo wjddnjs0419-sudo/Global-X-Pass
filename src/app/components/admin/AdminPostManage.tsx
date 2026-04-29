@@ -2,6 +2,15 @@ import { useNavigate } from "react-router";
 import { useTheme } from "../../ThemeContext";
 import { CATEGORIES, CATEGORY_COLOR } from "./adminConstants";
 
+const fmtDate = (iso: string) => {
+  const d = new Date(iso);
+  const MM = String(d.getMonth() + 1).padStart(2, "0");
+  const DD = String(d.getDate()).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${MM}/${DD} ${hh}:${mm}`;
+};
+
 interface AdminPostManageProps {
   filteredPosts: any[];
   currentPosts: any[];
@@ -69,7 +78,7 @@ export function AdminPostManage({
         ) : (
            currentPosts.map(post => (
              <div key={post.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-[16px] sm:gap-0" style={{ background: card, border: `1px solid ${border}`, borderRadius: "20px", padding: "20px 30px" }}>
-               <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
+               <div style={{ display: "flex", alignItems: "center", gap: "20px", minWidth: 0 }}>
                  {(() => {
                    const cat = CATEGORIES.find(c => c.id === post.category);
                    const clr = CATEGORY_COLOR[post.category] ?? CATEGORY_COLOR["news"];
@@ -79,12 +88,19 @@ export function AdminPostManage({
                      </span>
                    );
                  })()}
-                 <strong
-                   onClick={() => navigate(`/post/${post.id}`)}
-                   style={{ color: textMain, fontSize: "16px", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3, textDecorationColor: "rgba(67,119,241,0.4)" }}
-                 >
-                   {post.title}
-                 </strong>
+                 <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+                   <strong
+                     onClick={() => navigate(`/post/${post.id}`)}
+                     style={{ color: textMain, fontSize: "16px", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3, textDecorationColor: "rgba(67,119,241,0.4)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                   >
+                     {post.title}
+                   </strong>
+                   <span style={{ fontSize: 12, color: textMuted }}>
+                     {post.updated_at
+                       ? `수정 ${fmtDate(post.updated_at)}`
+                       : `게시 ${fmtDate(post.created_at)}`}
+                   </span>
+                 </div>
                </div>
                <div style={{ display: "flex", gap: "10px" }}>
                  {post.category === "blog" && (
