@@ -192,6 +192,14 @@ The canonical color map for all post categories is `CATEGORY_COLOR` in `src/app/
 
 ## Security notes
 
+### 🚨 Critical Security Action Items
+These are known vulnerabilities that **must** be resolved. When you start a new session, prioritize fixing these:
+1. **[HIGH] Mandatory Admin MFA:** Currently, MFA enrollment is optional in `/mypage`. We MUST implement "Mandatory Enrollment": If an admin logs in and has not set up MFA, they should be blocked from `/admin` and forced to `/mypage` to enroll.
+2. **[MEDIUM] Server-Side Storage Validation:** The 10MB size limit and `image/*` MIME type check for the `images` bucket are only enforced client-side in React. You MUST update the Supabase Storage bucket configuration (via dashboard or migration) to enforce these limits at the database/API level to prevent DoS or malicious file uploads.
+3. **[MEDIUM] Tighten Edge Function CORS:** The `delete-user` Edge Function currently uses `Access-Control-Allow-Origin: "*"`. This MUST be restricted to the actual production and local development domains (`https://globalxpass.com`, `http://localhost:5173`, etc.) to prevent CSRF abuse.
+
+### General Security Notes
+
 - **XSS:** All post HTML content rendered via `dangerouslySetInnerHTML` must be wrapped with `DOMPurify.sanitize()` — see `PostDetailPage.tsx` and `FaqPage.tsx` for the pattern
 - **Admin MFA (TOTP):** Admins can enroll in 2FA via `/mypage`. `LoginPage.tsx` intercepts the login flow to prompt for a 6-digit OTP code using the `InputOTP` UI component. The `useAdmin` hook and `AdminRoute` enforce `aal2` (Authenticator Assurance Level 2). At the database level, the `is_admin()` Postgres function strictly requires `aal2` for any admin who has MFA enrolled.
 - **Idle logout:** `useIdleLogout` (`src/hooks/useIdleLogout.ts`) is a two-phase system: 28 min idle → warning modal appears (`warningVisible`); if no action within 2 min → `doLogout()` fires. The hook returns `{ warningVisible, extendSession, logout }`; the modal is rendered in `RootLayout`. Only fires when a session actually exists (checks `getSession()` before showing the modal).
