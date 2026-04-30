@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { PageShell } from "../components/PageShell";
 import { useTheme } from "../ThemeContext";
-import { supabase } from "../../lib/supabaseClient";
+import { createClient } from "@supabase/supabase-js";
+import { supabase, supabaseUrl, supabaseAnonKey } from "../../lib/supabaseClient";
 import type { Profile } from "../../lib/types";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "../components/ui/input-otp";
 
@@ -16,6 +17,7 @@ export function MyPage() {
   const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
+  const [pwChangeMfaOtp, setPwChangeMfaOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [consultingReservations, setConsultingReservations] = useState<any[]>([]);
   const [clubApplications, setClubApplications] = useState<any[]>([]);
@@ -25,6 +27,11 @@ export function MyPage() {
   const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
   const [otpCode, setOtpCode] = useState("");
   const [isMfaEnabled, setIsMfaEnabled] = useState(false);
+  const [mfaSetupRequired, setMfaSetupRequired] = useState(() => {
+    const val = sessionStorage.getItem("mfa_setup_required") === "true";
+    if (val) sessionStorage.removeItem("mfa_setup_required");
+    return val;
+  });
 
   const card = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
   const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
@@ -47,8 +54,8 @@ export function MyPage() {
         navigate("/login");
       } else {
         setUser(user as typeof user & { user_metadata: Record<string, string> });
-        const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
-        if (data) setProfile(data as Profile);
+        const { data, error } = await supabase.functions.invoke('decrypt-own-profile');
+        if (!error && data) setProfile(data as Profile);
 
         // MFA Factor check
         const { data: factors } = await supabase.auth.mfa.listFactors();
@@ -79,7 +86,15 @@ export function MyPage() {
   const handleVerifyOldPassword = async () => {
     if (!oldPassword) return alert("현재 비밀번호를 입력해주세요.");
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email: user?.email ?? "", password: oldPassword });
+    const noopStorage = {
+      getItem: (_k: string): string | null => null,
+      setItem: (_k: string, _v: string): void => {},
+      removeItem: (_k: string): void => {},
+    };
+    const tempClient = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { storage: noopStorage, persistSession: false, autoRefreshToken: false },
+    });
+    const { error } = await tempClient.auth.signInWithPassword({ email: user?.email ?? "", password: oldPassword });
     if (error) {
       alert("현재 비밀번호가 일치하지 않습니다.");
       setOldPassword("");
@@ -94,11 +109,34 @@ export function MyPage() {
     e.preventDefault();
     if (!newPassword || newPassword.length < 8) return alert("새 비밀번호는 8자 이상 입력해주세요.");
     setLoading(true);
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-    if (error) alert("비밀번호 변경 실패: " + error.message);
-    else {
+    try {
+      if (isMfaEnabled && profile?.role === "admin") {
+        // 관리자 + MFA: 챌린지로 AAL2 확보 후 updateUser
+        const { data: factors } = await supabase.auth.mfa.listFactors();
+        const factor = factors?.totp?.find(f => f.status === "verified");
+        if (!factor) throw new Error("MFA factor를 찾을 수 없습니다.");
+        const { data: challengeData, error: challengeErr } = await supabase.auth.mfa.challenge({ factorId: factor.id });
+        if (challengeErr) throw challengeErr;
+        const { error: verifyErr } = await supabase.auth.mfa.verify({
+          factorId: factor.id,
+          challengeId: challengeData.id,
+          code: pwChangeMfaOtp,
+        });
+        if (verifyErr) { alert("OTP 코드가 올바르지 않습니다."); setLoading(false); return; }
+        const { error } = await supabase.auth.updateUser({ password: newPassword });
+        if (error) throw error;
+      } else {
+        // 일반 유저 또는 MFA 잔존 전 관리자: Edge Function으로 처리 (AAL2 무관)
+        const { data, error } = await supabase.functions.invoke("change-password", {
+          body: { oldPassword, newPassword },
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+      }
       alert("비밀번호가 성공적으로 변경되었습니다!");
-      setOldPassword(""); setNewPassword(""); setIsVerified(false);
+      setOldPassword(""); setNewPassword(""); setIsVerified(false); setPwChangeMfaOtp("");
+    } catch (err: any) {
+      alert("비밀번호 변경 실패: " + (err.message ?? "알 수 없는 오류"));
     }
     setLoading(false);
   };
@@ -141,11 +179,13 @@ export function MyPage() {
     if (verifyError) {
       alert("번호가 올바르지 않습니다.");
     } else {
-      alert("MFA 설정이 완료되었습니다! 이제 다음 로그인부터 2단계 인증이 필요합니다.");
       setIsMfaEnabled(true);
+      setMfaSetupRequired(false);
       setMfaQr(null);
       setMfaFactorId(null);
       setOtpCode("");
+      alert("MFA 설정이 완료되었습니다! 관리자 패널에 접근할 수 있습니다.");
+      navigate("/admin");
     }
     setLoading(false);
   };
@@ -226,24 +266,38 @@ export function MyPage() {
             {isVerified && (
               <form onSubmit={handlePasswordUpdate}>
                 <div className="relative">
-                  <input 
-                    type={showNewPassword ? "text" : "password"} 
-                    value={newPassword} 
-                    onChange={(e) => setNewPassword(e.target.value)} 
-                    placeholder="새 비밀번호 (8자 이상)" 
-                    className="w-full pl-4 pr-10 py-3 rounded-xl text-[14px] outline-none font-['Pretendard',sans-serif] box-border mb-3" 
-                    style={inputDynamicStyle} 
-                    required 
+                  <input
+                    type={showNewPassword ? "text" : "password"}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="새 비밀번호 (8자 이상)"
+                    className="w-full pl-4 pr-10 py-3 rounded-xl text-[14px] outline-none font-['Pretendard',sans-serif] box-border mb-3"
+                    style={inputDynamicStyle}
+                    required
                   />
                   <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute right-3 top-[22px] -translate-y-1/2 bg-none border-none cursor-pointer" style={{ color: textMuted }}>
                     {eyeIcon}
                   </button>
                 </div>
-                <button 
-                  type="submit" 
-                  disabled={loading} 
-                  className={`w-full py-[14px] rounded-xl border-none text-white text-[15px] font-bold font-['Pretendard',sans-serif] mt-2 ${loading ? "bg-gray-500 cursor-not-allowed" : "cursor-pointer"}`}
-                  style={{ background: loading ? undefined : "linear-gradient(135deg, #4377F1 0%, #20D6A2 100%)" }}
+                {isMfaEnabled && profile?.role === "admin" && (
+                  <div className="mb-3">
+                    <p className="text-[13px] mb-2" style={{ color: textMuted }}>OTP 인증 코드 확인 (보안 정책)</p>
+                    <div className="flex justify-center">
+                      <InputOTP maxLength={6} value={pwChangeMfaOtp} onChange={setPwChangeMfaOtp}>
+                        <InputOTPGroup>
+                          {[0,1,2,3,4,5].map(idx => (
+                            <InputOTPSlot key={idx} index={idx} style={{ width: 40, height: 50, fontSize: 18, fontWeight: 700, background: inputBg, borderColor: inputBorder, color: textMain }} />
+                          ))}
+                        </InputOTPGroup>
+                      </InputOTP>
+                    </div>
+                  </div>
+                )}
+                <button
+                  type="submit"
+                  disabled={loading || (isMfaEnabled && profile?.role === "admin" && pwChangeMfaOtp.length !== 6)}
+                  className={`w-full py-[14px] rounded-xl border-none text-white text-[15px] font-bold font-['Pretendard',sans-serif] mt-2 ${(loading || (isMfaEnabled && profile?.role === "admin" && pwChangeMfaOtp.length !== 6)) ? "cursor-not-allowed" : "cursor-pointer"}`}
+                  style={{ background: (loading || (isMfaEnabled && profile?.role === "admin" && pwChangeMfaOtp.length !== 6)) ? "#9ca3af" : "linear-gradient(135deg, #4377F1 0%, #20D6A2 100%)" }}
                 >
                   {loading ? "변경 중..." : "새 비밀번호 저장"}
                 </button>
@@ -256,6 +310,19 @@ export function MyPage() {
               <hr className="border-none mt-2 mb-0" style={{ borderTop: `1px solid ${border}` }} />
               <div>
                 <h3 className="mb-4 text-[18px]" style={{ color: textMain }}>관리자 보안 (MFA)</h3>
+
+                {mfaSetupRequired && !isMfaEnabled && (
+                  <div className="mb-4" style={{ padding: "16px 20px", borderRadius: 16, background: isDark ? "rgba(234,67,53,0.12)" : "#fff5f5", border: "1px solid rgba(234,67,53,0.4)" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+                      <span style={{ fontSize: 18 }}>🔒</span>
+                      <p style={{ margin: 0, fontSize: 14, color: "#ea4335", fontWeight: 700 }}>관리자 패널 접근 전 MFA 설정이 필요합니다</p>
+                    </div>
+                    <p style={{ margin: 0, fontSize: 13, color: isDark ? "rgba(255,255,255,0.6)" : "rgba(15,23,42,0.6)", lineHeight: 1.5 }}>
+                      보안 정책상 관리자 계정은 2단계 인증(MFA)을 반드시 설정해야 합니다. 아래에서 설정을 완료한 후 관리자 패널에 접근할 수 있습니다.
+                    </p>
+                  </div>
+                )}
+
                 {!isMfaEnabled && !mfaQr && (
                   <div style={{ padding: "20px", borderRadius: 16, background: isDark ? "rgba(32,214,162,0.08)" : "#f0fdf4", border: "1px solid rgba(32,214,162,0.2)" }}>
                     <p style={{ margin: "0 0 12px", fontSize: 14, color: textMain, fontWeight: 600 }}>2단계 인증(OTP)이 설정되어 있지 않습니다.</p>
