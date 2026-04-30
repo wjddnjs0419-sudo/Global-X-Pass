@@ -1,12 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsHeaders } from "../_shared/cors.ts";
 
 const ENC_PREFIX = "enc:v1:";
-
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
 
 // ── Crypto helpers ─────────────────────────────────────────────────────────
 
@@ -46,6 +41,8 @@ async function encrypt(plaintext: string | null, key: CryptoKey): Promise<string
 // ── Handler ────────────────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
+  const CORS = corsHeaders(req);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: CORS });
   }

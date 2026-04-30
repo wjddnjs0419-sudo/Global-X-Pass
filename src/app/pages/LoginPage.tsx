@@ -60,16 +60,22 @@ export function LoginPage() {
 
     // Check MFA (aal2 requirement)
     const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-    
-    if (aalData?.nextLevel === "aal2" && aalData?.currentLevel !== "aal2") {
-      const { data: factors } = await supabase.auth.mfa.listFactors();
-      const factor = factors?.totp?.find(f => f.status === "verified");
-      if (factor) {
-        setMfaFactorId(factor.id);
-        setTempProfile(profile);
-        setLoading(false);
-        return;
-      }
+    const { data: factors } = await supabase.auth.mfa.listFactors();
+    const verifiedFactor = factors?.totp?.find(f => f.status === "verified");
+
+    if (profile?.role === "admin" && aalData?.nextLevel === "aal2" && aalData?.currentLevel !== "aal2" && verifiedFactor) {
+      // Admin with MFA enrolled but not yet verified this session — show OTP challenge
+      setMfaFactorId(verifiedFactor.id);
+      setTempProfile(profile);
+      setLoading(false);
+      return;
+    }
+
+    if (profile?.role === "admin" && !verifiedFactor) {
+      // Admin without MFA — force enrollment before granting access
+      sessionStorage.setItem("mfa_setup_required", "true");
+      navigate("/mypage");
+      return;
     }
 
     alert("환영합니다! 로그인이 완료되었습니다.");

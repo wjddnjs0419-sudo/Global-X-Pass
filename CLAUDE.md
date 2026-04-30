@@ -2,6 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Mandatory Workflow: Plan-First Iterative Approach
+
+Every complex task must follow this exact lifecycle. Do not skip steps.
+
+1.  **Research & Initial Plan:** Create a `PLAN.md` file in the root. Document the architecture, file changes, and implementation strategy.
+2.  **User Review (Wait for Feedback):** Stop and ask the user to review `PLAN.md`. The user will provide feedback via comments inside `PLAN.md`.
+3.  **Iterative Revision:** Read the comments in `PLAN.md`, update the plan, and repeat until the user gives explicit approval to "Implement".
+4.  **Surgical Execution:** Follow the final `PLAN.md`. Implement sub-tasks one by one. Verify with builds/tests at each step.
+5.  **Final Reporting:** Once complete, summarize all changes, technical decisions, and usage notes in a `RESULT.md` file.
+
 ## Commands
 
 ```bash
@@ -15,6 +25,12 @@ Environment variables required (`.env`):
 ```
 VITE_SUPABASE_URL=...
 VITE_SUPABASE_ANON_KEY=...
+```
+
+Migration script only (not used by the app):
+```
+ENCRYPTION_SECRET_KEY=...        # AES-256-GCM key source for PII encryption
+SUPABASE_SERVICE_ROLE_KEY=...    # Service role key (Settings → API Keys → Legacy → service_role)
 ```
 
 ### Supabase local development
@@ -99,13 +115,14 @@ Two context providers wrap the app:
 
 `profiles.role` has three values: `admin` | `participant` | `user`
 
-- **admin** — full access including `/admin` dashboard
-- **participant** (참여사 담당자) — can access `/expenses` (사업비 자료실)
-- **user** — standard authenticated user
+- **admin** — full access including `/admin` dashboard.
+- **participant** (참여사 담당자) — can access `/expenses` (사업비 자료실).
+- **user** — standard authenticated user.
 
-Role is checked at two levels:
-1. **Frontend gate:** `useAdmin()` hook (`src/hooks/useAdmin.ts`) for the admin route; `ExpensesPage` fetches the profile role directly. After login, `LoginPage` queries `profiles.role` to decide whether to navigate to `/admin` or `/` — do not use email address comparisons for this.
-2. **Database:** Supabase RLS policies. The helper function `is_admin()` in Postgres checks `profiles.role = 'admin'` and is used in admin-write policies.
+**Security Restrictions:**
+- **Role Change Re-verification (S03):** Modifying a user's role requires the admin to re-enter their password for verification.
+- **Self-Role Protection (S03):** Admins are prohibited from modifying their own roles.
+- **Database Gate:** The `is_admin()` Postgres function checks role and MFA status (AAL2).
 
 ### Supabase database tables
 
@@ -128,13 +145,24 @@ Beyond standard `profiles` and `posts`, the project adds:
 
 ### Admin dashboard (`AdminPage.tsx`)
 
-`AdminPage.tsx` is a single large component that owns all shared state (posts, users, chart data) and passes it down to 6 panel components in `src/app/components/admin/`:
+`AdminPage.tsx` is a **thin coordinator** (~132 lines) — it holds only: `activeTab`, `adminId`/`adminEmail`, `editingPost`, three `refreshKey` counters (`dashRefreshKey`, `postsRefreshKey`, `usersRefreshKey`), and a Realtime subscription on `profiles`.
 
-`AdminDashboard` → `AdminUserManagement` → `AdminPostCreate` → `AdminPostManage` → `AdminConsultingManagement` → `AdminFoundersClubManagement`
+**Code-splitting:** `AdminPostCreate` and `AdminUserManagement` are loaded via `React.lazy` + `Suspense`. All other panel components are eagerly imported.
 
-`AdminFlowMap` is a separate admin-only page (not a tab) rendered at `/flow-map`. `NotificationBell` is a standalone component used in the admin header.
+**Tab-based lazy fetch:** Each panel component self-fetches its own data on mount. The parent re-triggers a fetch by incrementing the relevant `refreshKey` prop (e.g. after a post is saved, `postsRefreshKey` and `dashRefreshKey` are both incremented).
 
-Realtime updates for the `profiles` table are subscribed in `AdminPage.tsx` so the user list auto-refreshes without manual refetch.
+**Panel components** (each self-contained with internal state and modals):
+- `AdminDashboard` — stats cards, dual-axis chart (daily + cumulative views), top-5 posts
+- `AdminPostManage` — post list with search/filter/pagination; owns delete confirmation via `AdminPostModal`
+- `AdminPostCreate` — ReactQuill editor (itself lazy-loaded inside the component); owns save confirmation via `AdminPostModal`; syncs form with `editingPost` prop via `useEffect(..., [editingPost?.id])`
+- `AdminUserManagement` — user list, role management, bulk CSV import; owns `AdminRoleModal` and `AdminBulkResultModal`
+- `AdminConsultingManagement`, `AdminFoundersClubManagement`
+
+**Skeleton UI:** `@keyframes pulse` is defined in `src/styles/index.css`. Each panel renders its own skeleton rows during loading.
+
+`AdminFlowMap` is a separate admin-only page at `/flow-map`, not a tab. `NotificationBell` is a standalone component in the admin header.
+
+**`fetchUsers`** in `AdminUserManagement` calls the `decrypt-profiles` Edge Function — the profiles table stores PII as ciphertext. Realtime subscription triggers `fetchUsers()` on profile changes.
 
 **`filteredPosts` sort:** Sorted client-side by `updated_at ?? created_at` descending — most recently touched post appears first across all category filters.
 
@@ -142,7 +170,7 @@ Realtime updates for the `profiles` table are subscribed in `AdminPage.tsx` so t
 
 **`AdminPostCreate` tag picker:** Appears **above** the Quill editor for `events`, `blog`, `events-archive`, `notice`, and `news` categories. It is a **single-select** system — clicking a preset replaces any existing tag. Presets are loaded from `getActivePresets()` (`src/utils/categoryStore.ts`) into local state; the list is refreshed after any add/delete. Each pill has an × button that calls `deleteCategory()` to soft-delete it. Custom tags are added via a "추가" button (never Enter key — see Korean IME note below). The same pattern is replicated inline inside `PostDetailPage` for admin edits from the detail view.
 
-**CSV bulk user import** (`AdminUserManagement`): Only the fields `id, name, email, phone, company, role` are whitelisted — any other CSV column causes the import to fail with an error. Simple `split(',')` parsing (no quoted-field support).
+**CSV bulk user import** (`AdminUserManagement`): Only the fields `id, name, email, phone, company, role` are whitelisted — any other CSV column causes the import to fail with an error. Uses a quote-aware CSV parser to handle fields containing commas.
 
 **`PostDetailPage` events edit fields:** When `post.category === "events"`, the edit form shows a full 행사 상세 정보 panel (same fields as `AdminPostCreate`): `event_status`, `event_date`, `location`, `capacity`, `slots_remaining`. These are initialized from the post in the `useEffect` that fetches data, and included in the `.update()` payload only for events posts.
 
@@ -179,6 +207,30 @@ The canonical color map for all post categories is `CATEGORY_COLOR` in `src/app/
 
 **`PageShell`** (`src/app/components/PageShell.tsx`) is the standard wrapper for all content pages — pass `title`, `subtitle`, and `accentColor`.
 
+### PII Encryption
+
+`profiles.name`, `profiles.email`, `profiles.phone` are stored as AES-256-GCM ciphertext. Format: `enc:v1:<iv_hex>:<ciphertext_hex>:<authtag_hex>`. Values not starting with `enc:v1:` are plaintext (pre-migration or failed encryption — treat as unencrypted).
+
+**Key derivation:** SHA-256 of `ENCRYPTION_SECRET_KEY` → 32-byte AES key. Both the Node.js migration script and the Deno Edge Functions use this same derivation.
+
+**Edge Functions** (`supabase/functions/`):
+- `decrypt-profiles` — admin-only; fetches all profiles, decrypts PII, returns JSON.
+- `decrypt-own-profile` — user-facing; decrypts the caller's own profile row (used by `MyPage`).
+- `encrypt-profile` — accepts `{ userId }`; encrypts that user's profile row (used after signup).
+- `delete-user` — admin-only; deletes both `auth.users` and `public.profiles`.
+- `bulk-register-users` — admin-only; performs bulk creation of login accounts via `auth.admin.createUser()`, initializes profiles with PII encryption, and returns temporary passwords.
+- `change-password` — user-facing; accepts `{ oldPassword, newPassword }`, re-verifies old password server-side, then updates via `auth.admin.updateUserById()` (service role). Bypasses Supabase's AAL2 requirement for `updateUser` when MFA is enrolled.
+
+### PII Processing Flow (S06)
+
+1. **Signup/Registration:** `handle_new_user` trigger creates the profile row -> `encrypt-profile` Edge Function encrypts PII (AES-256-GCM).
+2. **Admin View:** `AdminPage` calls `decrypt-profiles` Edge Function to display plaintext PII.
+3. **MyPage:** Users decrypt their own PII for profile management.
+
+**One-time migration script:** `scripts/migrate-encrypt-pii.mjs` — encrypts existing rows in batches of 100. Run with `--dry-run` first. Requires `SUPABASE_SERVICE_ROLE_KEY` in `.env`. Safe to re-run (already-encrypted rows are skipped via `enc:v1:` prefix check).
+
+**Never query `profiles.name/email/phone` directly for display** — always go through `decrypt-profiles` Edge Function or decrypt client-side. The `MyPage` profile display and any future features reading PII must account for the encrypted format.
+
 ## Supabase conventions
 
 - Storage bucket for images: `images`
@@ -192,18 +244,36 @@ The canonical color map for all post categories is `CATEGORY_COLOR` in `src/app/
 
 ## Security notes
 
-### 🚨 Critical Security Action Items
-These are known vulnerabilities that **must** be resolved. When you start a new session, prioritize fixing these:
-1. **[HIGH] Mandatory Admin MFA:** Currently, MFA enrollment is optional in `/mypage`. We MUST implement "Mandatory Enrollment": If an admin logs in and has not set up MFA, they should be blocked from `/admin` and forced to `/mypage` to enroll.
-2. **[MEDIUM] Server-Side Storage Validation:** The 10MB size limit and `image/*` MIME type check for the `images` bucket are only enforced client-side in React. You MUST update the Supabase Storage bucket configuration (via dashboard or migration) to enforce these limits at the database/API level to prevent DoS or malicious file uploads.
-3. **[MEDIUM] Tighten Edge Function CORS:** The `delete-user` Edge Function currently uses `Access-Control-Allow-Origin: "*"`. This MUST be restricted to the actual production and local development domains (`https://globalxpass.com`, `http://localhost:5173`, etc.) to prevent CSRF abuse.
-
 ### General Security Notes
 
 - **XSS:** All post HTML content rendered via `dangerouslySetInnerHTML` must be wrapped with `DOMPurify.sanitize()` — see `PostDetailPage.tsx` and `FaqPage.tsx` for the pattern
-- **Admin MFA (TOTP):** Admins can enroll in 2FA via `/mypage`. `LoginPage.tsx` intercepts the login flow to prompt for a 6-digit OTP code using the `InputOTP` UI component. The `useAdmin` hook and `AdminRoute` enforce `aal2` (Authenticator Assurance Level 2). At the database level, the `is_admin()` Postgres function strictly requires `aal2` for any admin who has MFA enrolled.
-- **Idle logout:** `useIdleLogout` (`src/hooks/useIdleLogout.ts`) is a two-phase system: 28 min idle → warning modal appears (`warningVisible`); if no action within 2 min → `doLogout()` fires. The hook returns `{ warningVisible, extendSession, logout }`; the modal is rendered in `RootLayout`. Only fires when a session actually exists (checks `getSession()` before showing the modal).
+- **Admin MFA (TOTP):** 
+    - **Enforcement:** Admins **must** enroll in MFA to access the `/admin` dashboard. `AdminRoute` and `LoginPage` force redirection to `/mypage` for enrollment if not set up.
+    - **Verification:** `LoginPage.tsx` intercepts the login flow for enrolled admins to prompt for a 6-digit OTP code.
+    - **Database:** The `is_admin()` Postgres function strictly requires `aal2` for any admin who has MFA enrolled.
+- **Storage Security:** The `images` bucket enforces a 10MB size limit and `image/*` MIME types (excluding SVG) at the server level via bucket configuration.
+- **Edge Function Security:** All Edge Functions (`delete-user`, `decrypt-profiles`, `encrypt-profile`) use restricted CORS origins and verify admin roles where necessary.
+- **Admin CSV Import Security:**
+    - **Robust Parsing:** Uses a quote-aware CSV parser to correctly handle fields containing commas or special characters.
+    - **Integrity Protection:** Enforces a mandatory `id` (UUID) field check and requires manual confirmation before performing bulk `upsert` operations to prevent accidental data overwrites.
+- **DoS Protection (page_views):**
+    - **Rate Limiting:** A database-level trigger limits each `visitor_id` to a maximum of 10 page view entries per minute.
+    - **Schema Validation:** RLS policies enforce path length limits (<512 chars), structure validation (must start with `/`), and User-Agent length limits (<1000 chars).
+- **Idle logout:** `useIdleLogout` (`src/hooks/useIdleLogout.ts`) is a two-phase system: 28 min idle → warning modal appears (`warningVisible`); if no action within 2 min → `doLogout()` fires.
+ The hook returns `{ warningVisible, extendSession, logout }`; the modal is rendered in `RootLayout`. Only fires when a session actually exists (checks `getSession()` before showing the modal).
 - **Stale session (browser close):** `RootLayout` records the exact close time via `pagehide`/`beforeunload` into `gxp_last_active` (localStorage). On next mount, if a session exists and `gxp_last_active` is >30 min ago, silently signs out and navigates to `/`. No modal or banner for this case.
 - **Session expiry banner:** `LoginPage` reads `sessionStorage.getItem("logout_reason")`; value `"idle"` shows a yellow banner. The key is cleared on read. Set it before `navigate("/login")` only for idle-logout flows.
 - **Page view throttle:** `useTracker` skips recording if the same path was visited within 30 min (stored in `localStorage`)
 - **Password minimum:** 8 characters enforced in `SignupPage`. Also set the same minimum in Supabase Dashboard → Authentication → Settings to enforce it at the API level.
+- **MyPage password change flow:** Supabase requires AAL2 for `updateUser` on any account with MFA enrolled, regardless of application role. The flow branches in `handlePasswordUpdate`:
+  - **Admin + MFA enrolled:** OTP input is shown; `mfa.challenge` + `mfa.verify` elevates the session to AAL2; then `supabase.auth.updateUser()` is called directly.
+  - **All other cases** (non-admin, or former admin with residual MFA enrollment): the `change-password` Edge Function is invoked with `{ oldPassword, newPassword }`. The function re-verifies the old password and uses the service role to update — no AAL2 required.
+  - Never call `supabase.auth.signInWithPassword()` on the **main** client for password re-verification — it replaces the active session. Use a no-op storage temporary client (`persistSession: false`) or the Edge Function instead.
+
+## Development Status (S-Codes)
+
+- **S01:** Admin login MFA logic (OTP challenge / forced enrollment) — **DONE**
+- **S03:** Role change password re-verification + self-edit restriction — **DONE**
+- **S04:** Security dashboard cards (PII, MFA, Hardening, Rate Limits, Auto-logout) — **DONE**
+- **S05:** Realtime profile updates with explicit decryption re-fetch — **DONE**
+- **S06:** Standardized PII processing flow (Encryption/Decryption) — **DONE**
