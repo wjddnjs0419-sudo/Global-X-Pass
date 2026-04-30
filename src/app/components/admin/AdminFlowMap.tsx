@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTheme } from "../../ThemeContext";
 
-type Filter = "all" | "s01" | "s02" | "s03" | "s04" | "s05";
+type Filter = "all" | "s01" | "s02" | "s03" | "s04" | "s05" | "s06";
 
 export function AdminFlowMap() {
   const { isDark } = useTheme();
@@ -18,7 +18,6 @@ export function AdminFlowMap() {
   const codeBg    = isDark ? "rgba(168,85,247,0.15)" : "#f5f3ff";
   const codeColor = isDark ? "#c4b5fd" : "#7c3aed";
 
-  // 노드 스타일
   const N = (type: "user" | "admin" | "sys" | "ok" | "sec") => {
     const map = {
       user:  { bg: isDark ? "rgba(67,119,241,0.15)"  : "#eff6ff", bd: isDark ? "rgba(67,119,241,0.35)"  : "#bfdbfe", cl: isDark ? "#93b4f8" : "#1d4ed8" },
@@ -34,7 +33,6 @@ export function AdminFlowMap() {
     };
   };
 
-  // 스텝 도트 스타일
   const dot = (type: "user" | "admin" | "sys" | "ok" | "sec") => {
     const map = {
       user:  { bg: isDark ? "rgba(67,119,241,0.15)"  : "#eff6ff", bd: isDark ? "#93b4f8" : "#93c5fd", cl: isDark ? "#93b4f8" : "#2563eb" },
@@ -51,8 +49,8 @@ export function AdminFlowMap() {
     };
   };
 
-  const arr   = <span style={{ color: textMuted, padding: "0 6px", userSelect: "none" as const }}>→</span>;
-  const conn  = <div style={{ width: 1, height: 12, background: connectorColor, marginLeft: 12 }} />;
+  const arr  = <span style={{ color: textMuted, padding: "0 6px", userSelect: "none" as const }}>→</span>;
+  const conn = <div style={{ width: 1, height: 12, background: connectorColor, marginLeft: 12 }} />;
 
   const Step = ({ type, actor, desc, sub }: { type: "user"|"admin"|"sys"|"ok"|"sec"; actor: string; desc: string; sub?: string }) => (
     <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
@@ -94,6 +92,7 @@ export function AdminFlowMap() {
     { id: "s03",  label: "03  어드민 대시보드" },
     { id: "s04",  label: "04  보안 구조" },
     { id: "s05",  label: "05  실시간 동기화" },
+    { id: "s06",  label: "06  PII 처리 흐름" },
   ];
 
   return (
@@ -138,27 +137,60 @@ export function AdminFlowMap() {
 
       {/* 01 — 접속 및 권한 분기 */}
       <SectionWrap id="s01" num="01" title="접속 및 권한 분기">
-        <Card>
-          <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6, marginBottom: 24 }}>
-            <div style={N("user")}>사이트 접속</div>{arr}
-            <div style={N("user")}>이메일 + 비밀번호 로그인</div>{arr}
-            <div style={N("sec")}>아이디 · 비밀번호 검증</div>{arr}
-            <div style={N("sys")}>profiles.role 조회</div>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {[
-              { label: "admin",      type: "admin" as const, text: "어드민 대시보드 + 모든 페이지 접근" },
-              { label: "participant",type: "user"  as const, text: "일반 페이지 + 사업비 자료실 (/expenses)" },
-              { label: "user",       type: "sys"   as const, text: "일반 페이지 (공지 · 컨설팅 · Founder's Club)" },
-              { label: "비로그인",   type: "sys"   as const, text: "메인 페이지 · 공개 공지만 열람" },
-            ].map(r => (
-              <div key={r.label} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <span style={{ fontSize: 11, color: textMuted, width: 80, textAlign: "right", flexShrink: 0 }}>{r.label}</span>
-                <div style={N(r.type)}>{r.text}</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <Card>
+            <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6, marginBottom: 24 }}>
+              <div style={N("user")}>사이트 접속</div>{arr}
+              <div style={N("user")}>이메일 + 비밀번호 로그인</div>{arr}
+              <div style={N("sec")}>아이디 · 비밀번호 검증</div>{arr}
+              <div style={N("sys")}>profiles.role 조회</div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {[
+                { label: "admin",      type: "admin" as const, text: "어드민 대시보드 + 모든 페이지 접근 (MFA 인증 후)" },
+                { label: "participant",type: "user"  as const, text: "일반 페이지 + 사업비 자료실 (/expenses)" },
+                { label: "user",       type: "sys"   as const, text: "일반 페이지 (공지 · 컨설팅 · Founder's Club)" },
+                { label: "비로그인",   type: "sys"   as const, text: "메인 페이지 · 공개 공지만 열람" },
+              ].map(r => (
+                <div key={r.label} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <span style={{ fontSize: 11, color: textMuted, width: 80, textAlign: "right", flexShrink: 0 }}>{r.label}</span>
+                  <div style={N(r.type)}>{r.text}</div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          {/* 어드민 MFA 분기 상세 */}
+          <Card style={{ borderColor: secBorder, background: secItemBg }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: codeColor, marginBottom: 14 }}>어드민 로그인 MFA 분기 상세</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: textMuted, marginBottom: 10, textTransform: "uppercase" as const, letterSpacing: "0.05em" }}>MFA 등록 완료된 어드민</div>
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <Step type="sec" actor="시스템" desc="listFactors() — verified TOTP 확인" sub="aal2 미달성 시 OTP 챌린지 화면 표시" />
+                  {conn}
+                  <Step type="admin" actor="어드민" desc="인증 앱의 6자리 TOTP 코드 입력" />
+                  {conn}
+                  <Step type="sec" actor="시스템" desc="mfa.challenge() + mfa.verify() 검증" sub="is_admin() — aal2 세션 필수 확인" />
+                  {conn}
+                  <Step type="ok" actor="완료" desc="aal2 세션 확립 → 어드민 대시보드 이동" />
+                </div>
               </div>
-            ))}
-          </div>
-        </Card>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: textMuted, marginBottom: 10, textTransform: "uppercase" as const, letterSpacing: "0.05em" }}>MFA 미등록 어드민</div>
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <Step type="sec" actor="시스템" desc="listFactors() — verified 팩터 없음 감지" sub="sessionStorage에 mfa_setup_required 플래그 저장" />
+                  {conn}
+                  <Step type="sys" actor="시스템" desc="/mypage 강제 이동" sub="어드민 대시보드 접근 불가" />
+                  {conn}
+                  <Step type="admin" actor="어드민" desc="MyPage에서 TOTP 인증 앱 등록" sub="QR 코드 스캔 → 6자리 코드 확인" />
+                  {conn}
+                  <Step type="ok" actor="완료" desc="MFA 등록 완료 → 다음 로그인부터 OTP 요구" />
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
       </SectionWrap>
 
       {/* 02 — 핵심 기능 흐름 */}
@@ -225,7 +257,7 @@ export function AdminFlowMap() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10 }}>
             {[
               { title: "대시보드",        desc: "방문자 수\n게시물 통계\n가입자 추이" },
-              { title: "회원 관리",        desc: "역할 변경\nuser → participant\n→ admin" },
+              { title: "회원 관리",        desc: "역할 변경\n(비밀번호 재확인 필요)\n본인 계정 수정 불가" },
               { title: "게시물 작성",      desc: "공지 · 행사 등\n이미지 업로드\n한/영 입력" },
               { title: "게시물 관리",      desc: "수정 · 삭제\n카테고리 · 상태\n변경" },
               { title: "컨설팅 관리",      desc: "전문가 등록\n슬롯 추가\n예약 승인" },
@@ -236,6 +268,9 @@ export function AdminFlowMap() {
                 <div style={{ fontSize: 11, color: textMuted, lineHeight: 1.7, whiteSpace: "pre-line" }}>{t.desc}</div>
               </div>
             ))}
+          </div>
+          <div style={{ marginTop: 16, padding: "12px 16px", background: isDark ? "rgba(234,67,53,0.08)" : "#fef2f2", border: `1px solid ${isDark ? "rgba(234,67,53,0.2)" : "#fecaca"}`, borderRadius: 8, fontSize: 12, color: isDark ? "#f8a09a" : "#dc2626" }}>
+            <strong>회원 관리 — 역할 변경 보안:</strong> admin 역할 부여·박탈 시 현재 어드민 비밀번호 재확인 필요. 어드민 본인 계정의 역할은 UI와 로직 양쪽에서 수정 차단됨.
           </div>
         </Card>
       </SectionWrap>
@@ -256,7 +291,32 @@ export function AdminFlowMap() {
             <div style={{ fontSize: 12, fontWeight: 700, color: codeColor, marginBottom: 8 }}>데이터베이스 RLS (Row Level Security)</div>
             <div style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,0.6)" : "#374151", lineHeight: 1.7 }}>
               Supabase의 RLS 정책으로 DB 레벨에서 접근을 이중 차단합니다. 프론트엔드를 우회하더라도 데이터를 읽거나 쓸 수 없습니다.<br /><br />
-              어드민 쓰기 작업은 DB 내 <Code>is_admin()</Code> 함수로 검증합니다. profiles는 본인 행만 조회 가능.
+              어드민 쓰기 작업은 DB 내 <Code>is_admin()</Code> 함수로 검증합니다. MFA 등록 어드민은 <Code>aal2</Code> 세션이 없으면 is_admin() 검증 불통과. profiles는 본인 행만 조회 가능.
+            </div>
+          </div>
+
+          <div style={{ border: `1px solid ${secBorder}`, borderRadius: 10, padding: "18px 20px", background: secItemBg }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: codeColor, marginBottom: 8 }}>회원 PII 암호화 (AES-256-GCM)</div>
+            <div style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,0.6)" : "#374151", lineHeight: 1.7 }}>
+              <Code>profiles.name</Code> · <Code>email</Code> · <Code>phone</Code> 은 AES-256-GCM으로 암호화되어 DB에 저장됩니다.<br /><br />
+              저장 형식: <Code>enc:v1:{"<iv>"}:{"<ciphertext>"}:{"<authtag>"}</Code><br /><br />
+              복호화는 반드시 Edge Function을 통해 서버 측에서 수행됩니다. 클라이언트에서 암호화 키에 직접 접근할 수 없습니다.
+            </div>
+          </div>
+
+          <div style={{ border: `1px solid ${secBorder}`, borderRadius: 10, padding: "18px 20px", background: secItemBg }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: codeColor, marginBottom: 8 }}>어드민 MFA 강제 (TOTP 2단계 인증)</div>
+            <div style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,0.6)" : "#374151", lineHeight: 1.7 }}>
+              어드민 계정은 반드시 TOTP 인증 앱을 등록해야 합니다. 미등록 시 로그인 후 <Code>/mypage</Code>로 강제 이동되어 등록 전까지 어드민 대시보드에 접근할 수 없습니다.<br /><br />
+              로그인 후 <Code>listFactors()</Code>로 등록 여부 확인 → <Code>aal2</Code> 세션 미달성 시 OTP 입력 화면 표시.
+            </div>
+          </div>
+
+          <div style={{ border: `1px solid ${secBorder}`, borderRadius: 10, padding: "18px 20px", background: secItemBg }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: codeColor, marginBottom: 8 }}>역할 변경 비밀번호 재확인</div>
+            <div style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,0.6)" : "#374151", lineHeight: 1.7 }}>
+              admin 역할 부여·박탈 시 현재 어드민의 비밀번호를 모달로 재확인합니다.<br /><br />
+              검증은 no-op 스토리지 임시 클라이언트(<Code>persistSession: false</Code>)로 수행 — 기존 <Code>aal2</Code> 세션을 절대 덮어쓰지 않습니다. 어드민 본인 계정 역할 수정은 UI + 로직 양쪽에서 차단됩니다.
             </div>
           </div>
 
@@ -269,9 +329,10 @@ export function AdminFlowMap() {
           </div>
 
           <div style={{ border: `1px solid ${secBorder}`, borderRadius: 10, padding: "18px 20px", background: secItemBg }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: codeColor, marginBottom: 8 }}>자동 로그아웃 (Idle Logout)</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: codeColor, marginBottom: 8 }}>자동 로그아웃 (Idle + Stale Session)</div>
             <div style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,0.6)" : "#374151", lineHeight: 1.7 }}>
-              <Code>useIdleLogout</Code> 훅이 모든 페이지에서 실행됩니다. 마우스 이동 · 클릭 · 키 입력이 <strong>30분간 없으면</strong> 자동으로 세션을 종료합니다.
+              <strong>유휴 로그아웃 (2단계):</strong> <Code>useIdleLogout</Code> 훅이 모든 페이지에서 실행. 28분 무활동 → 경고 모달 표시 → 2분 추가 무활동 → 자동 세션 종료 + 로그인 페이지 황색 배너 표시.<br /><br />
+              <strong>브라우저 닫기 세션:</strong> <Code>pagehide</Code> · <Code>beforeunload</Code> 이벤트로 종료 시각을 <Code>gxp_last_active</Code>(localStorage)에 기록. 다음 접속 시 30분 초과 경과 확인 후 자동 로그아웃.
             </div>
           </div>
 
@@ -284,10 +345,26 @@ export function AdminFlowMap() {
           </div>
 
           <div style={{ border: `1px solid ${secBorder}`, borderRadius: 10, padding: "18px 20px", background: secItemBg }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: codeColor, marginBottom: 8 }}>스토리지 버킷 강화</div>
+            <div style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,0.6)" : "#374151", lineHeight: 1.7 }}>
+              <Code>images</Code> 버킷에 서버 레벨 제한 적용: 파일 크기 10MB 이하, MIME 타입 <Code>image/*</Code> 허용 (SVG 제외).<br /><br />
+              클라이언트 측 검사(<Code>accept="image/*"</Code>)만으로는 우회 가능하므로, 서버 버킷 정책이 최종 방어선 역할을 합니다.
+            </div>
+          </div>
+
+          <div style={{ border: `1px solid ${secBorder}`, borderRadius: 10, padding: "18px 20px", background: secItemBg }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: codeColor, marginBottom: 8 }}>page_views 레이트 리밋 + 스키마 검증</div>
+            <div style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,0.6)" : "#374151", lineHeight: 1.7 }}>
+              DB 트리거로 동일 <Code>visitor_id</Code>에서 분당 최대 10건 제한 — DoS 방어.<br /><br />
+              RLS 정책으로 추가 검증: 경로는 <Code>/</Code>로 시작해야 하고 512자 이하, User-Agent 1000자 이하.
+            </div>
+          </div>
+
+          <div style={{ border: `1px solid ${secBorder}`, borderRadius: 10, padding: "18px 20px", background: secItemBg }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: codeColor, marginBottom: 8 }}>어드민 권한 분리 (Least Privilege)</div>
             <div style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,0.6)" : "#374151", lineHeight: 1.7 }}>
-              프론트엔드 라우트 차단 + Supabase RLS + <Code>is_admin()</Code> DB 함수, 세 겹 보호.<br /><br />
-              이미지 업로드는 10MB 제한을 클라이언트에서 먼저 검사합니다.
+              프론트엔드 라우트 차단 + Supabase RLS + <Code>is_admin()</Code> DB 함수 + MFA <Code>aal2</Code> 세션 요구, 네 겹 보호.<br /><br />
+              CSV 어드민 일괄 가져오기: 화이트리스트 필드만 허용(id, name, email, phone, company, role), UUID 필수, 대량 upsert 전 수동 확인 단계.
             </div>
           </div>
 
@@ -298,12 +375,13 @@ export function AdminFlowMap() {
               <div style={N("user")}>사용자 요청</div>{arr}
               <div style={N("sec")}>Frontend Route Guard</div>{arr}
               <div style={N("sec")}>Supabase Auth 세션 확인</div>{arr}
+              <div style={N("sec")}>MFA aal2 검증 (어드민)</div>{arr}
               <div style={N("sec")}>RLS 정책 (DB 레벨)</div>{arr}
               <div style={N("sec")}>is_admin() 검증 (쓰기 시)</div>{arr}
               <div style={N("ok")}>응답 반환</div>
             </div>
             <div style={{ marginTop: 10, fontSize: 11, color: textMuted }}>
-              어느 단계에서든 검증 실패 시 요청이 거부됩니다. 프론트엔드 우회만으로는 데이터에 접근할 수 없습니다.
+              어느 단계에서든 검증 실패 시 요청이 거부됩니다. 프론트엔드 우회만으로는 데이터에 접근할 수 없습니다. 어드민은 MFA aal2 세션 없이 is_admin() 통과 불가.
             </div>
           </div>
         </div>
@@ -315,13 +393,94 @@ export function AdminFlowMap() {
           <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
             <div style={N("user")}>신규 회원 가입</div>{arr}
             <div style={N("sys")}>Supabase Realtime — profiles 테이블 변경 감지</div>{arr}
-            <div style={N("admin")}>어드민 회원 목록 자동 갱신</div>{arr}
+            <div style={N("sec")}>decrypt-profiles Edge Function 재호출</div>{arr}
+            <div style={N("admin")}>어드민 회원 목록 자동 갱신 (복호화된 PII)</div>{arr}
             <div style={N("ok")}>새로고침 없이 반영</div>
           </div>
           <div style={{ marginTop: 14, fontSize: 12, color: textMuted, borderTop: `1px solid ${border}`, paddingTop: 12 }}>
+            profiles 변경(가입·역할 수정·정보 변경) 발생 시 Realtime 이벤트가 트리거되고, 어드민 대시보드는 <Code>decrypt-profiles</Code> Edge Function을 재호출하여 복호화된 최신 회원 목록을 표시합니다.<br /><br />
             컨설팅 예약 · Founder's Club 신청은 어드민이 해당 탭 진입 시 최신 데이터를 새로 불러옵니다.
           </div>
         </Card>
+      </SectionWrap>
+
+      {/* 06 — PII 처리 흐름 */}
+      <SectionWrap id="s06" num="06" title="PII 처리 흐름">
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+
+            {/* 회원가입 암호화 */}
+            <Card>
+              <div style={{ fontSize: 12, fontWeight: 700, color: textMuted, marginBottom: 16, paddingBottom: 12, borderBottom: `1px solid ${border}` }}>회원가입 → PII 암호화</div>
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <Step type="user" actor="사용자" desc="회원가입 폼 제출" sub="name · email · phone · password" />
+                {conn}
+                <Step type="sys" actor="시스템" desc="supabase.auth.signUp()" sub="auth.users 행 생성" />
+                {conn}
+                <Step type="sys" actor="시스템" desc="handle_new_user DB 트리거 실행" sub="profiles 행 평문으로 삽입" />
+                {conn}
+                <Step type="sec" actor="Edge Fn" desc="encrypt-profile 호출" sub="AES-256-GCM으로 name·email·phone 암호화" />
+                {conn}
+                <Step type="ok" actor="완료" desc="profiles에 enc:v1:… 형식으로 저장" />
+              </div>
+            </Card>
+
+            {/* 어드민 회원 조회 */}
+            <Card>
+              <div style={{ fontSize: 12, fontWeight: 700, color: textMuted, marginBottom: 16, paddingBottom: 12, borderBottom: `1px solid ${border}` }}>어드민 회원 목록 조회</div>
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <Step type="admin" actor="어드민" desc="어드민 대시보드 회원 관리 탭 접근" />
+                {conn}
+                <Step type="sec" actor="시스템" desc="JWT 검증 + is_admin() 확인" sub="aal2 세션 필수" />
+                {conn}
+                <Step type="sec" actor="Edge Fn" desc="decrypt-profiles 호출" sub="service role로 전체 profiles 조회" />
+                {conn}
+                <Step type="sys" actor="Edge Fn" desc="ENCRYPTION_SECRET_KEY로 복호화" sub="SHA-256(secret) → 32-byte AES 키" />
+                {conn}
+                <Step type="ok" actor="완료" desc="복호화된 회원 목록 JSON 반환" sub="name·email·phone 평문 표시" />
+              </div>
+            </Card>
+
+            {/* 본인 프로필 조회 */}
+            <Card>
+              <div style={{ fontSize: 12, fontWeight: 700, color: textMuted, marginBottom: 16, paddingBottom: 12, borderBottom: `1px solid ${border}` }}>본인 프로필 조회 (MyPage)</div>
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <Step type="user" actor="사용자" desc="MyPage 접근 (로그인 필요)" />
+                {conn}
+                <Step type="sec" actor="시스템" desc="JWT에서 user_id 추출" sub="본인 행만 접근 가능" />
+                {conn}
+                <Step type="sec" actor="Edge Fn" desc="decrypt-own-profile 호출" sub="관리자 권한 불필요 — 본인 행만 복호화" />
+                {conn}
+                <Step type="sys" actor="Edge Fn" desc="service role로 본인 row만 조회 후 복호화" />
+                {conn}
+                <Step type="ok" actor="완료" desc="복호화된 본인 프로필 JSON 반환" sub="이름·이메일·전화번호 평문 표시" />
+              </div>
+            </Card>
+          </div>
+
+          {/* 암호화 기술 상세 */}
+          <Card style={{ borderColor: secBorder, background: secItemBg }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: codeColor, marginBottom: 12 }}>암호화 기술 상세</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, fontSize: 12, color: isDark ? "rgba(255,255,255,0.6)" : "#374151" }}>
+              <div>
+                <div style={{ fontWeight: 700, color: textMain, marginBottom: 6 }}>알고리즘</div>
+                AES-256-GCM<br />(인증 암호화 + 무결성 검증)
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, color: textMain, marginBottom: 6 }}>키 유도</div>
+                SHA-256(<Code>ENCRYPTION_SECRET_KEY</Code>)<br />→ 32-byte AES 키
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, color: textMain, marginBottom: 6 }}>저장 형식</div>
+                <Code>enc:v1:{"<iv_hex>"}:{"<ciphertext_hex>"}:{"<authtag_hex>"}</Code><br />prefix 없으면 평문으로 처리
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, color: textMain, marginBottom: 6 }}>런타임</div>
+                Edge Functions: Deno (Web Crypto API)<br />마이그레이션 스크립트: Node.js
+              </div>
+            </div>
+          </Card>
+        </div>
       </SectionWrap>
 
     </div>
