@@ -1,23 +1,87 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useTheme } from "../../ThemeContext";
-import { CATEGORIES } from "./adminConstants";
+import { CATEGORIES, getLocalDateString } from "./adminConstants";
+import { supabase } from "../../../lib/supabaseClient";
 
 interface AdminDashboardProps {
-  stats: { views: number; posts: number; visitors: number };
-  chartPeriod: 7 | 30;
-  setChartPeriod: (period: 7 | 30) => void;
-  chartData: { fullDate: string; label: string; views: number; cumulative: number }[];
-  topPosts: any[];
+  refreshKey: number;
 }
 
-export function AdminDashboard({ stats, chartPeriod, setChartPeriod, chartData, topPosts }: AdminDashboardProps) {
+export function AdminDashboard({ refreshKey }: AdminDashboardProps) {
   const { isDark } = useTheme();
   const navigate = useNavigate();
 
-  const card = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
-  const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({ views: 0, posts: 0, visitors: 0 });
+  const [chartPeriod, setChartPeriod] = useState<7 | 30>(7);
+  const [chartData, setChartData] = useState<{ fullDate: string; label: string; views: number; cumulative: number }[]>([]);
+  const [topPosts, setTopPosts] = useState<any[]>([]);
+
+  const card     = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
+  const border   = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
   const textMain = isDark ? "rgba(255,255,255,0.92)" : "rgba(10,16,32,0.88)";
-  const textMuted = isDark ? "rgba(255,255,255,0.45)" : "rgba(10,16,32,0.45)";
+  const textMuted= isDark ? "rgba(255,255,255,0.45)" : "rgba(10,16,32,0.45)";
+  const skBg     = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)";
+
+  const Sk = ({ w = "100%", h = 20, r = 8 }: { w?: string | number; h?: number; r?: number }) => (
+    <div style={{ width: w, height: h, borderRadius: r, background: skBg, animation: "pulse 1.5s ease-in-out infinite" }} />
+  );
+
+  const fetchAll = async () => {
+    setLoading(true);
+    const [{ count: v }, { count: p }, { data: vd }, { data: posts }] = await Promise.all([
+      supabase.from('page_views').select('*', { count: 'exact', head: true }),
+      supabase.from('posts').select('*', { count: 'exact', head: true }),
+      supabase.from('page_views').select('visitor_id'),
+      supabase.from('posts').select('*').order('created_at', { ascending: false }),
+    ]);
+    const uv = new Set(vd?.map(x => x.visitor_id)).size;
+    setStats({ views: v || 0, posts: p || 0, visitors: uv });
+    if (posts) setTopPosts([...posts].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5));
+    await fetchChartData(chartPeriod);
+    setLoading(false);
+  };
+
+  const fetchChartData = async (period: number) => {
+    const today = new Date();
+    const days = [...Array(period)].map((_, i) => {
+      const d = new Date();
+      d.setDate(today.getDate() - ((period - 1) - i));
+      let label = "";
+      if (period === 7) {
+        label = i === period - 1 ? "오늘" : `${d.getMonth() + 1}/${d.getDate()}`;
+      } else {
+        if (i === 0 || i === period - 1 || i % 7 === 0)
+          label = i === period - 1 ? "오늘" : `${d.getMonth() + 1}/${d.getDate()}`;
+      }
+      return { fullDate: getLocalDateString(d), label, views: 0, cumulative: 0 };
+    });
+
+    const periodAgo = new Date();
+    periodAgo.setDate(today.getDate() - (period - 1));
+    periodAgo.setHours(0, 0, 0, 0);
+
+    const [{ data }, { count: totalBefore }] = await Promise.all([
+      supabase.from('page_views').select('created_at').gte('created_at', periodAgo.toISOString()),
+      supabase.from('page_views').select('*', { count: 'exact', head: true }).lt('created_at', periodAgo.toISOString()),
+    ]);
+
+    let running = totalBefore || 0;
+    data?.forEach(view => {
+      const dateStr = getLocalDateString(new Date(view.created_at));
+      const day = days.find(d => d.fullDate === dateStr);
+      if (day) day.views += 1;
+    });
+    days.forEach(day => { running += day.views; day.cumulative = running; });
+    setChartData(days);
+  };
+
+  useEffect(() => { fetchAll(); }, [refreshKey]);
+
+  useEffect(() => {
+    if (!loading) fetchChartData(chartPeriod);
+  }, [chartPeriod]);
 
   const maxViews = Math.max(...chartData.map(d => d.views), 1);
   const maxCumul = Math.max(...chartData.map(d => d.cumulative), 1);
@@ -25,6 +89,31 @@ export function AdminDashboard({ stats, chartPeriod, setChartPeriod, chartData, 
   const fmtNum = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n);
   const getPoints = (key: 'views' | 'cumulative', max: number) =>
     chartData.map((d, i) => `${(i * (chartW / (chartPeriod - 1)))},${chartH - (d[key] / max * chartH)}`).join(" ");
+
+  if (loading) return (
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-[24px] mb-[40px]">
+        {[0, 1, 2].map(i => (
+          <div key={i} style={{ background: card, padding: "32px", borderRadius: "24px", border: `1px solid ${border}` }}>
+            <Sk w="60%" h={14} r={6} />
+            <div style={{ marginTop: 14 }}><Sk w="40%" h={36} r={8} /></div>
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-[24px] mb-[60px]">
+        <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "24px", padding: "32px" }}>
+          <Sk w="40%" h={20} r={6} />
+          <div style={{ marginTop: 24 }}><Sk h={180} r={10} /></div>
+        </div>
+        <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "24px", padding: "32px" }}>
+          <Sk w="50%" h={20} r={6} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 24 }}>
+            {[0,1,2,3,4].map(i => <Sk key={i} h={24} r={6} />)}
+          </div>
+        </div>
+      </div>
+    </>
+  );
 
   return (
     <>
@@ -43,7 +132,7 @@ export function AdminDashboard({ stats, chartPeriod, setChartPeriod, chartData, 
             <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
               <h3 style={{ margin: 0, color: textMain, fontSize: "18px", fontWeight: 800 }}>방문 및 누적 추이</h3>
               <div style={{ display: "flex", background: isDark ? "rgba(255,255,255,0.05)" : "#f1f5f9", padding: "4px", borderRadius: "8px" }}>
-                <button onClick={() => setChartPeriod(7)} style={{ padding: "4px 12px", fontSize: "12px", fontWeight: 700, borderRadius: "6px", border: "none", cursor: "pointer", background: chartPeriod === 7 ? "#fff" : "transparent", color: chartPeriod === 7 ? "#4377F1" : textMuted, boxShadow: chartPeriod === 7 ? "0 2px 4px rgba(0,0,0,0.05)" : "none", transition: "all 0.2s" }}>7일</button>
+                <button onClick={() => setChartPeriod(7)}  style={{ padding: "4px 12px", fontSize: "12px", fontWeight: 700, borderRadius: "6px", border: "none", cursor: "pointer", background: chartPeriod === 7  ? "#fff" : "transparent", color: chartPeriod === 7  ? "#4377F1" : textMuted, boxShadow: chartPeriod === 7  ? "0 2px 4px rgba(0,0,0,0.05)" : "none", transition: "all 0.2s" }}>7일</button>
                 <button onClick={() => setChartPeriod(30)} style={{ padding: "4px 12px", fontSize: "12px", fontWeight: 700, borderRadius: "6px", border: "none", cursor: "pointer", background: chartPeriod === 30 ? "#fff" : "transparent", color: chartPeriod === 30 ? "#4377F1" : textMuted, boxShadow: chartPeriod === 30 ? "0 2px 4px rgba(0,0,0,0.05)" : "none", transition: "all 0.2s" }}>30일</button>
               </div>
             </div>
@@ -54,18 +143,13 @@ export function AdminDashboard({ stats, chartPeriod, setChartPeriod, chartData, 
           </div>
           <div style={{ width: "100%", height: "180px", position: "relative", paddingLeft: "32px", paddingRight: "40px", boxSizing: "border-box" }}>
             <svg viewBox={`0 0 ${chartW} ${chartH}`} style={{ width: "100%", height: "calc(100% - 32px)", overflow: "visible" }}>
-              {/* 수평 가이드라인 */}
-              {[0, 0.5, 1].map((t) => (
-                <line key={t} x1={0} y1={chartH * (1 - t)} x2={chartW} y2={chartH * (1 - t)}
-                  stroke={isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"} strokeWidth="1" />
+              {[0, 0.5, 1].map(t => (
+                <line key={t} x1={0} y1={chartH * (1 - t)} x2={chartW} y2={chartH * (1 - t)} stroke={isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"} strokeWidth="1" />
               ))}
-              {/* 좌축 레이블 (일간) */}
-              <text x="-8" y="8" textAnchor="end" fontSize="9" fill="#4377F1" fontWeight="700">{fmtNum(maxViews)}</text>
-              <text x="-8" y={chartH} textAnchor="end" fontSize="9" fill="#4377F1" opacity="0.5">0</text>
-              {/* 우축 레이블 (누적) */}
-              <text x={chartW + 8} y="8" textAnchor="start" fontSize="9" fill="#20D6A2" fontWeight="700">{fmtNum(maxCumul)}</text>
+              <text x="-8" y="8"      textAnchor="end"   fontSize="9" fill="#4377F1" fontWeight="700">{fmtNum(maxViews)}</text>
+              <text x="-8" y={chartH} textAnchor="end"   fontSize="9" fill="#4377F1" opacity="0.5">0</text>
+              <text x={chartW + 8} y="8"      textAnchor="start" fontSize="9" fill="#20D6A2" fontWeight="700">{fmtNum(maxCumul)}</text>
               <text x={chartW + 8} y={chartH} textAnchor="start" fontSize="9" fill="#20D6A2" opacity="0.5">0</text>
-              {/* 데이터 라인 */}
               <polyline fill="none" stroke="#4377F1" strokeWidth="3" strokeLinejoin="round" points={getPoints('views', maxViews)} style={{ transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)" }} />
               <polyline fill="none" stroke="#20D6A2" strokeWidth="3" strokeLinejoin="round" points={getPoints('cumulative', maxCumul)} style={{ transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)", strokeDasharray: "6 3" }} />
             </svg>
@@ -76,14 +160,17 @@ export function AdminDashboard({ stats, chartPeriod, setChartPeriod, chartData, 
             </div>
           </div>
         </div>
+
         <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "24px", padding: "32px" }}>
           <h3 style={{ margin: "0 0 24px 0", color: textMain, fontSize: "18px", fontWeight: 800 }}>인기 게시물 Top 5</h3>
           <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-            {topPosts.length === 0 ? <div style={{ color: textMuted, fontSize: "14px", textAlign: "center", padding: "20px" }}>데이터가 없습니다.</div> : topPosts.map((post, i) => (
-                <div key={post.id} style={{ display: "flex", alignItems: "center", gap: "12px", cursor: "pointer", transition: "transform 0.2s" }} onClick={() => navigate(`/post/${post.id}`)}>
+            {topPosts.length === 0
+              ? <div style={{ color: textMuted, fontSize: "14px", textAlign: "center", padding: "20px" }}>데이터가 없습니다.</div>
+              : topPosts.map((post, i) => (
+                <div key={post.id} style={{ display: "flex", alignItems: "center", gap: "12px", cursor: "pointer" }} onClick={() => navigate(`/post/${post.id}`)}>
                   <div style={{ width: "24px", height: "24px", borderRadius: "6px", background: i < 3 ? "#4377F1" : border, color: i < 3 ? "#fff" : textMuted, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: 800, flexShrink: 0 }}>{i + 1}</div>
                   <div style={{ flex: 1, display: "flex", alignItems: "center", gap: "8px", overflow: "hidden" }}>
-                    <span style={{ fontSize: "10px", background: isDark ? "rgba(67, 119, 241, 0.15)" : "#eef2ff", color: "#4377F1", padding: "3px 6px", borderRadius: "6px", fontWeight: 700, whiteSpace: "nowrap" }}>{CATEGORIES.find(c => c.id === post.category)?.label}</span>
+                    <span style={{ fontSize: "10px", background: isDark ? "rgba(67,119,241,0.15)" : "#eef2ff", color: "#4377F1", padding: "3px 6px", borderRadius: "6px", fontWeight: 700, whiteSpace: "nowrap" }}>{CATEGORIES.find(c => c.id === post.category)?.label}</span>
                     <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: textMain, fontSize: "14px", fontWeight: 600 }}>{post.title}</div>
                   </div>
                   <div style={{ fontSize: "12px", color: "#4377F1", fontWeight: 700, flexShrink: 0 }}>{post.views || 0}회</div>

@@ -2,6 +2,11 @@
 @import './tailwind.css';
 @import './theme.css';
 
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
 /* 💡 Quill 에디터 한국어 툴팁 설정 */
 .ql-snow .ql-tooltip::before { content: "링크 주소:" !important; }
 .ql-snow .ql-tooltip.ql-editing a.ql-action::after { content: "저장" !important; }
