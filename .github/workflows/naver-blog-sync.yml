@@ -1,0 +1,44 @@
+name: Naver Blog Sync
+
+on:
+  schedule:
+    - cron: "0 18 * * *"
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "Optional blog_import_runs.id to process"
+        required: false
+        type: string
+
+concurrency:
+  group: naver-blog-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Process blog import queue
+        run: |
+          if [ -n "${{ github.event.inputs.run_id }}" ]; then
+            npm run blog:worker -- --run-id "${{ github.event.inputs.run_id }}"
+          else
+            npm run blog:worker
+          fi
