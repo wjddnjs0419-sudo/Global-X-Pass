@@ -34,14 +34,13 @@ export function ResourceSection({ isDark = false }: ResourceSectionProps) {
 
   if (!loading && resources.length === 0) return null;
 
-  const skCls = isDark ? "bg-white/[0.07]" : "bg-black/[0.07]";
 
   return (
     <section style={{
       position: "relative", width: "100vw", maxWidth: "100%",
       left: "50%", transform: "translateX(-50%)",
       padding: "clamp(60px, 10vw, 100px) clamp(20px, 5vw, 40px)",
-      background: isDark ? "#0a1020" : "#F8FAFC",
+      background: "var(--color-bg-surface)",
       fontFamily: "'Pretendard', -apple-system, sans-serif",
       boxSizing: "border-box", overflow: "hidden",
       transition: "background 0.4s ease",
@@ -50,8 +49,8 @@ export function ResourceSection({ isDark = false }: ResourceSectionProps) {
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: "40px" }}>
           {loading ? (
             <>
-              <Skeleton className={`h-9 w-20 ${skCls}`} />
-              <Skeleton className={`h-8 w-28 rounded-full ${skCls}`} />
+              <Skeleton className="h-9 w-20" />
+              <Skeleton className="h-8 w-28 rounded-full" />
             </>
           ) : (
             <>
@@ -73,15 +72,15 @@ export function ResourceSection({ isDark = false }: ResourceSectionProps) {
             [0, 1, 2, 3].map((i) => (
               <div key={i} style={{ display: "flex", flexDirection: "column", gap: "16px", padding: "28px", background: th.cardBg, border: `1px solid ${th.cardBorder}`, borderRadius: "24px" }}>
                 <div className="flex justify-between items-start">
-                  <Skeleton className={`h-11 w-11 rounded-xl ${skCls}`} />
-                  <Skeleton className={`h-4 w-20 ${skCls}`} />
+                  <Skeleton className="h-11 w-11 rounded-xl" />
+                  <Skeleton className="h-4 w-20" />
                 </div>
                 <div className="space-y-2 flex-1">
-                  <Skeleton className={`h-6 w-3/4 ${skCls}`} />
-                  <Skeleton className={`h-4 w-full ${skCls}`} />
-                  <Skeleton className={`h-4 w-2/3 ${skCls}`} />
+                  <Skeleton className="h-6 w-3/4" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-2/3" />
                 </div>
-                <Skeleton className={`h-4 w-28 ${skCls}`} />
+                <Skeleton className="h-4 w-28" />
               </div>
             ))
           ) : (

@@ -27,7 +27,6 @@ export function ConsultingPage() {
   const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
   const textMain = isDark ? "rgba(255,255,255,0.92)" : "#0f172a";
   const textMuted = isDark ? "rgba(255,255,255,0.45)" : "rgba(15,23,42,0.45)";
-  const skCls = isDark ? "bg-white/[0.07]" : "bg-black/[0.07]";
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => setUserId(user?.id ?? null));
@@ -130,11 +129,11 @@ export function ConsultingPage() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 20 }}>
             {[0, 1, 2].map(i => (
               <div key={i} style={{ background: card, border: `1px solid ${border}`, borderRadius: 20, padding: 28, display: "flex", flexDirection: "column", gap: 14 }}>
-                <Skeleton className={`h-16 w-16 rounded-full ${skCls}`} />
-                <Skeleton className={`h-5 w-2/3 ${skCls}`} />
-                <Skeleton className={`h-4 w-full ${skCls}`} />
-                <Skeleton className={`h-4 w-4/5 ${skCls}`} />
-                <Skeleton className={`h-10 w-full rounded-xl ${skCls}`} />
+                <Skeleton className="h-16 w-16 rounded-full" />
+                <Skeleton className="h-5 w-2/3" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-4/5" />
+                <Skeleton className="h-10 w-full rounded-xl" />
               </div>
             ))}
           </div>

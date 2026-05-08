@@ -45,9 +45,9 @@ export function NotificationBell({ isDark }: { isDark: boolean }) {
     return `${Math.floor(diff / 86400)}일 전`;
   };
 
-  const bg = isDark ? "#1e293b" : "#ffffff";
+  const bg = "var(--color-bg-elevated)";
   const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
-  const text = isDark ? "#f8fafc" : "#0f172a";
+  const text = "var(--color-text-primary)";
   const textMuted = isDark ? "rgba(255,255,255,0.45)" : "rgba(15,23,42,0.45)";
   const labelBg = isDark ? "rgba(255,255,255,0.045)" : "rgba(15,23,42,0.035)";
   const labelBorder = isDark ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.09)";

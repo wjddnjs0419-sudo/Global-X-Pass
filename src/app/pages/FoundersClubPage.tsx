@@ -45,7 +45,6 @@ export function FoundersClubPage() {
   const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
   const textMain = isDark ? "rgba(255,255,255,0.92)" : "#0f172a";
   const textMuted = isDark ? "rgba(255,255,255,0.45)" : "rgba(15,23,42,0.45)";
-  const skCls = isDark ? "bg-white/[0.07]" : "bg-black/[0.07]";
 
   useEffect(() => {
     const init = async () => {
@@ -168,11 +167,11 @@ export function FoundersClubPage() {
             {[0, 1, 2].map(i => (
               <div key={i} style={{ background: card, border: `1px solid ${border}`, borderRadius: 20, padding: 28 }}>
                 <div className="flex justify-between items-start mb-4">
-                  <Skeleton className={`h-6 w-48 ${skCls}`} />
-                  <Skeleton className={`h-6 w-16 rounded-full ${skCls}`} />
+                  <Skeleton className="h-6 w-48" />
+                  <Skeleton className="h-6 w-16 rounded-full" />
                 </div>
-                <Skeleton className={`h-4 w-full mb-2 ${skCls}`} />
-                <Skeleton className={`h-4 w-3/4 ${skCls}`} />
+                <Skeleton className="h-4 w-full mb-2" />
+                <Skeleton className="h-4 w-3/4" />
               </div>
             ))}
           </div>
@@ -269,7 +268,7 @@ export function FoundersClubPage() {
       {/* Apply modal */}
       {applyTarget && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: LAYERS.modal, padding: 20 }} onClick={e => { if (e.target === e.currentTarget) setApplyTarget(null); }}>
-          <div style={{ background: isDark ? "#1e293b" : "#fff", borderRadius: 24, padding: "36px 32px", width: "100%", maxWidth: 440, boxShadow: "0 24px 60px rgba(0,0,0,0.25)" }}>
+          <div style={{ background: "var(--color-bg-elevated)", borderRadius: 24, padding: "36px 32px", width: "100%", maxWidth: 440, boxShadow: "0 24px 60px rgba(0,0,0,0.25)" }}>
             {appliedId === applyTarget.id ? (
               <div style={{ textAlign: "center" }}>
                 <h3 style={{ color: textMain, fontWeight: 800, marginBottom: 12 }}>신청 완료!</h3>

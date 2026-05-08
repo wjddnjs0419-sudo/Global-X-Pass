@@ -10,7 +10,7 @@ export function NotFoundPage() {
   return (
     <div 
       className="min-h-screen flex flex-col items-center justify-center font-['Pretendard',sans-serif] text-center px-6"
-      style={{ background: isDark ? "#0a1020" : "#F7F8FC" }}
+      style={{ background: "var(--color-bg-surface)" }}
     >
       <p className="text-[96px] font-black text-[#4377F1] m-0 leading-none">404</p>
       <h1 className="text-[28px] font-extrabold my-5 mb-3" style={{ color: textMain }}>

@@ -66,7 +66,7 @@ const SECTIONS: { label: string; items: { id: TabId; label: string; icon: React.
 export function AdminSidebar({ activeTab, onTabChange, adminEmail }: AdminSidebarProps) {
   const { isDark } = useTheme();
 
-  const bg      = isDark ? "#0c1324" : "#ffffff";
+  const bg = "var(--color-bg-elevated)";
   const border  = isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.08)";
   const textMain  = isDark ? "rgba(255,255,255,0.92)" : "#111827";
   const textMuted = isDark ? "rgba(255,255,255,0.42)" : "rgba(15,23,42,0.46)";

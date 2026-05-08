@@ -32,7 +32,6 @@ export function NoticeResourceSection({ isDark = false }: NoticeResourceSectionP
 
   const textMain = isDark ? "rgba(255,255,255,0.92)" : "#0f172a";
   const textMuted = isDark ? "rgba(255,255,255,0.45)" : "rgba(15,23,42,0.45)";
-  const skCls = isDark ? "bg-white/[0.07]" : "bg-black/[0.07]";
 
   useEffect(() => {
     const fetchItems = async () => {
@@ -87,7 +86,6 @@ export function NoticeResourceSection({ isDark = false }: NoticeResourceSectionP
             accentColor={RESOURCE_COLOR}
             isDark={isDark}
             loading={loading}
-            skeletonClass={skCls}
           />
 
           <div className="grid grid-cols-1 min-[560px]:grid-cols-2 gap-3">
@@ -95,12 +93,12 @@ export function NoticeResourceSection({ isDark = false }: NoticeResourceSectionP
               [0, 1, 2, 3].map((i) => (
                 <div key={i} style={{ minHeight: 154, padding: "16px", background: th.cardBg, border: `1px solid ${th.cardBorder}`, borderRadius: "16px" }}>
                   <div className="flex justify-between items-start mb-4">
-                    <Skeleton className={`h-9 w-9 rounded-xl ${skCls}`} />
-                    <Skeleton className={`h-4 w-16 ${skCls}`} />
+                    <Skeleton className="h-9 w-9 rounded-xl" />
+                    <Skeleton className="h-4 w-16" />
                   </div>
-                  <Skeleton className={`h-5 w-4/5 mb-3 ${skCls}`} />
-                  <Skeleton className={`h-4 w-full mb-2 ${skCls}`} />
-                  <Skeleton className={`h-4 w-2/3 ${skCls}`} />
+                  <Skeleton className="h-5 w-4/5 mb-3" />
+                  <Skeleton className="h-4 w-full mb-2" />
+                  <Skeleton className="h-4 w-2/3" />
                 </div>
               ))
             ) : (
@@ -127,17 +125,16 @@ export function NoticeResourceSection({ isDark = false }: NoticeResourceSectionP
             accentColor={NOTICE_COLOR}
             isDark={isDark}
             loading={loading}
-            skeletonClass={skCls}
           />
 
           <div style={{ display: "flex", flex: 1, flexDirection: "column", gap: "8px", minWidth: 0 }}>
             {loading ? (
               [0, 1, 2, 3].map((i) => (
                 <div key={i} style={{ display: "flex", flex: "1 1 0", alignItems: "center", gap: "12px", minHeight: 74, padding: "13px 16px", background: th.cardBg, border: `1px solid ${th.cardBorder}`, borderRadius: "15px", minWidth: 0 }}>
-                  <Skeleton className={`h-9 w-11 shrink-0 ${skCls}`} />
+                  <Skeleton className="h-9 w-11 shrink-0" />
                   <div className="flex-1 min-w-0 space-y-2">
-                    <Skeleton className={`h-4 w-5/6 ${skCls}`} />
-                    <Skeleton className={`h-3 w-2/3 ${skCls}`} />
+                    <Skeleton className="h-4 w-5/6" />
+                    <Skeleton className="h-3 w-2/3" />
                   </div>
                 </div>
               ))
@@ -175,7 +172,6 @@ function SectionHeader({
   accentColor,
   isDark,
   loading,
-  skeletonClass,
 }: {
   title: string;
   href: string;
@@ -183,20 +179,19 @@ function SectionHeader({
   accentColor: keyof typeof SECTION_ACCENT_CLASS;
   isDark: boolean;
   loading: boolean;
-  skeletonClass: string;
 }) {
   if (loading) {
     return (
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: HOME_SECTION_HEADER_GAP, gap: "12px", minWidth: 0 }}>
-        <Skeleton className={`h-9 w-24 ${skeletonClass}`} />
-        <Skeleton className={`h-8 w-28 rounded-full ${skeletonClass}`} />
+        <Skeleton className="h-9 w-24" />
+        <Skeleton className="h-8 w-28 rounded-full" />
       </div>
     );
   }
 
   return (
     <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: HOME_SECTION_HEADER_GAP, gap: "12px", flexWrap: "wrap", minWidth: 0 }}>
-      <h2 style={{ ...HOME_SECTION_TITLE_STYLE_COMPACT, color: isDark ? "#ffffff" : "#0D1117" }}>
+      <h2 style={{ ...HOME_SECTION_TITLE_STYLE_COMPACT, color: "var(--color-text-primary)" }}>
         {title}
       </h2>
       <Button

@@ -716,7 +716,7 @@ export function AdminConsultingManagement() {
 
     {photoDraft && (
       <div style={{ position: "fixed", inset: 0, zIndex: LAYERS.adminModal, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-        <div style={{ width: "min(720px, 100%)", maxHeight: "calc(100vh - 40px)", overflowY: "auto", background: isDark ? "#111827" : "#fff", border: `1px solid ${border}`, borderRadius: 16, boxShadow: "0 18px 44px rgba(15,23,42,0.20)", padding: "28px 30px" }}>
+        <div style={{ width: "min(720px, 100%)", maxHeight: "calc(100vh - 40px)", overflowY: "auto", background: "var(--color-bg-elevated)", border: `1px solid ${border}`, borderRadius: 16, boxShadow: "0 18px 44px rgba(15,23,42,0.20)", padding: "28px 30px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 18 }}>
             <h3 style={{ margin: 0, color: textMain, fontSize: 20, fontWeight: 900 }}>사진 올리기</h3>
             <button type="button" onClick={resetPhotoDraft} disabled={photoUploading} style={{ width: 32, height: 32, borderRadius: "50%", border: "none", background: "transparent", color: textMuted, cursor: "pointer", fontSize: 24, lineHeight: 1 }}>

@@ -696,7 +696,7 @@ export function PostDetailPage() {
 
       {showModal.show && (
         <div className="fixed top-0 left-0 w-full h-full bg-black/60 flex items-center justify-center" style={{ zIndex: LAYERS.modal }}>
-          <div className="py-10 px-8 rounded-3xl text-center max-w-[400px] w-[90%] shadow-[0_20px_40px_rgba(0,0,0,0.2)]" style={{ background: isDark ? "#1e293b" : "#fff" }}>
+          <div className="py-10 px-8 rounded-3xl text-center max-w-[400px] w-[90%] shadow-[0_20px_40px_rgba(0,0,0,0.2)]" style={{ background: "var(--color-bg-elevated)" }}>
             <h2 className="mb-3 text-[22px] mt-0" style={{ color: textMain }}>
               {showModal.type === "delete" ? "게시물 삭제" : "변경사항 저장"}
             </h2>

@@ -25,7 +25,7 @@ const SOCIAL_LINKS = [
 ];
 
 function SocialIcon({ type, isDark }: { type: string; isDark: boolean }) {
-  const glyphFill = isDark ? "#0a1020" : "#ffffff";
+  const glyphFill = "var(--color-bg-surface)";
 
   if (type === "linkedin") {
     return (
@@ -62,7 +62,7 @@ export function FooterSection({ isDark = false }: FooterSectionProps) {
   const textMuted = isDark ? "rgba(255,255,255,0.55)" : "rgba(10,16,32,0.55)";
   const borderTop = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
   const divider = isDark ? "rgba(255,255,255,0.12)" : "rgba(10,16,32,0.12)";
-  const footerBg = isDark ? "#0a1020" : "#F7F8FC";
+  const footerBg = "var(--color-bg-surface)";
   const linkStyle: React.CSSProperties = {
     color: textMuted,
     fontSize: 12,

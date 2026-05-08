@@ -330,7 +330,7 @@ export function HeaderSection({ isDark = false }: HeaderSectionProps) {
         className={`fixed top-0 left-0 bottom-0 w-[320px] flex flex-col font-['Pretendard',sans-serif] transition-transform duration-[350ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
         style={{
           zIndex: LAYERS.mobileMenuPanel,
-          background: isDark ? "#0a1020" : "#ffffff",
+          background: "var(--color-bg-surface)",
           borderRight: `1px solid ${menuBorder}`,
           boxShadow: "8px 0 34px rgba(15,23,42,0.16)",
           visibility: sidebarOpen ? "visible" : "hidden",

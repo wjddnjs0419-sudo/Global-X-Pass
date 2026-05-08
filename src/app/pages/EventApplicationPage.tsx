@@ -407,7 +407,7 @@ export function EventApplicationPage() {
         <div className="grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-6">
           <section style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 24, overflow: "hidden" }}>
-              <div style={{ aspectRatio: "16 / 9", background: isDark ? "#111827" : "#eef2f7" }}>
+              <div style={{ aspectRatio: "16 / 9", background: "var(--color-bg-elevated)" }}>
                 {representativeImage ? (
                   <img src={representativeImage} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                 ) : (

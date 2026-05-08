@@ -35,14 +35,13 @@ export function NoticeSection({ isDark = false }: NoticeSectionProps) {
 
   if (!loading && notices.length === 0) return null;
 
-  const skCls = isDark ? "bg-white/[0.07]" : "bg-black/[0.07]";
 
   return (
     <section style={{
       position: "relative", width: "100vw", maxWidth: "100%",
       left: "50%", transform: "translateX(-50%)",
       padding: "clamp(60px, 10vw, 100px) clamp(20px, 5vw, 40px)",
-      background: isDark ? "#070d1a" : "#ffffff",
+      background: "var(--color-bg-base)",
       fontFamily: "'Pretendard', -apple-system, sans-serif",
       boxSizing: "border-box", overflow: "hidden",
       transition: "background 0.4s ease",
@@ -51,8 +50,8 @@ export function NoticeSection({ isDark = false }: NoticeSectionProps) {
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: "40px" }}>
           {loading ? (
             <>
-              <Skeleton className={`h-9 w-36 ${skCls}`} />
-              <Skeleton className={`h-8 w-28 rounded-full ${skCls}`} />
+              <Skeleton className="h-9 w-36" />
+              <Skeleton className="h-8 w-28 rounded-full" />
             </>
           ) : (
             <>
@@ -73,16 +72,16 @@ export function NoticeSection({ isDark = false }: NoticeSectionProps) {
           {loading ? (
             [0, 1, 2].map((i) => (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: "24px", padding: "24px 32px", background: th.cardBg, border: `1px solid ${th.cardBorder}`, borderRadius: "20px" }}>
-                <Skeleton className={`h-12 w-14 shrink-0 ${skCls}`} />
+                <Skeleton className="h-12 w-14 shrink-0" />
                 <div style={{ width: "1px", height: "30px", background: th.rowDivider, flexShrink: 0 }} />
                 <div className="flex-1 min-w-0 space-y-2">
                   <div className="flex items-center gap-2">
-                    <Skeleton className={`h-5 w-16 rounded-full shrink-0 ${skCls}`} />
-                    <Skeleton className={`h-5 w-52 ${skCls}`} />
+                    <Skeleton className="h-5 w-16 rounded-full shrink-0" />
+                    <Skeleton className="h-5 w-52" />
                   </div>
-                  <Skeleton className={`h-4 w-3/4 ${skCls}`} />
+                  <Skeleton className="h-4 w-3/4" />
                 </div>
-                <Skeleton className={`h-5 w-5 shrink-0 ${skCls}`} />
+                <Skeleton className="h-5 w-5 shrink-0" />
               </div>
             ))
           ) : (
