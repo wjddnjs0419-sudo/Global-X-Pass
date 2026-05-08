@@ -4,6 +4,25 @@
 
 ## Pending Approval
 
+### [장기 플랜/기술 부채] 2차 리팩토링 및 기술 부채 청산 (2026-05-08 신규 리뷰어 감사 결과 반영)
+
+**배경**
+- 3인의 외부 신규 리뷰어(Clean Code, Performance, DevOps) 교차 감사 결과, 코드는 동작하지만 장기 유지보수 및 확장성에 치명적인 병목과 엣지 케이스가 발견되어 이를 기술 부채로 분류하고 청산 계획을 수립함.
+
+**조치 계획 (Action Items)**
+1. **[UI/UX] 테마 변환(isDark) 불완전성 완전 제거 (Clean Code)**
+   - `AdminRoleModal`, `AdminConsultingManagement` 등 일부 컴포넌트에 여전히 남아있는 `isDark` 기반 삼항 연산자 색상 로직을 `theme.css` CSS 변수로 100% 마이그레이션하여 DRY 원칙 준수.
+2. **[기능] `useBlogImportAdmin` God Hook 해체 및 렌더링 병목 해결 (Performance & Clean Code)**
+   - 비대한 상태(데이터 Fetch, 필터, 폼, API)를 도메인별 하위 훅으로 쪼개거나 `useReducer`로 캡슐화.
+   - 검색어 입력 등 상태 변경 시 액션 핸들러들의 참조가 매번 재생성되어 리스트 전체가 리렌더링(Wasted Render)되는 성능 병목을 `useCallback`과 상태 구조 개선으로 해결.
+3. **[인프라] 파이프라인 좀비 상태 방지 및 예외 처리 (DevOps)**
+   - `.github/workflows/naver-blog-sync.yml`의 `curl` 명령에 `-f`, `--max-time`, `--retry` 옵션 추가.
+   - 워크플로우 실패 시 `blog_import_runs` 테이블의 해당 run 상태를 `failed`로 롤백하는 `if: failure()` 복구 스텝 추가.
+4. **[테스트] 파서 엣지 케이스 커버리지 보강 (DevOps)**
+   - `naverHtmlParser.test.mjs`에 `null` 입력, 닫히지 않은 태그 등 손상된 HTML 입력 시의 예외 처리(Crash 방지) 단위 테스트 추가.
+
+---
+
 ### [예정] 게시물 대표 썸네일 수동 지정 기능 (events-archive, news)
 
 **배경**
