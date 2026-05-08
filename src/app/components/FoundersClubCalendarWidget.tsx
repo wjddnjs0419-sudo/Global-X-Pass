@@ -35,7 +35,7 @@ export function FoundersClubCalendarWidget({ isDark = false }: Props) {
       position: "relative", width: "100vw", maxWidth: "100%",
       left: "50%", transform: "translateX(-50%)",
       padding: "clamp(60px, 10vw, 100px) clamp(20px, 5vw, 40px)",
-      background: isDark ? "#0e1628" : "#F8FAFC",
+      background: "var(--color-bg-elevated)",
       fontFamily: "'Pretendard', -apple-system, sans-serif",
       boxSizing: "border-box",
       transition: "background 0.4s ease",

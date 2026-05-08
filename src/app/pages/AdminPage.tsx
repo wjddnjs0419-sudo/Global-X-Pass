@@ -101,7 +101,7 @@ export default function AdminPage() {
   if (!isAdmin) return <Navigate to="/" replace />;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: isDark ? "#0a1020" : "#F6F7FA" }}>
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: "var(--color-bg-surface)" }}>
       <div style={{ position: "fixed", top: 0, left: 0, right: 0, height: "72px", background: "#0a1020", zIndex: LAYERS.headerBackdrop }} />
       <HeaderSection isDark={isDark} />
       <NotificationBell isDark={isDark} />

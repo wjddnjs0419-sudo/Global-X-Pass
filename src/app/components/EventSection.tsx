@@ -43,7 +43,6 @@ export function EventSection({ isDark = false }: EventSectionProps) {
 
   if (!loading && events.length === 0) return null;
 
-  const skCls = isDark ? "bg-white/[0.07]" : "bg-black/[0.07]";
   const displayDate = featured
     ? (featured.event_date || new Date(featured.created_at).toLocaleDateString("ko-KR"))
     : "";
@@ -63,8 +62,8 @@ export function EventSection({ isDark = false }: EventSectionProps) {
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: HOME_SECTION_HEADER_GAP, flexWrap: "wrap", gap: "16px" }}>
           {loading ? (
             <>
-              <Skeleton className={`h-10 w-28 ${skCls}`} />
-              <Skeleton className={`h-8 w-28 rounded-full ${skCls}`} />
+              <Skeleton className="h-10 w-28" />
+              <Skeleton className="h-8 w-28 rounded-full" />
             </>
           ) : (
             <>
@@ -89,18 +88,18 @@ export function EventSection({ isDark = false }: EventSectionProps) {
         <div className="grid grid-cols-1 min-[900px]:grid-cols-2 gap-6">
           {loading ? (
             <>
-              <Skeleton className={`h-[420px] rounded-3xl ${skCls}`} />
+              <Skeleton className="h-[420px] rounded-3xl" />
               <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
                 {[0, 1, 2, 3].map((i) => (
                   <div key={i} style={{ background: th.cardBg, border: `1px solid ${th.cardBorder}`, borderRadius: "16px", padding: "20px 22px", display: "flex", gap: "16px" }}>
                     <div className="shrink-0 w-20 space-y-1.5">
-                      <Skeleton className={`h-4 w-12 ${skCls}`} />
-                      <Skeleton className={`h-5 w-16 rounded-full ${skCls}`} />
+                      <Skeleton className="h-4 w-12" />
+                      <Skeleton className="h-5 w-16 rounded-full" />
                     </div>
                     <div style={{ width: "1px", background: th.rowDivider, flexShrink: 0 }} />
                     <div className="flex-1 min-w-0 space-y-2">
-                      <Skeleton className={`h-4 w-full ${skCls}`} />
-                      <Skeleton className={`h-3 w-3/4 ${skCls}`} />
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-3 w-3/4" />
                     </div>
                   </div>
                 ))}

@@ -14,7 +14,7 @@ export function AdminPostModal({ type, editingId, loading, onConfirm, onCancel }
   const border   = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
   const textMain = isDark ? "rgba(255,255,255,0.92)" : "rgba(10,16,32,0.88)";
   const textMuted = isDark ? "rgba(255,255,255,0.45)" : "rgba(10,16,32,0.45)";
-  const panelBg = isDark ? "#111827" : "#ffffff";
+  const panelBg = "var(--color-bg-elevated)";
   const selectedBg = isDark ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.07)";
   const dangerBg = isDark ? "rgba(234,67,53,0.10)" : "rgba(234,67,53,0.07)";
   const dangerBorder = isDark ? "rgba(234,67,53,0.30)" : "rgba(234,67,53,0.24)";

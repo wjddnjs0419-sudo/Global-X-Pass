@@ -20,7 +20,6 @@ export function ExpensesPage() {
   const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
   const textMain = isDark ? "rgba(255,255,255,0.92)" : "#0f172a";
   const textMuted = isDark ? "rgba(255,255,255,0.45)" : "rgba(15,23,42,0.45)";
-  const skCls = isDark ? "bg-white/[0.07]" : "bg-black/[0.07]";
 
   useEffect(() => {
     const load = async () => {
@@ -82,10 +81,10 @@ export function ExpensesPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {[0, 1, 2, 3].map(i => (
               <div key={i} style={{ background: card, border: `1px solid ${border}`, borderRadius: 20, padding: "24px 28px", display: "flex", gap: 16 }}>
-                <Skeleton className={`h-11 w-11 rounded-xl shrink-0 ${skCls}`} />
+                <Skeleton className="h-11 w-11 rounded-xl shrink-0" />
                 <div className="flex-1 space-y-2">
-                  <Skeleton className={`h-5 w-3/4 ${skCls}`} />
-                  <Skeleton className={`h-4 w-1/2 ${skCls}`} />
+                  <Skeleton className="h-5 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
                 </div>
               </div>
             ))}

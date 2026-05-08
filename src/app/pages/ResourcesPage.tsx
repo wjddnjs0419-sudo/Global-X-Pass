@@ -22,7 +22,7 @@ export function ResourcesPage() {
   const card = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
   const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
   const textMain = isDark ? "rgba(255,255,255,0.92)" : "#0f172a";
-  const dropdownBg = isDark ? "#1e293b" : "#ffffff";
+  const dropdownBg = "var(--color-bg-elevated)";
 
   useEffect(() => {
     const fetchPosts = async () => {

@@ -401,7 +401,7 @@ function SectionNotice({
         background: isDark ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.82)",
       }}
     >
-      <p style={{ margin: 0, color: isDark ? "#ffffff" : "#0f172a", fontSize: 15, fontWeight: 850 }}>
+      <p style={{ margin: 0, color: "var(--color-text-primary)", fontSize: 15, fontWeight: 850 }}>
         {title}
       </p>
       <p style={{ margin: "8px 0 0", color: isDark ? "rgba(255,255,255,0.48)" : "rgba(15,23,42,0.52)", fontSize: 13 }}>

@@ -16,7 +16,7 @@ export function AdminFlowMap() {
   const secItemBg = isDark ? "rgba(168,85,247,0.06)" : "#fdfcff";
   const secBorder = isDark ? "rgba(168,85,247,0.2)"  : "#e9d5ff";
   const codeBg    = isDark ? "rgba(168,85,247,0.15)" : "#f5f3ff";
-  const codeColor = isDark ? "#c4b5fd" : "#7c3aed";
+  const codeColor = "var(--color-brand-blue)";
 
   const N = (type: "user" | "admin" | "sys" | "ok" | "sec") => {
     const map = {
@@ -287,7 +287,7 @@ export function AdminFlowMap() {
               </div>
             ))}
           </div>
-          <div style={{ marginTop: 16, padding: "12px 16px", background: isDark ? "rgba(234,67,53,0.08)" : "#fef2f2", border: `1px solid ${isDark ? "rgba(234,67,53,0.2)" : "#fecaca"}`, borderRadius: 8, fontSize: 12, color: isDark ? "#f8a09a" : "#dc2626" }}>
+          <div style={{ marginTop: 16, padding: "12px 16px", background: isDark ? "rgba(234,67,53,0.08)" : "#fef2f2", border: `1px solid ${isDark ? "rgba(234,67,53,0.2)" : "#fecaca"}`, borderRadius: 8, fontSize: 12, color: "var(--color-brand-red)" }}>
             <strong>회원 관리 — 역할 변경 보안:</strong> admin 역할 부여·박탈 시 현재 어드민 비밀번호 재확인 필요. 어드민 본인 계정의 역할은 UI와 로직 양쪽에서 수정 차단됨.
           </div>
         </Card>

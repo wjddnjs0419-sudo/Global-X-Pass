@@ -71,7 +71,7 @@ export function RootLayout() {
   const tabActiveText = isDark ? "rgba(255,255,255,0.92)" : "rgba(10,16,32,0.88)";
 
   return (
-    <div style={{ width: "100%", minHeight: "100dvh", background: isDark ? "#0a1020" : "#F7F8FC", display: "flex", flexDirection: "column", transition: "background 0.4s ease" }}>
+    <div style={{ width: "100%", minHeight: "100dvh", background: "var(--color-bg-surface)", display: "flex", flexDirection: "column", transition: "background 0.4s ease" }}>
       {!isDesignSystem && !isAdminPage && <HeaderSection isDark={isDark} />}
 
       <main style={{ flex: 1, display: "flex", flexDirection: "column" }}>
@@ -89,13 +89,13 @@ export function RootLayout() {
           display: "flex", alignItems: "center", justifyContent: "center",
         }}>
           <div style={{
-            background: isDark ? "#1a2235" : "#ffffff",
+            background: "var(--color-bg-overlay)",
             border: `1px solid ${isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.1)"}`,
             borderRadius: 20, padding: "36px 40px",
             maxWidth: 400, width: "90%", textAlign: "center",
             boxShadow: "0 24px 64px rgba(0,0,0,0.4)",
           }}>
-            <div style={{ fontSize: 18, fontWeight: 700, color: isDark ? "#fff" : "#0f172a", marginBottom: 10 }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: "var(--color-text-primary)", marginBottom: 10 }}>
               자동 로그아웃 안내
             </div>
             <div style={{ fontSize: 14, color: isDark ? "rgba(255,255,255,0.6)" : "rgba(15,23,42,0.6)", marginBottom: 28, lineHeight: 1.7 }}>
