@@ -16,8 +16,53 @@ export interface Post {
   capacity?: number | null;
   slots_remaining?: number | null;
   tags?: string | null;
+  event_form_config?: EventFormConfig | null;
   // blog
   is_featured?: boolean | null;
+}
+
+export interface EventFormConfig {
+  intro?: string;
+  companyTechLabel?: string;
+  nameLabel?: string;
+  positionLabel?: string;
+  emailLabel?: string;
+  phoneLabel?: string;
+  expectationLabel?: string;
+  interestsLabel?: string;
+  interestOptions?: string[];
+  speakerQuestionLabel?: string;
+  privacyConsentLabel?: string;
+  completionTitle?: string;
+  completionMessage?: string;
+  customQuestions?: EventCustomQuestion[];
+}
+
+export interface EventCustomQuestion {
+  id: string;
+  label: string;
+  type: 'short_text' | 'long_text';
+  required: boolean;
+}
+
+export interface EventApplication {
+  id: string;
+  post_id: string;
+  user_id: string;
+  company_tech: string;
+  applicant_name: string;
+  position: string;
+  email: string;
+  phone: string | null;
+  expectation: string;
+  interests: string[];
+  speaker_question: string | null;
+  privacy_consent: boolean;
+  answers?: Record<string, string> | null;
+  status: 'pending' | 'accepted' | 'rejected' | 'cancelled';
+  admin_note: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 // ── RBAC ──────────────────────────────────────────────────────────
@@ -38,7 +83,7 @@ export interface GroupMember {
 export interface Consultant {
   id: string;
   name: string;
-  category: 'legal' | 'global' | 'tech';
+  category: string;
   bio: string | null;
   expertise: string[];
   image_url: string | null;
@@ -54,6 +99,7 @@ export interface ConsultingSlot {
   slot_time: string;
   duration_minutes: number;
   status: 'available' | 'booked' | 'cancelled';
+  location?: string | null;
   created_at: string;
 }
 
@@ -62,7 +108,7 @@ export interface ConsultingReservation {
   slot_id: string;
   user_id: string;
   description: string;
-  status: 'pending' | 'confirmed' | 'rejected';
+  status: 'pending' | 'confirmed' | 'rejected' | 'cancelled';
   admin_note: string | null;
   created_at: string;
 }
@@ -75,6 +121,7 @@ export interface FoundersClubSession {
   max_participants: number;
   session_date: string | null;
   session_time: string | null;
+  location?: string | null;
   status: 'recruiting' | 'closed' | 'completed';
   created_at: string;
 }
@@ -84,7 +131,7 @@ export interface FoundersClubApplication {
   session_id: string;
   user_id: string;
   message: string | null;
-  status: 'pending' | 'accepted' | 'rejected';
+  status: 'pending' | 'accepted' | 'rejected' | 'cancelled';
   created_at: string;
 }
 

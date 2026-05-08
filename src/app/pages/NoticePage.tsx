@@ -4,9 +4,12 @@ import { supabase } from "../../lib/supabaseClient";
 import { PageShell } from "../components/PageShell";
 import { useTheme } from "../ThemeContext";
 import { LoadingSpinner, ErrorMessage } from "../components/LoadingSpinner";
-import { isImage } from "../../utils/file";
 import { cleanText } from "../../utils/text";
 import type { Post } from "../../lib/types";
+import { getFilterTabStyle, getMutedLabelStyle } from "../components/contentListStyles";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis } from "../components/ui/pagination";
+
+const PAGE_SIZE = 10;
 
 const NOTICE_COLOR = "#EA4335";
 
@@ -16,6 +19,7 @@ export function NoticePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [activeTag, setActiveTag] = useState("전체");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const card = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
   const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
@@ -38,6 +42,9 @@ export function NoticePage() {
 
   const allTags = [...new Set(posts.map(p => p.tags).filter(Boolean))] as string[];
   const filteredPosts = activeTag === "전체" ? posts : posts.filter(p => p.tags === activeTag);
+  const totalPages = Math.ceil(filteredPosts.length / PAGE_SIZE);
+  const pagedPosts = filteredPosts.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const handleTagChange = (tag: string) => { setActiveTag(tag); setCurrentPage(1); };
 
   return (
     <PageShell title="공지사항" subtitle="NCF의 새로운 소식과 안내 사항을 확인하세요." accentColor={NOTICE_COLOR}>
@@ -55,13 +62,8 @@ export function NoticePage() {
                 {["전체", ...allTags].map(tag => (
                   <button
                     key={tag}
-                    onClick={() => setActiveTag(tag)}
-                    style={{
-                      padding: "8px 18px", borderRadius: 99, border: "none", cursor: "pointer",
-                      fontWeight: 700, fontSize: 14, transition: "all 0.15s",
-                      background: activeTag === tag ? NOTICE_COLOR : isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)",
-                      color: activeTag === tag ? "#fff" : textMuted,
-                    }}
+                    onClick={() => handleTagChange(tag)}
+                    style={getFilterTabStyle(isDark, activeTag === tag)}
                   >
                     {tag}
                   </button>
@@ -69,29 +71,25 @@ export function NoticePage() {
               </div>
             )}
             <div className="flex flex-col gap-4">
-              {filteredPosts.map((post) => {
-                const attachmentImages = post.image_url?.split(",").filter(isImage) || [];
-                const thumbnailUrl = attachmentImages[0] ?? (post.content?.match(/<img[^>]+src="([^">]+)"/) || [])[1];
-
+              {pagedPosts.map((post) => {
                 return (
                   <Link
                     key={post.id}
                     to={`/post/${post.id}`}
-                    className="rounded-[20px] p-6 flex gap-6 no-underline transition-all duration-200 ease-in-out hover:-translate-y-1"
+                    className="rounded-[20px] p-6 no-underline transition-all duration-200 ease-in-out hover:-translate-y-1"
                     style={{ background: card, border: `1px solid ${border}` }}
                   >
-                    {thumbnailUrl && (
-                      <img src={thumbnailUrl} alt="" className="w-[140px] h-[100px] object-cover rounded-xl bg-slate-50" />
-                    )}
                     <div className="flex-1 flex flex-col justify-center">
-                      {post.tags && (
-                        <span style={{ display: "inline-block", marginBottom: 8, fontSize: 11, fontWeight: 700, color: NOTICE_COLOR, background: "rgba(234,67,53,0.1)", padding: "3px 10px", borderRadius: 99 }}>
-                          {post.tags}
-                        </span>
-                      )}
-                      <strong className="block text-[19px] mb-2.5 font-bold" style={{ color: textMain }}>
-                        {post.title}
-                      </strong>
+                      <div className="flex items-start gap-2 mb-2.5">
+                        {post.tags && (
+                          <span className="shrink-0 mt-[3px]" style={getMutedLabelStyle(isDark)}>
+                            {post.tags}
+                          </span>
+                        )}
+                        <strong className="m-0 text-[19px] font-bold leading-snug" style={{ color: textMain }}>
+                          {post.title}
+                        </strong>
+                      </div>
                       <p
                         className="m-0 text-[15px] text-gray-500 leading-[1.6] overflow-hidden"
                         style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" } as React.CSSProperties}
@@ -106,6 +104,32 @@ export function NoticePage() {
                 );
               })}
             </div>
+            {totalPages > 1 && (
+              <div className="mt-10">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious href="#" onClick={e => { e.preventDefault(); if (currentPage > 1) setCurrentPage(p => p - 1); }} aria-disabled={currentPage === 1} className={currentPage === 1 ? "pointer-events-none opacity-40" : ""} />
+                    </PaginationItem>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
+                      const showPage = page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1;
+                      const showEllipsisBefore = page === currentPage - 2 && currentPage > 3;
+                      const showEllipsisAfter = page === currentPage + 2 && currentPage < totalPages - 2;
+                      if (showEllipsisBefore || showEllipsisAfter) return <PaginationItem key={`el-${page}`}><PaginationEllipsis /></PaginationItem>;
+                      if (!showPage) return null;
+                      return (
+                        <PaginationItem key={page}>
+                          <PaginationLink href="#" isActive={currentPage === page} onClick={e => { e.preventDefault(); setCurrentPage(page); }}>{page}</PaginationLink>
+                        </PaginationItem>
+                      );
+                    })}
+                    <PaginationItem>
+                      <PaginationNext href="#" onClick={e => { e.preventDefault(); if (currentPage < totalPages) setCurrentPage(p => p + 1); }} aria-disabled={currentPage === totalPages} className={currentPage === totalPages ? "pointer-events-none opacity-40" : ""} />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
           </>
         )}
       </div>

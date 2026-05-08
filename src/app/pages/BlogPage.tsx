@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
+import { Link } from "react-router";
 import { PageShell } from "../components/PageShell";
 import { useTheme } from "../ThemeContext";
 import { supabase } from "../../lib/supabaseClient";
@@ -7,8 +7,10 @@ import { LoadingSpinner, ErrorMessage } from "../components/LoadingSpinner";
 import { isImage } from "../../utils/file";
 import { cleanText } from "../../utils/text";
 import type { Post } from "../../lib/types";
+import { getFilterTabStyle, getMutedLabelStyle } from "../components/contentListStyles";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis } from "../components/ui/pagination";
 
-const BLOG_COLOR = "#A855F7";
+const PAGE_SIZE = 12;
 
 function readingMinutes(content: string) {
   const words = cleanText(content).split(/\s+/).filter(Boolean).length;
@@ -17,16 +19,17 @@ function readingMinutes(content: string) {
 
 export function BlogPage() {
   const { isDark } = useTheme();
-  const navigate = useNavigate();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [activeTag, setActiveTag] = useState("전체");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const cardBg = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
   const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
   const textMain = isDark ? "rgba(255,255,255,0.92)" : "#0f172a";
   const textMuted = isDark ? "rgba(255,255,255,0.45)" : "rgba(15,23,42,0.5)";
+  const imgPlaceholder = isDark ? "rgba(255,255,255,0.06)" : "#f1f5f9";
 
   useEffect(() => {
     supabase
@@ -45,10 +48,11 @@ export function BlogPage() {
   const allTags = [...new Set(posts.map(p => p.tags).filter(Boolean))] as string[];
   const filteredPosts = posts
     .filter(p => p.id !== featured?.id)
-    .filter(p => {
-      if (activeTag === "전체") return true;
-      return p.tags === activeTag;
-    });
+    .filter(p => activeTag === "전체" || p.tags === activeTag);
+  const totalPages = Math.ceil(filteredPosts.length / PAGE_SIZE);
+  const pagedPosts = filteredPosts.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  const handleTagChange = (tag: string) => { setActiveTag(tag); setCurrentPage(1); };
 
   return (
     <PageShell title="블로그" subtitle="NCF와 Around X가 전하는 다양한 인사이트와 비즈니스 이야기를 만나보세요." accentColor="#A855F7">
@@ -66,11 +70,10 @@ export function BlogPage() {
               const attachmentImages = featured.image_url?.split(",").filter(isImage) || [];
               const thumbnailUrl = attachmentImages[0] ?? (featured.content?.match(/<img[^>]+src="([^">]+)"/) || [])[1];
               const mins = readingMinutes(featured.content);
-              const tagColor = BLOG_COLOR;
               return (
-                <div
-                  onClick={() => navigate(`/post/${featured.id}`)}
-                  className="rounded-3xl overflow-hidden mb-10 cursor-pointer transition-transform duration-200 hover:-translate-y-1"
+                <Link
+                  to={`/post/${featured.id}`}
+                  className="blog-card blog-featured-card rounded-3xl overflow-hidden mb-10 cursor-pointer transition-transform duration-200 hover:-translate-y-1 no-underline block"
                   style={{
                     background: thumbnailUrl
                       ? `linear-gradient(rgba(10,18,38,0.82), rgba(10,18,38,0.88)), url(${thumbnailUrl}) center/cover no-repeat`
@@ -85,12 +88,12 @@ export function BlogPage() {
                 >
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     {featured.is_featured && (
-                      <span style={{ fontSize: 12, fontWeight: 700, color: "#FBBC05", background: "rgba(251,188,5,0.15)", padding: "4px 12px", borderRadius: 99 }}>
-                        ★ 추천 아티클
+                      <span style={{ fontSize: 12, fontWeight: 750, color: "rgba(255,255,255,0.78)", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.16)", padding: "4px 10px", borderRadius: 6 }}>
+                        추천 아티클
                       </span>
                     )}
                     {featured.tags && (
-                      <span style={{ fontSize: 12, fontWeight: 700, color: tagColor, background: tagColor + "22", padding: "4px 12px", borderRadius: 99 }}>
+                      <span style={{ fontSize: 12, fontWeight: 750, color: "rgba(255,255,255,0.68)", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", padding: "4px 10px", borderRadius: 6 }}>
                         {featured.tags}
                       </span>
                     )}
@@ -106,10 +109,10 @@ export function BlogPage() {
                       <span style={{ fontSize: 13, color: "rgba(255,255,255,0.5)" }}>
                         NCF 리서치팀 &nbsp;·&nbsp; {new Date(featured.created_at).toLocaleDateString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" }).replace(/ /g, "")} &nbsp;·&nbsp; 읽기 {mins}분
                       </span>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: "#A855F7" }}>읽기 →</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.72)" }}>읽기 →</span>
+                      </div>
                     </div>
-                  </div>
-                </div>
+                </Link>
               );
             })()}
 
@@ -119,16 +122,9 @@ export function BlogPage() {
                 {["전체", ...allTags].map(tag => (
                   <button
                     key={tag}
-                    onClick={() => setActiveTag(tag)}
-                    style={{
-                      padding: "8px 18px", borderRadius: 99, border: "none", cursor: "pointer",
-                      fontWeight: 700, fontSize: 14,
-                      background: activeTag === tag
-                        ? BLOG_COLOR
-                        : (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)"),
-                      color: activeTag === tag ? "#fff" : textMuted,
-                      transition: "all 0.15s",
-                    }}
+                    aria-pressed={activeTag === tag}
+                    onClick={() => handleTagChange(tag)}
+                    style={getFilterTabStyle(isDark, activeTag === tag)}
                   >
                     {tag}
                   </button>
@@ -138,33 +134,36 @@ export function BlogPage() {
 
             {/* Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {filteredPosts.map((post) => {
+              {pagedPosts.map((post) => {
                 const attachmentImages = post.image_url?.split(",").filter(isImage) || [];
                 const thumbnailUrl = attachmentImages[0] ?? (post.content?.match(/<img[^>]+src="([^">]+)"/) || [])[1];
                 const mins = readingMinutes(post.content);
-                const tagColor = BLOG_COLOR;
                 const dateStr = new Date(post.created_at).toLocaleDateString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" }).replace(/ /g, "");
 
                 return (
-                  <div
+                  <Link
                     key={post.id}
-                    onClick={() => navigate(`/post/${post.id}`)}
-                    className="rounded-3xl overflow-hidden cursor-pointer transition-transform duration-200 hover:-translate-y-1.5 flex flex-col"
+                    to={`/post/${post.id}`}
+                    className="blog-card rounded-3xl overflow-hidden cursor-pointer transition-transform duration-200 hover:-translate-y-1.5 flex flex-col no-underline block"
                     style={{ background: cardBg, border: `1px solid ${border}`, boxShadow: isDark ? "none" : "0 2px 12px rgba(0,0,0,0.05)" }}
                   >
-                    {thumbnailUrl && (
-                      <div style={{ height: 160, overflow: "hidden", background: isDark ? "rgba(255,255,255,0.05)" : "#f1f5f9" }}>
+                    <div style={{ height: 160, overflow: "hidden", background: imgPlaceholder, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      {thumbnailUrl ? (
                         <img src={thumbnailUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-                      </div>
-                    )}
+                      ) : (
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke={textMuted} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
+                        </svg>
+                      )}
+                    </div>
                     <div style={{ padding: "18px 20px 22px", flex: 1, display: "flex", flexDirection: "column", gap: 10 }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                         {post.tags ? (
-                          <span style={{ fontSize: 11, fontWeight: 700, color: tagColor, background: tagColor + "18", padding: "3px 10px", borderRadius: 99 }}>
+                          <span style={getMutedLabelStyle(isDark)}>
                             {post.tags}
                           </span>
                         ) : (
-                          <span style={{ fontSize: 11, fontWeight: 700, color: BLOG_COLOR, background: "rgba(168,85,247,0.1)", padding: "3px 10px", borderRadius: 99 }}>인사이트</span>
+                          <span style={getMutedLabelStyle(isDark)}>인사이트</span>
                         )}
                         <span style={{ fontSize: 11, color: textMuted }}>{mins}분 읽기</span>
                       </div>
@@ -182,13 +181,65 @@ export function BlogPage() {
                         NCF 팀 &nbsp;·&nbsp; {dateStr}
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 );
               })}
             </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="mt-10">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        href="#"
+                        onClick={e => { e.preventDefault(); if (currentPage > 1) setCurrentPage(p => p - 1); }}
+                        aria-disabled={currentPage === 1}
+                        className={currentPage === 1 ? "pointer-events-none opacity-40" : ""}
+                      />
+                    </PaginationItem>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
+                      const showPage = page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1;
+                      const showEllipsisBefore = page === currentPage - 2 && currentPage > 3;
+                      const showEllipsisAfter = page === currentPage + 2 && currentPage < totalPages - 2;
+                      if (showEllipsisBefore || showEllipsisAfter) {
+                        return <PaginationItem key={`el-${page}`}><PaginationEllipsis /></PaginationItem>;
+                      }
+                      if (!showPage) return null;
+                      return (
+                        <PaginationItem key={page}>
+                          <PaginationLink
+                            href="#"
+                            isActive={currentPage === page}
+                            onClick={e => { e.preventDefault(); setCurrentPage(page); }}
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    })}
+                    <PaginationItem>
+                      <PaginationNext
+                        href="#"
+                        onClick={e => { e.preventDefault(); if (currentPage < totalPages) setCurrentPage(p => p + 1); }}
+                        aria-disabled={currentPage === totalPages}
+                        className={currentPage === totalPages ? "pointer-events-none opacity-40" : ""}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
           </>
         )}
       </div>
+      <style>{`
+        .blog-card:focus-visible {
+          outline: 2px solid rgba(168,85,247,0.5);
+          outline-offset: 3px;
+        }
+      `}</style>
     </PageShell>
   );
 }

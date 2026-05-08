@@ -82,7 +82,7 @@ Deno.serve(async (req: Request) => {
     const adminClient = createClient(supabaseUrl, serviceKey);
     const { data: profile, error: fetchErr } = await adminClient
       .from("profiles")
-      .select("*")
+      .select("id, name, email, phone, company, user_type, role, created_at")
       .eq("id", user.id)
       .single();
 

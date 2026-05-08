@@ -1,4 +1,5 @@
 import { useTheme } from "../../ThemeContext";
+import { LAYERS } from "../../../lib/layers";
 
 interface PendingRoleChange {
   userId: string;
@@ -34,19 +35,23 @@ export function AdminRoleModal({
   const border    = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
   const textMain  = isDark ? "rgba(255,255,255,0.92)" : "rgba(10,16,32,0.88)";
   const textMuted = isDark ? "rgba(255,255,255,0.45)" : "rgba(10,16,32,0.45)";
+  const panelBg = isDark ? "#111827" : "#ffffff";
+  const subtleBg = isDark ? "rgba(255,255,255,0.045)" : "rgba(15,23,42,0.035)";
+  const selectedBg = isDark ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.07)";
+  const labelBorder = isDark ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.09)";
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000 }}>
-      <div style={{ background: isDark ? "#1e293b" : "#fff", padding: "40px 32px", borderRadius: 24, maxWidth: 400, width: "90%", boxShadow: "0 20px 40px rgba(0,0,0,0.2)" }}>
-        <div style={{ textAlign: "center", marginBottom: 24 }}>
-          <div style={{ fontSize: 36, marginBottom: 12 }}>🔐</div>
-          <h2 style={{ color: textMain, marginBottom: 10, fontSize: 20 }}>관리자 권한 변경</h2>
-          <p style={{ color: textMuted, fontSize: 13, lineHeight: 1.7, margin: 0 }}>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.46)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: LAYERS.modal, padding: 20, boxSizing: "border-box" }}>
+      <div style={{ background: panelBg, padding: "30px 28px", borderRadius: 16, border: `1px solid ${border}`, maxWidth: 420, width: "100%", boxShadow: "0 18px 44px rgba(15,23,42,0.18)" }}>
+        <div style={{ textAlign: "center", marginBottom: 22 }}>
+          <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "5px 10px", marginBottom: 12, borderRadius: 99, background: subtleBg, border: `1px solid ${labelBorder}`, color: textMuted, fontSize: 11, fontWeight: 800, letterSpacing: "0.04em" }}>권한 확인</div>
+          <h2 style={{ color: textMain, margin: "0 0 10px", fontSize: 20, fontWeight: 800 }}>회원 권한 변경</h2>
+          <div style={{ color: textMuted, fontSize: 13, lineHeight: 1.7, margin: 0, padding: "12px 14px", background: subtleBg, border: `1px solid ${labelBorder}`, borderRadius: 12 }}>
             <strong style={{ color: textMain }}>{pendingRoleChange.targetName}</strong>님의 역할을<br />
-            <strong style={{ color: "#EA4335" }}>{roleLabels[pendingRoleChange.currentRole]}</strong>
+            <strong style={{ color: textMain }}>{roleLabels[pendingRoleChange.currentRole]}</strong>
             {" → "}
-            <strong style={{ color: "#4377F1" }}>{roleLabels[pendingRoleChange.newRole]}</strong>으로 변경합니다.
-          </p>
+            <strong style={{ color: textMain }}>{roleLabels[pendingRoleChange.newRole]}</strong>으로 변경합니다.
+          </div>
         </div>
 
         <p style={{ color: textMuted, fontSize: 13, marginBottom: 10 }}>본인 비밀번호를 입력해 변경을 승인하세요.</p>
@@ -59,7 +64,7 @@ export function AdminRoleModal({
             onKeyDown={e => { if (e.key === "Enter") onConfirm(); }}
             placeholder="현재 비밀번호"
             autoFocus
-            style={{ width: "100%", padding: "13px 44px 13px 14px", borderRadius: 12, border: `1px solid ${isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.12)"}`, background: isDark ? "rgba(255,255,255,0.04)" : "#f8fafc", color: textMain, fontSize: 14, outline: "none", boxSizing: "border-box" }}
+            style={{ width: "100%", padding: "13px 44px 13px 14px", borderRadius: 10, border: `1px solid ${labelBorder}`, background: isDark ? "rgba(255,255,255,0.04)" : "#f8fafc", color: textMain, fontSize: 14, outline: "none", boxSizing: "border-box" }}
           />
           <button
             type="button"
@@ -78,14 +83,14 @@ export function AdminRoleModal({
           <button
             onClick={onConfirm}
             disabled={roleConfirmLoading || !roleConfirmPassword}
-            style={{ flex: 1, padding: 14, borderRadius: 12, border: "none", background: "#4377F1", color: "#fff", fontWeight: 700, cursor: roleConfirmLoading || !roleConfirmPassword ? "not-allowed" : "pointer", opacity: roleConfirmLoading || !roleConfirmPassword ? 0.5 : 1 }}
+            style={{ flex: 1, padding: 13, borderRadius: 10, border: "none", background: "#4377F1", color: "#fff", fontWeight: 750, cursor: roleConfirmLoading || !roleConfirmPassword ? "not-allowed" : "pointer", opacity: roleConfirmLoading || !roleConfirmPassword ? 0.5 : 1, boxShadow: "none" }}
           >
             {roleConfirmLoading ? "확인 중..." : "변경 승인"}
           </button>
           <button
             onClick={onCancel}
             disabled={roleConfirmLoading}
-            style={{ flex: 1, padding: 14, borderRadius: 12, border: `1px solid ${border}`, background: "none", color: textMain, cursor: "pointer" }}
+            style={{ flex: 1, padding: 13, borderRadius: 10, border: `1px solid ${border}`, background: selectedBg, color: textMain, cursor: roleConfirmLoading ? "not-allowed" : "pointer", fontWeight: 700 }}
           >
             취소
           </button>

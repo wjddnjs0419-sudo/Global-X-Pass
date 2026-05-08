@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import logoImg from "../../imports/Logo.png";
 import { supabase } from "../../lib/supabaseClient";
 import { useLanguage } from "../LanguageContext";
 import { useTheme } from "../ThemeContext";
 import { useAdmin } from "../../hooks/useAdmin";
+import { LAYERS } from "../../lib/layers";
 
 type MenuKey = "resources" | "programs" | "news" | "support";
 
@@ -18,6 +19,7 @@ const MENUS: {
     label: "Resources",
     items: [
       { label: { ko: "자료실", en: "Resources" }, path: "/resources" },
+      { label: { ko: "미디어", en: "Media" }, path: "/media" },
       { label: { ko: "블로그", en: "Blog" }, path: "/blog" },
       { label: { ko: "사업비 자료실", en: "Expense Center" }, path: "/expenses" },
     ],
@@ -58,6 +60,11 @@ export function HeaderSection({ isDark = false }: HeaderSectionProps) {
   const [openMenu, setOpenMenu] = useState<MenuKey | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [session, setSession] = useState<{ user: { email?: string; id: string } } | null>(null);
+  const menuToggleRef = useRef<HTMLButtonElement | null>(null);
+  const desktopMenuButtonRefs = useRef<Partial<Record<MenuKey, HTMLButtonElement | null>>>({});
+  const sidebarRef = useRef<HTMLElement | null>(null);
+  const sidebarCloseButtonRef = useRef<HTMLButtonElement | null>(null);
+  const prevSidebarOpenRef = useRef(false);
   const { isAdmin } = useAdmin();
   const { isDark: themeDark, toggle: toggleTheme } = useTheme();
 
@@ -82,6 +89,59 @@ export function HeaderSection({ isDark = false }: HeaderSectionProps) {
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  useEffect(() => {
+    const wasSidebarOpen = prevSidebarOpenRef.current;
+    prevSidebarOpenRef.current = sidebarOpen;
+
+    if (!sidebarOpen) {
+      if (wasSidebarOpen) {
+        menuToggleRef.current?.focus();
+      }
+      return;
+    }
+
+    const rafId = window.requestAnimationFrame(() => {
+      sidebarCloseButtonRef.current?.focus();
+    });
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setSidebarOpen(false);
+        return;
+      }
+
+      if (event.key !== "Tab") return;
+
+      const panel = sidebarRef.current;
+      if (!panel) return;
+
+      const focusables = Array.from(
+        panel.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'),
+      ).filter((element) => element.offsetParent !== null);
+
+      if (focusables.length === 0) return;
+
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+
+      if (event.shiftKey && active === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [sidebarOpen]);
 
   const handleLogout = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -116,16 +176,21 @@ export function HeaderSection({ isDark = false }: HeaderSectionProps) {
   const textColorMuted = useLightText ? "rgba(255,255,255,0.7)" : isDark ? "rgba(255,255,255,0.7)" : "rgba(10,16,32,0.65)";
   const headerBg = scrolled ? (isDark ? "rgba(10,16,32,0.82)" : "rgba(255,255,255,0.86)") : "transparent";
   const headerBorder = scrolled ? (isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.06)") : "1px solid transparent";
+  const menuBorder = isDark ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.09)";
+  const menuSelectedBg = isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.055)";
+  const sidebarText = isDark ? "rgba(255,255,255,0.72)" : "rgba(10,16,32,0.70)";
+  const sidebarSection = isDark ? "rgba(255,255,255,0.92)" : "rgba(10,16,32,0.92)";
 
   return (
     <>
       <header
-        className={`fixed top-0 left-0 right-0 z-[1000] h-[72px] flex items-center px-[clamp(12px,3vw,32px)] font-['Pretendard',sans-serif] transition-colors duration-300 ease-out ${scrolled ? "backdrop-blur-[18px]" : ""}`}
-        style={{ background: headerBg, borderBottom: headerBorder }}
+        className={`fixed top-0 left-0 right-0 h-[72px] flex items-center px-[clamp(12px,3vw,32px)] font-['Pretendard',sans-serif] transition-colors duration-300 ease-out ${scrolled ? "backdrop-blur-[18px]" : ""}`}
+        style={{ zIndex: LAYERS.header, background: headerBg, borderBottom: headerBorder }}
         onMouseLeave={() => setOpenMenu(null)}
       >
         <button
           aria-label="메뉴 열기"
+          ref={menuToggleRef}
           onClick={() => setSidebarOpen(true)}
           className="w-[40px] h-[40px] rounded-[10px] flex items-center justify-center bg-transparent border-none cursor-pointer mr-[12px]"
         >
@@ -136,14 +201,61 @@ export function HeaderSection({ isDark = false }: HeaderSectionProps) {
 
         <nav className="header-left-nav flex items-center gap-[4px] max-[900px]:hidden">
           {MENUS.map((m) => (
-            <div key={m.key} onMouseEnter={() => setOpenMenu(m.key)} className="relative">
-              <button className="bg-transparent border-none cursor-pointer px-[16px] py-[10px] font-['Pretendard',sans-serif] text-[14px] font-semibold tracking-[-0.01em] transition-colors duration-200 ease-in-out" style={{ color: textColor }}>
+            <div
+              key={m.key}
+              className="relative"
+              onMouseEnter={() => setOpenMenu(m.key)}
+              onFocusCapture={() => setOpenMenu(m.key)}
+              onBlurCapture={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                  setOpenMenu(null);
+                }
+              }}
+            >
+              <button
+                type="button"
+                ref={(element) => {
+                  desktopMenuButtonRefs.current[m.key] = element;
+                }}
+                aria-controls={`desktop-nav-${m.key}`}
+                aria-expanded={openMenu === m.key}
+                onClick={() => setOpenMenu((current) => (current === m.key ? null : m.key))}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") {
+                    event.preventDefault();
+                    setOpenMenu(null);
+                    event.currentTarget.focus();
+                  }
+                }}
+                className="bg-transparent border-none cursor-pointer px-[16px] py-[10px] font-['Pretendard',sans-serif] text-[14px] font-semibold tracking-[-0.01em] transition-colors duration-200 ease-in-out"
+                style={{ color: textColor }}
+              >
                 {m.label}
               </button>
               {openMenu === m.key && (
-                <div className="absolute top-[calc(100%+6px)] left-1/2 -translate-x-1/2 min-w-[160px] rounded-[12px] shadow-[0_12px_32px_rgba(0,0,0,0.18)] p-[8px] backdrop-blur-[20px]" style={{ background: isDark ? "rgba(16,22,42,0.96)" : "rgba(255,255,255,0.98)", border: `1px solid ${isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.08)"}` }}>
+                <div
+                  id={`desktop-nav-${m.key}`}
+                  aria-label={`${m.label} 메뉴`}
+                  onKeyDown={(event) => {
+                    if (event.key === "Escape") {
+                      event.preventDefault();
+                      setOpenMenu(null);
+                      desktopMenuButtonRefs.current[m.key]?.focus();
+                    }
+                  }}
+                  className="absolute top-[calc(100%+6px)] left-1/2 -translate-x-1/2 min-w-[160px] rounded-[14px] p-[8px] backdrop-blur-[20px]"
+                  style={{ background: isDark ? "rgba(16,22,42,0.96)" : "rgba(255,255,255,0.98)", border: `1px solid ${menuBorder}`, boxShadow: "0 14px 34px rgba(15,23,42,0.14)" }}
+                >
                   {m.items.map((it) => (
-                    <Link key={it.path} to={it.path} onClick={() => setOpenMenu(null)} className="block px-[14px] py-[10px] rounded-[8px] text-[14px] font-medium no-underline transition-colors duration-150 ease-in-out" style={{ color: isDark ? "rgba(255,255,255,0.88)" : "rgba(10,16,32,0.82)" }} onMouseEnter={(e) => (e.currentTarget.style.background = isDark ? "rgba(32,214,162,0.12)" : "rgba(32,214,162,0.10)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                    <Link
+                      key={it.path}
+                      to={it.path}
+                      onClick={() => setOpenMenu(null)}
+                      className="block px-[14px] py-[10px] rounded-[8px] text-[14px] font-medium no-underline transition-colors duration-150 ease-in-out"
+                      style={{ color: isDark ? "rgba(255,255,255,0.88)" : "rgba(10,16,32,0.82)" }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = menuSelectedBg)}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                    >
                       {it.label[lang]}
                     </Link>
                   ))}
@@ -171,11 +283,11 @@ export function HeaderSection({ isDark = false }: HeaderSectionProps) {
             <span className="opacity-40">|</span>
             <span className="transition-opacity duration-200" style={{ opacity: lang === "en" ? 1 : 0.4 }}>EN</span>
           </button>
-          <button
-            onClick={toggleTheme}
-            aria-label="테마 전환"
-            className="w-[40px] h-[40px] rounded-[10px] flex items-center justify-center bg-transparent border-none cursor-pointer"
-          >
+        <button
+          onClick={toggleTheme}
+          aria-label="테마 전환"
+          className="w-[40px] h-[40px] rounded-[10px] flex items-center justify-center bg-transparent border-none cursor-pointer"
+        >
             {themeDark ? (
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={textColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="5" />
@@ -206,26 +318,41 @@ export function HeaderSection({ isDark = false }: HeaderSectionProps) {
       </header>
 
       {sidebarOpen && (
-        <div onClick={() => setSidebarOpen(false)} className="fixed inset-0 z-[1100] bg-[rgba(5,8,20,0.55)] backdrop-blur-[4px] animate-[fadeIn_0.25s_ease]" />
+        <div onClick={() => setSidebarOpen(false)} className="fixed inset-0 bg-[rgba(5,8,20,0.55)] backdrop-blur-[4px] animate-[fadeIn_0.25s_ease]" style={{ zIndex: LAYERS.mobileMenuBackdrop }} />
       )}
 
-      <aside className={`fixed top-0 left-0 bottom-0 w-[320px] z-[1200] shadow-[8px_0_40px_rgba(0,0,0,0.25)] flex flex-col font-['Pretendard',sans-serif] transition-transform duration-[350ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`} style={{ background: isDark ? "#0a1020" : "#ffffff" }}>
+      <aside
+        ref={sidebarRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="모바일 메뉴"
+        tabIndex={-1}
+        className={`fixed top-0 left-0 bottom-0 w-[320px] flex flex-col font-['Pretendard',sans-serif] transition-transform duration-[350ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
+        style={{
+          zIndex: LAYERS.mobileMenuPanel,
+          background: isDark ? "#0a1020" : "#ffffff",
+          borderRight: `1px solid ${menuBorder}`,
+          boxShadow: "8px 0 34px rgba(15,23,42,0.16)",
+          visibility: sidebarOpen ? "visible" : "hidden",
+          pointerEvents: sidebarOpen ? "auto" : "none",
+        }}
+      >
         <div className="h-[72px] px-[24px] flex items-center justify-between" style={{ borderBottom: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"}` }}>
           <Link to="/" onClick={() => setSidebarOpen(false)}>
             <img src={logoImg} alt="로고" className="h-[22px] object-contain" style={{ filter: isDark ? "brightness(0) invert(1)" : "none" }} />
           </Link>
-          <button onClick={() => setSidebarOpen(false)} className="w-[36px] h-[36px] rounded-[10px] bg-transparent border-none cursor-pointer flex items-center justify-center">
+          <button ref={sidebarCloseButtonRef} type="button" aria-label="모바일 메뉴 닫기" onClick={() => setSidebarOpen(false)} className="w-[36px] h-[36px] rounded-[10px] bg-transparent border-none cursor-pointer flex items-center justify-center">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={isDark ? "rgba(255,255,255,0.85)" : "rgba(10,16,32,0.75)"} strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
           </button>
         </div>
         <nav className="flex-1 overflow-y-auto px-[16px] py-[20px]">
           {MENUS.map((m) => (
             <div key={m.key} className="mb-[18px]">
-              <div className="px-[12px] py-[6px] text-[12px] font-extrabold tracking-[0.08em] uppercase" style={{ color: isDark ? "rgba(190,255,249,0.75)" : "rgba(32,214,162,0.95)" }}>
+              <div className="px-[12px] py-[6px] text-[12px] font-black tracking-[0.10em] uppercase" style={{ color: sidebarSection }}>
                 {m.label}
               </div>
               {m.items.map((it) => (
-                <Link key={it.path} to={it.path} onClick={() => setSidebarOpen(false)} className="block px-[12px] py-[10px] rounded-[10px] text-[15px] font-semibold no-underline transition-colors duration-150 ease-in-out" style={{ color: isDark ? "rgba(255,255,255,0.9)" : "rgba(10,16,32,0.85)" }} onMouseEnter={(e) => (e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.06)" : "rgba(10,16,32,0.04)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                <Link key={it.path} to={it.path} onClick={() => setSidebarOpen(false)} className="block px-[12px] py-[10px] rounded-[10px] text-[15px] font-semibold no-underline transition-colors duration-150 ease-in-out" style={{ color: sidebarText }} onMouseEnter={(e) => (e.currentTarget.style.background = menuSelectedBg)} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
                   {it.label[lang]}
                 </Link>
               ))}
@@ -233,11 +360,11 @@ export function HeaderSection({ isDark = false }: HeaderSectionProps) {
           ))}
 
           <div className="mt-[24px] pt-[20px] hidden max-[900px]:block" style={{ borderTop: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"}` }}>
-            <div className="px-[12px] py-[6px] text-[12px] font-extrabold tracking-[0.08em] uppercase" style={{ color: isDark ? "rgba(190,255,249,0.75)" : "rgba(32,214,162,0.95)" }}>
+            <div className="px-[12px] py-[6px] text-[12px] font-black tracking-[0.10em] uppercase" style={{ color: sidebarSection }}>
               ACCOUNT
             </div>
             {utilLinks.map((u) => (
-              <Link key={u.label} to={u.path} onClick={(e) => { if(u.isLogout) handleLogout(e); else setSidebarOpen(false); }} className="block px-[12px] py-[10px] rounded-[10px] text-[15px] font-semibold no-underline transition-colors duration-150 ease-in-out" style={{ color: isDark ? "rgba(255,255,255,0.9)" : "rgba(10,16,32,0.85)" }} onMouseEnter={(e) => (e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.06)" : "rgba(10,16,32,0.04)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+              <Link key={u.label} to={u.path} onClick={(e) => { if(u.isLogout) handleLogout(e); else setSidebarOpen(false); }} className="block px-[12px] py-[10px] rounded-[10px] text-[15px] font-semibold no-underline transition-colors duration-150 ease-in-out" style={{ color: sidebarText }} onMouseEnter={(e) => (e.currentTarget.style.background = menuSelectedBg)} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
                 {u.label}
               </Link>
             ))}

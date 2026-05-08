@@ -149,9 +149,9 @@ const nodeData = [
   },
   {
     id: "5", index: 4,
-    label: { ko: "뉴스레터", en: "Newsletter" },
-    icon: <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full"><rect x="2" y="4" width="20" height="16" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg>,
-    card: { badge: { ko: "INSIGHT", en: "INSIGHT" }, badgeSub: { ko: "구독", en: "Subscribe" }, title: { ko: "주간 마켓 트렌드", en: "Weekly Market Trends" }, desc: { ko: "매주 발행되는 글로벌 시장 동향\n및 테크 인사이트 레포트입니다.", en: "Weekly reports on global market trends\nand tech insights." }, href: "/news" },
+    label: { ko: "미디어", en: "Media" },
+    icon: <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /><path d="M9 7h7" /><path d="M9 11h7" /></svg>,
+    card: { badge: { ko: "MEDIA", en: "MEDIA" }, badgeSub: { ko: "콘텐츠", en: "Content" }, title: { ko: "미디어", en: "Media" }, desc: { ko: "Global X Pass의 리포트와\n인사이트 콘텐츠를 확인하세요.", en: "Explore Global X Pass reports\nand insight content." }, href: "/media" },
   },
 ];
 

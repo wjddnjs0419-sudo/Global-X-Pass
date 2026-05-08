@@ -3,6 +3,9 @@ import { corsHeaders } from "../_shared/cors.ts";
 import { requireVerifiedAdmin } from "../_shared/adminAuth.ts";
 
 const ALLOWED_TRIGGER_SOURCES = new Set(["manual", "cron", "worker", "github_actions"]);
+const GITHUB_REPO    = "wjddnjs0419-sudo/Global-X-Pass";
+const GITHUB_WORKFLOW = "naver-blog-sync.yml";
+const GITHUB_REF     = "main";
 
 type SyncRequestBody = {
   triggerSource?: string;
@@ -18,6 +21,41 @@ function jsonResponse(
     headers: { ...headers, "Content-Type": "application/json" },
     status,
   });
+}
+
+async function dispatchGitHubWorkflow(runId: string): Promise<{ dispatched: boolean; error: string | null }> {
+  const pat = Deno.env.get("GITHUB_PAT")?.trim();
+  if (!pat) {
+    return { dispatched: false, error: "GITHUB_PAT secret이 설정되지 않았습니다." };
+  }
+
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${GITHUB_REPO}/actions/workflows/${GITHUB_WORKFLOW}/dispatches`,
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${pat}`,
+          "Accept": "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ref: GITHUB_REF,
+          inputs: { run_id: runId },
+        }),
+      },
+    );
+
+    if (res.status === 204) {
+      return { dispatched: true, error: null };
+    }
+
+    const body = await res.text().catch(() => "(응답 없음)");
+    return { dispatched: false, error: `GitHub API ${res.status}: ${body}` };
+  } catch (err: unknown) {
+    return { dispatched: false, error: err instanceof Error ? err.message : String(err) };
+  }
 }
 
 Deno.serve(async (req: Request) => {
@@ -72,7 +110,15 @@ Deno.serve(async (req: Request) => {
 
     if (error) throw error;
 
-    return jsonResponse({ success: true, run: data }, 200, cors);
+    // run이 생성된 후 GitHub Actions workflow_dispatch 트리거
+    const { dispatched, error: dispatchError } = await dispatchGitHubWorkflow(data.id);
+
+    return jsonResponse({
+      success: true,
+      run: data,
+      dispatched,
+      dispatchError,
+    }, 200, cors);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     return jsonResponse({ error: message }, 400, cors);

@@ -1,25 +1,30 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
 
 ## Mandatory Workflow: Plan-First Iterative Approach
 
 Every complex task must follow this exact lifecycle. Do not skip steps.
 
-1.  **Research & Initial Plan:** Create a `PLAN.md` file in the root. Document the architecture, file changes, and implementation strategy.
+0.  **Session Shortcuts:** 사용자의 첫 메시지가 `ㅎㅇ`이면 `GEMINI.md`, `PLAN.md`, `RESULT.md`를 읽고 현재 상태를 요약한 뒤에만 새 작업으로 들어간다. 사용자가 `종료`라고 하면 `PLAN.md`의 완료 반영, `RESULT.md` 최신화, 최근 `npm run validate` 기록 여부를 먼저 점검한다.
+1.  **Research & Initial Plan:** 새 작업은 `PLAN.md`의 `## Pending Approval` 아래에 추가한다. 이 단계에서 아키텍처, 수정 파일, 구현 전략을 문서화한다.
 2.  **User Review (Wait for Feedback):** Stop and ask the user to review `PLAN.md`. The user will provide feedback via comments inside `PLAN.md`.
 3.  **Iterative Revision:** Read the comments in `PLAN.md`, update the plan, and repeat until the user gives explicit approval to "Implement".
-4.  **Surgical Execution:** Follow the final `PLAN.md`. Implement sub-tasks one by one. Verify with builds/tests at each step.
-5.  **Final Reporting:** Once complete, summarize all changes, technical decisions, and usage notes in a `RESULT.md` file.
+4.  **Surgical Execution:** Follow the final `PLAN.md`. Implement sub-tasks one by one. Verify with `npm run validate` and any task-specific checks at each step.
+5.  **Final Reporting:** Once complete, summarize all changes, technical decisions, and usage notes in a `RESULT.md` file. `RESULT.md`는 현재 또는 바로 직전 세션의 핫 컨텍스트만 유지하고, 과거 작업 기록은 `RESULT_ARCHIVE.md`에 누적한다.
+6.  **PLAN Lifecycle, Compaction & Cleanup:** 구현과 `npm run validate`가 끝난 승인 계획은 `PLAN.md`에서 `[Done]` 단일 행으로 축약한다. `PLAN.md`에 `[Done]` 항목이 10개를 넘으면 가장 오래된 완료 항목부터 영구 삭제해 활성/예정 작업만 남긴다.
+7.  **Zero-Human Validation Loop:** 코드 수정 후에는 반드시 `npm run validate`를 실행하고, 타입/린트/빌드 에러가 발생하면 사용자 개입을 기다리지 말고 에이전트가 스스로 로그를 분석해 수정·재검증을 반복한다.
+8.  **Ratchet Principle:** 에이전트가 스스로 해결한 빌드/린트 오류나 치명적 실수는 재발 방지를 위해 `GEMINI.md`의 `## 🚫 Anti-Patterns & Lessons Learned` 섹션에 1줄 금지 조항으로 기록한다.
 
 ## Commands
 
 ```bash
 npm run dev      # Start dev server (Vite, default port 5173 or 5174 if occupied)
 npm run build    # Production build → dist/
+npm run validate # Typecheck + lint + production build verification
 ```
 
-No test runner or linter is configured. TypeScript errors surface through Vite's dev server.
+No test runner is configured. TypeScript and ESLint validation now run through `npm run validate`.
 
 Environment variables required (`.env`):
 ```
@@ -57,9 +62,27 @@ supabase db push   # Apply pending local migrations → remote cloud DB
 
 Migration files live in `supabase/migrations/`. The linked remote project is `yzbjvkifwinumytehxgf` (Northeast Asia, Tokyo).
 
+### Edge Function deployment
+
+```bash
+supabase functions deploy <function-name>   # e.g. supabase functions deploy decrypt-profiles
+```
+
+Functions live in `supabase/functions/<name>/index.ts` (Deno runtime). Shared CORS helper is at `supabase/functions/_shared/cors.ts` — allowed origins are `https://globalxpass.com`, `http://localhost:5173`, `http://localhost:5174`, `http://127.0.0.1:5173`, `http://127.0.0.1:5174`. Update this file when adding a new allowed origin.
+
 ## Architecture
 
 **Stack:** React 18 + TypeScript + Vite + Tailwind CSS v4 + Supabase (auth, DB, storage, realtime)
+
+**Path alias:** `@` → `./src` (configured in `vite.config.ts`). Use `@/lib/...`, `@/utils/...`, etc.
+
+**Tailwind v4:** No `tailwind.config.js`. Configuration lives in CSS files under `src/styles/`:
+- `theme.css` — CSS custom properties (brand colors, gradients, glass tokens, dark mode `@custom-variant`)
+- `tailwind.css` — `@import 'tailwindcss'` entry with `source()` directive
+- `index.css` — global resets and `@keyframes pulse` for skeleton UI
+Note: Most components bypass Tailwind dark mode (`dark:` prefix) entirely and use `isDark` from `useTheme()` with inline styles instead.
+
+**Animations:** Use the `motion` package (not `framer-motion`) — already installed as `"motion": "12.x"`.
 
 **Entry:** `src/main.tsx` → `src/app/App.tsx` → `src/app/routes.tsx` (React Router v7)
 
@@ -91,6 +114,12 @@ Migration files live in `supabase/migrations/`. The linked remote project is `yz
 | `/update-password` | `UpdatePasswordPage` | Password reset flow via Supabase magic link |
 | `/flow-map` | `FlowMapPage` | Admin-only (guarded by `AdminRoute`) |
 | `/admin` | `AdminPage` | Admin-only, 6-tab dashboard |
+
+### Hooks (`src/hooks/`)
+
+- `useAdmin()` — returns `{ isAdmin, loading, aal, mfaRequired, mfaEnrolled }`. Checks `profiles.role` + Supabase MFA assurance level. Used by `AdminRoute` and `MyPage`.
+- `useIdleLogout()` — returns `{ warningVisible, extendSession, logout }`. Used only in `RootLayout`.
+- `useTracker()` — records page views; skips if same path visited within 30 min. Used only in `RootLayout`.
 
 ### Category store (`src/utils/categoryStore.ts`)
 

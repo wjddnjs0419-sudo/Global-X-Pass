@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabaseClient";
+import { LAYERS } from "../../lib/layers";
 import type { Consultant, ConsultingSlot } from "../../lib/types";
 
 interface Props {
@@ -66,7 +67,7 @@ export function ConsultingBookingModal({ consultant, isDark, onClose }: Props) {
   }, {});
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000, padding: 20 }} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: LAYERS.modal, padding: 20 }} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={{ background: isDark ? "#1e293b" : "#fff", borderRadius: 24, padding: "36px 32px", width: "100%", maxWidth: 500, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 24px 60px rgba(0,0,0,0.25)" }}>
         {done ? (
           <div style={{ textAlign: "center", padding: "20px 0" }}>
@@ -100,9 +101,10 @@ export function ConsultingBookingModal({ consultant, isDark, onClose }: Props) {
                         <button
                           key={s.id}
                           onClick={() => setSelectedSlot(s.id)}
-                          style={{ padding: "8px 16px", borderRadius: 10, border: `1px solid ${selectedSlot === s.id ? "#4377F1" : border}`, background: selectedSlot === s.id ? "#4377F1" : "transparent", color: selectedSlot === s.id ? "#fff" : textMain, fontWeight: 600, cursor: "pointer", fontSize: 14, transition: "all 0.15s" }}
+                          style={{ padding: "8px 16px", borderRadius: 10, border: `1px solid ${selectedSlot === s.id ? "#4377F1" : border}`, background: selectedSlot === s.id ? "#4377F1" : "transparent", color: selectedSlot === s.id ? "#fff" : textMain, fontWeight: 600, cursor: "pointer", fontSize: 14, transition: "all 0.15s", textAlign: "left" }}
                         >
-                          {s.slot_time.slice(0, 5)} ({s.duration_minutes}분)
+                          <span style={{ display: "block" }}>{s.slot_time.slice(0, 5)} ({s.duration_minutes}분)</span>
+                          <span style={{ display: "block", fontSize: 11, opacity: 0.75, marginTop: 2 }}>{s.location || "장소 미정"}</span>
                         </button>
                       ))}
                     </div>

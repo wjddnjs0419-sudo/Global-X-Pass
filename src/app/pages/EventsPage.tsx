@@ -6,13 +6,11 @@ import { useTheme } from "../ThemeContext";
 import { LoadingSpinner, ErrorMessage } from "../components/LoadingSpinner";
 import { cleanText } from "../../utils/text";
 import { isImage } from "../../utils/file";
+import { EVENT_STATUS_CONFIG } from "../../utils/eventApplication";
+import { getFilterTabStyle, getMutedLabelStyle, getStatusPillStyle } from "../components/contentListStyles";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis } from "../components/ui/pagination";
 
-const EVENT_STATUS: Record<string, { label: string; color: string; bg: string }> = {
-  "접수예정": { label: "접수예정", color: "#4377F1", bg: "rgba(67,119,241,0.12)" },
-  "접수중":   { label: "접수중",   color: "#0FA37F", bg: "rgba(15,163,127,0.12)" },
-  "마감임박": { label: "마감임박", color: "#F59E0B", bg: "rgba(245,158,11,0.12)" },
-  "마감":     { label: "마감",     color: "#9CA3AF", bg: "rgba(156,163,175,0.12)" },
-};
+const PAGE_SIZE = 10;
 
 export function EventsPage() {
   const { isDark } = useTheme();
@@ -20,6 +18,8 @@ export function EventsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [activeTag, setActiveTag] = useState("전체");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [acceptedCounts, setAcceptedCounts] = useState<Record<string, number>>({});
 
   const card = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
   const textMain = isDark ? "rgba(255,255,255,0.92)" : "#0f172a";
@@ -30,16 +30,23 @@ export function EventsPage() {
   const imgPlaceholder = isDark ? "rgb(30,40,60)" : "#f1f5f9";
 
   useEffect(() => {
-    supabase
-      .from("posts")
-      .select("*")
-      .eq("category", "events")
-      .order("created_at", { ascending: false })
-      .then(({ data, error: err }) => {
-        if (err) setError(true);
-        else if (data) setPosts(data);
-        setLoading(false);
-      });
+    Promise.all([
+      supabase
+        .from("posts")
+        .select("*")
+        .eq("category", "events")
+        .order("created_at", { ascending: false }),
+      supabase.rpc("get_event_application_counts"),
+    ]).then(([postsResult, countsResult]) => {
+      if (postsResult.error) setError(true);
+      else if (postsResult.data) setPosts(postsResult.data);
+      const counts = ((countsResult.data as { post_id: string; accepted_count: number }[] | null) ?? []).reduce<Record<string, number>>((acc, row) => {
+        acc[row.post_id] = row.accepted_count;
+        return acc;
+      }, {});
+      setAcceptedCounts(counts);
+      setLoading(false);
+    });
   }, []);
 
   return (
@@ -49,12 +56,14 @@ export function EventsPage() {
           <LoadingSpinner />
         ) : error ? (
           <ErrorMessage />
-        ) : posts.length === 0 ? (
-          <p className="text-center text-gray-500 py-[80px]">현재 진행 중인 행사가 없습니다.</p>
         ) : (() => {
           const allTags = posts.flatMap(p => p.tags ? p.tags.split(',').map((t: string) => t.trim()).filter(Boolean) : []);
           const uniqueTags = [...new Set(allTags)];
           const filteredPosts = activeTag === "전체" ? posts : posts.filter(p => p.tags?.split(',').map((t: string) => t.trim()).includes(activeTag));
+          const totalPages = Math.ceil(filteredPosts.length / PAGE_SIZE);
+          const pagedPosts = filteredPosts.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+          const handleTagChange = (tag: string) => { setActiveTag(tag); setCurrentPage(1); };
+          if (posts.length === 0) return <p className="text-center text-gray-500 py-[80px]">현재 진행 중인 행사가 없습니다.</p>;
           return (
           <div className="flex flex-col gap-5">
             {uniqueTags.length > 0 && (
@@ -62,20 +71,15 @@ export function EventsPage() {
                 {["전체", ...uniqueTags].map(tag => (
                   <button
                     key={tag}
-                    onClick={() => setActiveTag(tag)}
-                    style={{
-                      padding: "8px 18px", borderRadius: 99, border: "none", cursor: "pointer",
-                      fontWeight: 700, fontSize: 14, transition: "all 0.15s",
-                      background: activeTag === tag ? "#18A343" : isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)",
-                      color: activeTag === tag ? "#fff" : textMuted,
-                    }}
+                    onClick={() => handleTagChange(tag)}
+                    style={getFilterTabStyle(isDark, activeTag === tag)}
                   >
                     {tag}
                   </button>
                 ))}
               </div>
             )}
-            {filteredPosts.map((post) => {
+            {pagedPosts.map((post) => {
               const attachmentImages = post.image_url?.split(",").filter(isImage) || [];
               const thumbnailUrl =
                 attachmentImages.length > 0
@@ -85,23 +89,24 @@ export function EventsPage() {
               const tags = post.tags
                 ? post.tags.split(",").map((t: string) => t.trim()).filter(Boolean)
                 : [];
-              const statusCfg = post.event_status ? EVENT_STATUS[post.event_status] : null;
-              const isClosed = post.event_status === "마감";
-              const cardBorderColor = statusCfg ? statusCfg.color + "40" : borderColor;
+              const statusCfg = post.event_status ? EVENT_STATUS_CONFIG[post.event_status] : null;
+              const acceptedCount = acceptedCounts[post.id] ?? 0;
+              const remaining = post.capacity != null ? Math.max(post.capacity - acceptedCount, 0) : post.slots_remaining;
+              const isClosed = post.event_status === "마감" || remaining === 0;
 
               return (
                 <div
                   key={post.id}
-                  className="rounded-3xl overflow-hidden flex flex-col sm:flex-row transition-all duration-200 hover:-translate-y-0.5"
+                  className="rounded-3xl overflow-hidden flex flex-col sm:flex-row sm:min-h-[220px] transition-all duration-200 hover:-translate-y-0.5"
                   style={{
                     background: card,
-                    border: `1px solid ${cardBorderColor}`,
+                    border: `1px solid ${borderColor}`,
                     boxShadow: isDark ? "none" : "0 2px 16px rgba(0,0,0,0.06)",
                   }}
                 >
                   {/* Thumbnail */}
                   <div
-                    className="w-full sm:w-[260px] shrink-0 h-52 sm:h-auto"
+                    className="w-full sm:w-[260px] shrink-0 h-52 sm:h-auto sm:self-stretch"
                     style={{ background: imgPlaceholder }}
                   >
                     {thumbnailUrl ? (
@@ -121,15 +126,14 @@ export function EventsPage() {
 
                   {/* Center: content */}
                   <div
-                    className="flex-1 p-6 sm:p-7 flex flex-col gap-3"
+                    className="flex-1 min-w-0 p-6 sm:p-6 flex flex-col gap-3 overflow-hidden"
                     style={{ borderRight: `1px solid ${divider}` }}
                   >
                     {/* Status + type badges */}
                     <div className="flex flex-wrap gap-2">
                       {statusCfg && (
                         <span
-                          className="text-xs font-bold px-3 py-1 rounded-full"
-                          style={{ color: statusCfg.color, background: statusCfg.bg }}
+                          style={getStatusPillStyle(statusCfg.color, isDark)}
                         >
                           {statusCfg.label}
                         </span>
@@ -137,11 +141,7 @@ export function EventsPage() {
                       {tags.slice(0, 2).map((tag: string) => (
                         <span
                           key={tag}
-                          className="text-xs font-semibold px-3 py-1 rounded-full"
-                          style={{
-                            color: textMuted,
-                            background: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)",
-                          }}
+                          style={getMutedLabelStyle(isDark)}
                         >
                           {tag}
                         </span>
@@ -162,72 +162,51 @@ export function EventsPage() {
                     {/* Excerpt */}
                     {excerpt && (
                       <p
-                        className="m-0 text-sm leading-relaxed line-clamp-2"
+                        className="m-0 text-sm leading-relaxed line-clamp-3"
                         style={{ color: textMuted }}
                       >
                         {excerpt}
                       </p>
                     )}
-
-                    {/* Hashtag pills */}
-                    {tags.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mt-1">
-                        {tags.map((tag: string) => (
-                          <span
-                            key={tag}
-                            className="text-xs font-medium"
-                            style={{ color: isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.35)" }}
-                          >
-                            #{tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
                   </div>
 
                   {/* Right: info panel */}
                   <div
-                    className="w-full sm:w-[220px] shrink-0 p-5 sm:p-6 flex flex-col gap-4 justify-between"
+                    className="w-full sm:w-[220px] shrink-0 p-5 sm:p-5 flex flex-col gap-3 justify-between"
                     style={{ background: panelBg }}
                   >
-                    <div className="flex flex-col gap-3">
-                      {post.event_date && (
-                        <div>
-                          <p className="m-0 text-[11px] font-bold tracking-wide mb-1" style={{ color: textMuted }}>일시</p>
-                          <p className="m-0 text-sm font-semibold leading-snug" style={{ color: textMain }}>{post.event_date}</p>
-                        </div>
-                      )}
-                      {post.location && (
-                        <div>
-                          <p className="m-0 text-[11px] font-bold tracking-wide mb-1" style={{ color: textMuted }}>장소</p>
-                          <p className="m-0 text-sm font-semibold leading-snug" style={{ color: textMain }}>{post.location}</p>
-                        </div>
-                      )}
-                      {post.capacity != null && (
-                        <div>
-                          <p className="m-0 text-[11px] font-bold tracking-wide mb-1" style={{ color: textMuted }}>정원</p>
-                          <p className="m-0 text-sm font-semibold" style={{ color: textMain }}>
-                            {post.capacity}명
-                            {post.slots_remaining != null && (
-                              <span
-                                className="ml-1.5 text-xs font-bold"
-                                style={{ color: post.slots_remaining <= 5 ? "#F59E0B" : "#0FA37F" }}
-                              >
-                                / 잔여 {post.slots_remaining}석
-                              </span>
-                            )}
-                          </p>
-                        </div>
-                      )}
+                    <div className="flex flex-col gap-2.5">
+                      <div>
+                        <p className="m-0 text-[11px] font-bold tracking-wide mb-1" style={{ color: textMuted }}>일시</p>
+                        <p className="m-0 text-sm font-semibold leading-snug" style={{ color: textMain }}>{post.event_date || "일시 미정"}</p>
+                      </div>
+                      <div>
+                        <p className="m-0 text-[11px] font-bold tracking-wide mb-1" style={{ color: textMuted }}>장소</p>
+                        <p className="m-0 text-sm font-semibold leading-snug" style={{ color: textMain }}>{post.location || "장소 미정"}</p>
+                      </div>
+                      <div>
+                        <p className="m-0 text-[11px] font-bold tracking-wide mb-1" style={{ color: textMuted }}>정원</p>
+                        <p className="m-0 text-sm font-semibold" style={{ color: textMain }}>
+                          {post.capacity != null ? `${post.capacity}명` : "정원 미정"}
+                          {post.capacity != null && remaining != null && (
+                            <span
+                              className="ml-1.5 text-xs font-bold"
+                              style={{ color: remaining <= 5 ? "#F59E0B" : "#0FA37F" }}
+                            >
+                              / 잔여 {remaining}석
+                            </span>
+                          )}
+                        </p>
+                      </div>
                     </div>
 
                     <Link
-                      to={`/post/${post.id}`}
-                      className="block text-center rounded-xl text-sm font-bold no-underline py-3"
+                      to={`/events/${post.id}/apply`}
+                      className="block text-center rounded-xl text-sm font-bold no-underline py-2.5"
                       style={{
                         background: isClosed
                           ? (isDark ? "rgba(255,255,255,0.06)" : "#f1f5f9")
-                          : "linear-gradient(135deg, #0FA37F 0%, #18A343 100%)",
+                          : "#18A343",
                         color: isClosed ? textMuted : "#fff",
                         pointerEvents: isClosed ? "none" : "auto",
                       }}
@@ -238,6 +217,32 @@ export function EventsPage() {
                 </div>
               );
             })}
+            {totalPages > 1 && (
+              <div className="mt-10">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious href="#" onClick={e => { e.preventDefault(); if (currentPage > 1) setCurrentPage(p => p - 1); }} aria-disabled={currentPage === 1} className={currentPage === 1 ? "pointer-events-none opacity-40" : ""} />
+                    </PaginationItem>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
+                      const showPage = page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1;
+                      const showEllipsisBefore = page === currentPage - 2 && currentPage > 3;
+                      const showEllipsisAfter = page === currentPage + 2 && currentPage < totalPages - 2;
+                      if (showEllipsisBefore || showEllipsisAfter) return <PaginationItem key={`el-${page}`}><PaginationEllipsis /></PaginationItem>;
+                      if (!showPage) return null;
+                      return (
+                        <PaginationItem key={page}>
+                          <PaginationLink href="#" isActive={currentPage === page} onClick={e => { e.preventDefault(); setCurrentPage(page); }}>{page}</PaginationLink>
+                        </PaginationItem>
+                      );
+                    })}
+                    <PaginationItem>
+                      <PaginationNext href="#" onClick={e => { e.preventDefault(); if (currentPage < totalPages) setCurrentPage(p => p + 1); }} aria-disabled={currentPage === totalPages} className={currentPage === totalPages ? "pointer-events-none opacity-40" : ""} />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
           </div>
           );
         })()}

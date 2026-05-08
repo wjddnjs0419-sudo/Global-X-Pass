@@ -4,8 +4,11 @@ import { supabase } from "../../lib/supabaseClient";
 import { PageShell } from "../components/PageShell";
 import { useTheme } from "../ThemeContext";
 import { LoadingSpinner, ErrorMessage } from "../components/LoadingSpinner";
-import { Badge } from "../components/ui/badge";
 import { cleanText } from "../../utils/text";
+import { getFilterTabStyle, getMutedLabelStyle } from "../components/contentListStyles";
+import { Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationNext, PaginationLink, PaginationEllipsis } from "../components/ui/pagination";
+
+const PAGE_SIZE = 12;
 
 const decodeFilename = (encoded: string) => {
   if (encoded.startsWith('b64-')) {
@@ -42,6 +45,8 @@ export function EventArchivePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [activeTag, setActiveTag] = useState("전체");
+  const [activeYear, setActiveYear] = useState("전체");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const card = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
   const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
@@ -50,28 +55,49 @@ export function EventArchivePage() {
   const imgPlaceholder = isDark ? "rgba(255,255,255,0.06)" : "#f1f5f9";
 
   useEffect(() => {
-    supabase
-      .from('posts')
-      .select('*')
-      .eq('category', 'events-archive')
-      .order('created_at', { ascending: false })
-      .then(({ data, error: err }) => {
-        if (err) setError(true);
-        else if (data) setPosts(data);
+    let isMounted = true;
+
+    const fetchPosts = async () => {
+      const { data, error: err } = await supabase
+        .from('posts')
+        .select('*')
+        .eq('category', 'events-archive')
+        .order('created_at', { ascending: false });
+
+      if (!isMounted) return;
+
+      if (err) {
+        setPosts([]);
+        setError(true);
         setLoading(false);
-      });
+        return;
+      }
+
+      setPosts(data ?? []);
+      setError(false);
+      setLoading(false);
+    };
+
+    void fetchPosts();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const allTags = posts.flatMap(p => p.tags ? p.tags.split(',').map((t: string) => t.trim()).filter(Boolean) : []);
   const uniqueTags = [...new Set(allTags)];
-  const categoryCount = uniqueTags.length;
-  const filteredPosts = activeTag === "전체" ? posts : posts.filter(p => p.tags?.split(',').map((t: string) => t.trim()).includes(activeTag));
+  const uniqueYears = [...new Set(posts.map(p => String(new Date(p.created_at).getFullYear())))].sort((a, b) => Number(b) - Number(a));
+  const filteredPosts = posts.filter(p => {
+    const tagMatch = activeTag === "전체" || p.tags?.split(',').map((t: string) => t.trim()).includes(activeTag);
+    const yearMatch = activeYear === "전체" || String(new Date(p.created_at).getFullYear()) === activeYear;
+    return tagMatch && yearMatch;
+  });
+  const totalPages = Math.ceil(filteredPosts.length / PAGE_SIZE);
+  const pagedPosts = filteredPosts.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  const stats = [
-    { label: "총 행사",      value: `${posts.length}건`,             color: "#18A343" },
-    { label: "누적 참가 인원", value: "집계 예정",                     color: "#18A343" },
-    { label: "카테고리",      value: `${categoryCount || 0}개`, color: "#18A343" },
-  ];
+  const handleTagChange = (tag: string) => { setActiveTag(tag); setCurrentPage(1); };
+  const handleYearChange = (year: string) => { setActiveYear(year); setCurrentPage(1); };
 
   return (
     <PageShell title="행사 아카이브" subtitle="NCF와 함께한 지난 행사의 소중한 기록들을 만나보세요." accentColor="#18A343">
@@ -84,46 +110,60 @@ export function EventArchivePage() {
           <p className="text-center text-gray-500 py-[80px]">등록된 아카이브가 없습니다.</p>
         ) : (
           <>
-            {/* Stats */}
-            <div className="grid grid-cols-3 gap-4 mb-10">
-              {stats.map(stat => (
-                <div
-                  key={stat.label}
-                  style={{ background: card, border: `1px solid ${border}`, borderRadius: 20, padding: "28px 24px", textAlign: "center" }}
-                >
-                  <div style={{ fontSize: "clamp(23px,3.15vw,38px)", fontWeight: 900, color: stat.color, letterSpacing: "-1px", lineHeight: 1.1 }}>
-                    {stat.value}
-                  </div>
-                  <div style={{ fontSize: 14, color: textMuted, marginTop: 8, fontWeight: 500 }}>
-                    {stat.label}
-                  </div>
+            {/* Filters */}
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: 28 }}>
+              {uniqueTags.length > 0 && (
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {["전체", ...uniqueTags].map(tag => (
+                    <button
+                      key={tag}
+                      aria-pressed={activeTag === tag}
+                      onClick={() => handleTagChange(tag)}
+                      style={getFilterTabStyle(isDark, activeTag === tag)}
+                    >
+                      {tag}
+                    </button>
+                  ))}
                 </div>
-              ))}
+              )}
+              {uniqueYears.length > 1 && (
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {["전체", ...uniqueYears].map(year => {
+                    const active = activeYear === year;
+                    return (
+                      <button
+                        key={year}
+                        aria-pressed={active}
+                        onClick={() => handleYearChange(year)}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          padding: "3px 10px",
+                          borderRadius: 999,
+                          border: `1px solid ${isDark ? (active ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.1)") : (active ? "rgba(15,23,42,0.22)" : "rgba(15,23,42,0.1)")}`,
+                          background: active
+                            ? (isDark ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.07)")
+                            : (isDark ? "rgba(255,255,255,0.035)" : "rgba(15,23,42,0.025)"),
+                          color: active
+                            ? (isDark ? "rgba(255,255,255,0.85)" : "rgba(15,23,42,0.8)")
+                            : (isDark ? "rgba(255,255,255,0.45)" : "rgba(15,23,42,0.45)"),
+                          fontSize: 12,
+                          fontWeight: active ? 700 : 500,
+                          cursor: "pointer",
+                          transition: "background 0.15s, border-color 0.15s, color 0.15s",
+                        }}
+                      >
+                        {year === "전체" ? "전체" : `${year}년`}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-
-            {/* Tag filter */}
-            {uniqueTags.length > 0 && (
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 28 }}>
-                {["전체", ...uniqueTags].map(tag => (
-                  <button
-                    key={tag}
-                    onClick={() => setActiveTag(tag)}
-                    style={{
-                      padding: "8px 18px", borderRadius: 99, border: "none", cursor: "pointer",
-                      fontWeight: 700, fontSize: 14, transition: "all 0.15s",
-                      background: activeTag === tag ? "#18A343" : isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)",
-                      color: activeTag === tag ? "#fff" : textMuted,
-                    }}
-                  >
-                    {tag}
-                  </button>
-                ))}
-              </div>
-            )}
 
             {/* 4-column grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              {filteredPosts.map((post) => {
+              {pagedPosts.map((post) => {
                 const attachmentImages = post.image_url?.split(',').filter(isImage) || [];
                 const thumbnailUrl =
                   attachmentImages.length > 0
@@ -161,7 +201,7 @@ export function EventArchivePage() {
                         position: "absolute", bottom: 10, left: 10,
                         fontSize: 11, fontWeight: 700, color: "#fff",
                         background: "rgba(0,0,0,0.52)", backdropFilter: "blur(6px)",
-                        padding: "3px 9px", borderRadius: 99,
+                        padding: "3px 8px", borderRadius: 6,
                       }}>
                         {year}
                       </span>
@@ -173,9 +213,9 @@ export function EventArchivePage() {
                         <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                           {post.tags
                             ? post.tags.split(',').map((t: string) => t.trim()).filter(Boolean).map((tag: string) => (
-                                <Badge key={tag} variant="green" shape="pill" style={{ fontSize: 11 }}>{tag}</Badge>
+                                <span key={tag} style={getMutedLabelStyle(isDark)}>{tag}</span>
                               ))
-                            : <Badge variant="green" shape="pill" style={{ fontSize: 11 }}>행사</Badge>
+                            : <span style={getMutedLabelStyle(isDark)}>행사</span>
                           }
                         </div>
                         <span style={{ fontSize: 12, color: textMuted, flexShrink: 0 }}>{dateStr}</span>
@@ -199,6 +239,52 @@ export function EventArchivePage() {
                 );
               })}
             </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="mt-10">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        href="#"
+                        onClick={e => { e.preventDefault(); if (currentPage > 1) setCurrentPage(p => p - 1); }}
+                        aria-disabled={currentPage === 1}
+                        className={currentPage === 1 ? "pointer-events-none opacity-40" : ""}
+                      />
+                    </PaginationItem>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
+                      const showPage = page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1;
+                      const showEllipsisBefore = page === currentPage - 2 && currentPage > 3;
+                      const showEllipsisAfter = page === currentPage + 2 && currentPage < totalPages - 2;
+                      if (showEllipsisBefore || showEllipsisAfter) {
+                        return <PaginationItem key={`el-${page}`}><PaginationEllipsis /></PaginationItem>;
+                      }
+                      if (!showPage) return null;
+                      return (
+                        <PaginationItem key={page}>
+                          <PaginationLink
+                            href="#"
+                            isActive={currentPage === page}
+                            onClick={e => { e.preventDefault(); setCurrentPage(page); }}
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    })}
+                    <PaginationItem>
+                      <PaginationNext
+                        href="#"
+                        onClick={e => { e.preventDefault(); if (currentPage < totalPages) setCurrentPage(p => p + 1); }}
+                        aria-disabled={currentPage === totalPages}
+                        className={currentPage === totalPages ? "pointer-events-none opacity-40" : ""}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
           </>
         )}
       </div>

@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
+import { requireVerifiedAdmin } from "../_shared/adminAuth.ts";
 
 const ENC_PREFIX = "enc:v1:";
 
@@ -44,24 +45,16 @@ Deno.serve(async (req: Request) => {
     if (!authHeader) return new Response("Unauthorized", { status: 401, headers: CORS });
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const encSecret = Deno.env.get("ENCRYPTION_SECRET_KEY");
     if (!encSecret) throw new Error("ENCRYPTION_SECRET_KEY is not configured");
 
-    // 호출자가 어드민인지 확인
-    const callerClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: { user }, error: userErr } = await callerClient.auth.getUser();
-    if (userErr || !user) return new Response("Unauthorized", { status: 401, headers: CORS });
+    const adminCheck = await requireVerifiedAdmin(authHeader);
+    if (!adminCheck.ok) {
+      return new Response(adminCheck.message, { status: adminCheck.status, headers: CORS });
+    }
 
     const adminClient = createClient(supabaseUrl, serviceKey);
-    const { data: callerProfile } = await adminClient
-      .from("profiles").select("role").eq("id", user.id).single();
-    if (callerProfile?.role !== "admin") {
-      return new Response("Forbidden", { status: 403, headers: CORS });
-    }
 
     const { users } = await req.json();
     if (!Array.isArray(users) || users.length === 0) {

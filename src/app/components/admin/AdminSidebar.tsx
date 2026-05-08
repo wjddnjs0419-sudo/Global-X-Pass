@@ -1,6 +1,6 @@
 import { useTheme } from "../../ThemeContext";
 
-type TabId = "dashboard" | "users" | "create" | "manage" | "consulting" | "founders";
+type TabId = "dashboard" | "users" | "create" | "manage" | "events" | "consulting" | "founders" | "blog-queue";
 
 interface AdminSidebarProps {
   activeTab: string;
@@ -38,11 +38,19 @@ const SECTIONS: { label: string; items: { id: TabId; label: string; icon: React.
         id: "manage", label: "게시물 관리",
         icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>,
       },
+      {
+        id: "blog-queue", label: "블로그 동기화",
+        icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
+      },
     ],
   },
   {
     label: "프로그램",
     items: [
+      {
+        id: "events", label: "행사 관리",
+        icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>,
+      },
       {
         id: "consulting", label: "컨설팅 관리",
         icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
@@ -58,10 +66,13 @@ const SECTIONS: { label: string; items: { id: TabId; label: string; icon: React.
 export function AdminSidebar({ activeTab, onTabChange, adminEmail }: AdminSidebarProps) {
   const { isDark } = useTheme();
 
-  const bg      = isDark ? "#0d1526" : "#ffffff";
-  const border  = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)";
+  const bg      = isDark ? "#0c1324" : "#ffffff";
+  const border  = isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.08)";
   const textMain  = isDark ? "rgba(255,255,255,0.92)" : "#111827";
-  const textMuted = isDark ? "rgba(255,255,255,0.38)" : "#9ca3af";
+  const textMuted = isDark ? "rgba(255,255,255,0.42)" : "rgba(15,23,42,0.46)";
+  const activeBg = isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.055)";
+  const hoverBg = isDark ? "rgba(255,255,255,0.055)" : "rgba(15,23,42,0.04)";
+  const activeBorder = isDark ? "rgba(255,255,255,0.14)" : "rgba(15,23,42,0.1)";
 
   return (
     <aside style={{
@@ -103,24 +114,24 @@ export function AdminSidebar({ activeTab, onTabChange, adminEmail }: AdminSideba
                     gap: 10,
                     padding: "9px 12px",
                     borderRadius: 9,
-                    border: "none",
+                    border: `1px solid ${isActive ? activeBorder : "transparent"}`,
                     cursor: "pointer",
                     fontFamily: "inherit",
                     fontSize: 13,
-                    fontWeight: isActive ? 700 : 500,
+                    fontWeight: isActive ? 750 : 600,
                     textAlign: "left",
-                    transition: "all 0.12s",
+                    transition: "background 0.12s, border-color 0.12s, color 0.12s",
                     background: isActive
-                      ? "#4377F1"
+                      ? activeBg
                       : "transparent",
                     color: isActive
-                      ? "#fff"
+                      ? textMain
                       : textMain,
                   }}
-                  onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)"; }}
+                  onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = hoverBg; }}
                   onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
                 >
-                  <span style={{ opacity: isActive ? 1 : 0.6, flexShrink: 0 }}>{item.icon}</span>
+                  <span style={{ opacity: isActive ? 0.9 : 0.56, flexShrink: 0 }}>{item.icon}</span>
                   {item.label}
                 </button>
               );
@@ -143,9 +154,10 @@ export function AdminSidebar({ activeTab, onTabChange, adminEmail }: AdminSideba
           <div style={{
             width: 30, height: 30,
             borderRadius: "50%",
-            background: "linear-gradient(135deg, #4377F1, #20D6A2)",
+            background: isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.06)",
+            border: `1px solid ${border}`,
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 12, fontWeight: 800, color: "#fff", flexShrink: 0,
+            fontSize: 12, fontWeight: 800, color: textMain, flexShrink: 0,
           }}>
             {adminEmail[0].toUpperCase()}
           </div>

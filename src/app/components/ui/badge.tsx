@@ -5,7 +5,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "./utils";
 
 const badgeVariants = cva(
-  "inline-flex items-center justify-center border px-2.5 py-0.5 text-[11px] font-extrabold w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1.5 [&>svg]:pointer-events-none transition-all duration-300 uppercase tracking-[0.15em]",
+  "inline-flex min-h-5 items-center justify-center border px-2 py-0.5 text-[11px] leading-none font-bold w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1.5 [&>svg]:pointer-events-none transition-colors duration-200 tracking-normal",
   {
     variants: {
       variant: {
@@ -18,21 +18,21 @@ const badgeVariants = cva(
         outline:
           "bg-transparent border-slate-200 text-slate-500 dark:border-white/25 dark:text-slate-300",
         blue:
-          "bg-[rgba(66,133,244,0.15)] border-[rgba(66,133,244,0.40)] text-[#4285F4]",
+          "bg-[rgba(67,119,241,0.08)] border-[rgba(67,119,241,0.20)] text-[#4377F1]",
         green:
-          "bg-[rgba(52,168,83,0.15)] border-[rgba(52,168,83,0.40)] text-[#34A853]",
+          "bg-[rgba(24,163,67,0.08)] border-[rgba(24,163,67,0.20)] text-[#18A343]",
         yellow:
-          "bg-[rgba(251,188,5,0.15)] border-[rgba(251,188,5,0.40)] text-[#FBBC05]",
+          "bg-[rgba(251,188,5,0.10)] border-[rgba(251,188,5,0.22)] text-[#A66F00]",
         red:
-          "bg-[rgba(234,67,53,0.15)] border-[rgba(234,67,53,0.40)] text-[#EA4335]",
+          "bg-[rgba(234,67,53,0.08)] border-[rgba(234,67,53,0.20)] text-[#EA4335]",
         purple:
-          "bg-[rgba(168,85,247,0.15)] border-[rgba(168,85,247,0.40)] text-[#A855F7]",
+          "bg-[rgba(168,85,247,0.08)] border-[rgba(168,85,247,0.20)] text-[#A855F7]",
         glass:
-          "bg-[rgba(255,255,255,0.08)] border-[rgba(255,255,255,0.22)] text-white backdrop-blur-md",
+          "bg-[rgba(255,255,255,0.08)] border-[rgba(255,255,255,0.22)] text-white",
       },
       shape: {
         default: "rounded-md",
-        pill: "rounded-full px-3.5",
+        pill: "rounded-full px-2.5 py-0.5",
       }
     },
     defaultVariants: {
@@ -54,12 +54,12 @@ const DOT_COLOR: Record<string, string> = {
   secondary: "bg-slate-400 dark:bg-slate-300",
   destructive: "bg-white",
   outline: "bg-slate-300 dark:bg-slate-400",
-  blue: "bg-[#4285F4]",
-  green: "bg-[#34A853]",
+  blue: "bg-[#4377F1]",
+  green: "bg-[#18A343]",
   yellow: "bg-[#FBBC05]",
   red: "bg-[#EA4335]",
   purple: "bg-[#A855F7]",
-  glass: "bg-white shadow-[0_0_8px_#fff]",
+  glass: "bg-white",
 };
 
 function Badge({

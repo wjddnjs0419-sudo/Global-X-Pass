@@ -179,8 +179,8 @@ export function LoginPage() {
             <button 
               type="submit" 
               disabled={loading || otpCode.length !== 6} 
-              className={`py-[14px] rounded-xl border-none text-white text-[15px] font-bold font-['Pretendard',sans-serif] ${loading || otpCode.length !== 6 ? "bg-gray-500 cursor-not-allowed shadow-none" : "cursor-pointer shadow-[0_8px_24px_rgba(67,119,241,0.3)]"}`}
-              style={{ background: loading || otpCode.length !== 6 ? undefined : "linear-gradient(135deg, #4377F1 0%, #20D6A2 100%)" }}
+              className={`py-[14px] rounded-xl border-none text-white text-[15px] font-bold font-['Pretendard',sans-serif] ${loading || otpCode.length !== 6 ? "bg-gray-500 cursor-not-allowed shadow-none" : "cursor-pointer shadow-none"}`}
+              style={{ background: loading || otpCode.length !== 6 ? undefined : "#4377F1" }}
             >
               {loading ? "인증 중..." : "인증 및 로그인"}
             </button>
@@ -241,19 +241,19 @@ export function LoginPage() {
                 <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
                 로그인 유지
               </label>
-              <a href="#" onClick={handleResetPassword} className="text-[#20D6A2] no-underline font-semibold">비밀번호 찾기</a>
+              <a href="#" onClick={handleResetPassword} className="text-[#4377F1] no-underline font-semibold">비밀번호 찾기</a>
             </div>
 
             <button 
               type="submit" 
               disabled={loading} 
-              className={`mt-2 py-[14px] rounded-xl border-none text-white text-[15px] font-bold font-['Pretendard',sans-serif] ${loading ? "bg-gray-500 cursor-not-allowed shadow-none" : "cursor-pointer shadow-[0_8px_24px_rgba(32,214,162,0.3)]"}`}
-              style={{ background: loading ? undefined : "linear-gradient(135deg, #20D6A2 0%, #4377F1 100%)" }}
+              className={`mt-2 py-[14px] rounded-xl border-none text-white text-[15px] font-bold font-['Pretendard',sans-serif] ${loading ? "bg-gray-500 cursor-not-allowed shadow-none" : "cursor-pointer shadow-none"}`}
+              style={{ background: loading ? undefined : "#4377F1" }}
             >
               {loading ? "처리 중..." : "로그인"}
             </button>
             <p className="text-center text-[13px] m-0 mt-3" style={{ color: textMuted }}>
-              아직 회원이 아니신가요? <Link to="/signup" className="text-[#20D6A2] font-bold no-underline">회원가입</Link>
+              아직 회원이 아니신가요? <Link to="/signup" className="text-[#4377F1] font-bold no-underline">회원가입</Link>
             </p>
           </form>
         )}

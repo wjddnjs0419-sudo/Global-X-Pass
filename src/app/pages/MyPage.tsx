@@ -3,15 +3,20 @@ import { useNavigate } from "react-router";
 import { PageShell } from "../components/PageShell";
 import { useTheme } from "../ThemeContext";
 import { createClient } from "@supabase/supabase-js";
+import { X } from "lucide-react";
 import { supabase, supabaseUrl, supabaseAnonKey } from "../../lib/supabaseClient";
 import type { Profile } from "../../lib/types";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "../components/ui/input-otp";
+import { EVENT_APPLICATION_STATUS } from "../../utils/eventApplication";
+import { sanitizeSvgMarkup } from "../../utils/htmlSecurity";
+import { getStatusPillStyle } from "../components/contentListStyles";
 
 export function MyPage() {
   const { isDark } = useTheme();
   const navigate = useNavigate();
-  const [user, setUser] = useState<{ email?: string; id: string; user_metadata: Record<string, string> } | null>(null);
+  const [user, setUser] = useState<{ email?: string; id: string } | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [showOldPassword, setShowOldPassword] = useState(false);
@@ -21,6 +26,7 @@ export function MyPage() {
   const [loading, setLoading] = useState(false);
   const [consultingReservations, setConsultingReservations] = useState<any[]>([]);
   const [clubApplications, setClubApplications] = useState<any[]>([]);
+  const [eventApplications, setEventApplications] = useState<any[]>([]);
 
   // MFA States
   const [mfaQr, setMfaQr] = useState<string | null>(null);
@@ -39,11 +45,77 @@ export function MyPage() {
   const textMuted = isDark ? "rgba(255,255,255,0.55)" : "rgba(15,23,42,0.55)";
   const inputBg = isDark ? "rgba(255,255,255,0.04)" : "#fff";
   const inputBorder = isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.12)";
+  const panelBg = isDark ? "rgba(255,255,255,0.035)" : "rgba(15,23,42,0.035)";
+  const labelBorder = isDark ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.09)";
+  const selectedBg = isDark ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.07)";
+  const deleteBg = isDark ? "rgba(234,67,53,0.08)" : "rgba(234,67,53,0.06)";
+  const deleteBorder = isDark ? "rgba(234,67,53,0.28)" : "rgba(234,67,53,0.22)";
 
   const inputDynamicStyle: React.CSSProperties = {
     background: inputBg,
     border: `1px solid ${inputBorder}`,
     color: textMain,
+  };
+
+  const requestCardStyle: React.CSSProperties = {
+    position: "relative",
+    padding: "16px 42px 16px 18px",
+    borderRadius: 14,
+    border: `1px solid ${border}`,
+    display: "flex",
+    flexDirection: "column",
+    gap: 10,
+  };
+
+  const cancelIconStyle: React.CSSProperties = {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    width: 24,
+    height: 24,
+    borderRadius: "50%",
+    border: "none",
+    background: isDark ? "rgba(234,67,53,0.14)" : "rgba(234,67,53,0.1)",
+    color: "#EA4335",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: loading ? "not-allowed" : "pointer",
+    opacity: loading ? 0.55 : 1,
+  };
+
+  const statusPill = (cfg: { label: string; color: string }) => (
+    <span style={{ ...getStatusPillStyle(cfg.color, isDark), whiteSpace: "nowrap" }}>{cfg.label}</span>
+  );
+
+  const fetchConsultingReservations = async (userId: string) => {
+    const { data: resData } = await supabase
+      .from("consulting_reservations")
+      .select("*, consulting_slots(slot_date, slot_time, location, consultants(name, category))")
+      .eq("user_id", userId)
+      .neq("status", "cancelled")
+      .order("created_at", { ascending: false });
+    setConsultingReservations(resData || []);
+  };
+
+  const fetchClubApplications = async (userId: string) => {
+    const { data: clubData } = await supabase
+      .from("founders_club_applications")
+      .select("*, founders_club_sessions(theme, session_date, session_time, location, status)")
+      .eq("user_id", userId)
+      .neq("status", "cancelled")
+      .order("created_at", { ascending: false });
+    setClubApplications(clubData || []);
+  };
+
+  const fetchEventApplications = async (userId: string) => {
+    const { data: eventData } = await supabase
+      .from("event_applications")
+      .select("*, posts(title, event_date, location, event_status)")
+      .eq("user_id", userId)
+      .neq("status", "cancelled")
+      .order("created_at", { ascending: false });
+    setEventApplications(eventData || []);
   };
 
   useEffect(() => {
@@ -53,9 +125,14 @@ export function MyPage() {
         alert("로그인이 필요한 페이지입니다.");
         navigate("/login");
       } else {
-        setUser(user as typeof user & { user_metadata: Record<string, string> });
+        setUser({ id: user.id, email: user.email ?? undefined });
         const { data, error } = await supabase.functions.invoke('decrypt-own-profile');
-        if (!error && data) setProfile(data as Profile);
+        if (error) {
+          console.error("내 프로필 복호화 오류:", error.message);
+        } else if (data) {
+          setProfile(data as Profile);
+        }
+        setProfileLoaded(true);
 
         // MFA Factor check
         const { data: factors } = await supabase.auth.mfa.listFactors();
@@ -64,24 +141,67 @@ export function MyPage() {
         }
 
         if (data?.role !== "admin") {
-          const { data: resData } = await supabase
-            .from("consulting_reservations")
-            .select("*, consulting_slots(slot_date, slot_time, consultants(name, category))")
-            .eq("user_id", user.id)
-            .order("created_at", { ascending: false });
-          setConsultingReservations(resData || []);
-
-          const { data: clubData } = await supabase
-            .from("founders_club_applications")
-            .select("*, founders_club_sessions(theme, session_date, status)")
-            .eq("user_id", user.id)
-            .order("created_at", { ascending: false });
-          setClubApplications(clubData || []);
+          await Promise.all([
+            fetchConsultingReservations(user.id),
+            fetchClubApplications(user.id),
+            fetchEventApplications(user.id),
+          ]);
         }
       }
     };
     fetchUserAndProfile();
   }, [navigate]);
+
+  const handleCancelConsultingReservation = async (reservation: any) => {
+    if (!window.confirm("컨설팅 신청을 취소하시겠습니까?")) return;
+
+    setLoading(true);
+    const { error } = await supabase
+      .from("consulting_reservations")
+      .update({ status: "cancelled" })
+      .eq("id", reservation.id);
+
+    if (error) {
+      alert("취소 실패: " + error.message);
+    } else if (user?.id) {
+      await fetchConsultingReservations(user.id);
+    }
+    setLoading(false);
+  };
+
+  const handleCancelClubApplication = async (application: any) => {
+    if (!window.confirm("Founder's Club 신청을 취소하시겠습니까?")) return;
+
+    setLoading(true);
+    const { error } = await supabase
+      .from("founders_club_applications")
+      .update({ status: "cancelled" })
+      .eq("id", application.id);
+
+    if (error) {
+      alert("취소 실패: " + error.message);
+    } else if (user?.id) {
+      await fetchClubApplications(user.id);
+    }
+    setLoading(false);
+  };
+
+  const handleCancelEventApplication = async (application: any) => {
+    if (!window.confirm("행사 신청을 취소하시겠습니까?")) return;
+
+    setLoading(true);
+    const { error } = await supabase
+      .from("event_applications")
+      .update({ status: "cancelled" })
+      .eq("id", application.id);
+
+    if (error) {
+      alert("취소 실패: " + error.message);
+    } else if (user?.id) {
+      await fetchEventApplications(user.id);
+    }
+    setLoading(false);
+  };
 
   const handleVerifyOldPassword = async () => {
     if (!oldPassword) return alert("현재 비밀번호를 입력해주세요.");
@@ -191,6 +311,10 @@ export function MyPage() {
   };
 
   const handleMfaUnenroll = async () => {
+    if (profile?.role === "admin") {
+      alert("관리자 계정은 보안 정책상 2단계 인증을 해제할 수 없습니다.");
+      return;
+    }
     if (!confirm("2단계 인증을 해제하시겠습니까? 관리자 계정 보안이 취약해질 수 있습니다.")) return;
     setLoading(true);
     
@@ -210,6 +334,11 @@ export function MyPage() {
 
   if (!user) return null;
 
+  const getProfileText = (value?: string | null) => {
+    if (!profileLoaded) return "불러오는 중...";
+    return value?.trim() ? value : "미입력";
+  };
+
   const eyeIcon = (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
@@ -225,11 +354,11 @@ export function MyPage() {
         >
           <div>
             <h3 className="mb-5 text-[18px]" style={{ color: textMain }}>가입 정보</h3>
-            <div className="text-[15px] mb-3" style={{ color: textMuted }}>이메일 : <span className="font-semibold" style={{ color: textMain }}>{user.email}</span></div>
-            <div className="text-[15px] mb-3" style={{ color: textMuted }}>이름 : <span className="font-semibold" style={{ color: textMain }}>{profile?.name || user.user_metadata?.name || "미입력"}</span></div>
-            <div className="text-[15px] mb-3" style={{ color: textMuted }}>연락처 : <span className="font-semibold" style={{ color: textMain }}>{profile?.phone || user.user_metadata?.phone || "미입력"}</span></div>
-            <div className="text-[15px] mb-3" style={{ color: textMuted }}>소속 : <span className="font-semibold" style={{ color: textMain }}>{profile?.company || user.user_metadata?.company || "미입력"}</span></div>
-            <div className="text-[15px]" style={{ color: textMuted }}>구분 : <span className="font-semibold" style={{ color: textMain }}>{profile?.user_type || user.user_metadata?.user_type || "미입력"}</span></div>
+            <div className="text-[15px] mb-3" style={{ color: textMuted }}>이메일 : <span className="font-semibold" style={{ color: textMain }}>{getProfileText(profile?.email)}</span></div>
+            <div className="text-[15px] mb-3" style={{ color: textMuted }}>이름 : <span className="font-semibold" style={{ color: textMain }}>{getProfileText(profile?.name)}</span></div>
+            <div className="text-[15px] mb-3" style={{ color: textMuted }}>연락처 : <span className="font-semibold" style={{ color: textMain }}>{getProfileText(profile?.phone)}</span></div>
+            <div className="text-[15px] mb-3" style={{ color: textMuted }}>소속 : <span className="font-semibold" style={{ color: textMain }}>{getProfileText(profile?.company)}</span></div>
+            <div className="text-[15px]" style={{ color: textMuted }}>구분 : <span className="font-semibold" style={{ color: textMain }}>{getProfileText(profile?.user_type)}</span></div>
           </div>
 
           <hr className="border-none m-0" style={{ borderTop: `1px solid ${border}` }} />
@@ -297,7 +426,7 @@ export function MyPage() {
                   type="submit"
                   disabled={loading || (isMfaEnabled && profile?.role === "admin" && pwChangeMfaOtp.length !== 6)}
                   className={`w-full py-[14px] rounded-xl border-none text-white text-[15px] font-bold font-['Pretendard',sans-serif] mt-2 ${(loading || (isMfaEnabled && profile?.role === "admin" && pwChangeMfaOtp.length !== 6)) ? "cursor-not-allowed" : "cursor-pointer"}`}
-                  style={{ background: (loading || (isMfaEnabled && profile?.role === "admin" && pwChangeMfaOtp.length !== 6)) ? "#9ca3af" : "linear-gradient(135deg, #4377F1 0%, #20D6A2 100%)" }}
+                  style={{ background: (loading || (isMfaEnabled && profile?.role === "admin" && pwChangeMfaOtp.length !== 6)) ? "#9ca3af" : "#4377F1", boxShadow: "none" }}
                 >
                   {loading ? "변경 중..." : "새 비밀번호 저장"}
                 </button>
@@ -312,10 +441,10 @@ export function MyPage() {
                 <h3 className="mb-4 text-[18px]" style={{ color: textMain }}>관리자 보안 (MFA)</h3>
 
                 {mfaSetupRequired && !isMfaEnabled && (
-                  <div className="mb-4" style={{ padding: "16px 20px", borderRadius: 16, background: isDark ? "rgba(234,67,53,0.12)" : "#fff5f5", border: "1px solid rgba(234,67,53,0.4)" }}>
+                  <div className="mb-4" style={{ padding: "16px 20px", borderRadius: 16, background: deleteBg, border: `1px solid ${deleteBorder}` }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-                      <span style={{ fontSize: 18 }}>🔒</span>
-                      <p style={{ margin: 0, fontSize: 14, color: "#ea4335", fontWeight: 700 }}>관리자 패널 접근 전 MFA 설정이 필요합니다</p>
+                      <span style={{ fontSize: 16, opacity: 0.7 }}>🔒</span>
+                      <p style={{ margin: 0, fontSize: 14, color: "#EA4335", fontWeight: 750 }}>관리자 패널 접근 전 MFA 설정이 필요합니다</p>
                     </div>
                     <p style={{ margin: 0, fontSize: 13, color: isDark ? "rgba(255,255,255,0.6)" : "rgba(15,23,42,0.6)", lineHeight: 1.5 }}>
                       보안 정책상 관리자 계정은 2단계 인증(MFA)을 반드시 설정해야 합니다. 아래에서 설정을 완료한 후 관리자 패널에 접근할 수 있습니다.
@@ -324,14 +453,14 @@ export function MyPage() {
                 )}
 
                 {!isMfaEnabled && !mfaQr && (
-                  <div style={{ padding: "20px", borderRadius: 16, background: isDark ? "rgba(32,214,162,0.08)" : "#f0fdf4", border: "1px solid rgba(32,214,162,0.2)" }}>
-                    <p style={{ margin: "0 0 12px", fontSize: 14, color: textMain, fontWeight: 600 }}>2단계 인증(OTP)이 설정되어 있지 않습니다.</p>
-                    <p style={{ margin: "0 0 20px", fontSize: 13, color: textMuted, lineHeight: 1.5 }}>관리자 계정 보안을 위해 Google Authenticator 등 OTP 앱을 통한 2단계 인증 설정을 강력히 권장합니다.</p>
+                  <div style={{ padding: "20px", borderRadius: 16, background: panelBg, border: `1px solid ${labelBorder}` }}>
+                    <p style={{ margin: "0 0 12px", fontSize: 14, color: textMain, fontWeight: 750 }}>2단계 인증(OTP)이 설정되어 있지 않습니다.</p>
+                    <p style={{ margin: "0 0 20px", fontSize: 13, color: textMuted, lineHeight: 1.5 }}>보안 정책상 관리자 계정은 Google Authenticator 등 OTP 앱을 통한 2단계 인증을 반드시 설정해야 합니다.</p>
                     <button
                       onClick={handleMfaEnroll}
                       disabled={loading}
                       className="w-full py-3 rounded-xl border-none text-white text-[14px] font-bold cursor-pointer"
-                      style={{ background: "#20D6A2" }}
+                      style={{ background: "#4377F1", boxShadow: "none", opacity: loading ? 0.65 : 1 }}
                     >
                       {loading ? "준비 중..." : "2단계 인증 설정하기"}
                     </button>
@@ -342,7 +471,7 @@ export function MyPage() {
                   <div style={{ padding: "20px", borderRadius: 16, background: card, border: `1px solid ${border}`, textAlign: "center" }}>
                     <p style={{ margin: "0 0 16px", fontSize: 14, color: textMain, fontWeight: 700 }}>OTP 앱으로 QR 코드를 스캔하세요</p>
                     <div 
-                      dangerouslySetInnerHTML={{ __html: mfaQr }} 
+                      dangerouslySetInnerHTML={{ __html: sanitizeSvgMarkup(mfaQr) }} 
                       style={{ background: "#fff", padding: 12, borderRadius: 12, display: "inline-block", marginBottom: 20 }}
                     />
                     <div className="text-left">
@@ -368,7 +497,7 @@ export function MyPage() {
                         onClick={handleMfaVerify}
                         disabled={loading || otpCode.length !== 6}
                         className="w-full py-3 rounded-xl border-none text-white text-[14px] font-bold cursor-pointer mt-4"
-                        style={{ background: "#4377F1", opacity: otpCode.length === 6 ? 1 : 0.5 }}
+                        style={{ background: "#4377F1", boxShadow: "none", opacity: otpCode.length === 6 ? 1 : 0.5 }}
                       >
                         {loading ? "확인 중..." : "인증 완료 및 활성화"}
                       </button>
@@ -383,19 +512,19 @@ export function MyPage() {
                 )}
 
                 {isMfaEnabled && (
-                  <div style={{ padding: "20px", borderRadius: 16, background: isDark ? "rgba(67,119,241,0.08)" : "#eff6ff", border: "1px solid rgba(67,119,241,0.2)" }}>
+                  <div style={{ padding: "20px", borderRadius: 16, background: panelBg, border: `1px solid ${labelBorder}` }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-                      <span style={{ fontSize: 20 }}>🛡️</span>
-                      <p style={{ margin: 0, fontSize: 14, color: textMain, fontWeight: 600 }}>2단계 인증(MFA)이 활성화되어 있습니다.</p>
+                      <span style={{ fontSize: 18, opacity: 0.7 }}>🛡️</span>
+                      <p style={{ margin: 0, fontSize: 14, color: textMain, fontWeight: 750 }}>2단계 인증(MFA)이 활성화되어 있습니다.</p>
                     </div>
-                    <p style={{ margin: "0 0 20px", fontSize: 13, color: textMuted, lineHeight: 1.5 }}>현재 관리자 계정이 보호되고 있습니다. 로그아웃 후 다시 로그인할 때 OTP 번호 입력이 필요합니다.</p>
+                    <p style={{ margin: "0 0 20px", fontSize: 13, color: textMuted, lineHeight: 1.5 }}>현재 관리자 계정이 보호되고 있습니다. 보안 정책상 관리자 계정은 2단계 인증을 해제할 수 없습니다.</p>
                     <button
                       onClick={handleMfaUnenroll}
-                      disabled={loading}
+                      disabled
                       className="w-full py-3 rounded-xl border-none text-[#ea4335] text-[13px] font-semibold cursor-pointer"
-                      style={{ background: isDark ? "rgba(234,67,53,0.1)" : "#fef2f2", border: "1px solid rgba(234,67,53,0.2)" }}
+                      style={{ background: deleteBg, border: `1px solid ${deleteBorder}`, color: "#EA4335", opacity: 0.55, cursor: "not-allowed" }}
                     >
-                      {loading ? "처리 중..." : "2단계 인증 해제하기"}
+                      관리자 계정은 MFA 해제 불가
                     </button>
                   </div>
                 )}
@@ -406,8 +535,8 @@ export function MyPage() {
                 <h3 className="mb-4 text-[18px]" style={{ color: textMain }}>관리자 권한</h3>
                 <button
                   onClick={() => navigate("/admin")}
-                  className="w-full py-[14px] rounded-xl border-none text-white text-[15px] font-bold cursor-pointer font-['Pretendard',sans-serif] shadow-[0_8px_24px_rgba(0,0,0,0.15)]"
-                  style={{ background: "linear-gradient(135deg, #0f172a 0%, #334155 100%)" }}
+                  className="w-full py-[14px] rounded-xl text-[15px] font-bold cursor-pointer font-['Pretendard',sans-serif]"
+                  style={{ background: selectedBg, border: `1px solid ${labelBorder}`, color: textMain, boxShadow: "none" }}
                 >
                   관리자 페이지(게시물 등록) 바로가기
                 </button>
@@ -427,15 +556,23 @@ export function MyPage() {
                 pending: { label: "대기중", color: "#FBBC05" },
                 confirmed: { label: "확정", color: "#18A343" },
                 rejected: { label: "거절", color: "#EA4335" },
+                cancelled: { label: "취소", color: "#64748B" },
               };
               const cfg = statusCfg[r.status] ?? { label: r.status, color: "#888" };
+              const canCancel = r.status === "pending" || r.status === "confirmed";
               return (
-                <div key={r.id} style={{ padding: "14px 18px", borderRadius: 14, border: `1px solid ${border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div key={r.id} style={requestCardStyle}>
+                  {canCancel && (
+                    <button type="button" aria-label="컨설팅 신청 취소" onClick={() => handleCancelConsultingReservation(r)} disabled={loading} style={cancelIconStyle}>
+                      <X size={14} />
+                    </button>
+                  )}
                   <div>
                     <div style={{ fontWeight: 700, color: textMain, fontSize: 14, marginBottom: 4 }}>{consultant?.name}</div>
                     <div style={{ fontSize: 12, color: textMuted }}>{slot?.slot_date} {slot?.slot_time?.slice(0, 5)}</div>
+                    <div style={{ fontSize: 12, color: textMuted, marginTop: 3 }}>{slot?.location || "장소 미정"}</div>
                   </div>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: cfg.color, background: cfg.color + "22", padding: "3px 10px", borderRadius: 99 }}>{cfg.label}</span>
+                  {statusPill(cfg)}
                 </div>
               );
             })}
@@ -452,15 +589,50 @@ export function MyPage() {
                 pending: { label: "검토중", color: "#FBBC05" },
                 accepted: { label: "수락됨", color: "#18A343" },
                 rejected: { label: "거절됨", color: "#EA4335" },
+                cancelled: { label: "취소", color: "#64748B" },
               };
               const cfg = statusCfg[a.status] ?? { label: a.status, color: "#888" };
+              const canCancel = a.status === "pending" || a.status === "accepted";
               return (
-                <div key={a.id} style={{ padding: "14px 18px", borderRadius: 14, border: `1px solid ${border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div key={a.id} style={requestCardStyle}>
+                  {canCancel && (
+                    <button type="button" aria-label="Founder's Club 신청 취소" onClick={() => handleCancelClubApplication(a)} disabled={loading} style={cancelIconStyle}>
+                      <X size={14} />
+                    </button>
+                  )}
                   <div>
                     <div style={{ fontWeight: 700, color: textMain, fontSize: 14, marginBottom: 4 }}>{session?.theme}</div>
-                    <div style={{ fontSize: 12, color: textMuted }}>{session?.session_date ?? "날짜 미정"}</div>
+                    <div style={{ fontSize: 12, color: textMuted }}>{session?.session_date ?? "날짜 미정"} {session?.session_time?.slice(0, 5) ?? ""}</div>
+                    <div style={{ fontSize: 12, color: textMuted, marginTop: 3 }}>{session?.location || "장소 미정"}</div>
                   </div>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: cfg.color, background: cfg.color + "22", padding: "3px 10px", borderRadius: 99 }}>{cfg.label}</span>
+                  {statusPill(cfg)}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Event applications — admin 제외 */}
+        {profile?.role !== "admin" && eventApplications.length > 0 && (
+          <div className="w-full max-w-[500px] rounded-[20px] px-9 py-8 flex flex-col gap-4" style={{ background: card, border: `1px solid ${border}` }}>
+            <h3 style={{ color: textMain, fontSize: 18, margin: 0 }}>나의 행사 신청</h3>
+            {eventApplications.map((a: any) => {
+              const event = a.posts;
+              const cfg = EVENT_APPLICATION_STATUS[a.status as keyof typeof EVENT_APPLICATION_STATUS] ?? { label: a.status, color: "#888" };
+              const canCancel = a.status === "pending" || a.status === "accepted";
+              return (
+                <div key={a.id} style={requestCardStyle}>
+                  {canCancel && (
+                    <button type="button" aria-label="행사 신청 취소" onClick={() => handleCancelEventApplication(a)} disabled={loading} style={cancelIconStyle}>
+                      <X size={14} />
+                    </button>
+                  )}
+                  <div>
+                    <div style={{ fontWeight: 700, color: textMain, fontSize: 14, marginBottom: 4 }}>{event?.title}</div>
+                    <div style={{ fontSize: 12, color: textMuted }}>{event?.event_date ?? "일시 미정"}</div>
+                    <div style={{ fontSize: 12, color: textMuted, marginTop: 3 }}>{event?.location || "장소 미정"}</div>
+                  </div>
+                  {statusPill(cfg)}
                 </div>
               );
             })}

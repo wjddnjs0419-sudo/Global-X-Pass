@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import DOMPurify from "dompurify";
 import { PageShell } from "../components/PageShell";
 import { useTheme } from "../ThemeContext";
 import { supabase } from "../../lib/supabaseClient";
 import { LoadingSpinner, ErrorMessage } from "../components/LoadingSpinner";
+import { CONTACT_EMAIL } from "../constants/contact";
+import { sanitizeRichHtml } from "../../utils/htmlSecurity";
 import 'react-quill/dist/quill.snow.css';
 
 export function FaqPage() {
@@ -74,7 +75,7 @@ export function FaqPage() {
                           <div
                             className="ql-editor p-0 m-0 text-[15px] leading-[1.7] min-h-0"
                             style={{ color: answerColor }}
-                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.content) }}
+                            dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(post.content) }}
                           />
                         </div>
                       </div>
@@ -113,11 +114,11 @@ export function FaqPage() {
                     아래 이메일로 문의주시면 빠르게 답변 드리겠습니다.
                   </p>
                   <a
-                    href="mailto:ncf@ncf.or.kr"
+                    href={`mailto:${CONTACT_EMAIL}`}
                     className="inline-flex items-center gap-2 font-bold text-[14px]"
                     style={{ color: "#4377F1", textDecoration: "none" }}
                   >
-                    ncf@ncf.or.kr
+                    {CONTACT_EMAIL}
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M5 12h14M12 5l7 7-7 7" />
                     </svg>

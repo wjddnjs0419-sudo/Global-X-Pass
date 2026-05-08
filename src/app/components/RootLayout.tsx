@@ -1,4 +1,4 @@
-import { Outlet, useNavigate, useLocation } from "react-router";
+import { Outlet, useNavigate, useLocation, Navigate } from "react-router";
 import { useEffect } from "react";
 import { useTheme } from "../ThemeContext";
 import { HeaderSection } from "./HeaderSection";
@@ -8,19 +8,20 @@ import { useTracker } from "../../hooks/useTracker";
 import { useAdmin } from "../../hooks/useAdmin";
 import { useIdleLogout } from "../../hooks/useIdleLogout";
 import { supabase } from "../../lib/supabaseClient";
+import { LAYERS } from "../../lib/layers";
 
 const NAV_TABS = [
-  { id: "site",         label: "🌐 사이트 미리보기", path: "/" },
-  { id: "admin",        label: "📊 관리자 페이지",   path: "/admin" },
-  { id: "design-system",label: "🎨 디자인 시스템",   path: "/design-system" },
-  { id: "flow-map",     label: "🗂 서비스 흐름도",    path: "/flow-map" },
+  { id: "site",         icon: "🌐", label: "사이트 미리보기", path: "/" },
+  { id: "admin",        icon: "📊", label: "관리자 페이지",   path: "/admin" },
+  { id: "design-system",icon: "🎨", label: "디자인 시스템",   path: "/design-system" },
+  { id: "flow-map",     icon: "🗂", label: "서비스 흐름도",    path: "/flow-map" },
 ] as const;
 
 export function RootLayout() {
   const { isDark, toggle } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAdmin } = useAdmin();
+  const { isAdmin, loading: adminLoading, mfaRequired, mfaEnrolled } = useAdmin();
 
   useTracker();
   const { warningVisible, extendSession, logout } = useIdleLogout();
@@ -63,23 +64,27 @@ export function RootLayout() {
     : "site";
 
   const navBg = isDark ? "rgba(10,16,32,0.92)" : "rgba(255,255,255,0.94)";
-  const navBorder = isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.10)";
-  const navShadow = isDark ? "0 8px 32px rgba(0,0,0,0.5)" : "0 8px 32px rgba(0,0,0,0.10)";
+  const navBorder = isDark ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.09)";
+  const navShadow = isDark ? "0 12px 34px rgba(0,0,0,0.34)" : "0 12px 30px rgba(15,23,42,0.10)";
   const tabInactive = isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.45)";
+  const tabActiveBg = isDark ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.07)";
+  const tabActiveText = isDark ? "rgba(255,255,255,0.92)" : "rgba(10,16,32,0.88)";
 
   return (
     <div style={{ width: "100%", minHeight: "100dvh", background: isDark ? "#0a1020" : "#F7F8FC", display: "flex", flexDirection: "column", transition: "background 0.4s ease" }}>
       {!isDesignSystem && !isAdminPage && <HeaderSection isDark={isDark} />}
 
       <main style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-        {isDesignSystem ? <DesignSystemPage isDark={isDark} /> : <Outlet />}
+        {isDesignSystem
+          ? (!adminLoading && isAdmin && !mfaRequired && mfaEnrolled ? <DesignSystemPage isDark={isDark} /> : (!adminLoading ? <Navigate to="/" replace /> : null))
+          : <Outlet />}
       </main>
 
       {!isDesignSystem && <FooterSection isDark={isDark} />}
 
       {warningVisible && (
         <div style={{
-          position: "fixed", inset: 0, zIndex: 99999,
+          position: "fixed", inset: 0, zIndex: LAYERS.blockingModal,
           background: "rgba(0,0,0,0.55)",
           display: "flex", alignItems: "center", justifyContent: "center",
         }}>
@@ -114,19 +119,24 @@ export function RootLayout() {
         </div>
       )}
 
-      <nav className="fixed bottom-[24px] left-1/2 -translate-x-1/2 z-[9999] flex gap-[4px] sm:gap-[6px] items-center rounded-full p-[6px] w-[90%] max-w-max justify-center overflow-x-auto whitespace-nowrap scrollbar-hide" style={{
-        background: navBg, backdropFilter: "blur(20px)", border: `1px solid ${navBorder}`,
-        boxShadow: navShadow,
-      }}>
-        {isAdmin && NAV_TABS.map((tab) => (
-          <button key={tab.id} onClick={() => navigate(tab.path)} className="border-none rounded-full px-[12px] py-[6px] sm:px-[18px] sm:py-[8px] text-[11px] sm:text-[13px] font-bold cursor-pointer transition-all duration-200 whitespace-nowrap flex-shrink-0" style={{
-            background: currentTab === tab.id ? "#4285F4" : "transparent",
-            color: currentTab === tab.id ? "#fff" : tabInactive,
-          }}>
-            {tab.label}
-          </button>
-        ))}
-      </nav>
+      {!adminLoading && isAdmin && !mfaRequired && mfaEnrolled && (
+        <nav className="fixed bottom-[24px] left-1/2 -translate-x-1/2 flex gap-[4px] sm:gap-[6px] items-center rounded-full p-[6px] w-[90%] max-w-max justify-center overflow-x-auto whitespace-nowrap scrollbar-hide" style={{
+          zIndex: LAYERS.adminFloating,
+          background: navBg, backdropFilter: "blur(20px)", border: `1px solid ${navBorder}`,
+          boxShadow: navShadow,
+        }}>
+          {NAV_TABS.map((tab) => (
+            <button key={tab.id} onClick={() => navigate(tab.path)} className="border-none rounded-full px-[12px] py-[6px] sm:px-[18px] sm:py-[8px] text-[11px] sm:text-[13px] font-bold cursor-pointer transition-all duration-200 whitespace-nowrap flex-shrink-0" style={{
+              background: currentTab === tab.id ? tabActiveBg : "transparent",
+              color: currentTab === tab.id ? tabActiveText : tabInactive,
+              border: `1px solid ${currentTab === tab.id ? navBorder : "transparent"}`,
+            }}>
+              <span style={{ opacity: currentTab === tab.id ? 0.72 : 0.46, marginRight: 6 }}>{tab.icon}</span>
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+      )}
     </div>
   );
 }

@@ -81,7 +81,7 @@ export function AdminFlowMap() {
     );
   };
 
-  const Code = ({ children }: { children: string }) => (
+  const Code = ({ children }: { children: React.ReactNode }) => (
     <code style={{ fontFamily: `"SF Mono", monospace`, fontSize: 11, color: codeColor, background: codeBg, padding: "2px 6px", borderRadius: 4 }}>{children}</code>
   );
 
@@ -195,13 +195,13 @@ export function AdminFlowMap() {
 
       {/* 02 — 핵심 기능 흐름 */}
       <SectionWrap id="s02" num="02" title="핵심 기능 흐름">
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
 
           {/* 공지·행사 */}
           <Card>
             <div style={{ fontSize: 12, fontWeight: 700, color: textMuted, marginBottom: 16, paddingBottom: 12, borderBottom: `1px solid ${border}` }}>공지 · 행사 확인</div>
             <div style={{ display: "flex", flexDirection: "column" }}>
-              <Step type="admin" actor="어드민" desc="게시물 작성 및 카테고리 지정" sub="공지 / 행사 / 뉴스레터 / 커뮤니티 / FAQ" />
+              <Step type="admin" actor="어드민" desc="게시물 작성 및 카테고리 지정" sub="공지 / 행사 / 미디어 / 커뮤니티 / FAQ" />
               {conn}
               <Step type="sys" actor="시스템" desc="카테고리별 섹션에 자동 노출" sub="posts 테이블 → 각 섹션 컴포넌트" />
               {conn}
@@ -246,6 +246,24 @@ export function AdminFlowMap() {
               <Step type="sys" actor="시스템" desc="수락 인원 = 정원 도달 시 자동 마감" sub='status → "closed" 전환' />
               {conn}
               <Step type="ok" actor="완료" desc="수락된 참여자 목록 확정" />
+            </div>
+          </Card>
+
+          {/* 행사 참가 신청 */}
+          <Card>
+            <div style={{ fontSize: 12, fontWeight: 700, color: textMuted, marginBottom: 16, paddingBottom: 12, borderBottom: `1px solid ${border}` }}>행사 참가 신청</div>
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <Step type="user" actor="참여사" desc="행사 목록에서 신청하기 클릭" sub="/events/:id/apply 진입" />
+              {conn}
+              <Step type="user" actor="참여사" desc="행사 신청 폼 작성 및 제출" sub="기본 정보 + 추가 질문 + 동의 항목" />
+              {conn}
+              <Step type="sys" actor="시스템" desc="중복 신청 차단" sub="(post_id, user_id) UNIQUE 제약" />
+              {conn}
+              <Step type="admin" actor="어드민" desc="행사 관리 탭에서 승인/거절 처리" sub="대기 신청 목록에서 상태 변경" />
+              {conn}
+              <Step type="sys" actor="시스템" desc="승인 인원 기준 잔여석 자동 계산" sub="capacity - accepted_count → slots_remaining" />
+              {conn}
+              <Step type="ok" actor="완료" desc="MyPage에서 신청 상태 확인" sub="필요 시 사용자 취소 및 관리자 상태 보정 가능" />
             </div>
           </Card>
         </div>
@@ -353,8 +371,9 @@ export function AdminFlowMap() {
           </div>
 
           <div style={{ border: `1px solid ${secBorder}`, borderRadius: 10, padding: "18px 20px", background: secItemBg }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: codeColor, marginBottom: 8 }}>page_views 레이트 리밋 + 스키마 검증</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: codeColor, marginBottom: 8 }}>조회수 보호 + page_views 레이트 리밋</div>
             <div style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,0.6)" : "#374151", lineHeight: 1.7 }}>
+              게시물 상세 조회수는 <Code>increment_view_count(row_id, visitor_id)</Code> RPC와 <Code>post_view_events</Code> 기록을 통해 사용자/게시물 기준 30분 쿨다운을 적용합니다.<br /><br />
               DB 트리거로 동일 <Code>visitor_id</Code>에서 분당 최대 10건 제한 — DoS 방어.<br /><br />
               RLS 정책으로 추가 검증: 경로는 <Code>/</Code>로 시작해야 하고 512자 이하, User-Agent 1000자 이하.
             </div>
@@ -365,6 +384,24 @@ export function AdminFlowMap() {
             <div style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,0.6)" : "#374151", lineHeight: 1.7 }}>
               프론트엔드 라우트 차단 + Supabase RLS + <Code>is_admin()</Code> DB 함수 + MFA <Code>aal2</Code> 세션 요구, 네 겹 보호.<br /><br />
               CSV 어드민 일괄 가져오기: 화이트리스트 필드만 허용(id, name, email, phone, company, role), UUID 필수, 대량 upsert 전 수동 확인 단계.
+            </div>
+          </div>
+
+          <div style={{ border: `1px solid ${secBorder}`, borderRadius: 10, padding: "18px 20px", background: secItemBg }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: codeColor, marginBottom: 8 }}>관리자 Edge Function 게이트</div>
+            <div style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,0.6)" : "#374151", lineHeight: 1.7 }}>
+              service role을 사용하는 관리자 함수는 공통 <Code>requireVerifiedAdmin()</Code>을 통해 호출자 JWT를 검증합니다.<br /><br />
+              내부에서 <Code>public.is_admin()</Code> RPC를 사용해 DB RLS와 동일한 기준(역할 + MFA <Code>aal2</Code>)으로 통과 여부를 판단합니다.<br /><br />
+              대상 함수: <Code>decrypt-profiles</Code>, <Code>delete-user</Code>, <Code>bulk-register-users</Code>.
+            </div>
+          </div>
+
+          <div style={{ border: `1px solid ${secBorder}`, borderRadius: 10, padding: "18px 20px", background: secItemBg }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: codeColor, marginBottom: 8 }}>Edge Function CORS 화이트리스트</div>
+            <div style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,0.6)" : "#374151", lineHeight: 1.7 }}>
+              Edge Function은 허용된 origin에서만 브라우저 호출을 수락합니다.<br /><br />
+              허용 주소: <Code>https://globalxpass.com</Code>, <Code>https://google-play-changgoo-program.netlify.app</Code>, <Code>localhost/127.0.0.1</Code> Vite 개발 주소.<br /><br />
+              배포 도메인 변경 시 CORS 목록 갱신 + 함수 재배포가 필요합니다.
             </div>
           </div>
 
@@ -421,7 +458,7 @@ export function AdminFlowMap() {
                 {conn}
                 <Step type="sec" actor="Edge Fn" desc="encrypt-profile 호출" sub="AES-256-GCM으로 name·email·phone 암호화" />
                 {conn}
-                <Step type="ok" actor="완료" desc="profiles에 enc:v1:… 형식으로 저장" />
+                <Step type="sec" actor="시스템" desc="암호화 결과 분기 처리" sub="성공: enc:v1 저장 / 실패: 경고 노출 후 운영 점검 필요" />
               </div>
             </Card>
 

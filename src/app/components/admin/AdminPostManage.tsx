@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router";
 import { useTheme } from "../../ThemeContext";
-import { CATEGORIES, CATEGORY_COLOR } from "./adminConstants";
+import { CATEGORIES } from "./adminConstants";
 import { supabase } from "../../../lib/supabaseClient";
 import { AdminPostModal } from "./AdminPostModal";
 
@@ -39,6 +39,9 @@ export function AdminPostManage({ refreshKey, onStartEdit, onDeleted }: AdminPos
   const textMuted= isDark ? "rgba(255,255,255,0.45)" : "rgba(10,16,32,0.45)";
   const inputBg  = isDark ? "rgba(255,255,255,0.04)" : "#fff";
   const skBg     = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)";
+  const labelBg = isDark ? "rgba(255,255,255,0.045)" : "rgba(15,23,42,0.035)";
+  const labelBorder = isDark ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.09)";
+  const selectedBg = isDark ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.08)";
 
   const Sk = ({ h = 56 }: { h?: number }) => (
     <div style={{ height: h, borderRadius: 20, background: skBg, animation: "pulse 1.5s ease-in-out infinite" }} />
@@ -57,9 +60,12 @@ export function AdminPostManage({ refreshKey, onStartEdit, onDeleted }: AdminPos
 
   useEffect(() => { setCurrentPage(1); }, [searchTerm, filterCategory]);
 
-  const toggleFeatured = async (id: string, current: boolean) => {
-    if (!current) await supabase.from('posts').update({ is_featured: false }).eq('category', 'blog');
-    await supabase.from('posts').update({ is_featured: !current }).eq('id', id);
+  const toggleFeatured = async (post: any) => {
+    const current = !!post.is_featured;
+    if (!current) {
+      await supabase.from('posts').update({ is_featured: false }).eq('category', post.category);
+    }
+    await supabase.from('posts').update({ is_featured: !current }).eq('id', post.id);
     fetchPosts();
   };
 
@@ -101,16 +107,15 @@ export function AdminPostManage({ refreshKey, onStartEdit, onDeleted }: AdminPos
 
       <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
         {loading
-          ? Array.from({ length: 6 }).map((_, i) => <Sk key={i} />)
+          ? Array.from({ length: 8 }).map((_, i) => <Sk key={i} />)
           : currentPosts.length === 0
             ? <div style={{ padding: "60px", textAlign: "center", color: textMuted }}>게시물이 없습니다.</div>
             : currentPosts.map(post => {
                 const cat = CATEGORIES.find(c => c.id === post.category);
-                const clr = CATEGORY_COLOR[post.category] ?? CATEGORY_COLOR["news"];
                 return (
-                  <div key={post.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-[16px] sm:gap-0" style={{ background: card, border: `1px solid ${border}`, borderRadius: "20px", padding: "20px 30px" }}>
+                  <div key={post.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-[16px] sm:gap-0" style={{ background: card, border: `1px solid ${border}`, borderRadius: "16px", padding: "18px 24px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "20px", minWidth: 0 }}>
-                      <span style={{ fontSize: "12px", background: isDark ? clr.bgDark : clr.bg, color: clr.color, padding: "6px 12px", borderRadius: "8px", fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0 }}>
+                      <span style={{ fontSize: "12px", background: labelBg, border: `1px solid ${labelBorder}`, color: textMuted, padding: "5px 10px", borderRadius: "8px", fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0 }}>
                         {cat?.label ?? post.category}
                       </span>
                       <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
@@ -124,12 +129,17 @@ export function AdminPostManage({ refreshKey, onStartEdit, onDeleted }: AdminPos
                     </div>
                     <div style={{ display: "flex", gap: "10px" }}>
                       {post.category === "blog" && (
-                        <button onClick={() => toggleFeatured(post.id, !!post.is_featured)} style={{ padding: "10px 14px", borderRadius: "10px", border: `1px solid ${post.is_featured ? "rgba(168,85,247,0.4)" : border}`, background: post.is_featured ? "rgba(168,85,247,0.12)" : "none", color: post.is_featured ? "#A855F7" : textMuted, fontWeight: 700, cursor: "pointer", fontSize: 14 }}>
-                          {post.is_featured ? "★ 추천중" : "☆ 추천"}
+                        <button onClick={() => toggleFeatured(post)} style={{ padding: "9px 12px", borderRadius: "8px", border: `1px solid ${post.is_featured ? labelBorder : border}`, background: post.is_featured ? selectedBg : "transparent", color: post.is_featured ? textMain : textMuted, fontWeight: 700, cursor: "pointer", fontSize: 13 }}>
+                          {post.is_featured ? "추천중" : "추천"}
                         </button>
                       )}
-                      <button onClick={() => onStartEdit(post)} style={{ padding: "10px 18px", borderRadius: "10px", border: `1px solid ${border}`, background: "none", color: "#4377F1", fontWeight: 700, cursor: "pointer" }}>수정</button>
-                      <button onClick={() => setDeletingId(post.id)} style={{ padding: "10px 18px", borderRadius: "10px", border: "none", background: "#fee2e2", color: "#ef4444", fontWeight: 700, cursor: "pointer" }}>삭제</button>
+                      {post.category === "events" && (
+                        <button onClick={() => toggleFeatured(post)} style={{ padding: "9px 12px", borderRadius: "8px", border: `1px solid ${post.is_featured ? labelBorder : border}`, background: post.is_featured ? selectedBg : "transparent", color: post.is_featured ? textMain : textMuted, fontWeight: 700, cursor: "pointer", fontSize: 13 }}>
+                          {post.is_featured ? "대표중" : "대표"}
+                        </button>
+                      )}
+                      <button onClick={() => onStartEdit(post)} style={{ padding: "9px 14px", borderRadius: "8px", border: `1px solid ${border}`, background: "transparent", color: textMain, fontWeight: 700, cursor: "pointer", fontSize: 13 }}>수정</button>
+                      <button onClick={() => setDeletingId(post.id)} style={{ padding: "9px 14px", borderRadius: "8px", border: `1px solid ${isDark ? "rgba(234,67,53,0.28)" : "rgba(234,67,53,0.22)"}`, background: isDark ? "rgba(234,67,53,0.08)" : "rgba(234,67,53,0.06)", color: "#EA4335", fontWeight: 700, cursor: "pointer", fontSize: 13 }}>삭제</button>
                     </div>
                   </div>
                 );
@@ -140,7 +150,7 @@ export function AdminPostManage({ refreshKey, onStartEdit, onDeleted }: AdminPos
         <div style={{ display: "flex", justifyContent: "center", gap: "8px", marginTop: "20px" }}>
           <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} style={{ padding: "8px 14px", borderRadius: "8px", border: `1px solid ${border}`, background: card, color: textMain, cursor: currentPage === 1 ? "not-allowed" : "pointer", fontWeight: 600 }}>이전</button>
           {[...Array(totalPages)].map((_, i) => (
-            <button key={i} onClick={() => setCurrentPage(i + 1)} style={{ padding: "8px 16px", borderRadius: "8px", cursor: "pointer", border: currentPage === i + 1 ? `1px solid #4377F1` : `1px solid ${border}`, background: currentPage === i + 1 ? "#4377F1" : card, color: currentPage === i + 1 ? "#fff" : textMain, fontWeight: currentPage === i + 1 ? 800 : 500 }}>{i + 1}</button>
+            <button key={i} onClick={() => setCurrentPage(i + 1)} style={{ padding: "8px 16px", borderRadius: "8px", cursor: "pointer", border: `1px solid ${currentPage === i + 1 ? labelBorder : border}`, background: currentPage === i + 1 ? selectedBg : card, color: currentPage === i + 1 ? textMain : textMain, fontWeight: currentPage === i + 1 ? 800 : 500 }}>{i + 1}</button>
           ))}
           <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} style={{ padding: "8px 14px", borderRadius: "8px", border: `1px solid ${border}`, background: card, color: textMain, cursor: currentPage === totalPages ? "not-allowed" : "pointer", fontWeight: 600 }}>다음</button>
         </div>
@@ -158,3 +168,5 @@ export function AdminPostManage({ refreshKey, onStartEdit, onDeleted }: AdminPos
     </div>
   );
 }
+
+export default AdminPostManage;
