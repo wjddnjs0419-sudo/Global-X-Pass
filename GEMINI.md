@@ -14,6 +14,10 @@ This file serves as the foundational context and authoritative guide for all AI 
 - **Routing:** React Router v7.
 
 ## Security & PII Mandates (CRITICAL)
+- **Edge Function 권한 표준화:** 신규 관리자용 Edge Function 생성 시 `_shared/adminAuth.ts`의 `requireVerifiedAdmin()` 필수 호출 (MFA/AAL2 강제).
+- **RLS 정책 일관성:** DB 정책 작성 시 `auth.jwt() ->> 'role'` 사용 금지. 반드시 `public.is_admin()` SQL 함수 사용.
+- **PII 파이프라인 강제:** PII 반환 API 작성 시 DB 직접 조회 금지, `decrypt-profiles` 또는 `decrypt-own-profile` 함수 필수 사용.
+- **프론트엔드 MFA 게이팅:** 관리자 라우트 및 UI 렌더링 시 `!adminLoading && isAdmin && !mfaRequired && mfaEnrolled` 전체 조건 검증 필수.
 - **PII Encryption:** `profiles.name`, `profiles.email`, and `profiles.phone` MUST be stored as AES-256-GCM ciphertext (`enc:v1:...`).
 - **Processing Flow:**
   - Never query PII directly for display; use `decrypt-profiles` (admin) or `decrypt-own-profile` (user) Edge Functions.
@@ -23,7 +27,6 @@ This file serves as the foundational context and authoritative guide for all AI 
 - **Admin MFA Backend Gate:** `public.is_admin()`은 관리자 프로필 존재만으로 true가 되면 안 된다. 검증된 MFA factor 존재와 `aal2` 세션이 모두 만족될 때만 관리자 권한을 인정해야 한다.
 - **Role Change Server Path:** 사용자 role 변경은 클라이언트의 직접 `profiles.update()`에 맡기지 말고, 관리자 재인증을 서버에서 검증하는 전용 Edge Function 또는 동등한 서버 경로를 통해서만 처리할 것.
 - **Role Column Guard:** `public.profiles.role`은 authenticated 세션의 직접 UPDATE를 허용하지 말고, DB trigger 또는 동등한 수단으로 service-role 기반 서버 경로에서만 바뀌도록 강제할 것.
-- **Admin Edge Functions:** Any Edge Function that uses `SUPABASE_SERVICE_ROLE_KEY` for admin work MUST call the shared `requireVerifiedAdmin()` helper, which delegates to `public.is_admin()` so MFA/AAL2 rules match database RLS.
 - **Idle Logout:** 28-min idle warning -> 30-min auto-logout. Session stale check on mount (>30 min since `gxp_last_active`).
 
 ## Coding Conventions
