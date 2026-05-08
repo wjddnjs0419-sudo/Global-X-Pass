@@ -1,78 +1,61 @@
-const timelineItems = [
+// Layout constants (px)
+const CTH = 500;   // container height
+const CO  = 168;   // outer dashed ring diameter
+const CH  = 42;    // connector height
+const SP  = 45; // dot center = SP + CO + CH - 5 = 250 = midline
+
+const phases = [
   {
     year: "2019",
+    solidColor: "#4377F1",
+    gradient: "linear-gradient(135deg, #4377F1 0%, #16DBBB 100%)",
     label: "프로그램 런칭",
     desc: "1기 모집 시작",
-    color: "#4285F4",
-    glow: "rgba(66,133,244,0.5)",
-    position: "top",
+    bullets: [
+      "구글플레이 공식 파트너십 체결",
+      "스타트업 30개사 1기 선발",
+      "글로벌 마케팅 컨설팅 론칭",
+      "교육 · 멘토링 프로그램 시작",
+    ],
   },
   {
     year: "2021",
+    solidColor: "#18A343",
+    gradient: "linear-gradient(135deg, #18A343 0%, #37AD9A 100%)",
     label: "혜택 확대",
     desc: "지원 규모 대폭 증가",
-    color: "#34A853",
-    glow: "rgba(52,168,83,0.5)",
-    position: "bottom",
+    bullets: [
+      "참여사 100개사 돌파",
+      "글로벌 진출 지원 프로그램 신설",
+      "구글 전문가 1:1 멘토링 강화",
+      "교육 커리큘럼 전면 개편",
+    ],
   },
   {
     year: "2023",
+    solidColor: "#FBBC05",
+    gradient: "linear-gradient(135deg, #FFEE56 0%, #FFC2B4 100%)",
     label: "400개 돌파",
     desc: "누적 참여 기업 기록",
-    color: "#FBBC05",
-    glow: "rgba(251,188,5,0.5)",
-    position: "top",
+    bullets: [
+      "누적 400개 참여사 기록 달성",
+      "IR 피칭 데이 정례화",
+      "해외 파트너십 다각화",
+      "네트워킹 커뮤니티 플랫폼 확장",
+    ],
   },
   {
     year: "2026",
+    solidColor: "#EA4335",
+    gradient: "linear-gradient(135deg, #FF4340 0%, #FF7C44 100%)",
     label: "8기 오픈",
     desc: "포털 및 신규 모집",
-    color: "#EA4335",
-    glow: "rgba(234,67,53,0.5)",
-    position: "bottom",
-  },
-];
-
-const supportItems = [
-  {
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ width: "18px", height: "18px" }}>
-        <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
-      </svg>
-    ),
-    color: "#4285F4",
-    title: "맞춤형 교육",
-    desc: "성장 단계별 커리큘럼",
-  },
-  {
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ width: "18px", height: "18px" }}>
-        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-      </svg>
-    ),
-    color: "#34A853",
-    title: "구글 전문가 멘토링",
-    desc: "현직 구글 전문가 1:1 연결",
-  },
-  {
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ width: "18px", height: "18px" }}>
-        <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-      </svg>
-    ),
-    color: "#FBBC05",
-    title: "글로벌 마케팅 지원",
-    desc: "구글플레이 피처링 & 퍼블리싱",
-  },
-  {
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ width: "18px", height: "18px" }}>
-        <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-      </svg>
-    ),
-    color: "#EA4335",
-    title: "투자 유치 기회",
-    desc: "IR 피칭 & 네트워킹 데이",
+    bullets: [
+      "디지털 포털 플랫폼 구축",
+      "AI · 글로벌 특화 트랙 신설",
+      "100개사 신규 모집",
+      "창업 생태계 협력 확대",
+    ],
   },
 ];
 
@@ -81,106 +64,149 @@ interface AboutSectionProps {
 }
 
 export function AboutSection({ isDark = false }: AboutSectionProps) {
-  // ── Theme tokens ────────────────────────────────────────
+  const ac = "#6B6EE8"; // structural indigo for connectors & line
+  const aA = (o: number) => `rgba(107,110,232,${o})`;
+
   const t = isDark ? {
     sectionBg:
       "radial-gradient(circle at 15% 60%, rgba(30,15,60,0.5) 0%, transparent 55%), " +
       "radial-gradient(circle at 85% 20%, rgba(10,30,70,0.4) 0%, transparent 55%), " +
       "linear-gradient(180deg, #070d1a 0%, #0a1020 60%, #0c1228 100%)",
-    dotGrid: "rgba(255,255,255,0.04)",
-    glowBlue: "rgba(66,133,244,0.08)",
-    glowRed: "rgba(234,67,53,0.07)",
-    badgeBg: "rgba(66,133,244,0.1)",
-    badgeBorder: "rgba(66,133,244,0.28)",
-    badgeColor: "#4285F4",
+    dotGrid:      "rgba(255,255,255,0.04)",
+    glowBlue:     aA(0.1),
+    glowRed:      "rgba(234,67,53,0.07)",
     headingColor: "#fff",
-    subText: "rgba(255,255,255,0.4)",
-    timelineDesc: "rgba(255,255,255,0.45)",
-    timelineCaption: "rgba(255,255,255,0.25)",
-    nodeInnerBg: (c: string) => `radial-gradient(circle at 35% 35%, ${c}33, rgba(10,15,30,0.9))`,
-    endDotBg: "rgba(255,255,255,0.25)",
-    endDotGlow: "rgba(255,255,255,0.2)",
-    cardBg: "rgba(255,255,255,0.04)",
-    cardBorder: "rgba(255,255,255,0.1)",
-    cardShadow: "none",
-    cardBackdrop: "blur(16px)",
-    supportItemBg: "rgba(255,255,255,0.04)",
-    supportItemBorder: "rgba(255,255,255,0.08)",
-    supportHoverBg: "rgba(255,255,255,0.07)",
-    supportHoverBorder: "rgba(255,255,255,0.18)",
-    itemTitle: "#fff",
-    itemDesc: "rgba(255,255,255,0.45)",
-    dividerColor: "rgba(255,255,255,0.1)",
-    footerText: "rgba(255,255,255,0.22)",
+    subText:      "rgba(255,255,255,0.4)",
+    innerBg:      "#14183a",
+    innerShadow:  "inset 2px 2px 10px rgba(0,0,0,0.5)",
+    ringGlow:     `5px 5px 18px rgba(0,0,0,0.5), -3px -3px 10px rgba(255,255,255,0.04)`,
+    dashColor:    aA(0.4),
+    lineColor:    aA(0.35),
+    dotColor:     ac,
+    labelColor:   "#e8e8ff",
+    descColor:    "rgba(200,200,255,0.68)",
+    bulletColor:  "rgba(200,200,255,0.55)",
   } : {
     sectionBg:
-      "radial-gradient(circle at 15% 60%, rgba(66,133,244,0.04) 0%, transparent 55%), " +
-      "radial-gradient(circle at 85% 20%, rgba(52,168,83,0.03) 0%, transparent 55%), " +
+      "radial-gradient(circle at 15% 60%, rgba(107,110,232,0.05) 0%, transparent 55%), " +
+      "radial-gradient(circle at 85% 20%, rgba(107,110,232,0.03) 0%, transparent 55%), " +
       "linear-gradient(180deg, #ffffff 0%, #F4F6FB 60%, #EEF1F8 100%)",
-    dotGrid: "rgba(0,0,0,0.04)",
-    glowBlue: "rgba(66,133,244,0.06)",
-    glowRed: "rgba(234,67,53,0.04)",
-    badgeBg: "rgba(66,133,244,0.08)",
-    badgeBorder: "rgba(66,133,244,0.22)",
-    badgeColor: "#4285F4",
+    dotGrid:      "rgba(0,0,0,0.04)",
+    glowBlue:     aA(0.07),
+    glowRed:      "rgba(234,67,53,0.04)",
     headingColor: "#0D1117",
-    subText: "rgba(0,0,0,0.42)",
-    timelineDesc: "rgba(0,0,0,0.48)",
-    timelineCaption: "rgba(0,0,0,0.32)",
-    nodeInnerBg: (c: string) => `radial-gradient(circle at 35% 35%, ${c}22, #f8faff)`,
-    endDotBg: "rgba(0,0,0,0.18)",
-    endDotGlow: "rgba(0,0,0,0.08)",
-    cardBg: "#ffffff",
-    cardBorder: "rgba(0,0,0,0.08)",
-    cardShadow: "0 4px 24px rgba(0,0,0,0.07)",
-    cardBackdrop: "none",
-    supportItemBg: "#F7F8FC",
-    supportItemBorder: "rgba(0,0,0,0.07)",
-    supportHoverBg: "#EEF2FF",
-    supportHoverBorder: "rgba(66,133,244,0.2)",
-    itemTitle: "#0D1117",
-    itemDesc: "rgba(0,0,0,0.48)",
-    dividerColor: "rgba(0,0,0,0.08)",
-    footerText: "rgba(0,0,0,0.28)",
+    subText:      "rgba(0,0,0,0.42)",
+    innerBg:      "#ffffff",
+    innerShadow:  "inset 2px 2px 8px rgba(0,0,0,0.07)",
+    ringGlow:     `5px 5px 18px rgba(0,0,0,0.12), -3px -3px 10px rgba(255,255,255,0.9)`,
+    dashColor:    aA(0.35),
+    lineColor:    aA(0.35),
+    dotColor:     ac,
+    labelColor:   "#1e1e50",
+    descColor:    "rgba(30,30,80,0.72)",
+    bulletColor:  "rgba(30,30,80,0.62)",
   };
+
+  const renderCircle = (phase: typeof phases[0]) => (
+    <div
+      aria-hidden="true"
+      style={{
+        width: CO, height: CO, borderRadius: "50%",
+        border: `2px dashed ${phase.solidColor}66`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        flexShrink: 0,
+      }}
+    >
+      {/* Gradient ring */}
+      <div style={{
+        width: 144, height: 144, borderRadius: "50%",
+        background: phase.gradient,
+        boxShadow: t.ringGlow,
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}>
+        {/* Inner circle — year only */}
+        <div style={{
+          width: 100, height: 100, borderRadius: "50%",
+          background: t.innerBg,
+          boxShadow: t.innerShadow,
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          <span style={{
+            fontSize: "22px", fontWeight: 900,
+            color: phase.solidColor, letterSpacing: "-1px", lineHeight: 1,
+          }}>
+            {phase.year}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderConnector = (isTop: boolean) => (
+    <div
+      aria-hidden="true"
+      style={{
+        height: CH, width: "100%",
+        display: "flex", flexDirection: "column", alignItems: "center",
+        flexShrink: 0,
+      }}
+    >
+      {isTop ? (
+        <>
+          <div style={{ flex: 1, borderLeft: `2px dashed ${t.dashColor}` }} />
+          <div style={{ width: 10, height: 10, borderRadius: "50%", background: t.dotColor, flexShrink: 0 }} />
+        </>
+      ) : (
+        <>
+          <div style={{ width: 10, height: 10, borderRadius: "50%", background: t.dotColor, flexShrink: 0 }} />
+          <div style={{ flex: 1, borderLeft: `2px dashed ${t.dashColor}` }} />
+        </>
+      )}
+    </div>
+  );
+
+  const renderText = (phase: typeof phases[0]) => (
+    <ul style={{
+      listStyle: "none", padding: 0, margin: 0,
+      textAlign: "left", width: "100%",
+    }}>
+      <li style={{
+        fontWeight: 700, fontSize: "15px",
+        color: t.labelColor, lineHeight: 1.4, marginBottom: "6px",
+      }}>
+        {phase.label}
+      </li>
+      <li style={{
+        fontSize: "12px", color: t.descColor,
+        lineHeight: 1.6, marginBottom: "3px",
+      }}>
+        {phase.desc}
+      </li>
+      {phase.bullets.map((b) => (
+        <li key={b} style={{ fontSize: "11.5px", color: t.bulletColor, lineHeight: 1.65 }}>
+          {b}
+        </li>
+      ))}
+    </ul>
+  );
 
   return (
     <>
       <style>{`
-        @keyframes timelinePulse {
-          0%, 100% { box-shadow: 0 0 0 0 transparent; }
-          50% { box-shadow: 0 0 0 8px rgba(66,133,244,0.06); }
-        }
-        .timeline-node {
-          transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        .timeline-node:hover {
-          transform: scale(1.15);
-        }
-        .support-item {
-          transition: background 0.25s ease, border-color 0.25s ease;
-        }
-        .support-item[data-dark="true"]:hover {
-          background: rgba(255,255,255,0.07) !important;
-          border-color: rgba(255,255,255,0.18) !important;
-        }
-        .support-item[data-dark="false"]:hover {
-          background: #EEF2FF !important;
-          border-color: rgba(66,133,244,0.2) !important;
-        }
+        .about-tl-desktop { display: block; }
+        .about-tl-mobile  { display: none; }
         @media (max-width: 900px) {
-          .about-main-grid { grid-template-columns: 1fr !important; gap: 36px !important; }
+          .about-tl-desktop { display: none !important; }
+          .about-tl-mobile  { display: flex !important; }
         }
       `}</style>
 
       <section
         style={{
           position: "relative",
-          width: "100vw",
-          maxWidth: "100%",
-          left: "50%",
-          transform: "translateX(-50%)",
-          padding: "clamp(60px, 10vw, 100px) clamp(20px, 5vw, 40px) clamp(70px, 11vw, 110px)",
+          width: "100vw", maxWidth: "100%",
+          left: "50%", transform: "translateX(-50%)",
+          padding: "clamp(60px, 10vw, 100px) clamp(20px, 5vw, 40px) clamp(56px, 8vw, 84px)",
           background: t.sectionBg,
           fontFamily: "'Pretendard', -apple-system, sans-serif",
           boxSizing: "border-box",
@@ -189,20 +215,22 @@ export function AboutSection({ isDark = false }: AboutSectionProps) {
         }}
       >
         {/* Dot grid */}
-        <div style={{
+        <div aria-hidden="true" style={{
           position: "absolute", inset: 0, pointerEvents: "none", zIndex: 0,
           backgroundImage: `radial-gradient(${t.dotGrid} 1px, transparent 1px)`,
           backgroundSize: "36px 36px",
         }} />
 
         {/* Ambient glows */}
-        <div style={{
-          position: "absolute", top: "-60px", left: "8%", width: "360px", height: "360px",
+        <div aria-hidden="true" style={{
+          position: "absolute", top: "-60px", left: "8%",
+          width: "360px", height: "360px",
           borderRadius: "50%", pointerEvents: "none", zIndex: 0,
           background: `radial-gradient(circle, ${t.glowBlue} 0%, transparent 70%)`,
         }} />
-        <div style={{
-          position: "absolute", bottom: "-60px", right: "6%", width: "320px", height: "320px",
+        <div aria-hidden="true" style={{
+          position: "absolute", bottom: "-60px", right: "6%",
+          width: "320px", height: "320px",
           borderRadius: "50%", pointerEvents: "none", zIndex: 0,
           background: `radial-gradient(circle, ${t.glowRed} 0%, transparent 70%)`,
         }} />
@@ -210,240 +238,133 @@ export function AboutSection({ isDark = false }: AboutSectionProps) {
         <div style={{ position: "relative", zIndex: 1, maxWidth: "1280px", margin: "0 auto" }}>
 
           {/* Section Header */}
-          <div style={{ textAlign: "center", marginBottom: "72px" }}>
+          <div style={{ textAlign: "center", marginBottom: "56px" }}>
             <h2 style={{
-              color: t.headingColor, fontSize: "clamp(26px, 3.5vw, 42px)",
-              fontWeight: 800, margin: "0 0 14px", letterSpacing: "-1.5px", lineHeight: 1.2,
+              color: t.headingColor,
+              fontSize: "clamp(24px, 3vw, 40px)",
+              fontWeight: 800, margin: "0 0 14px",
+              letterSpacing: 0, lineHeight: 1.15,
             }}>
               구글 창구 프로그램
             </h2>
-            <p style={{ color: t.subText, fontSize: "15px", margin: 0, lineHeight: 1.7 }}>
+            <p style={{ color: t.subText, fontSize: "15px", margin: 0, lineHeight: 1.65 }}>
               당신의 기업이 글로벌 시장에서 PLAY 될 때까지 함께합니다.
             </p>
           </div>
 
-          {/* Main Layout: Timeline (left) + Support (right) */}
-          <div className="about-main-grid" style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 340px",
-            gap: "48px",
-            alignItems: "center",
-          }}>
+          {/* ── Desktop: zigzag timeline ── */}
+          <div
+            className="about-tl-desktop"
+            style={{ position: "relative", height: CTH }}
+          >
+            {/* Horizontal connecting line */}
+            <div aria-hidden="true" style={{
+              position: "absolute",
+              top: CTH / 2,
+              left: "12.5%", right: "12.5%",
+              height: "2px",
+              background: t.lineColor,
+              transform: "translateY(-50%)",
+            }} />
 
-            {/* ── Left: Timeline ── */}
-            <div style={{ position: "relative" }}>
-              <div style={{
-                position: "relative",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "80px 0",
-              }}>
-                {/* Connecting line */}
-                <div style={{
-                  position: "absolute", top: "50%", left: "5%", right: "5%",
-                  height: "2px", transform: "translateY(-50%)",
-                  background: "linear-gradient(to right, #4285F4, #34A853, #FBBC05, #EA4335)",
-                  opacity: isDark ? 0.35 : 0.45,
-                  borderRadius: "2px", zIndex: 0,
-                }} />
-                {/* Glow line */}
-                <div style={{
-                  position: "absolute", top: "50%", left: "5%", right: "5%",
-                  height: "1px", transform: "translateY(-50%)",
-                  background: "linear-gradient(to right, #4285F4, #34A853, #FBBC05, #EA4335)",
-                  filter: "blur(4px)",
-                  opacity: isDark ? 0.25 : 0.3,
-                  zIndex: 0,
-                }} />
+            {/* 4 phase columns */}
+            {phases.map((phase, i) => {
+              const isTop = i % 2 === 0;
+              const leftPct = `${(i + 0.5) * 25}%`;
 
-                {/* START dot */}
-                <div style={{
-                  position: "absolute", left: "0", top: "50%",
-                  transform: "translateY(-50%)", zIndex: 1,
-                }}>
-                  <div style={{
-                    width: "14px", height: "14px", borderRadius: "50%",
-                    background: "#4285F4", boxShadow: "0 0 12px #4285F4",
-                  }} />
-                  <span style={{
-                    position: "absolute", top: "-28px", left: "50%",
+              return (
+                <div
+                  key={phase.year}
+                  style={{
+                    position: "absolute",
+                    left: leftPct,
                     transform: "translateX(-50%)",
-                    color: "#4285F4", fontSize: "11px", fontWeight: 800,
-                    letterSpacing: "1px", whiteSpace: "nowrap",
-                  }}>START</span>
-                </div>
-
-                {/* Nodes */}
-                {timelineItems.map((item, i) => (
-                  <div key={i} style={{
-                    position: "relative", display: "flex", flexDirection: "column",
-                    alignItems: "center", zIndex: 1, flex: 1,
-                  }}>
-                    {/* Top label */}
-                    {item.position === "top" && (
+                    width: "22%",
+                    height: CTH,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                  }}
+                >
+                  {isTop ? (
+                    <>
+                      {/* top spacer → circle → connector → gap → text */}
+                      <div style={{ height: SP, flexShrink: 0 }} />
+                      {renderCircle(phase)}
+                      {renderConnector(true)}
+                      <div style={{ height: 12, flexShrink: 0 }} />
                       <div style={{
-                        textAlign: "center", marginBottom: "20px", minHeight: "64px",
-                        display: "flex", flexDirection: "column",
-                        alignItems: "center", justifyContent: "flex-end",
-                      }}>
-                        <span style={{
-                          color: item.color, fontSize: "clamp(11px, 1.2vw, 13px)",
-                          fontWeight: 800, letterSpacing: "0.5px", display: "block", marginBottom: "4px",
-                        }}>
-                          {item.label}
-                        </span>
-                        <span style={{ color: t.timelineDesc, fontSize: "clamp(10px, 1vw, 12px)" }}>
-                          {item.desc}
-                        </span>
-                      </div>
-                    )}
-                    {item.position === "bottom" && (
-                      <div style={{ minHeight: "64px", marginBottom: "20px" }} />
-                    )}
-
-                    {/* Node circle */}
-                    <div
-                      className="timeline-node"
-                      style={{
-                        width: "clamp(56px, 6vw, 72px)",
-                        height: "clamp(56px, 6vw, 72px)",
-                        borderRadius: "50%",
-                        background: t.nodeInnerBg(item.color),
-                        border: `2px solid ${item.color}66`,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        boxShadow: isDark
-                          ? `0 0 20px ${item.glow}, 0 0 40px ${item.glow.replace("0.5", "0.15")}`
-                          : `0 4px 16px ${item.color}30, 0 0 0 1px ${item.color}22`,
-                        cursor: "default", position: "relative", zIndex: 2,
-                      }}
-                    >
-                      {/* Connector to label (extends toward text) */}
-                      <div style={{
-                        position: "absolute",
-                        [item.position === "top" ? "top" : "bottom"]: "-22px",
-                        left: "50%", transform: "translateX(-50%)",
-                        width: "2px", height: "22px",
-                        background: `linear-gradient(${item.position === "top" ? "to top" : "to bottom"}, ${item.color}88, transparent)`,
-                      }} />
-                      <span style={{
-                        color: item.color, fontSize: "clamp(13px, 1.4vw, 16px)",
-                        fontWeight: 900, letterSpacing: "-0.5px",
-                      }}>
-                        {item.year}
-                      </span>
-                    </div>
-
-                    {/* Bottom label */}
-                    {item.position === "bottom" && (
-                      <div style={{
-                        textAlign: "center", marginTop: "20px", minHeight: "64px",
+                        flex: 1, width: "100%",
                         display: "flex", flexDirection: "column",
                         alignItems: "center", justifyContent: "flex-start",
                       }}>
-                        <span style={{
-                          color: item.color, fontSize: "clamp(11px, 1.2vw, 13px)",
-                          fontWeight: 800, letterSpacing: "0.5px", display: "block", marginBottom: "4px",
-                        }}>
-                          {item.label}
-                        </span>
-                        <span style={{ color: t.timelineDesc, fontSize: "clamp(10px, 1vw, 12px)" }}>
-                          {item.desc}
-                        </span>
+                        {renderText(phase)}
                       </div>
-                    )}
-                    {item.position === "top" && (
-                      <div style={{ minHeight: "64px", marginTop: "20px" }} />
-                    )}
-                  </div>
-                ))}
-
-                {/* END dot */}
-                <div style={{
-                  position: "absolute", right: "0", top: "50%",
-                  transform: "translateY(-50%)", zIndex: 1,
-                }}>
-                  <div style={{
-                    width: "10px", height: "10px", borderRadius: "50%",
-                    background: t.endDotBg,
-                    boxShadow: `0 0 8px ${t.endDotGlow}`,
-                  }} />
+                    </>
+                  ) : (
+                    <>
+                      {/* text → gap → connector → circle → bottom spacer */}
+                      <div style={{
+                        flex: 1, width: "100%",
+                        display: "flex", flexDirection: "column",
+                        alignItems: "center", justifyContent: "flex-end",
+                      }}>
+                        {renderText(phase)}
+                      </div>
+                      <div style={{ height: 12, flexShrink: 0 }} />
+                      {renderConnector(false)}
+                      {renderCircle(phase)}
+                      <div style={{ height: SP, flexShrink: 0 }} />
+                    </>
+                  )}
                 </div>
-              </div>
+              );
+            })}
+          </div>
 
-              {/* Timeline caption */}
-              <p style={{
-                textAlign: "center", color: t.timelineCaption,
-                fontSize: "13px", marginTop: "8px",
-                fontWeight: 500, letterSpacing: "0.03em",
-              }}>
-                2019 → 현재까지 함께 성장한 여정
-              </p>
-            </div>
+          {/* ── Mobile: vertical list ── */}
+          <ol
+            className="about-tl-mobile"
+            style={{
+              flexDirection: "column", gap: "28px",
+              listStyle: "none", padding: 0, margin: 0,
+            }}
+          >
+            {phases.map((phase) => (
+              <li key={phase.year} style={{ display: "flex", gap: "18px", alignItems: "flex-start" }}>
+                {/* Mini circle — year only */}
+                <div
+                  aria-hidden="true"
+                  style={{
+                    width: 72, height: 72, borderRadius: "50%", flexShrink: 0,
+                    background: phase.gradient,
+                    boxShadow: t.ringGlow,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}
+                >
+                  <span style={{ fontSize: "15px", fontWeight: 900, color: "#fff", lineHeight: 1, letterSpacing: "-0.5px" }}>
+                    {phase.year}
+                  </span>
+                </div>
 
-            {/* ── Right: Support ── */}
-            <div style={{
-              padding: "8px 4px",
-              position: "relative",
-            }}>
-              <h3 style={{
-                color: t.headingColor, fontSize: "20px", fontWeight: 800,
-                margin: "0 0 24px", letterSpacing: "-0.5px", lineHeight: 1.3,
-              }}>
-                무엇을 지원하나요?
-              </h3>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                {supportItems.map((item, i) => (
-                  <div
-                    key={i}
-                    className="support-item"
-                    data-dark={String(isDark)}
-                    style={{
-                      display: "flex", alignItems: "center", gap: "14px",
-                      background: t.supportItemBg,
-                      border: `1px solid ${t.supportItemBorder}`,
-                      borderRadius: "14px",
-                      padding: "14px 16px",
-                      cursor: "default",
-                    }}
-                  >
-                    <div style={{
-                      width: "38px", height: "38px", flexShrink: 0,
-                      borderRadius: "10px",
-                      background: `${item.color}15`,
-                      border: `1px solid ${item.color}40`,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      color: item.color,
-                    }}>
-                      {item.icon}
-                    </div>
-                    <div>
-                      <div style={{ color: t.itemTitle, fontSize: "14px", fontWeight: 700, marginBottom: "2px" }}>
-                        {item.title}
-                      </div>
-                      <div style={{ color: t.itemDesc, fontSize: "12px", lineHeight: 1.4 }}>
-                        {item.desc}
-                      </div>
-                    </div>
+                {/* Text */}
+                <div style={{ flex: 1, paddingTop: "6px" }}>
+                  <div style={{ fontWeight: 700, fontSize: "15px", color: t.labelColor, marginBottom: "4px" }}>
+                    {phase.label}
                   </div>
-                ))}
-              </div>
-            </div>
-
-          </div>
-
-          {/* Bottom divider */}
-          <div style={{ marginTop: "72px", display: "flex", alignItems: "center", gap: "24px" }}>
-            <div style={{ flex: 1, height: "1px", background: `linear-gradient(to right, transparent, ${t.dividerColor})` }} />
-            <span style={{
-              color: t.footerText, fontSize: "12px",
-              fontWeight: 500, whiteSpace: "nowrap", letterSpacing: "0.05em",
-            }}>
-              NCF × GOOGLE PLAY × MSS × KISED
-            </span>
-            <div style={{ flex: 1, height: "1px", background: `linear-gradient(to left, transparent, ${t.dividerColor})` }} />
-          </div>
+                  <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "2px" }}>
+                    <li style={{ fontSize: "12px", color: t.descColor, marginBottom: "2px" }}>{phase.desc}</li>
+                    {phase.bullets.map((b) => (
+                      <li key={b} style={{ display: "flex", gap: "7px", alignItems: "flex-start", fontSize: "11.5px", color: t.bulletColor }}>
+                        <span aria-hidden="true" style={{ width: 4, height: 4, borderRadius: "50%", background: phase.solidColor, flexShrink: 0, marginTop: 5 }} />
+                        {b}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </li>
+            ))}
+          </ol>
 
         </div>
       </section>

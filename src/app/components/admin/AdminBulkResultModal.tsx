@@ -1,4 +1,5 @@
 import { useTheme } from "../../ThemeContext";
+import { LAYERS } from "../../../lib/layers";
 
 interface RegisterResult {
   email: string;
@@ -19,6 +20,12 @@ export function AdminBulkResultModal({ results, onClose }: AdminBulkResultModalP
   const border    = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
   const textMain  = isDark ? "rgba(255,255,255,0.92)" : "rgba(10,16,32,0.88)";
   const textMuted = isDark ? "rgba(255,255,255,0.45)" : "rgba(10,16,32,0.45)";
+  const panelBg = isDark ? "#111827" : "#ffffff";
+  const subtleBg = isDark ? "rgba(255,255,255,0.045)" : "rgba(15,23,42,0.035)";
+  const selectedBg = isDark ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.07)";
+  const labelBorder = isDark ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.09)";
+  const successBg = isDark ? "rgba(24,163,67,0.10)" : "rgba(24,163,67,0.07)";
+  const dangerBg = isDark ? "rgba(234,67,53,0.10)" : "rgba(234,67,53,0.07)";
 
   const successList = results.filter(r => r.success);
   const failList    = results.filter(r => !r.success);
@@ -39,23 +46,23 @@ export function AdminBulkResultModal({ results, onClose }: AdminBulkResultModalP
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000, padding: 20, boxSizing: "border-box" }}>
-      <div style={{ background: isDark ? "#1e293b" : "#fff", borderRadius: 24, maxWidth: 720, width: "100%", maxHeight: "85vh", display: "flex", flexDirection: "column", boxShadow: "0 24px 48px rgba(0,0,0,0.3)", overflow: "hidden" }}>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.48)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: LAYERS.modal, padding: 20, boxSizing: "border-box" }}>
+      <div style={{ background: panelBg, border: `1px solid ${border}`, borderRadius: 16, maxWidth: 720, width: "100%", maxHeight: "85vh", display: "flex", flexDirection: "column", boxShadow: "0 18px 44px rgba(15,23,42,0.18)", overflow: "hidden" }}>
         {/* 헤더 */}
-        <div style={{ padding: "28px 32px 20px", borderBottom: `1px solid ${border}` }}>
-          <h2 style={{ color: textMain, fontSize: 20, fontWeight: 800, marginBottom: 10 }}>일괄 등록 완료</h2>
+        <div style={{ padding: "24px 28px 18px", borderBottom: `1px solid ${border}` }}>
+          <h2 style={{ color: textMain, fontSize: 20, fontWeight: 800, margin: "0 0 10px" }}>일괄 등록 완료</h2>
           <div style={{ display: "flex", gap: 12 }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: "#15803d", background: isDark ? "rgba(24,163,67,0.12)" : "#f0fdf4", padding: "6px 14px", borderRadius: 8 }}>✅ {successList.length}명 성공</span>
-            {failList.length > 0 && <span style={{ fontSize: 14, fontWeight: 700, color: "#dc2626", background: isDark ? "rgba(234,67,53,0.12)" : "#fef2f2", padding: "6px 14px", borderRadius: 8 }}>❌ {failList.length}명 실패</span>}
+            <span style={{ fontSize: 13, fontWeight: 750, color: isDark ? "rgba(110,231,183,0.86)" : "#15803d", background: successBg, border: `1px solid ${isDark ? "rgba(24,163,67,0.24)" : "rgba(24,163,67,0.18)"}`, padding: "5px 12px", borderRadius: 8 }}>{successList.length}명 성공</span>
+            {failList.length > 0 && <span style={{ fontSize: 13, fontWeight: 750, color: "#dc2626", background: dangerBg, border: `1px solid ${isDark ? "rgba(234,67,53,0.28)" : "rgba(234,67,53,0.22)"}`, padding: "5px 12px", borderRadius: 8 }}>{failList.length}명 실패</span>}
           </div>
         </div>
 
         {/* 본문 (스크롤) */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "20px 32px" }}>
+        <div style={{ flex: 1, overflowY: "auto", padding: "20px 28px" }}>
           {successList.length > 0 && (
             <>
               <div style={{ fontSize: 11, fontWeight: 700, color: textMuted, marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>등록 성공 — 임시 비밀번호 목록</div>
-              <div style={{ fontSize: 12, color: isDark ? "rgba(251,188,5,0.85)" : "#92620a", background: isDark ? "rgba(251,188,5,0.08)" : "rgba(251,188,5,0.1)", border: `1px solid ${isDark ? "rgba(251,188,5,0.2)" : "rgba(251,188,5,0.35)"}`, borderRadius: 8, padding: "8px 12px", marginBottom: 14 }}>
+              <div style={{ fontSize: 12, color: textMuted, background: subtleBg, border: `1px solid ${labelBorder}`, borderRadius: 8, padding: "8px 12px", marginBottom: 14 }}>
                 아래 임시 비밀번호를 각 대표님께 전달해 주세요. 대표님들은 마이페이지에서 비밀번호를 직접 변경할 수 있습니다.
               </div>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
@@ -72,7 +79,7 @@ export function AdminBulkResultModal({ results, onClose }: AdminBulkResultModalP
                       <td style={{ padding: "10px", color: textMain, fontWeight: 600 }}>{r.name}</td>
                       <td style={{ padding: "10px", color: textMuted }}>{r.email}</td>
                       <td style={{ padding: "10px" }}>
-                        <code style={{ fontFamily: `"SF Mono", monospace`, fontSize: 13, fontWeight: 700, color: isDark ? "#93b4f8" : "#1d4ed8", background: isDark ? "rgba(67,119,241,0.12)" : "#eff6ff", padding: "3px 8px", borderRadius: 6 }}>
+                        <code style={{ fontFamily: `"SF Mono", monospace`, fontSize: 13, fontWeight: 700, color: textMain, background: subtleBg, border: `1px solid ${labelBorder}`, padding: "3px 8px", borderRadius: 6 }}>
                           {r.tempPassword}
                         </code>
                       </td>
@@ -99,18 +106,18 @@ export function AdminBulkResultModal({ results, onClose }: AdminBulkResultModalP
         </div>
 
         {/* 푸터 */}
-        <div style={{ padding: "16px 32px 24px", borderTop: `1px solid ${border}`, display: "flex", gap: 12, justifyContent: "flex-end" }}>
+        <div style={{ padding: "16px 28px 22px", borderTop: `1px solid ${border}`, display: "flex", gap: 12, justifyContent: "flex-end" }}>
           {successList.length > 0 && (
             <button
               onClick={downloadResultCsv}
-              style={{ padding: "10px 20px", borderRadius: 10, border: `1px solid ${border}`, background: isDark ? "rgba(255,255,255,0.06)" : "#f8fafc", color: textMain, fontWeight: 700, cursor: "pointer", fontSize: 13 }}
+              style={{ padding: "10px 20px", borderRadius: 10, border: `1px solid ${border}`, background: subtleBg, color: textMain, fontWeight: 700, cursor: "pointer", fontSize: 13 }}
             >
               결과 CSV 저장
             </button>
           )}
           <button
             onClick={onClose}
-            style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: "#4377F1", color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 13 }}
+            style={{ padding: "10px 24px", borderRadius: 10, border: `1px solid ${labelBorder}`, background: selectedBg, color: textMain, fontWeight: 750, cursor: "pointer", fontSize: 13 }}
           >
             닫기
           </button>

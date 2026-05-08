@@ -53,20 +53,28 @@ export default function SignupPage() {
 
     setLoading(true);
     try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: form.email,
-        password: form.password,
-        options: { data: { name: form.name, phone: form.phone, company: form.company, user_type: form.role } },
+      const { data, error } = await supabase.functions.invoke<{
+        success: boolean;
+        needsEmailConfirmation?: boolean;
+        error?: string;
+      }>("signup-profile", {
+        body: {
+          name: form.name,
+          phone: form.phone,
+          email: form.email,
+          password: form.password,
+          company: form.company,
+          userType: form.role,
+        },
       });
-      if (authError) throw authError;
+      if (error) throw new Error(data?.error || error.message);
+      if (!data?.success) throw new Error(data?.error || "회원가입 중 오류가 발생했습니다.");
 
-      if (authData.user) {
-        // handle_new_user 트리거가 profiles 행을 자동 생성하므로 별도 upsert 불필요
-        await supabase.functions.invoke("encrypt-profile", { body: { userId: authData.user.id } });
-        await supabase.auth.signOut();
-        alert("회원가입이 완료되었습니다! 로그인해 주세요.");
-        navigate("/login");
-      }
+      await supabase.auth.signOut();
+      alert(data.needsEmailConfirmation
+        ? "회원가입이 완료되었습니다! 이메일 확인 후 로그인해 주세요."
+        : "회원가입이 완료되었습니다! 로그인해 주세요.");
+      navigate("/login");
     } catch (err: unknown) {
       const msg = (err instanceof Error ? err.message : String(err)) || "";
       if (msg.toLowerCase().includes("already registered")) {
@@ -90,7 +98,7 @@ export default function SignupPage() {
   const blockKorean = (val: string) => val.replace(/[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/g, "");
 
   return (
-    <PageShell>
+    <PageShell title="회원가입" subtitle="Global X Pass에 오신 것을 환영합니다" accentColor="#4377F1">
       <div className="max-w-[420px] mx-auto my-[60px] px-5">
         <div className="text-center mb-8">
           <h1 className="text-[28px] font-bold mb-2 mt-0" style={{ color: textMain }}>회원가입</h1>
@@ -141,13 +149,17 @@ export default function SignupPage() {
 
           <div className="flex flex-col gap-2.5 mt-2">
             {[
-              { key: "terms", label: "(필수) 이용약관 동의" },
-              { key: "privacy", label: "(필수) 개인정보 처리방침 동의" },
+              { key: "terms", label: "(필수) 이용약관 동의", to: "/terms-of-use" },
+              { key: "privacy", label: "(필수) 개인정보 처리방침 동의", to: "/privacy-policy" },
               { key: "marketing", label: "(선택) 마케팅 정보 수신 동의" },
             ].map((a) => (
               <label key={a.key} className="flex items-center gap-2.5 text-[13px] cursor-pointer" style={{ color: textMain }}>
                 <input type="checkbox" checked={(agree as Record<string, boolean>)[a.key]} onChange={(e) => setAgree((s) => ({ ...s, [a.key]: e.target.checked }))} />
-                {a.label}
+                {a.to ? (
+                  <Link to={a.to} target="_blank" className="font-semibold no-underline" style={{ color: textMain }}>
+                    {a.label}
+                  </Link>
+                ) : a.label}
               </label>
             ))}
           </div>
@@ -157,10 +169,10 @@ export default function SignupPage() {
             disabled={!canSubmit || loading}
             className="mt-2 py-[14px] rounded-xl border-none text-[15px] font-bold transition-all duration-200 ease-in-out"
             style={{
-              background: canSubmit ? "linear-gradient(135deg, #4377F1 0%, #20D6A2 100%)" : (isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.1)"),
+              background: canSubmit ? "#4377F1" : (isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.1)"),
               color: canSubmit ? "#fff" : textMuted,
               cursor: canSubmit ? "pointer" : "not-allowed",
-              boxShadow: canSubmit ? "0 8px 24px rgba(67,119,241,0.3)" : "none",
+              boxShadow: "none",
             }}
           >
             {loading ? "처리 중..." : "가입하기"}

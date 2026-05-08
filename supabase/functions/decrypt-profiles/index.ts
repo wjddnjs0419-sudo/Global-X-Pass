@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
+import { requireVerifiedAdmin } from "../_shared/adminAuth.ts";
 
 const ENC_PREFIX = "enc:v1:";
 
@@ -61,40 +62,18 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    // 1. Verify the caller is an authenticated admin
+    // 1. Verify the caller using the same MFA-aware DB gate as RLS.
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response("Unauthorized", { status: 401, headers: CORS });
-    }
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Use caller's JWT to resolve their identity
-    const callerClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const {
-      data: { user },
-      error: userErr,
-    } = await callerClient.auth.getUser();
-    if (userErr || !user) {
-      return new Response("Unauthorized", { status: 401, headers: CORS });
+    const adminCheck = await requireVerifiedAdmin(authHeader);
+    if (!adminCheck.ok) {
+      return new Response(adminCheck.message, { status: adminCheck.status, headers: CORS });
     }
 
-    // Use service role to check role (bypasses RLS) and fetch all profiles
+    // Use service role only after the caller passes the MFA-aware admin gate.
     const adminClient = createClient(supabaseUrl, serviceKey);
-
-    const { data: callerProfile } = await adminClient
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    if (callerProfile?.role !== "admin") {
-      return new Response("Forbidden", { status: 403, headers: CORS });
-    }
 
     // 2. Decrypt and return all profiles
     const encSecret = Deno.env.get("ENCRYPTION_SECRET_KEY");
@@ -106,7 +85,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: profiles, error: fetchErr } = await adminClient
       .from("profiles")
-      .select("*")
+      .select("id, name, email, phone, company, user_type, role, created_at")
       .order("created_at", { ascending: false });
 
     if (fetchErr) throw fetchErr;

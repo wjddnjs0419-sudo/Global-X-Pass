@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../../../lib/supabaseClient";
+import { LAYERS } from "../../../lib/layers";
 
 export function NotificationBell({ isDark }: { isDark: boolean }) {
   const [logs, setLogs] = useState<any[]>([]);
@@ -48,20 +49,23 @@ export function NotificationBell({ isDark }: { isDark: boolean }) {
   const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
   const text = isDark ? "#f8fafc" : "#0f172a";
   const textMuted = isDark ? "rgba(255,255,255,0.45)" : "rgba(15,23,42,0.45)";
+  const labelBg = isDark ? "rgba(255,255,255,0.045)" : "rgba(15,23,42,0.035)";
+  const labelBorder = isDark ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.09)";
+  const selectedBg = isDark ? "rgba(255,255,255,0.10)" : "#ffffff";
 
   return (
-    <div style={{ position: "fixed", bottom: "30px", right: "30px", zIndex: 9999 }}>
+    <div style={{ position: "fixed", bottom: "30px", right: "30px", zIndex: LAYERS.adminFloatingPopover }}>
       {isOpen && (
         <div style={{ 
           position: "absolute", bottom: "70px", right: 0, width: "360px", maxHeight: "450px",
-          background: bg, borderRadius: "20px", border: `1px solid ${border}`,
-          boxShadow: "0 10px 40px rgba(0,0,0,0.15)", overflow: "hidden",
+          background: bg, borderRadius: "16px", border: `1px solid ${border}`,
+          boxShadow: "0 18px 44px rgba(15,23,42,0.18)", overflow: "hidden",
           display: "flex", flexDirection: "column", animation: "fadeInUp 0.2s ease-out"
         }}>
           <style>{`@keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }`}</style>
           <div style={{ padding: "16px 20px", borderBottom: `1px solid ${border}`, fontWeight: 800, color: text, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             활동 로그
-            <span style={{ fontSize: "12px", fontWeight: 600, color: textMuted, background: isDark ? "rgba(255,255,255,0.05)" : "#f1f5f9", padding: "4px 8px", borderRadius: "8px" }}>최근 30건</span>
+            <span style={{ fontSize: "12px", fontWeight: 700, color: textMuted, background: labelBg, border: `1px solid ${labelBorder}`, padding: "4px 8px", borderRadius: "8px" }}>최근 30건</span>
           </div>
           <div style={{ overflowY: "auto", flex: 1, padding: "10px" }}>
             {logs.length === 0 ? (
@@ -73,7 +77,7 @@ export function NotificationBell({ isDark }: { isDark: boolean }) {
                 const title = isInsert ? "새 게시물 작성" : isUpdate ? "게시물 수정" : "게시물 삭제";
                 const postTitle = log.new_data?.title || log.old_data?.title || "제목 없음";
                 const worker = log.user_name || (log.user_email ? log.user_email.split('@')[0] : (log.email ? log.email.split('@')[0] : "알 수 없음"));
-                const dotColor = isInsert ? "#22c55e" : isUpdate ? "#3b82f6" : "#ef4444";
+                const dotColor = isInsert ? "rgba(24,163,67,0.65)" : isUpdate ? "rgba(67,119,241,0.62)" : "rgba(234,67,53,0.65)";
 
                 return (
                   <div key={log.id} style={{ display: "flex", padding: "12px", borderRadius: "12px", transition: "background 0.2s" }}>
@@ -82,7 +86,7 @@ export function NotificationBell({ isDark }: { isDark: boolean }) {
                       <div style={{ fontSize: "13px", fontWeight: 700, color: text, marginBottom: "4px", display: "flex", justifyContent: "space-between" }}>
                         <span>
                           {title} 
-                          <span style={{ marginLeft: "8px", fontSize: "10px", fontWeight: 600, background: isDark ? "rgba(67, 119, 241, 0.15)" : "#eef2ff", color: "#4377F1", padding: "2px 6px", borderRadius: "4px" }}>
+                          <span style={{ marginLeft: "8px", fontSize: "10px", fontWeight: 700, background: labelBg, border: `1px solid ${labelBorder}`, color: textMuted, padding: "2px 6px", borderRadius: "4px" }}>
                             by {worker}
                           </span>
                         </span>
@@ -103,14 +107,14 @@ export function NotificationBell({ isDark }: { isDark: boolean }) {
       <button 
         onClick={() => setIsOpen(!isOpen)}
         style={{
-          width: "56px", height: "56px", borderRadius: "50%", background: "#4377F1", border: "none",
-          boxShadow: "0 8px 24px rgba(67, 119, 241, 0.4)", cursor: "pointer", position: "relative",
+          width: "52px", height: "52px", borderRadius: "50%", background: selectedBg, border: `1px solid ${labelBorder}`,
+          boxShadow: "0 12px 28px rgba(15,23,42,0.14)", cursor: "pointer", position: "relative",
           display: "flex", alignItems: "center", justifyContent: "center", transition: "transform 0.2s"
         }}
         onMouseOver={(e) => e.currentTarget.style.transform = "scale(1.05)"}
         onMouseOut={(e) => e.currentTarget.style.transform = "scale(1)"}
       >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={text} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.78">
           <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
           <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
         </svg>

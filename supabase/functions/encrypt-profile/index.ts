@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
+import { requireVerifiedAdmin } from "../_shared/adminAuth.ts";
 
 const ENC_PREFIX = "enc:v1:";
 
@@ -48,17 +49,43 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response("Unauthorized", { status: 401, headers: CORS });
+    }
+
     const { userId } = await req.json();
     if (!userId) {
       return new Response("userId is required", { status: 400, headers: CORS });
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceKey  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const encSecret   = Deno.env.get("ENCRYPTION_SECRET_KEY");
 
     if (!encSecret) {
       throw new Error("ENCRYPTION_SECRET_KEY is not configured");
+    }
+
+    const callerClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const {
+      data: { user },
+      error: userError,
+    } = await callerClient.auth.getUser();
+
+    if (userError || !user) {
+      return new Response("Unauthorized", { status: 401, headers: CORS });
+    }
+
+    if (user.id !== userId) {
+      const adminCheck = await requireVerifiedAdmin(authHeader, { requireAal2: true });
+      if (!adminCheck.ok) {
+        return new Response(adminCheck.message, { status: adminCheck.status, headers: CORS });
+      }
     }
 
     const supabase = createClient(supabaseUrl, serviceKey);
@@ -102,7 +129,7 @@ Deno.serve(async (req: Request) => {
     });
   } catch (err) {
     console.error("[encrypt-profile]", err);
-    return new Response(JSON.stringify({ error: (err as Error).message }), {
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { ...CORS, "Content-Type": "application/json" },
     });

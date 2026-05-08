@@ -84,3 +84,314 @@
 .ql-container.ql-snow {
   border: none !important;
 }
+
+/* =========================================
+   네이버 SE 이관 콘텐츠 렌더링 정규화
+   (.naver-se-content 래퍼 안에서만 적용)
+========================================= */
+
+.naver-se-content {
+  --gxp-naver-block-gap: 0.75em;
+  --gxp-naver-strip-gap-inline: 2px;
+  --gxp-naver-image-stack-gap: 2px;
+}
+
+/* 모든 SE 래퍼 요소 margin/padding 초기화 */
+.naver-se-content .se-component-content,
+.naver-se-content .se-component-content-fit,
+.naver-se-content section,
+.naver-se-content .se-section,
+.naver-se-content .se-module {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* SE 컴포넌트 기본 박스 초기화 */
+.naver-se-content [data-gxp-se-block],
+.naver-se-content .se-component {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* 기본 본문 리듬: 텍스트/이미지/표 컴포넌트 간 공통 간격 */
+.naver-se-content [data-gxp-se-block] + [data-gxp-se-block],
+.naver-se-content .se-component + .se-component {
+  margin-top: var(--gxp-naver-block-gap) !important;
+}
+
+/* 연속된 이미지 계열 컴포넌트(strip / 단독 image)는 원본처럼 더 촘촘한 세로 간격을 사용 */
+.naver-se-content [data-gxp-se-flow="media-stack"] + [data-gxp-se-flow="media-stack"],
+.naver-se-content .se-component:is(.se-image, .se-imageStrip) + .se-component:is(.se-image, .se-imageStrip) {
+  margin-top: var(--gxp-naver-image-stack-gap) !important;
+}
+
+/* 핵심: SE는 텍스트 한 줄에 <p> 하나 → 브라우저 기본 margin이 거대한 여백의 원인 */
+.naver-se-content p {
+  margin: 0 !important;
+  line-height: 1.65 !important;
+}
+
+/* SE 구분선은 이미지/텍스트 사이를 얇게 나누는 역할이라 전후 여백을 별도로 관리 */
+.naver-se-content [data-gxp-se-block="divider"],
+.naver-se-content .se-component.se-horizontalLine {
+  margin-top: 1rem !important;
+  margin-bottom: 1rem !important;
+}
+
+.naver-se-content [data-gxp-se-block="divider"] + [data-gxp-se-block],
+.naver-se-content .se-component.se-horizontalLine + .se-component {
+  margin-top: 0 !important;
+}
+
+.naver-se-content .se-module-horizontalLine {
+  line-height: 0 !important;
+}
+
+/* SE 구분선 정규화 */
+.naver-se-content hr,
+.naver-se-content .se-hr {
+  display: block !important;
+  width: 100% !important;
+  border: none !important;
+  border-top: 1px solid currentColor !important;
+  opacity: 0.15;
+  margin: 0 !important;
+}
+
+/* SE inline-image span: width 속성이 작동하려면 block 필요 */
+.naver-se-content [data-gxp-se="inline-image"],
+.naver-se-content .se-inline-image {
+  display: block !important;
+  max-width: 100% !important;
+}
+
+/* 이미지 공통: display:block을 모든 img에 강제하면 inline span 안에서 레이아웃 파괴됨
+   → max-width/height만 공통 적용하고 display는 하위 규칙에서 처리 */
+.naver-se-content img {
+  max-width: 100% !important;
+  height: auto !important;
+  border-radius: 8px;
+}
+
+/* Quill 전역 이미지 마진이 SE 구분선/스트립 간격을 부풀리지 않도록 차단 */
+.naver-se-content .ql-editor img,
+.naver-se-content img {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* 단독 이미지 컴포넌트 — block + 중앙 정렬 */
+.naver-se-content [data-gxp-se-block="image"] .se-module-image > img,
+.naver-se-content [data-gxp-se="inline-image"] > img,
+.naver-se-content [data-gxp-se="image-slot"] > img,
+.naver-se-content .se-module-image > img,
+.naver-se-content .se-inline-image > img,
+.naver-se-content .se-inline-image-resource {
+  display: block !important;
+  width: 100% !important;
+  margin: 0 auto !important;
+}
+
+/* SE 이미지 스트립은 item width 합계가 이미 100%라 gap/margin을 직접 주면 줄바꿈이 난다.
+   대신 item 내부 padding을 border-box 안에서만 사용해 원본에 가까운 미세 간격만 복원한다. */
+.naver-se-content [data-gxp-se="image-strip-layout"],
+.naver-se-content .se-imageStrip-container {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  justify-content: space-between !important;
+  gap: 0 !important;
+  align-items: stretch !important;
+  width: 100% !important;
+}
+
+.naver-se-content [data-gxp-se="image-strip-layout"] > [data-gxp-se="image-slot"],
+.naver-se-content .se-imageStrip-container .se-module-image {
+  flex: 0 0 auto !important;
+  display: block !important;
+  box-sizing: border-box !important;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.naver-se-content [data-gxp-se="image-strip-layout"] > [data-gxp-se="image-slot"] + [data-gxp-se="image-slot"],
+.naver-se-content .se-imageStrip-container .se-module-image + .se-module-image {
+  padding-left: var(--gxp-naver-strip-gap-inline) !important;
+}
+
+.naver-se-content [data-gxp-se="image-strip-layout"] img,
+.naver-se-content .se-imageStrip-container img {
+  width: 100% !important;
+  height: auto !important;
+  display: block !important;
+  object-fit: cover;
+  margin: 0 !important;
+  border-radius: 4px;
+}
+
+/* SE imageGroup(collage)은 row 내부 이미지가 inline width를 갖고 있으므로 row를 flex로 복원한다. */
+.naver-se-content [data-gxp-se="image-collage-layout"],
+.naver-se-content .se-imageGroup-container {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+  width: 100% !important;
+}
+
+.naver-se-content [data-gxp-se="image-collage-row"],
+.naver-se-content .se-imageGroup-item {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: stretch !important;
+  width: 100% !important;
+  gap: 0 !important;
+}
+
+.naver-se-content [data-gxp-se="image-collage-row"] > [data-gxp-se="image-slot"],
+.naver-se-content .se-imageGroup-item > .se-module-image {
+  flex: 0 0 auto !important;
+  display: block !important;
+  box-sizing: border-box !important;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.naver-se-content [data-gxp-se="image-collage-row"] > [data-gxp-se="image-slot"] + [data-gxp-se="image-slot"],
+.naver-se-content .se-imageGroup-item > .se-module-image + .se-module-image {
+  padding-left: var(--gxp-naver-strip-gap-inline) !important;
+}
+
+.naver-se-content [data-gxp-se="image-collage-row"] img,
+.naver-se-content .se-imageGroup-item img {
+  width: 100% !important;
+  height: auto !important;
+  display: block !important;
+  object-fit: cover;
+  margin: 0 !important;
+  border-radius: 4px;
+}
+
+/* 외부 링크 카드 */
+.naver-se-content [data-gxp-se-block="linkCard"] [data-gxp-se="link-card-module"] {
+  margin: 0 !important;
+}
+
+.naver-se-content [data-gxp-se="link-card-body"] {
+  display: flex !important;
+  align-items: stretch !important;
+  gap: 0 !important;
+  width: 100% !important;
+  text-decoration: none !important;
+  color: inherit !important;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgba(148, 163, 184, 0.08);
+}
+
+.naver-se-content [data-gxp-se="link-card-thumb"] {
+  display: block !important;
+  width: min(38%, 220px) !important;
+  max-width: 220px !important;
+  min-width: 140px !important;
+  height: auto !important;
+  object-fit: cover !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  flex-shrink: 0;
+}
+
+.naver-se-content [data-gxp-se="link-card-content"] {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  min-width: 0;
+  padding: 16px 18px !important;
+}
+
+.naver-se-content [data-gxp-se="link-card-title"] {
+  display: block !important;
+  font-size: 15px !important;
+  line-height: 1.45 !important;
+  font-weight: 700 !important;
+  margin: 0 !important;
+}
+
+.naver-se-content [data-gxp-se="link-card-summary"] {
+  margin: 0 !important;
+  font-size: 13px !important;
+  line-height: 1.55 !important;
+  opacity: 0.78;
+}
+
+.naver-se-content [data-gxp-se="link-card-url"] {
+  margin: 0 !important;
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+  opacity: 0.58;
+  word-break: break-all;
+}
+
+/* 네이버 장소/지도 블록은 외부 iframe/object가 섞일 수 있어 본문 폭 안에 고정한다. */
+.naver-se-content [data-gxp-se-block="placeMap"],
+.naver-se-content .se-component.se-placesMap {
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.naver-se-content [data-gxp-se-block="placeMap"] iframe,
+.naver-se-content [data-gxp-se-block="placeMap"] object,
+.naver-se-content [data-gxp-se-block="placeMap"] embed,
+.naver-se-content .se-component.se-placesMap iframe,
+.naver-se-content .se-component.se-placesMap object,
+.naver-se-content .se-component.se-placesMap embed {
+  display: block !important;
+  max-width: 100% !important;
+}
+
+@media (max-width: 640px) {
+  .naver-se-content [data-gxp-se="link-card-body"] {
+    flex-direction: column !important;
+  }
+
+  .naver-se-content [data-gxp-se="link-card-thumb"] {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+  }
+}
+
+/* 뉴스레터형 SE table은 본문이 한 셀에 길게 들어가므로 기본 middle 정렬이면
+   콘텐츠가 카드 하단으로 밀린다. 항상 top 정렬로 고정한다. */
+.naver-se-content .se-table-content td,
+.naver-se-content .se-table-content th {
+  vertical-align: top !important;
+}
+
+/* 뷰어 div.ql-editor의 에디터 min-height 규칙이 SE 본문에 적용되지 않도록 초기화 */
+.naver-se-content .ql-editor {
+  min-height: 0 !important;
+  white-space: normal !important;
+}
+
+/* SE 빈 단락 숨김 (whitespace / &nbsp; 전용 줄) */
+.naver-se-content p:empty { display: none; }
+.naver-se-content p:has(> span:only-child:empty) { display: none; }
+.naver-se-content p:has(span:only-child b:only-child:empty) { display: none; }
+.naver-se-content .se-component.se-text:has(> .se-component-content > .se-section.se-section-text > .se-module.se-module-text:empty) { display: none; }
+.naver-se-content .se-component.se-text:has(> .se-component-content > .se-section.se-section-text > .se-module.se-module-text > p:only-child:empty) { display: none; }
+.naver-se-content .se-component.se-table:has(.se-table tbody:empty) { display: none; }
+
+/* 네이버가 문단 간 의도적 spacer로 넣는 zero-width 문단은 컴포넌트 간격까지 제거 */
+.naver-se-content .se-text-paragraph {
+  min-height: 0 !important;
+}
+
+/* 인용구 */
+.naver-se-content [data-gxp-se="quote-shell"],
+.naver-se-content .se-quotation-container {
+  margin: 0 !important;
+  padding: 0.6em 1em !important;
+  border-left: 3px solid currentColor;
+  opacity: 0.8;
+}

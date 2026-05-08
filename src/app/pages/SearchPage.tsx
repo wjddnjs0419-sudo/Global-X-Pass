@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { PageShell } from "../components/PageShell";
 import { useTheme } from "../ThemeContext";
+import { getFilterTabStyle, getMutedLabelStyle } from "../components/contentListStyles";
 
 type Result = { id: number; type: string; title: string; desc: string; to: string; color: string };
 
@@ -9,7 +10,7 @@ const ALL: Result[] = [
   { id: 1, type: "공지", title: "창구 프로그램 8기 모집 안내", desc: "2026년 8기 모집 공고 및 일정이 공개되었습니다.", to: "/notice", color: "#4285F4" },
   { id: 2, type: "행사", title: "NCF Spring Networking Night 2026", desc: "스타트업·투자자 200명 네트워킹 이벤트.", to: "/events", color: "#20D6A2" },
   { id: 3, type: "행사", title: "글로벌 진출 전략 워크숍 — 동남아 편", desc: "현지 전문가와 함께하는 반일 워크숍.", to: "/events", color: "#20D6A2" },
-  { id: 4, type: "뉴스레터", title: "동남아 게임 앱 시장, Q2 성장률 23%", desc: "Vol.32 · 시장 분석", to: "/news", color: "#60A5FA" },
+  { id: 4, type: "미디어", title: "동남아 게임 앱 시장, Q2 성장률 23%", desc: "Vol.32 · 시장 분석", to: "/media", color: "#60A5FA" },
   { id: 5, type: "자료", title: "글로벌 IR 피칭 템플릿 v3", desc: "PDF · 다운로드 1,840회", to: "/resources", color: "#A78BFA" },
   { id: 6, type: "자료", title: "Google Play ASO 가이드 2026", desc: "최신 알고리즘 변경 분석", to: "/resources", color: "#A78BFA" },
   { id: 7, type: "블로그", title: "7기 수료 기업 A사 인터뷰", desc: "동남아 MAU 10만 달성 비결", to: "/blog", color: "#FBBF24" },
@@ -17,7 +18,7 @@ const ALL: Result[] = [
   { id: 9, type: "아카이브", title: "창구 프로그램 2기 데모데이", desc: "2026.03.28 · 280명 참가", to: "/events/archive", color: "#A78BFA" },
 ];
 
-const FILTERS = ["전체", "공지", "행사", "뉴스레터", "자료", "블로그", "FAQ", "아카이브"];
+const FILTERS = ["전체", "공지", "행사", "미디어", "자료", "블로그", "FAQ", "아카이브"];
 const POPULAR = ["창구 프로그램", "데모데이", "IR 템플릿", "동남아", "Google Play"];
 
 export function SearchPage() {
@@ -39,7 +40,7 @@ export function SearchPage() {
   }, [query, filter]);
 
   return (
-    <PageShell title="통합 검색" subtitle="공지·행사·자료·뉴스레터를 한 번에 검색하세요." accentColor="#4377F1">
+    <PageShell title="통합 검색" subtitle="공지·행사·자료·미디어를 한 번에 검색하세요." accentColor="#4377F1">
       {/* Search box */}
       <div
         className="flex items-center gap-3 rounded-2xl py-2 pl-5 pr-2 mb-6"
@@ -70,7 +71,7 @@ export function SearchPage() {
         )}
         <button
           className="px-[22px] py-3 rounded-xl border-none text-white text-[14px] font-bold cursor-pointer font-['Pretendard',sans-serif]"
-          style={{ background: "linear-gradient(135deg, #4377F1 0%, #20D6A2 100%)" }}
+          style={{ background: "#4377F1" }}
         >
           검색
         </button>
@@ -84,7 +85,7 @@ export function SearchPage() {
             <button
               key={p}
               onClick={() => setQuery(p)}
-              className="px-3.5 py-1.5 rounded-full text-[13px] font-medium cursor-pointer font-['Pretendard',sans-serif]"
+              className="px-3.5 py-1.5 rounded-[9px] text-[13px] font-medium cursor-pointer font-['Pretendard',sans-serif]"
               style={{ border: `1px solid ${border}`, background: card, color: textMain }}
             >
               #{p}
@@ -100,10 +101,7 @@ export function SearchPage() {
             key={f}
             onClick={() => setFilter(f)}
             className="px-[18px] py-[7px] rounded-full border-none cursor-pointer font-['Pretendard',sans-serif] text-[13px] font-semibold transition-all duration-200 ease-in-out"
-            style={{
-              background: filter === f ? "#4377F1" : isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)",
-              color: filter === f ? "#fff" : textMuted,
-            }}
+            style={getFilterTabStyle(isDark, filter === f)}
           >
             {f}
           </button>
@@ -113,7 +111,7 @@ export function SearchPage() {
       {/* Result count */}
       <div className="text-[13px] mb-3.5" style={{ color: textMuted }}>
         총 <strong style={{ color: textMain }}>{results.length}</strong>건의 결과
-        {query && <> · 검색어 “<strong style={{ color: "#4377F1" }}>{query}</strong>”</>}
+        {query && <> · 검색어 “<strong style={{ color: textMain }}>{query}</strong>”</>}
       </div>
 
       {/* Results */}
@@ -139,7 +137,7 @@ export function SearchPage() {
               style={{ background: card, border: `1px solid ${border}` }}
               onMouseEnter={(e) => {
                 const el = e.currentTarget as HTMLAnchorElement;
-                el.style.borderColor = r.color;
+                el.style.borderColor = isDark ? "rgba(255,255,255,0.22)" : "rgba(15,23,42,0.18)";
               }}
               onMouseLeave={(e) => {
                 const el = e.currentTarget as HTMLAnchorElement;
@@ -147,7 +145,7 @@ export function SearchPage() {
               }}
             >
               <div className="flex items-center gap-2.5 mb-2">
-                <span className="px-2.5 py-1 rounded-full text-[11px] font-bold" style={{ background: `${r.color}1A`, color: r.color }}>{r.type}</span>
+                <span style={getMutedLabelStyle(isDark)}>{r.type}</span>
                 <span className="text-[12px]" style={{ color: textMuted }}>{r.to}</span>
               </div>
               <div className="text-[16px] font-bold mb-1 tracking-[-0.02em]" style={{ color: textMain }}>

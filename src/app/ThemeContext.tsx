@@ -12,12 +12,17 @@ function getInitialTheme(): boolean {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [isDark, setIsDark] = useState(getInitialTheme);
+  const [isDark, setIsDark] = useState(() => {
+    const dark = getInitialTheme();
+    document.documentElement.classList.toggle("dark", dark);
+    return dark;
+  });
 
   const toggle = () => {
     setIsDark((v) => {
       const next = !v;
       localStorage.setItem("theme", next ? "dark" : "light");
+      document.documentElement.classList.toggle("dark", next);
       return next;
     });
   };

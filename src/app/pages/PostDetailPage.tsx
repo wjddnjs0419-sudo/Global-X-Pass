@@ -1,16 +1,57 @@
-import { useState, useEffect, useMemo, useRef } from "react";
-import DOMPurify from "dompurify";
+import { lazy, Suspense, useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router";
 import { PageShell } from "../components/PageShell";
 import { useTheme } from "../ThemeContext";
 import { supabase } from "../../lib/supabaseClient";
-import { isImage, getFileNameFromUrl, encodeFilename } from "../../utils/file";
+import {
+  containsDocumentFile,
+  DOCUMENT_UPLOAD_ACCEPT,
+  encodeFilename,
+  getFileNameFromUrl,
+  isAllowedDocumentFile,
+  isAllowedUploadFile,
+  isBrowserSafeImageFile,
+  isImage,
+  PUBLIC_DOCUMENT_UPLOAD_WARNING,
+} from "../../utils/file";
+import {
+  buildNaverRenderModel,
+  getNaverImportDiagnostics,
+  sanitizeRichHtml,
+} from "../../utils/htmlSecurity";
 import { useAdmin } from "../../hooks/useAdmin";
+import { LAYERS } from "../../lib/layers";
 import type { Post } from "../../lib/types";
-import { getActivePresets, addCategory, deleteCategory } from "../../utils/categoryStore";
+import { useBoardTagPresets } from "../../hooks/useBoardTagPresets";
+import { normalizePublicStorageUrl } from "../../utils/urlSecurity";
+import {
+  getMediaCategoryAspectRatio,
+  getMediaCategoryLabel,
+  isWideMediaCategory,
+  resolveMediaCategoryId,
+} from "../constants/mediaCategories";
+import { useMediaCategories } from "../../hooks/useMediaCategories";
+import {
+  getExternalMediaThumbnailUrl,
+  parseMediaMeta,
+  stripMediaMeta,
+} from "../../utils/mediaPost";
 
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
+
+const AdminPostCreate = lazy(() => import("../components/admin/AdminPostCreate"));
+
+const MEDIA_COLOR = "#20D6A2";
+
+const getOrCreateVisitorId = () => {
+  let visitorId = localStorage.getItem("visitor_id");
+  if (!visitorId) {
+    visitorId = crypto.randomUUID();
+    localStorage.setItem("visitor_id", visitorId);
+  }
+  return visitorId;
+};
 
 const BOARD_INFO: Record<string, { title: string; subtitle: string }> = {
   notice:           { title: "공지사항",       subtitle: "중요한 안내 사항을 확인하세요." },
@@ -18,6 +59,7 @@ const BOARD_INFO: Record<string, { title: string; subtitle: string }> = {
   events:           { title: "행사",           subtitle: "NCF × Around X가 준비한 소식을 확인하세요." },
   "events-archive": { title: "행사 아카이브",   subtitle: "지나간 행사의 기록을 확인하세요." },
   resources:        { title: "자료실",          subtitle: "필요한 서식과 자료를 다운로드하세요." },
+  media:            { title: "미디어",          subtitle: "직접 제작한 콘텐츠를 확인하세요." },
   blog:             { title: "블로그",          subtitle: "다양한 인사이트와 이야기를 만나보세요." },
   faq:              { title: "자주 묻는 질문",  subtitle: "궁금한 점을 빠르게 찾아보세요." },
 };
@@ -29,54 +71,99 @@ export function PostDetailPage() {
   const { isAdmin } = useAdmin();
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
   const [editTags, setEditTags] = useState("");
   const [tagInput, setTagInput] = useState("");
-  const [tagPresets, setTagPresets] = useState(() => getActivePresets());
+  const [postCategory, setPostCategory] = useState("");
+  const mediaCategories = useMediaCategories();
+  const { presets: tagPresets, addTag, hideTag } = useBoardTagPresets(postCategory);
   const [editEventStatus, setEditEventStatus] = useState("접수예정");
   const [editEventDate, setEditEventDate] = useState("");
   const [editLocation, setEditLocation] = useState("");
   const [editCapacity, setEditCapacity] = useState("");
-  const [editSlotsRemaining, setEditSlotsRemaining] = useState("");
   const [editFiles, setEditFiles] = useState<File[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showModal, setShowModal] = useState<{ show: boolean; type: "save" | "delete" | null }>({ show: false, type: null });
   const quillRef = useRef<ReactQuill>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const textMain = isDark ? "rgba(255,255,255,0.92)" : "#0f172a";
   const textMuted = isDark ? "rgba(255,255,255,0.45)" : "rgba(15,23,42,0.45)";
   const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
   const card = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
 
-  useEffect(() => {
-    const fetchPost = async () => {
-      if (!id) return;
-      const { data } = await supabase.from("posts").select("*").eq("id", id).single();
+  const applyPostData = (data: Post, viewDelta = 0) => {
+    setPost({ ...data, views: (data.views || 0) + viewDelta } as Post);
+    setEditTitle(data.title);
+    setEditContent(data.content);
+    setEditTags(data.category === "media" ? resolveMediaCategoryId(data.tags) || "" : data.tags || "");
+    setPostCategory(data.category);
+    setExistingImages(data.image_url ? data.image_url.split(",") : []);
+    setEditEventStatus(data.event_status || "접수예정");
+    setEditEventDate(data.event_date || "");
+    setEditLocation(data.location || "");
+    setEditCapacity(data.capacity != null ? String(data.capacity) : "");
+  };
 
-      if (data) {
-        const newViews = (data.views || 0) + 1;
-        const { error: rpcError } = await supabase.rpc("increment_view_count", { row_id: id });
-        if (rpcError) {
-          await supabase.from("posts").update({ views: newViews }).eq("id", id);
-        }
-        setPost({ ...data, views: newViews } as Post);
-        setEditTitle(data.title);
-        setEditContent(data.content);
-        setEditTags(data.tags || "");
-        setExistingImages(data.image_url ? data.image_url.split(",") : []);
-        setEditEventStatus(data.event_status || "접수예정");
-        setEditEventDate(data.event_date || "");
-        setEditLocation(data.location || "");
-        setEditCapacity(data.capacity != null ? String(data.capacity) : "");
-        setEditSlotsRemaining(data.slots_remaining != null ? String(data.slots_remaining) : "");
-      }
+  const fetchPost = async (incrementView = false) => {
+    if (!id) {
+      setPost(null);
+      setLoadError("잘못된 게시물 주소입니다.");
       setLoading(false);
-    };
+      return;
+    }
 
-    fetchPost();
+    try {
+      setLoadError(null);
+
+      const { data, error } = await supabase.from("posts").select("*").eq("id", id).maybeSingle();
+      if (error) throw error;
+
+      if (!data) {
+        setPost(null);
+        setLoadError("게시물을 찾을 수 없습니다.");
+        return;
+      }
+
+      applyPostData(data as Post);
+
+      if (incrementView) {
+        const visitorId = getOrCreateVisitorId();
+        void supabase
+          .rpc("increment_view_count", {
+            row_id: id,
+            visitor_id: visitorId,
+          })
+          .then(({ data: incremented, error: rpcError }) => {
+            if (rpcError) {
+              console.error("Failed to increment post view:", rpcError);
+              return;
+            }
+            if (!incremented) return;
+            setPost((current) => (
+              current && current.id === data.id
+                ? ({ ...current, views: (current.views || 0) + 1 } as Post)
+                : current
+            ));
+          });
+      }
+    } catch (error) {
+      console.error("Failed to load post detail:", { id, error });
+      setPost(null);
+      setLoadError("게시물을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    setLoading(true);
+    setPost(null);
+    void fetchPost(true);
   }, [id]);
 
   const imageHandler = () => {
@@ -87,6 +174,10 @@ export function PostDetailPage() {
     input.onchange = async () => {
       const file = input.files?.[0];
       if (file) {
+        if (!isBrowserSafeImageFile(file)) {
+          alert("SVG를 제외한 이미지 파일만 업로드 가능합니다.");
+          return;
+        }
         if (file.size > 10 * 1024 * 1024) {
           alert("이미지 파일은 10MB 이하만 업로드 가능합니다.");
           return;
@@ -108,6 +199,26 @@ export function PostDetailPage() {
         }
       }
     };
+  };
+
+  const handleEditFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = Array.from(e.target.files || []);
+    const allowed = selected.filter(isAllowedUploadFile);
+    const sizeOk = allowed.filter((file) => file.size <= 10 * 1024 * 1024);
+
+    if (allowed.length < selected.length) {
+      alert("이미지 및 허용된 문서 파일(PDF, ZIP, DOC/DOCX, XLS/XLSX, PPT/PPTX, HWP)만 업로드 가능합니다.");
+    }
+    if (sizeOk.length < allowed.length) {
+      alert("10MB 이하의 파일만 첨부할 수 있습니다.");
+    }
+    if (containsDocumentFile(sizeOk) && !window.confirm(PUBLIC_DOCUMENT_UPLOAD_WARNING)) {
+      e.target.value = "";
+      return;
+    }
+
+    setEditFiles((prev) => [...prev, ...sizeOk]);
+    e.target.value = "";
   };
 
   const modules = useMemo(() => ({
@@ -140,27 +251,35 @@ export function PostDetailPage() {
             alert(`"${f.name}" 파일이 10MB를 초과합니다. 10MB 이하 파일만 업로드 가능합니다.`);
             return;
           }
+          if (!isAllowedUploadFile(f)) {
+            alert(`"${f.name}" 파일 형식은 업로드할 수 없습니다.`);
+            return;
+          }
+
+          const isImageFile = isBrowserSafeImageFile(f);
+          const targetBucket = isImageFile ? 'images' : 'documents';
+
           const safeName = encodeFilename(f.name);
           const fileName = `${Date.now()}---${Math.random().toString(36).substr(2, 9)}---${safeName}`;
-          const { error: upError } = await supabase.storage.from("images").upload(fileName, f);
+          const { error: upError } = await supabase.storage.from(targetBucket).upload(fileName, f);
           if (upError) throw upError;
-          const url = supabase.storage.from("images").getPublicUrl(fileName).data.publicUrl;
+          const url = supabase.storage.from(targetBucket).getPublicUrl(fileName).data.publicUrl;
           imageUrls.push(url);
         }
         const isEvent = post?.category === "events";
+        const finalTags = post?.category === "media" ? resolveMediaCategoryId(editTags) : editTags || null;
         const { data, error } = await supabase
           .from("posts")
           .update({
             title: editTitle,
             content: editContent,
             image_url: imageUrls.join(",") || null,
-            tags: editTags || null,
+            tags: finalTags,
             ...(isEvent ? {
               event_status: editEventStatus,
               event_date: editEventDate || null,
               location: editLocation || null,
               capacity: editCapacity ? Number(editCapacity) : null,
-              slots_remaining: editSlotsRemaining ? Number(editSlotsRemaining) : null,
             } : {}),
           })
           .eq("id", id)
@@ -184,22 +303,116 @@ export function PostDetailPage() {
     }
   };
 
-  if (loading) return <PageShell title="로딩 중..."><p>불러오는 중입니다.</p></PageShell>;
-  if (!post && !isSubmitting) return <PageShell title="오류"><p>게시물을 찾을 수 없습니다.</p></PageShell>;
-
   const headerInfo = BOARD_INFO[post?.category ?? ""] ?? { title: "게시판", subtitle: "상세 보기" };
   const attachmentUrls = post?.image_url ? post.image_url.split(",") : [];
+  const mediaMeta = post?.category === "media" ? parseMediaMeta(post.content || "") : { externalUrl: "" };
+  const isMediaWideType = post?.category === "media" && isWideMediaCategory(post.tags);
+  const externalMediaThumbnailUrl = isMediaWideType ? getExternalMediaThumbnailUrl(mediaMeta.externalUrl) : null;
   const images = attachmentUrls.filter(isImage);
-  const files = attachmentUrls.filter((url) => !isImage(url));
+  const files = isMediaWideType
+    ? []
+    : attachmentUrls
+      .filter((url) => !isImage(url))
+      .map(normalizePublicStorageUrl)
+      .filter(Boolean);
+  const rawBodyContent = post?.category === "media" ? stripMediaMeta(post.content || "") : post?.content || "";
+  const {
+    isNaverImport,
+    normalizedContent: renderedBodyContent,
+    bodyImageUrls,
+    dedupedAttachmentUrls: dedupedImages,
+  } = buildNaverRenderModel(rawBodyContent, images);
+  const mediaCoverUrl = post?.category === "media" ? (isMediaWideType ? externalMediaThumbnailUrl ?? images[0] : images[0]) : null;
+  const mediaBodyImages = post?.category === "media" ? (isMediaWideType ? [] : images.slice(1)) : images;
+  const useAdminPostEditor = isEditing && post?.category === "media";
+
+  useEffect(() => {
+    if (!post || typeof window === "undefined") return;
+
+    const debugEnabled =
+      import.meta.env.DEV ||
+      new URLSearchParams(window.location.search).get("debugNaverImport") === "1" ||
+      window.localStorage.getItem("gxp_debug_naver_import") === "1";
+
+    if (!debugEnabled) return;
+
+    const diagnostics = getNaverImportDiagnostics(rawBodyContent, attachmentUrls);
+    const shouldLog =
+      isNaverImport ||
+      diagnostics.canonical.unknownComponentCount > 0 ||
+      diagnostics.canonical.markerCoverageRatio < 1 ||
+      diagnostics.spacingStyleCount > 0 ||
+      diagnostics.emptyParagraphCount > 0 ||
+      diagnostics.duplicateAttachmentUrls.length > 0;
+
+    if (!shouldLog) return;
+
+    const firstParagraph = contentRef.current?.querySelector("p");
+    const firstImage = contentRef.current?.querySelector("img");
+    const paragraphStyle = firstParagraph ? window.getComputedStyle(firstParagraph) : null;
+    const imageStyle = firstImage ? window.getComputedStyle(firstImage) : null;
+
+    console.groupCollapsed(`[Naver Import Debug] ${post.title}`);
+    console.log({
+      postId: post.id,
+      category: post.category,
+      isNaverImport,
+      diagnostics,
+      render: {
+        attachmentUrls,
+        bodyImageUrls: bodyImageUrls.slice(0, 8),
+        removedDuplicateImages: images.length - dedupedImages.length,
+      },
+      canonical: {
+        markerCoverageRatio: diagnostics.canonical.markerCoverageRatio,
+        seComponentCount: diagnostics.canonical.seComponentCount,
+        canonicalBlockCount: diagnostics.canonical.canonicalBlockCount,
+        unknownComponentCount: diagnostics.canonical.unknownComponentCount,
+        unknownComponentSamples: diagnostics.canonical.unknownComponentSamples,
+        blockCounts: diagnostics.canonical.blockCounts,
+        flowCounts: diagnostics.canonical.flowCounts,
+      },
+      anomalyReasons: diagnostics.anomalyReasons,
+      computed: {
+        rootClassName: contentRef.current?.parentElement?.className ?? "",
+        firstParagraph: firstParagraph
+          ? {
+              text: firstParagraph.textContent?.slice(0, 80) ?? "",
+              marginTop: paragraphStyle?.marginTop,
+              marginBottom: paragraphStyle?.marginBottom,
+              lineHeight: paragraphStyle?.lineHeight,
+            }
+          : null,
+        firstImage: firstImage
+          ? {
+              src: firstImage.getAttribute("src"),
+              display: imageStyle?.display,
+              width: imageStyle?.width,
+              height: imageStyle?.height,
+            }
+          : null,
+      },
+    });
+    console.groupEnd();
+  }, [attachmentUrls, bodyImageUrls, dedupedImages.length, images.length, isNaverImport, post, rawBodyContent]);
+
+  if (loading) return <PageShell title="로딩 중..."><p>불러오는 중입니다.</p></PageShell>;
+  if (!post && !isSubmitting) return <PageShell title="오류"><p>{loadError ?? "게시물을 찾을 수 없습니다."}</p></PageShell>;
 
   return (
     <PageShell title={headerInfo.title} subtitle={headerInfo.subtitle}>
-      <div className="max-w-[900px] mx-auto pb-[100px]">
+      <div className={`${post?.category === "media" && !isEditing ? "max-w-[1100px]" : "max-w-[900px]"} mx-auto pb-[100px]`}>
         <div className="flex justify-between items-center mb-8">
-          <button onClick={() => navigate(-1)} className="bg-none border-none text-[#4377F1] font-bold cursor-pointer p-0">← 목록으로 돌아가기</button>
+          <button
+            onClick={() => post?.category === "media" ? navigate("/media") : navigate(-1)}
+            className="bg-none border-none font-bold cursor-pointer p-0"
+            style={{ color: post?.category === "media" ? MEDIA_COLOR : "#4377F1" }}
+          >
+            {post?.category === "media" ? "← 미디어 목록으로 돌아가기" : "← 목록으로 돌아가기"}
+          </button>
           {isAdmin && (
             <div className="flex gap-2.5">
-              {isEditing ? (
+              {useAdminPostEditor ? null : isEditing ? (
                 <>
                   <button 
                     onClick={() => setShowModal({ show: true, type: "save" })} 
@@ -237,7 +450,23 @@ export function PostDetailPage() {
           )}
         </div>
 
-        {isEditing ? (
+        {useAdminPostEditor ? (
+          <Suspense fallback={<div className="p-8 rounded-3xl" style={{ background: card, border: `1px solid ${border}`, color: textMuted }}>수정 화면을 불러오는 중입니다.</div>}>
+            <AdminPostCreate
+              editingPost={post}
+              onSaved={() => {
+                setIsEditing(false);
+                setEditFiles([]);
+                void fetchPost(false);
+              }}
+              onCancelled={() => {
+                setIsEditing(false);
+                setEditFiles([]);
+                if (post) applyPostData(post);
+              }}
+            />
+          </Suspense>
+        ) : isEditing ? (
           <div className="flex flex-col gap-5">
             <input
               value={editTitle}
@@ -247,6 +476,27 @@ export function PostDetailPage() {
             />
 
             {/* 카테고리 태그 피커 */}
+            {post?.category === "media" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "16px 20px", background: isDark ? "rgba(32,214,162,0.06)" : "rgba(32,214,162,0.04)", border: "1px solid rgba(32,214,162,0.2)", borderRadius: 16 }}>
+                <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: MEDIA_COLOR }}>미디어 유형 <span style={{ fontWeight: 400, fontSize: 12, color: textMuted }}>(고정 유형)</span></p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {mediaCategories.map(item => {
+                    const selected = resolveMediaCategoryId(editTags) === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setEditTags(item.id)}
+                        style={{ padding: "7px 13px", borderRadius: 99, border: selected ? "none" : "1px solid rgba(32,214,162,0.35)", background: selected ? MEDIA_COLOR : isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", color: selected ? "#07140f" : textMuted, fontSize: 13, fontWeight: 800, cursor: "pointer" }}
+                      >
+                        {item.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {(post?.category === "events" || post?.category === "events-archive" || post?.category === "blog" || post?.category === "notice" || post?.category === "news") && (() => {
               const accent = post.category === "blog" ? "#A855F7" : post.category === "notice" ? "#EA4335" : post.category === "news" ? "#4377F1" : "#18A343";
               const bgAlpha = post.category === "blog" ? "168,85,247" : post.category === "notice" ? "234,67,53" : post.category === "news" ? "67,119,241" : "24,163,67";
@@ -263,14 +513,14 @@ export function PostDetailPage() {
                           <button type="button" onClick={() => setEditTags(prev => prev === tag ? "" : tag)} style={{ padding: "5px 12px", borderRadius: 99, fontSize: 13, fontWeight: selected ? 700 : 500, cursor: "pointer", border: selected ? "none" : `1px solid rgba(${bgAlpha},0.4)`, background: selected ? accent : isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", color: selected ? "#fff" : textMuted }}>
                             {tag}
                           </button>
-                          <button type="button" onClick={() => { deleteCategory(tag); setTagPresets(getActivePresets()); if (editTags === tag) setEditTags(""); }} style={{ position: "absolute", top: -5, right: -5, width: 16, height: 16, borderRadius: "50%", background: isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.18)", border: "none", color: "#fff", fontSize: 10, fontWeight: 900, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1, padding: 0 }}>×</button>
+                          <button type="button" onClick={() => { hideTag(tag); if (editTags === tag) setEditTags(""); }} style={{ position: "absolute", top: -5, right: -5, width: 16, height: 16, borderRadius: "50%", background: isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.18)", border: "none", color: "#fff", fontSize: 10, fontWeight: 900, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1, padding: 0 }}>×</button>
                         </div>
                       );
                     })}
                   </div>
                   <div style={{ display: "flex", gap: 8 }}>
                     <input value={tagInput} onChange={e => setTagInput(e.target.value)} placeholder="목록에 없으면 직접 입력 후 추가" style={{ ...inputStyle2, flex: 1 }} />
-                    <button type="button" onClick={() => { const t = tagInput.trim(); if (t) { addCategory(t); setTagPresets(getActivePresets()); setEditTags(t); setTagInput(""); } }} style={{ padding: "8px 16px", borderRadius: 10, border: "none", background: accent, color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}>추가</button>
+                    <button type="button" onClick={() => { const t = tagInput.trim(); if (t) { addTag(t); setEditTags(t); setTagInput(""); } }} style={{ padding: "8px 16px", borderRadius: 10, border: "none", background: accent, color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}>추가</button>
                   </div>
                   {editTags && (
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -311,10 +561,6 @@ export function PostDetailPage() {
                     <label style={{ fontSize: 12, fontWeight: 600, color: textMuted }}>정원 (명)</label>
                     <input type="number" min={0} style={{ padding: "12px 16px", borderRadius: 10, background: isDark ? "rgba(255,255,255,0.04)" : "#fff", border: `1px solid ${border}`, color: textMain, outline: "none", fontSize: 14 }} placeholder="200" value={editCapacity} onChange={e => setEditCapacity(e.target.value)} />
                   </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: textMuted }}>잔여석 (명)</label>
-                    <input type="number" min={0} style={{ padding: "12px 16px", borderRadius: 10, background: isDark ? "rgba(255,255,255,0.04)" : "#fff", border: `1px solid ${border}`, color: textMain, outline: "none", fontSize: 14 }} placeholder="47" value={editSlotsRemaining} onChange={e => setEditSlotsRemaining(e.target.value)} />
-                  </div>
                 </div>
               </div>
             )}
@@ -337,17 +583,89 @@ export function PostDetailPage() {
                 </div>
               ))}
               <label className="inline-block mt-2.5 px-4 py-2.5 rounded-lg text-[#4377F1] font-bold cursor-pointer text-center" style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#f1f5f9" }}>
-                <input type="file" multiple onChange={(e) => setEditFiles((prev) => [...prev, ...Array.from(e.target.files || [])])} className="hidden" />
+                <input type="file" accept={DOCUMENT_UPLOAD_ACCEPT} multiple onChange={handleEditFileChange} className="hidden" />
                 + 문서 및 기타 파일 추가
               </label>
+              <p className="m-0 mt-2 text-[12px]" style={{ color: textMuted }}>문서 파일은 public `documents` 버킷에 공개 URL로 저장됩니다.</p>
             </div>
           </div>
+        ) : post?.category === "media" ? (
+          <>
+            <div className="grid grid-cols-1 min-[860px]:grid-cols-[minmax(220px,320px)_minmax(0,1fr)] gap-10 items-start">
+              <div style={{ width: "100%", maxWidth: 320, justifySelf: "center" }}>
+                {mediaCoverUrl ? (
+                  <img
+                    src={mediaCoverUrl}
+                    alt=""
+                    style={{ width: "100%", aspectRatio: getMediaCategoryAspectRatio(post.tags), objectFit: "cover", display: "block", borderRadius: isWideMediaCategory(post.tags) ? 12 : 8, boxShadow: isDark ? "0 14px 28px rgba(0,0,0,0.24)" : "0 12px 26px rgba(15,23,42,0.10)" }}
+                  />
+                ) : (
+                  <div style={{ width: "100%", aspectRatio: getMediaCategoryAspectRatio(post.tags), borderRadius: isWideMediaCategory(post.tags) ? 12 : 8, background: isDark ? "rgba(255,255,255,0.06)" : "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", color: textMuted }}>
+                    {isWideMediaCategory(post.tags) ? "자동 썸네일 없음" : "표지 이미지 없음"}
+                  </div>
+                )}
+              </div>
+
+              <div style={{ minWidth: 0 }}>
+                {post.tags && (
+                  <span style={{ display: "inline-flex", alignItems: "center", minHeight: 26, padding: "5px 12px", borderRadius: 99, background: isDark ? "rgba(32,214,162,0.14)" : "rgba(32,214,162,0.12)", color: MEDIA_COLOR, fontSize: 12, fontWeight: 900 }}>
+                    {mediaCategories.find((c) => c.id === resolveMediaCategoryId(post.tags))?.label ?? getMediaCategoryLabel(post.tags)}
+                  </span>
+                )}
+                <h1 style={{ margin: "18px 0 16px", color: textMain, fontSize: "clamp(26px,3.5vw,42px)", fontWeight: 850, lineHeight: 1.25, letterSpacing: 0 }}>
+                  {post.title}
+                </h1>
+                <p className="text-[14px] mb-7 m-0" style={{ color: textMuted }}>{new Date(post.created_at).toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" })}</p>
+
+                {files.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-8">
+                    {files.map((url, idx) => (
+                      <a key={idx} href={url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-[13px] px-4 py-2 rounded-lg no-underline font-semibold" style={{ color: "#0b6f55", background: isDark ? "rgba(32,214,162,0.14)" : "rgba(32,214,162,0.12)" }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                        {getFileNameFromUrl(url, "첨부파일")}
+                      </a>
+                    ))}
+                  </div>
+                )}
+
+                {mediaMeta.externalUrl && (
+                  <a
+                    href={mediaMeta.externalUrl}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="inline-flex items-center gap-2 text-[13px] px-4 py-2 rounded-lg no-underline font-semibold mb-8"
+                    style={{ color: "#07140f", background: MEDIA_COLOR }}
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+                    {isWideMediaCategory(post.tags) ? "콘텐츠 보기" : "외부 링크 열기"}
+                  </a>
+                )}
+
+                <div style={{ paddingTop: 24, borderTop: `1px solid ${border}` }}>
+                  <div
+                    className={`${isDark ? "quill-dark" : "quill-light"}${isNaverImport ? " naver-se-content" : ""}`}
+                    data-gxp-se-renderer={isNaverImport ? "canonical" : undefined}
+                  >
+                    <div className="ql-editor p-0 m-0" style={{ color: textMain }} dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(renderedBodyContent) }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {mediaBodyImages.length > 0 && (
+              <div className="flex flex-col gap-6 items-center pt-10 mt-10" style={{ borderTop: `1px solid ${border}` }}>
+                {mediaBodyImages.map((url, idx) => (
+                  <img key={idx} src={url} alt={`첨부 이미지 ${idx + 1}`} className="max-w-full max-h-[600px] object-contain rounded-2xl" style={{ border: `1px solid ${border}` }} />
+                ))}
+              </div>
+            )}
+          </>
         ) : (
           <>
             <h1 className="text-[32px] font-extrabold mb-3 mt-0" style={{ color: textMain }}>{post?.title}</h1>
             <p className="text-[14px] mb-10 m-0" style={{ color: textMuted }}>{post && new Date(post.created_at).toLocaleDateString()}</p>
             <div className="rounded-3xl p-10 shadow-[0_10px_30px_rgba(0,0,0,0.02)]" style={{ background: card, border: `1px solid ${border}` }}>
-              {files.length > 0 && (
+              {!isNaverImport && files.length > 0 && (
                 <div className="flex flex-col items-end gap-2 mb-8">
                   {files.map((url, idx) => (
                     <a key={idx} href={url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-[13px] text-[#4377F1] px-4 py-2 rounded-lg no-underline font-semibold" style={{ background: isDark ? "rgba(67,119,241,0.1)" : "#eef2ff" }}>
@@ -357,12 +675,16 @@ export function PostDetailPage() {
                   ))}
                 </div>
               )}
-              <div className={isDark ? "quill-dark" : "quill-light"}>
-                <div className="ql-editor p-0 m-0" style={{ color: textMain }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post?.content ?? "") }} />
+              <div
+                className={`${isDark ? "quill-dark" : "quill-light"}${isNaverImport ? " naver-se-content" : ""}`}
+                data-gxp-se-renderer={isNaverImport ? "canonical" : undefined}
+              >
+                <div ref={contentRef} className="ql-editor p-0 m-0" style={{ color: textMain }} dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(renderedBodyContent) }} />
               </div>
-              {images.length > 0 && (
+              {/* 이관 게시물은 썸네일이 image_url에 저장되지만 본문 HTML 안에도 포함되므로 중복 렌더링 생략 */}
+              {!isNaverImport && dedupedImages.length > 0 && (
                 <div className="flex flex-col gap-6 items-center pt-10 mt-10" style={{ borderTop: `1px solid ${border}` }}>
-                  {images.map((url, idx) => (
+                  {dedupedImages.map((url, idx) => (
                     <img key={idx} src={url} alt={`첨부 이미지 ${idx + 1}`} className="max-w-full max-h-[600px] object-contain rounded-2xl" style={{ border: `1px solid ${border}` }} />
                   ))}
                 </div>
@@ -373,7 +695,7 @@ export function PostDetailPage() {
       </div>
 
       {showModal.show && (
-        <div className="fixed top-0 left-0 w-full h-full bg-black/60 flex items-center justify-center z-[1000]">
+        <div className="fixed top-0 left-0 w-full h-full bg-black/60 flex items-center justify-center" style={{ zIndex: LAYERS.modal }}>
           <div className="py-10 px-8 rounded-3xl text-center max-w-[400px] w-[90%] shadow-[0_20px_40px_rgba(0,0,0,0.2)]" style={{ background: isDark ? "#1e293b" : "#fff" }}>
             <h2 className="mb-3 text-[22px] mt-0" style={{ color: textMain }}>
               {showModal.type === "delete" ? "게시물 삭제" : "변경사항 저장"}

@@ -1,4 +1,5 @@
 import { useTheme } from "../../ThemeContext";
+import { LAYERS } from "../../../lib/layers";
 
 interface AdminPostModalProps {
   type: "save" | "delete";
@@ -13,11 +14,15 @@ export function AdminPostModal({ type, editingId, loading, onConfirm, onCancel }
   const border   = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
   const textMain = isDark ? "rgba(255,255,255,0.92)" : "rgba(10,16,32,0.88)";
   const textMuted = isDark ? "rgba(255,255,255,0.45)" : "rgba(10,16,32,0.45)";
+  const panelBg = isDark ? "#111827" : "#ffffff";
+  const selectedBg = isDark ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.07)";
+  const dangerBg = isDark ? "rgba(234,67,53,0.10)" : "rgba(234,67,53,0.07)";
+  const dangerBorder = isDark ? "rgba(234,67,53,0.30)" : "rgba(234,67,53,0.24)";
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000 }}>
-      <div style={{ background: isDark ? "#1e293b" : "#fff", padding: "40px 32px", borderRadius: 24, textAlign: "center", maxWidth: 400, width: "90%", boxShadow: "0 20px 40px rgba(0,0,0,0.2)" }}>
-        <h2 style={{ color: textMain, marginBottom: 12, fontSize: 22 }}>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.46)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: LAYERS.modal, padding: 20, boxSizing: "border-box" }}>
+      <div style={{ background: panelBg, padding: "30px 28px", borderRadius: 16, border: `1px solid ${border}`, textAlign: "center", maxWidth: 400, width: "100%", boxShadow: "0 18px 44px rgba(15,23,42,0.18)" }}>
+        <h2 style={{ color: textMain, margin: "0 0 10px", fontSize: 20, fontWeight: 800 }}>
           {type === "delete" ? "게시물 삭제" : editingId ? "변경사항 저장" : "새 게시물 등록"}
         </h2>
         <p style={{ color: textMuted, marginBottom: 32, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
@@ -29,14 +34,14 @@ export function AdminPostModal({ type, editingId, loading, onConfirm, onCancel }
           <button
             onClick={onConfirm}
             disabled={loading}
-            style={{ flex: 1, padding: 14, borderRadius: 12, border: "none", background: type === "delete" ? "#ff4d4f" : "#4377F1", color: "#fff", fontWeight: 700, cursor: "pointer", opacity: loading ? 0.5 : 1 }}
+            style={{ flex: 1, padding: 13, borderRadius: 10, border: type === "delete" ? `1px solid ${dangerBorder}` : "none", background: type === "delete" ? dangerBg : "#4377F1", color: type === "delete" ? "#EA4335" : "#fff", fontWeight: 750, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.5 : 1, boxShadow: "none" }}
           >
             {loading ? "처리 중..." : "확인"}
           </button>
           <button
             onClick={onCancel}
             disabled={loading}
-            style={{ flex: 1, padding: 14, borderRadius: 12, border: `1px solid ${border}`, background: "none", color: textMain, cursor: "pointer" }}
+            style={{ flex: 1, padding: 13, borderRadius: 10, border: `1px solid ${border}`, background: selectedBg, color: textMain, cursor: loading ? "not-allowed" : "pointer", fontWeight: 700 }}
           >
             취소
           </button>

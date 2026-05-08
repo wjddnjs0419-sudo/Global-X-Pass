@@ -1,9 +1,17 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 import { blogImportManifest } from "./blog-import-manifest.mjs";
+import {
+  extractImageSourcesFromHtml,
+  getNaverCanonicalDiagnostics,
+  isNaverImportedContent,
+  normalizeNaverImportedHtml,
+  stripNaverImportMeta,
+} from "../src/utils/naverImportShared.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -16,6 +24,8 @@ const NAVER_BLOG_ID = "nextchallenge";
 const argv = process.argv.slice(2);
 const discoverOnly = argv.includes("--discover");
 const crawlMode = argv.includes("--crawl");
+const reportCanonical = argv.includes("--report-canonical");
+const repairQueueDuplicates = argv.includes("--repair-queue-duplicates");
 const processQueue = argv.includes("--process-queue") || argv.includes("--worker");
 const updateExisting = argv.includes("--update-existing");
 const writeMode = argv.includes("--write");
@@ -34,6 +44,9 @@ function getArgValue(name) {
 }
 
 const runIdArg = getArgValue("--run-id");
+const sourceUrlFilterArg = getArgValue("--source-url");
+const logNoFilterArg = getArgValue("--log-no");
+const targetPostIdArg = getArgValue("--target-post-id");
 
 const CRAWL_TARGETS = [
   { categoryName: "★글로벌 기업 협업 프로그램", targetCategory: "events-archive" },
@@ -171,7 +184,7 @@ function discoverCandidates(items) {
     .filter((item) => {
       const published = new Date(item.pubDate);
       const year = Number.isNaN(published.getTime()) ? null : published.getFullYear();
-      return year === 2025 && (
+      return year != null && year >= 2025 && (
         item.category === "Around X-뉴스레터" ||
         item.category === "★글로벌 기업 협업 프로그램"
       );
@@ -388,7 +401,7 @@ async function mirrorImageToSupabase(imageUrl, supabase) {
       return imageUrl;
     }
     const buffer = Buffer.from(await res.arrayBuffer());
-    const hash = Buffer.from(imageUrl).toString("base64").replace(/[/+=]/g, "_").slice(-32);
+    const hash = createHash("sha256").update(imageUrl).digest("hex").slice(0, 40);
     const ext = getImageExtension(imageUrl, ct);
     const storagePath = `blog-import/${hash}.${ext}`;
 
@@ -482,34 +495,6 @@ function removeAttr(tag, name) {
   return tag.replace(pattern, "");
 }
 
-function normalizeContentHtml(containerHtml) {
-  if (!containerHtml) return "";
-
-  let normalized = containerHtml
-    .replace(/<script\b[^>]*class="__se_module_data"[^>]*>[\s\S]*?<\/script>/gi, "")
-    .replace(/<!--\s*SE-TEXT\s*\{\s*-->/g, "")
-    .replace(/<!--\s*\}\s*SE-TEXT\s*-->/g, "");
-
-  normalized = normalized.replace(/<img\b[^>]*>/gi, (imgTag) => {
-    const lazySrc = getAttr(imgTag, "data-lazy-src");
-    const src = getAttr(imgTag, "src");
-    const finalSrc = lazySrc || src;
-    let nextTag = imgTag;
-
-    if (finalSrc) {
-      nextTag = setAttr(nextTag, "src", finalSrc);
-    }
-
-    nextTag = removeAttr(nextTag, "data-lazy-src");
-    nextTag = removeAttr(nextTag, "data-width");
-    nextTag = removeAttr(nextTag, "data-height");
-
-    return nextTag;
-  });
-
-  return normalized.trim();
-}
-
 function stripHtml(html) {
   return decodeHtmlEntities(
     html
@@ -550,10 +535,6 @@ function isMeaningfulOgImage(url) {
 
 function encodeImportMeta(meta) {
   return `${IMPORT_META_PREFIX}${Buffer.from(JSON.stringify(meta), "utf8").toString("base64")}-->`;
-}
-
-function stripImportMeta(content) {
-  return content.replace(/<!--GXP_BLOG_IMPORT_META:[A-Za-z0-9+/=]+-->\s*/i, "");
 }
 
 function readImportMeta(content) {
@@ -607,9 +588,25 @@ async function buildImportRecord(entry, rssMap, supabase) {
 
   const containerStart = findMainContainerStart(html);
   const containerHtml = containerStart >= 0 ? extractBalancedDiv(html, containerStart) : null;
-  const normalizedContent = normalizeContentHtml(containerHtml || "");
+  const normalizedContent = normalizeNaverImportedHtml(containerHtml || "");
+  const canonicalDiagnostics = getNaverCanonicalDiagnostics(normalizedContent);
   const fallbackContent = fallbackContentFromDescription(rssItem?.description || "");
   let contentHtml = normalizedContent || fallbackContent;
+
+  if (
+    normalizedContent &&
+    (
+      !canonicalDiagnostics.hasCanonicalRoot ||
+      canonicalDiagnostics.unknownComponentCount > 0 ||
+      canonicalDiagnostics.markerCoverageRatio < 1
+    )
+  ) {
+    console.error(
+      `[canonical] ${sourceUrl} coverage=${canonicalDiagnostics.markerCoverageRatio} ` +
+      `unknown=${canonicalDiagnostics.unknownComponentCount} ` +
+      `samples=${canonicalDiagnostics.unknownComponentSamples.join(" | ") || "-"}`,
+    );
+  }
 
   // Mirror content images first so thumbnail can pick up a mirrored src
   if (mirrorImages && supabase) {
@@ -632,6 +629,11 @@ async function buildImportRecord(entry, rssMap, supabase) {
     console.error(`[mirror] Thumbnail: ${thumbnailUrl.slice(0, 80)}`);
     thumbnailUrl = await mirrorImageToSupabase(thumbnailUrl, supabase);
   }
+
+  const contentImageSources = extractImageSourcesFromHtml(contentHtml);
+  const attachmentImageUrl = thumbnailUrl && !contentImageSources.includes(thumbnailUrl)
+    ? thumbnailUrl
+    : "";
 
   const title = entry.titleOverride?.trim() || ogTitle || rssItem?.title || "";
   if (!title) {
@@ -661,7 +663,7 @@ async function buildImportRecord(entry, rssMap, supabase) {
   };
 
   const finalTag = entry.targetCategory === "news" ? "뉴스레터" : entry.tag.trim();
-  const finalContent = `${encodeImportMeta(importMeta)}\n${stripImportMeta(contentHtml)}`;
+  const finalContent = `${encodeImportMeta(importMeta)}\n${stripNaverImportMeta(contentHtml)}`;
 
   return {
     sourceUrl: importMeta.sourceUrl,
@@ -670,6 +672,7 @@ async function buildImportRecord(entry, rssMap, supabase) {
     title,
     tag: finalTag,
     thumbnailUrl,
+    attachmentImageUrl,
     content: finalContent,
     createdAt: publishedAt.toISOString(),
   };
@@ -694,6 +697,70 @@ async function loadExistingImportedPosts(supabase, categories) {
   return bySourceUrl;
 }
 
+async function loadImportedNaverPosts(supabase, categories = CRAWL_TARGETS.map((target) => target.targetCategory)) {
+  const { data: markerPosts, error: markerError } = await supabase
+    .from("posts")
+    .select("id, category, title, content, created_at, updated_at")
+    .in("category", categories)
+    .order("created_at", { ascending: false });
+
+  if (markerError) {
+    throw new Error(`Failed to load imported Naver posts: ${markerError.message}`);
+  }
+
+  const byId = new Map();
+  for (const post of markerPosts || []) {
+    if (isNaverImportedContent(post.content || "")) {
+      const meta = readImportMeta(post.content || "");
+      byId.set(post.id, {
+        ...post,
+        report_source: "content-marker",
+        report_source_url: meta?.sourceUrl || null,
+      });
+    }
+  }
+
+  const { data: queueRows, error: queueError } = await supabase
+    .from("blog_import_queue")
+    .select("source_url, target_category, existing_post_id, status")
+    .in("target_category", categories)
+    .not("existing_post_id", "is", null);
+
+  if (queueError) {
+    throw new Error(`Failed to load imported Naver queue rows: ${queueError.message}`);
+  }
+
+  const queueRowByPostId = new Map();
+  for (const row of queueRows || []) {
+    if (row.existing_post_id && !queueRowByPostId.has(row.existing_post_id)) {
+      queueRowByPostId.set(row.existing_post_id, row);
+    }
+  }
+
+  const queuedPostIds = [...queueRowByPostId.keys()];
+  if (queuedPostIds.length > 0) {
+    const { data: queuedPosts, error: queuedPostsError } = await supabase
+      .from("posts")
+      .select("id, category, title, content, created_at, updated_at")
+      .in("id", queuedPostIds);
+
+    if (queuedPostsError) {
+      throw new Error(`Failed to load queue-backed imported posts: ${queuedPostsError.message}`);
+    }
+
+    for (const post of queuedPosts || []) {
+      const queueRow = queueRowByPostId.get(post.id);
+      byId.set(post.id, {
+        ...post,
+        report_source: byId.has(post.id) ? "queue+content-marker" : "queue",
+        report_source_url: queueRow?.source_url || byId.get(post.id)?.report_source_url || null,
+      });
+    }
+  }
+
+  return [...byId.values()].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+}
+
 async function loadRssMap() {
   const rssXml = await fetchText("https://rss.blog.naver.com/nextchallenge.xml");
   const rssItems = parseRssItems(rssXml);
@@ -709,6 +776,21 @@ function extractLogNoFromUrl(url) {
 function normalizeSourceUrl(url) {
   const logNo = extractLogNoFromUrl(url);
   return logNo ? `https://blog.naver.com/${NAVER_BLOG_ID}/${logNo}` : stripRssTracking(url);
+}
+
+function entryMatchesFilter(entry) {
+  if (!sourceUrlFilterArg && !logNoFilterArg) return true;
+
+  const normalizedEntryUrl = normalizeSourceUrl(entry.url);
+  if (sourceUrlFilterArg && normalizedEntryUrl === normalizeSourceUrl(sourceUrlFilterArg)) {
+    return true;
+  }
+
+  if (logNoFilterArg && extractLogNoFromUrl(entry.url) === logNoFilterArg) {
+    return true;
+  }
+
+  return false;
 }
 
 async function resolveQueueRun(supabase) {
@@ -918,7 +1000,7 @@ async function importApprovedQueueRows(supabase, rows, existingBySourceUrl, rssM
         category: record.targetCategory,
         title: record.title,
         content: record.content,
-        image_url: record.thumbnailUrl || null,
+        image_url: record.attachmentImageUrl || null,
         tags: record.tag || null,
         created_at: record.createdAt,
       };
@@ -1030,10 +1112,13 @@ async function runImportMode() {
     ensureValidManifestEntry(entry);
   }
 
-  const activeEntries = blogImportManifest.filter((entry) => entry.enabled);
+  const activeEntries = blogImportManifest.filter((entry) => entry.enabled && entryMatchesFilter(entry));
   if (activeEntries.length === 0) {
-    console.log("No enabled manifest entries.");
+    console.log("No enabled manifest entries matched the requested filter.");
     return;
+  }
+  if (targetPostIdArg && activeEntries.length !== 1) {
+    throw new Error("--target-post-id requires exactly one matched manifest entry.");
   }
 
   const rssMap = await loadRssMap();
@@ -1048,9 +1133,10 @@ async function runImportMode() {
 
   const summary = records.map((record) => {
     const existing = existingBySourceUrl.get(record.sourceUrl);
+    const forcedUpdate = Boolean(targetPostIdArg);
     const action = existing
       ? updateExisting ? "update" : "skip-existing"
-      : dryRun ? "preview-insert" : "insert";
+      : forcedUpdate ? "force-update-by-id" : dryRun ? "preview-insert" : "insert";
     return {
       action,
       targetCategory: record.targetCategory,
@@ -1075,7 +1161,8 @@ async function runImportMode() {
 
   for (const record of records) {
     const existing = existingBySourceUrl.get(record.sourceUrl);
-    if (existing && !updateExisting) {
+    const existingOrForced = existing ?? (targetPostIdArg ? { id: targetPostIdArg } : null);
+    if (existing && !updateExisting && !targetPostIdArg) {
       skipped += 1;
       continue;
     }
@@ -1084,16 +1171,16 @@ async function runImportMode() {
       category: record.targetCategory,
       title: record.title,
       content: record.content,
-      image_url: record.thumbnailUrl || null,
+      image_url: record.attachmentImageUrl || null,
       tags: record.tag || null,
       created_at: record.createdAt,
     };
 
-    if (existing) {
+    if (existingOrForced) {
       const { error } = await supabase
         .from("posts")
         .update(payload)
-        .eq("id", existing.id);
+        .eq("id", existingOrForced.id);
       if (error) {
         throw new Error(`Failed to update ${record.sourceUrl}: ${error.message}`);
       }
@@ -1119,6 +1206,191 @@ async function runImportMode() {
   console.log(
     `\nImport complete. inserted=${inserted} updated=${updated} skipped=${skipped} (${prettyDate(new Date().toISOString())})`,
   );
+}
+
+async function runCanonicalReportMode() {
+  assertConfig();
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { persistSession: false },
+  });
+
+  const importedPosts = await loadImportedNaverPosts(supabase);
+  const byUnknownClass = new Map();
+  const byCategory = new Map();
+  const reportSourceCounts = {};
+  const unstructuredPosts = [];
+  let partialCoveragePosts = 0;
+  let fullCoveragePosts = 0;
+
+  for (const post of importedPosts) {
+    const normalizedContent = normalizeNaverImportedHtml(post.content || "");
+    const diagnostics = getNaverCanonicalDiagnostics(normalizedContent);
+    reportSourceCounts[post.report_source] = (reportSourceCounts[post.report_source] || 0) + 1;
+    const categoryBucket = byCategory.get(post.category) || {
+      posts: 0,
+      avgCoverageSum: 0,
+      unknownPosts: 0,
+      unknownComponents: 0,
+      unstructuredPosts: 0,
+    };
+
+    categoryBucket.posts += 1;
+    categoryBucket.avgCoverageSum += diagnostics.markerCoverageRatio;
+    if (diagnostics.seComponentCount === 0) {
+      categoryBucket.unstructuredPosts += 1;
+      if (unstructuredPosts.length < 12) {
+        unstructuredPosts.push({
+          id: post.id,
+          title: post.title,
+          category: post.category,
+          reportSource: post.report_source,
+          sourceUrl: post.report_source_url,
+        });
+      }
+    }
+    if (diagnostics.unknownComponentCount > 0) {
+      categoryBucket.unknownPosts += 1;
+      categoryBucket.unknownComponents += diagnostics.unknownComponentCount;
+    }
+    byCategory.set(post.category, categoryBucket);
+
+    if (diagnostics.markerCoverageRatio >= 1 && diagnostics.unknownComponentCount === 0) {
+      fullCoveragePosts += 1;
+    } else {
+      partialCoveragePosts += 1;
+    }
+
+    for (const className of diagnostics.unknownComponentClassNames) {
+      const current = byUnknownClass.get(className) || {
+        count: 0,
+        posts: [],
+        categories: new Set(),
+      };
+      current.count += 1;
+      current.categories.add(post.category);
+      if (current.posts.length < 5) {
+        current.posts.push({
+          id: post.id,
+          title: post.title,
+          category: post.category,
+          reportSource: post.report_source,
+          sourceUrl: post.report_source_url,
+          coverage: diagnostics.markerCoverageRatio,
+        });
+      }
+      byUnknownClass.set(className, current);
+    }
+  }
+
+  const unknownClassSummary = [...byUnknownClass.entries()]
+    .map(([className, info]) => ({
+      className,
+      count: info.count,
+      categories: [...info.categories],
+      posts: info.posts,
+    }))
+    .sort((a, b) => b.count - a.count || a.className.localeCompare(b.className));
+
+  const categorySummary = [...byCategory.entries()]
+    .map(([category, info]) => ({
+      category,
+      posts: info.posts,
+      averageCoverage: Number((info.avgCoverageSum / Math.max(info.posts, 1)).toFixed(3)),
+      unknownPosts: info.unknownPosts,
+      unknownComponents: info.unknownComponents,
+      unstructuredPosts: info.unstructuredPosts,
+    }))
+    .sort((a, b) => a.category.localeCompare(b.category));
+
+  console.log(JSON.stringify({
+    scannedPosts: importedPosts.length,
+    fullCoveragePosts,
+    partialCoveragePosts,
+    reportSourceCounts,
+    categorySummary,
+    unstructuredPosts,
+    unknownClassSummary,
+  }, null, 2));
+}
+
+async function runRepairQueueDuplicatesMode() {
+  assertConfig();
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { persistSession: false },
+  });
+
+  const { data: queueRows, error: queueError } = await supabase
+    .from("blog_import_queue")
+    .select("source_url, target_category, existing_post_id")
+    .not("existing_post_id", "is", null);
+
+  if (queueError) {
+    throw new Error(`Failed to load import queue for duplicate repair: ${queueError.message}`);
+  }
+
+  const repaired = [];
+  const { data: posts, error: postsError } = await supabase
+    .from("posts")
+    .select("id, category, title, content, image_url, tags, created_at")
+    .in("category", CRAWL_TARGETS.map((target) => target.targetCategory));
+
+  if (postsError) {
+    throw new Error(`Failed to load posts for duplicate repair: ${postsError.message}`);
+  }
+
+  for (const row of queueRows || []) {
+    const sourceUrl = normalizeSourceUrl(row.source_url);
+    const candidates = (posts || []).filter((post) => {
+      if (post.category !== row.target_category) return false;
+      const meta = readImportMeta(post.content || "");
+      return normalizeSourceUrl(meta?.sourceUrl || "") === sourceUrl;
+    });
+    const duplicates = candidates.filter((post) => post.id !== row.existing_post_id);
+    if (duplicates.length === 0) continue;
+
+    const canonicalPost = duplicates[0];
+    const payload = {
+      category: canonicalPost.category,
+      title: canonicalPost.title,
+      content: canonicalPost.content,
+      image_url: canonicalPost.image_url,
+      tags: canonicalPost.tags,
+      created_at: canonicalPost.created_at,
+    };
+
+    const { error: updateError } = await supabase
+      .from("posts")
+      .update(payload)
+      .eq("id", row.existing_post_id);
+
+    if (updateError) {
+      throw new Error(`Failed to repair original post ${row.existing_post_id}: ${updateError.message}`);
+    }
+
+    const duplicateIds = duplicates.map((post) => post.id);
+    const { error: deleteError } = await supabase
+      .from("posts")
+      .delete()
+      .in("id", duplicateIds);
+
+    if (deleteError) {
+      throw new Error(`Failed to delete duplicate posts for ${sourceUrl}: ${deleteError.message}`);
+    }
+
+    repaired.push({
+      sourceUrl,
+      originalPostId: row.existing_post_id,
+      deletedDuplicateIds: duplicateIds,
+      title: canonicalPost.title,
+    });
+  }
+
+  console.log(JSON.stringify({
+    repairedCount: repaired.length,
+    repaired,
+  }, null, 2));
 }
 
 async function runQueueWorkerMode() {
@@ -1191,6 +1463,16 @@ async function main() {
 
   if (crawlMode) {
     await runCrawlMode();
+    return;
+  }
+
+  if (reportCanonical) {
+    await runCanonicalReportMode();
+    return;
+  }
+
+  if (repairQueueDuplicates) {
+    await runRepairQueueDuplicatesMode();
     return;
   }
 
