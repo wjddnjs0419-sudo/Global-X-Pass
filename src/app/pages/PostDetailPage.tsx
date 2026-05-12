@@ -33,6 +33,7 @@ import {
 import { useMediaCategories } from "../../hooks/useMediaCategories";
 import {
   getExternalMediaThumbnailUrl,
+  getYouTubeVideoId,
   parseMediaMeta,
   stripMediaMeta,
 } from "../../utils/mediaPost";
@@ -701,36 +702,70 @@ export function PostDetailPage() {
           </div>
         ) : post?.category === "media" ? (
           <>
-            <div className="grid grid-cols-1 min-[860px]:grid-cols-[minmax(220px,320px)_minmax(0,1fr)] gap-10 items-start">
-              <div style={{ width: "100%", maxWidth: 320, justifySelf: "center" }}>
-                {mediaCoverUrl ? (
-                  <img
-                    src={mediaCoverUrl}
-                    alt=""
-                    style={{ width: "100%", aspectRatio: getMediaCategoryAspectRatio(post.tags), objectFit: "cover", display: "block", borderRadius: isWideMediaCategory(post.tags) ? 12 : 8, boxShadow: "var(--shadow-media-cover)" }}
-                  />
-                ) : (
-                  <div style={{ width: "100%", aspectRatio: getMediaCategoryAspectRatio(post.tags), borderRadius: isWideMediaCategory(post.tags) ? 12 : 8, background: "var(--color-skeleton-bg)", display: "flex", alignItems: "center", justifyContent: "center", color: textMuted }}>
-                    {isWideMediaCategory(post.tags) ? "자동 썸네일 없음" : "표지 이미지 없음"}
-                  </div>
-                )}
-              </div>
+            {isMediaWideType ? (
+              /* ── 영상형 (팟캐스트·영상·인터뷰): 세로 스택 ── */
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-xl)" }}>
+                {/* 헤더 */}
+                <div>
+                  {post.tags && (
+                    <span style={{ display: "inline-flex", alignItems: "center", minHeight: 26, padding: "5px 12px", borderRadius: "var(--radius-pill)", background: "var(--color-accent-ncf-badge-bg)", color: MEDIA_COLOR, fontSize: 12, fontWeight: 900 }}>
+                      {mediaCategories.find((c) => c.id === resolveMediaCategoryId(post.tags))?.label ?? getMediaCategoryLabel(post.tags)}
+                    </span>
+                  )}
+                  <h1 style={{ margin: "var(--space-md) 0 var(--space-sm)", color: textMain, fontSize: "clamp(26px,3.5vw,42px)", fontWeight: 850, lineHeight: 1.25, letterSpacing: 0 }}>
+                    {post.title}
+                  </h1>
+                  <p style={{ margin: 0, fontSize: 14, color: textMuted }}>
+                    {new Date(post.created_at).toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" })}
+                  </p>
+                </div>
 
-              <div style={{ minWidth: 0 }}>
-                {post.tags && (
-                  <span style={{ display: "inline-flex", alignItems: "center", minHeight: 26, padding: "5px 12px", borderRadius: 99, background: "var(--color-accent-ncf-badge-bg)", color: MEDIA_COLOR, fontSize: 12, fontWeight: 900 }}>
-                    {mediaCategories.find((c) => c.id === resolveMediaCategoryId(post.tags))?.label ?? getMediaCategoryLabel(post.tags)}
-                  </span>
-                )}
-                <h1 style={{ margin: "18px 0 16px", color: textMain, fontSize: "clamp(26px,3.5vw,42px)", fontWeight: 850, lineHeight: 1.25, letterSpacing: 0 }}>
-                  {post.title}
-                </h1>
-                <p className="text-[14px] mb-7 m-0" style={{ color: textMuted }}>{new Date(post.created_at).toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" })}</p>
+                {/* 임베드 플레이어 영역 */}
+                {(() => {
+                  const youtubeId = getYouTubeVideoId(mediaMeta.externalUrl);
+                  if (youtubeId) {
+                    return (
+                      <div style={{ width: "100%", aspectRatio: "16 / 9", borderRadius: "var(--radius-md)", overflow: "hidden", boxShadow: "var(--shadow-media-cover)", background: "var(--color-skeleton-bg)" }}>
+                        <iframe
+                          src={`https://www.youtube.com/embed/${youtubeId}`}
+                          title={post.title}
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          style={{ width: "100%", height: "100%", border: "none", display: "block" }}
+                        />
+                      </div>
+                    );
+                  }
+                  /* 비유튜브: 커버 이미지(또는 플레이스홀더) + 외부 링크 버튼 */
+                  return (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}>
+                      <div style={{ width: "100%", aspectRatio: "16 / 9", borderRadius: "var(--radius-md)", overflow: "hidden", boxShadow: "var(--shadow-media-cover)", background: "var(--color-skeleton-bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        {mediaCoverUrl ? (
+                          <img src={mediaCoverUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                        ) : (
+                          <span style={{ fontSize: 13, color: textMuted }}>자동 썸네일 없음</span>
+                        )}
+                      </div>
+                      {mediaMeta.externalUrl && (
+                        <a
+                          href={mediaMeta.externalUrl}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                          style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: "var(--space-xs)", fontSize: 13, padding: "var(--space-xs) var(--space-md)", borderRadius: "var(--radius-sm)", textDecoration: "none", fontWeight: 700, color: "var(--color-bg-base)", background: MEDIA_COLOR }}
+                        >
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
+                          외부 링크 열기
+                        </a>
+                      )}
+                    </div>
+                  );
+                })()}
 
+                {/* 첨부파일 */}
                 {files.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-8">
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-xs)" }}>
                     {files.map((url, idx) => (
-                      <a key={idx} href={url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-[13px] px-4 py-2 rounded-lg no-underline font-semibold" style={{ color: "var(--color-on-ncf-muted)", background: "var(--color-accent-ncf-badge-bg)" }}>
+                      <a key={idx} href={url} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-xs)", fontSize: 13, padding: "var(--space-xs) var(--space-md)", borderRadius: "var(--radius-sm)", textDecoration: "none", fontWeight: 600, color: "var(--color-on-ncf-muted)", background: "var(--color-accent-ncf-badge-bg)" }}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
                         {getFileNameFromUrl(url, "첨부파일")}
                       </a>
@@ -738,36 +773,91 @@ export function PostDetailPage() {
                   </div>
                 )}
 
-                {mediaMeta.externalUrl && (
-                  <a
-                    href={mediaMeta.externalUrl}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    className="inline-flex items-center gap-2 text-[13px] px-4 py-2 rounded-lg no-underline font-semibold mb-8"
-                    style={{ color: "var(--color-bg-base)", background: MEDIA_COLOR }}
-                  >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
-                    {isWideMediaCategory(post.tags) ? "콘텐츠 보기" : "외부 링크 열기"}
-                  </a>
+                {/* 본문 설명 */}
+                {renderedBodyContent && (
+                  <div style={{ paddingTop: "var(--space-lg)", borderTop: `1px solid ${border}` }}>
+                    <div
+                      className={`${isDark ? "quill-dark" : "quill-light"}${isNaverImport ? " naver-se-content" : ""}`}
+                      data-gxp-se-renderer={isNaverImport ? "canonical" : undefined}
+                    >
+                      <div className="ql-editor p-0 m-0" style={{ color: textMain }} dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(renderedBodyContent) }} />
+                    </div>
+                  </div>
                 )}
+              </div>
+            ) : (
+              /* ── 레포트형 (리포트·이슈페이퍼·트렌드리포트): 좌우 그리드 ── */
+              <>
+                <div className="grid grid-cols-1 min-[680px]:grid-cols-[var(--size-media-cover-portrait)_minmax(0,1fr)] gap-8 items-start">
+                  <div style={{ width: "100%", maxWidth: "var(--size-media-cover-portrait)", justifySelf: "start" }}>
+                    {mediaCoverUrl ? (
+                      <img
+                        src={mediaCoverUrl}
+                        alt=""
+                        style={{ width: "100%", aspectRatio: getMediaCategoryAspectRatio(post.tags), objectFit: "cover", display: "block", borderRadius: "var(--radius-sm)", boxShadow: "var(--shadow-media-cover)" }}
+                      />
+                    ) : (
+                      <div style={{ width: "100%", aspectRatio: getMediaCategoryAspectRatio(post.tags), borderRadius: "var(--radius-sm)", background: "var(--color-skeleton-bg)", display: "flex", alignItems: "center", justifyContent: "center", color: textMuted, fontSize: 12 }}>
+                        표지 이미지 없음
+                      </div>
+                    )}
+                  </div>
 
-                <div style={{ paddingTop: 24, borderTop: `1px solid ${border}` }}>
-                  <div
-                    className={`${isDark ? "quill-dark" : "quill-light"}${isNaverImport ? " naver-se-content" : ""}`}
-                    data-gxp-se-renderer={isNaverImport ? "canonical" : undefined}
-                  >
-                    <div className="ql-editor p-0 m-0" style={{ color: textMain }} dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(renderedBodyContent) }} />
+                  <div style={{ minWidth: 0 }}>
+                    {post.tags && (
+                      <span style={{ display: "inline-flex", alignItems: "center", minHeight: 26, padding: "5px 12px", borderRadius: "var(--radius-pill)", background: "var(--color-accent-ncf-badge-bg)", color: MEDIA_COLOR, fontSize: 12, fontWeight: 900 }}>
+                        {mediaCategories.find((c) => c.id === resolveMediaCategoryId(post.tags))?.label ?? getMediaCategoryLabel(post.tags)}
+                      </span>
+                    )}
+                    <h1 style={{ margin: "var(--space-md) 0 var(--space-sm)", color: textMain, fontSize: "clamp(22px,2.8vw,36px)", fontWeight: 850, lineHeight: 1.3, letterSpacing: 0 }}>
+                      {post.title}
+                    </h1>
+                    <p style={{ margin: "0 0 var(--space-lg)", fontSize: 14, color: textMuted }}>
+                      {new Date(post.created_at).toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" })}
+                    </p>
+
+                    {files.length > 0 && (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-xs)", marginBottom: "var(--space-lg)" }}>
+                        {files.map((url, idx) => (
+                          <a key={idx} href={url} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-xs)", fontSize: 13, padding: "var(--space-xs) var(--space-md)", borderRadius: "var(--radius-sm)", textDecoration: "none", fontWeight: 600, color: "var(--color-on-ncf-muted)", background: "var(--color-accent-ncf-badge-bg)" }}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                            {getFileNameFromUrl(url, "첨부파일")}
+                          </a>
+                        ))}
+                      </div>
+                    )}
+
+                    {mediaMeta.externalUrl && (
+                      <a
+                        href={mediaMeta.externalUrl}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-xs)", fontSize: 13, padding: "var(--space-xs) var(--space-md)", borderRadius: "var(--radius-sm)", textDecoration: "none", fontWeight: 700, marginBottom: "var(--space-lg)", color: "var(--color-bg-base)", background: MEDIA_COLOR }}
+                      >
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
+                        외부 링크 열기
+                      </a>
+                    )}
+
+                    <div style={{ paddingTop: "var(--space-lg)", borderTop: `1px solid ${border}` }}>
+                      <div
+                        className={`${isDark ? "quill-dark" : "quill-light"}${isNaverImport ? " naver-se-content" : ""}`}
+                        data-gxp-se-renderer={isNaverImport ? "canonical" : undefined}
+                      >
+                        <div className="ql-editor p-0 m-0" style={{ color: textMain }} dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(renderedBodyContent) }} />
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
 
-            {mediaBodyImages.length > 0 && (
-              <div className="flex flex-col gap-6 items-center pt-10 mt-10" style={{ borderTop: `1px solid ${border}` }}>
-                {mediaBodyImages.map((url, idx) => (
-                  <img key={idx} src={url} alt={`첨부 이미지 ${idx + 1}`} className="max-w-full max-h-[600px] object-contain rounded-2xl" style={{ border: `1px solid ${border}` }} />
-                ))}
-              </div>
+                {mediaBodyImages.length > 0 && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-lg)", alignItems: "center", paddingTop: "var(--space-xl)", marginTop: "var(--space-xl)", borderTop: `1px solid ${border}` }}>
+                    {mediaBodyImages.map((url, idx) => (
+                      <img key={idx} src={url} alt={`첨부 이미지 ${idx + 1}`} className="max-w-full max-h-[600px] object-contain" style={{ borderRadius: "var(--radius-md)", border: `1px solid ${border}` }} />
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </>
         ) : (

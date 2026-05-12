@@ -1,3 +1,24 @@
+# RESULT: 세션 종료 핫 컨텍스트 (2026-05-12 — 4차)
+
+## 현재 상태
+- 미디어 상세페이지 레이아웃 개선 완료.
+- Codex 리뷰 P2(비유튜브 영상형 커버 소실) 수정 완료.
+- 남은 토큰화 대상: `HeaderSection.tsx`, `AdminPage.tsx`, `FlowMapPage.tsx`, `AdminSidebar.tsx`, `ui/button.tsx`, `PageShell.tsx` — `Long-Term Backlog` 유지.
+
+## 이번 세션 주요 변경
+
+| 파일 | 변경 내용 |
+|------|-----------|
+| `src/styles/theme.css` | `--size-media-cover-portrait: 160px` 신규 토큰 추가 |
+| `src/app/pages/PostDetailPage.tsx` | 레포트형: 표지 이미지 160px 축소(`var(--size-media-cover-portrait)`)·`justifySelf: start` 상단 정렬. 영상형: 좌우 그리드 → 세로 스택, "콘텐츠 보기" 버튼 제거, YouTube → iframe 직접 임베드, 비유튜브 → 커버+외부 링크 버튼. 모든 spacing/radius → CSS 토큰 기반 |
+
+## 종료 전 점검
+- [x] `PLAN.md` 완료 항목 `[Done]` 정리
+- [x] `RESULT.md` 최신 핫 컨텍스트 반영
+- [x] `npm run validate` (TypeScript, ESLint, Vite production build) ✅
+
+---
+
 # RESULT: 세션 종료 핫 컨텍스트 (2026-05-12 — 3차)
 
 ## 현재 상태
