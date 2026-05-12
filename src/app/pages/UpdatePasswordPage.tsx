@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { PageShell } from "../components/PageShell";
 import { supabase } from "../../lib/supabaseClient";
@@ -11,6 +11,7 @@ export default function UpdatePasswordPage() {
   const [newPassword, setNewPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [recoveryState, setRecoveryState] = useState<'loading' | 'valid' | 'invalid'>('loading');
 
   const card = "var(--color-surface-card)";
   const border = "var(--color-border-soft)";
@@ -18,6 +19,35 @@ export default function UpdatePasswordPage() {
   const textMuted = "var(--color-text-muted)";
   const inputBg = "var(--color-field-bg)";
   const inputBorder = "var(--color-border-subtle)";
+
+  useEffect(() => {
+    const hasRecoveryParams =
+      window.location.search.includes('code=') ||
+      window.location.hash.includes('type=recovery');
+
+    if (!hasRecoveryParams) {
+      setRecoveryState('invalid');
+      return;
+    }
+
+    let recoveryReceived = false;
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        recoveryReceived = true;
+        setRecoveryState('valid');
+      }
+    });
+
+    const timer = setTimeout(() => {
+      if (!recoveryReceived) setRecoveryState('invalid');
+    }, 3000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timer);
+    };
+  }, []);
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,29 +64,60 @@ export default function UpdatePasswordPage() {
       }
     } else {
       alert("비밀번호가 성공적으로 변경되었습니다! 다시 로그인해주세요.");
-      
       await supabase.auth.signOut();
-      navigate("/login"); 
+      window.history.replaceState(null, '', '/login');
+      navigate("/login", { replace: true });
     }
     setLoading(false);
   };
+
+  if (recoveryState === 'loading') {
+    return (
+      <PageShell title="비밀번호 재설정" subtitle="확인 중..." accentColor="var(--color-accent-blue)">
+        <div className="flex justify-center">
+          <div className="text-[14px]" style={{ color: textMuted }}>잠시만 기다려주세요.</div>
+        </div>
+      </PageShell>
+    );
+  }
+
+  if (recoveryState === 'invalid') {
+    return (
+      <PageShell title="링크 만료" subtitle="비밀번호 재설정 링크가 유효하지 않습니다." accentColor="var(--color-accent-blue)">
+        <div className="flex justify-center">
+          <div className="w-full max-w-[460px] rounded-[20px] px-9 py-10 flex flex-col gap-4 text-center" style={{ background: card, border: `1px solid ${border}` }}>
+            <p className="text-[14px] leading-relaxed" style={{ color: textMuted }}>
+              이미 사용된 링크이거나 만료된 링크입니다.<br />비밀번호 재설정을 다시 요청해주세요.
+            </p>
+            <button
+              onClick={() => navigate("/login")}
+              className="mt-2 py-[14px] rounded-xl border-none text-[15px] font-bold cursor-pointer shadow-[var(--shadow-primary)]"
+              style={{ background: "var(--gradient-blue)", color: "var(--color-on-primary)" }}
+            >
+              로그인 페이지로 이동
+            </button>
+          </div>
+        </div>
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell title="비밀번호 재설정" subtitle="새로운 비밀번호를 입력해주세요." accentColor="var(--color-accent-blue)">
       <div className="flex justify-center">
         <form onSubmit={handleUpdate} className="w-full max-w-[460px] rounded-[20px] px-9 py-10 flex flex-col gap-4 m-0" style={{ background: card, border: `1px solid ${border}` }}>
-          
+
           <div>
             <div className="text-[13px] mb-1.5" style={{ color: textMuted }}>새 비밀번호 (8자 이상)</div>
             <div className="relative">
-              <input 
-                type={showPassword ? "text" : "password"} 
-                value={newPassword} 
-                onChange={(e) => setNewPassword(e.target.value)} 
-                placeholder="••••••••" 
+              <input
+                type={showPassword ? "text" : "password"}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="••••••••"
                 className="w-full pl-4 pr-10 py-[14px] rounded-xl text-[14px] outline-none box-border"
-                style={{ background: inputBg, border: `1px solid ${inputBorder}`, color: textMain }} 
-                required 
+                style={{ background: inputBg, border: `1px solid ${inputBorder}`, color: textMain }}
+                required
               />
               <button
                 type="button"
@@ -69,9 +130,9 @@ export default function UpdatePasswordPage() {
             </div>
           </div>
 
-          <button 
-            type="submit" 
-            disabled={loading} 
+          <button
+            type="submit"
+            disabled={loading}
             className={`mt-2 py-[14px] rounded-xl border-none text-[15px] font-bold ${loading ? "cursor-not-allowed shadow-none" : "cursor-pointer shadow-[var(--shadow-primary)]"}`}
             style={{ background: loading ? "var(--color-disabled-bg)" : "var(--gradient-blue)", color: "var(--color-on-primary)" }}
           >

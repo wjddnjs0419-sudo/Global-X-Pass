@@ -1,10 +1,10 @@
 import { supabase } from "../lib/supabaseClient";
 import type { Post } from "../lib/types";
 
-export async function fetchPublicPostPreviews(category: string | null, limit: number) {
+export async function fetchPublicPostPreviews(category: string | null, limit?: number) {
   const rpcResult = await supabase.rpc("list_public_post_previews", {
     p_category: category,
-    p_limit: limit,
+    p_limit: limit ?? null,
   });
 
   if (!rpcResult.error) {
@@ -16,8 +16,11 @@ export async function fetchPublicPostPreviews(category: string | null, limit: nu
   let query = supabase
     .from("posts")
     .select("*")
-    .order("created_at", { ascending: false })
-    .limit(limit);
+    .order("created_at", { ascending: false });
+
+  if (limit !== undefined) {
+    query = query.limit(limit);
+  }
 
   if (category) {
     query = query.eq("category", category);
