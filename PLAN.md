@@ -3,93 +3,28 @@
 완료된 계획은 `RESULT.md`에 세부 구현 내용과 검증 결과가 기록되어 있으므로, 이 파일에는 활성/예정 작업만 유지합니다. 완료 항목은 `[Done]` 한 줄로 축약하고, 10개를 넘으면 가장 오래된 완료 항목부터 삭제합니다.
 
 ## Pending Approval
+- [Done] Codex 리뷰 P2 이슈 3건 수정 (2026-05-12) — `AdminPostCreate` 미저장 이미지 파일 썸네일 후보 포함(object URL + 저장 시 업로드), `AdminPage` create 탭 새로고침 복원 시 dashboard fallback, `NewsPage`/`EventArchivePage` 썸네일 404 시 자동 이미지 fallback. `npm run validate` ✅
 
-### [장기 플랜/기술 부채] 2차 리팩토링 및 기술 부채 청산 (2026-05-08 신규 리뷰어 감사 결과 반영)
+- [Done] 하드코딩 토큰화 4차 — 공개/기능 페이지 잔여 정리 (2026-05-12) — 12개 페이지(`SearchPage`, `SignupPage`, `TermsOfUsePage`, `NoticePage`, `ResourcesPage`, `BlogPage`, `EventArchivePage`, `ConsultingPage`, `MediaPage`, `EventsPage`, `FoundersClubPage`, `EventApplicationPage`)의 raw 색상/rgba/hex를 CSS 변수 기반으로 교체. `theme.css`에 `--color-img-placeholder`, `--color-capacity-fill/track`, `--color-accent-blue-soft-bg-hover`, `--shadow-card-rest/hover` 라이트 토큰 추가. `MediaGrid` props에서 `isDark/textMuted/textMain/placeholderBg` 제거. `npm run validate` ✅
 
-**배경**
-- 3인의 외부 신규 리뷰어(Clean Code, Performance, DevOps) 교차 감사 결과, 코드는 동작하지만 장기 유지보수 및 확장성에 치명적인 병목과 엣지 케이스가 발견되어 이를 기술 부채로 분류하고 청산 계획을 수립함.
+- [Done] 하드코딩 토큰화 3차 — 저위험 공개 페이지/유틸 정리 (2026-05-11) — `FaqPage`·`NewsPage`·`NotFoundPage`·`UpdatePasswordPage`·`PrivacyPolicyPage`·`eventApplication` raw 색상/rgba를 CSS 변수 기반으로 교체. `theme.css`에 blue soft gradient와 neutral soft 상태 토큰 추가. `HeaderSection`/`AdminPage`/`FlowMapPage` 및 어드민 상단 헤더/backdrop 색상 로직은 변경하지 않음. 대상 파일 raw 색상 스캔 ✅, `npm run validate` ✅
 
-**조치 계획 (Action Items)**
-1. **[UI/UX] 테마 변환(isDark) 불완전성 완전 제거 (Clean Code)**
-   - `AdminRoleModal`, `AdminConsultingManagement` 등 일부 컴포넌트에 여전히 남아있는 `isDark` 기반 삼항 연산자 색상 로직을 `theme.css` CSS 변수로 100% 마이그레이션하여 DRY 원칙 준수.
-2. **[기능] `useBlogImportAdmin` God Hook 해체 및 렌더링 병목 해결 (Performance & Clean Code)**
-   - 비대한 상태(데이터 Fetch, 필터, 폼, API)를 도메인별 하위 훅으로 쪼개거나 `useReducer`로 캡슐화.
-   - 검색어 입력 등 상태 변경 시 액션 핸들러들의 참조가 매번 재생성되어 리스트 전체가 리렌더링(Wasted Render)되는 성능 병목을 `useCallback`과 상태 구조 개선으로 해결.
-3. **[인프라] 파이프라인 좀비 상태 방지 및 예외 처리 (DevOps)**
-   - `.github/workflows/naver-blog-sync.yml`의 `curl` 명령에 `-f`, `--max-time`, `--retry` 옵션 추가.
-   - 워크플로우 실패 시 `blog_import_runs` 테이블의 해당 run 상태를 `failed`로 롤백하는 `if: failure()` 복구 스텝 추가.
-4. **[테스트] 파서 엣지 케이스 커버리지 보강 (DevOps)**
-   - `naverHtmlParser.test.mjs`에 `null` 입력, 닫히지 않은 태그 등 손상된 HTML 입력 시의 예외 처리(Crash 방지) 단위 테스트 추가.
+- [Done] 리뷰 후속 2차 — PostDetail/AdminPostCreate 하드코딩 토큰화 확대 (2026-05-11) — `PostDetailPage.tsx`/`AdminPostCreate.tsx`의 색상·배경·테두리·그림자 raw 값을 CSS 토큰 기반으로 정리. `theme.css`에 blue/purple soft 상태 토큰과 card/dialog/media cover shadow 토큰 추가. 어드민 라이트 모드 스크롤 전 상단 헤더/backdrop 로직은 변경하지 않음. `rg` 하드코딩 스캔 ✅, `npm run validate` ✅
 
----
+- [Done] 최근 리뷰 지적사항 1차 수정 (2026-05-11) — `PostDetailPage.tsx` 관리자 UI/편집 화면 MFA 전체 게이트 적용, 권한 상태 하락 시 편집/모달 닫기, 상세 편집 저장 후 반환 post로 `editThumbnailUrl` 동기화. `AdminPostCreate.tsx`/`PostDetailPage.tsx` 미사용 import 제거, Naver active content 제거 회귀 테스트 추가, 최신 변경 라인 일부 색상 토큰화. `node --test scripts/tests/naverHtmlParser.test.mjs` ✅, `npm run validate` ✅
 
-### [예정] 게시물 대표 썸네일 수동 지정 기능 (events-archive, news)
+- [Done] GEMINI.md No-Hardcode Mandate 반영 및 조정 (2026-05-11) — `CLAUDE.md`의 하드코딩 금지 규칙을 `GEMINI.md` 공통 규칙으로 통합. 컴포넌트/페이지/훅/유틸 raw UI 리터럴 추가 금지, `theme.css` 등 토큰 정의 파일 예외, 불가피한 예외 사전 동의 원칙 명시. `RESULT.md` 기록 및 `npm run validate` ✅
 
-**배경**
-- `EventArchivePage`와 `NewsPage` 모두 네이버 동기화로 썸네일이 자동 지정됨
-- 자동 썸네일을 관리자가 원하는 이미지로 교체할 수 있어야 함
-- 현재 썸네일 결정 순서: `image_url` 첫 이미지 → content 첫 `<img>` → placeholder
+- [Done] 리뷰 후속 조치 2차 전체 (2026-05-11) — AdminPage.tsx MFA 게이팅(`mfaRequired`/`mfaEnrolled` 추가, AdminRoute.tsx 패턴 동일화). `uploadThumbnailIfDataUrl` 공통화(postThumbnail.ts export, AdminPostCreate/PostDetailPage 로컬 정의 제거). `normalizeNaverImportedHtml` 파이프라인에 `<script>/<style>` 블록 및 `on*` 이벤트 핸들러 제거 레이어 추가(Node+브라우저 공유 모듈이므로 정규식 기반). theme.css에 NCF soft 토큰 7종 추가(`--color-accent-ncf-soft-bg/badge-bg/border/border-strong/on-ncf/on-ncf-muted` 등). AdminPage.tsx `#0a1020` → `var(--color-bg-surface)`. PostDetailPage.tsx `MEDIA_COLOR`, accent hex, NCF rgba 패턴 → CSS 토큰 교체. `npm run validate` ✅
 
-**변경 후 썸네일 우선순위**
-`thumbnail_url` (명시적 설정) → `image_url` 첫 이미지 → content 첫 `<img>` → placeholder
+- [Done] 어드민·모달·레이아웃 하드코딩 제거 (2026-05-11) — theme.css에 accent-ncf, backdrop, neutral, on-primary, disabled-bg 토큰 추가. adminConstants·AdminBlogQueue·AdminBulkResult·AdminConsulting·AdminDashboard·AdminEvent·AdminFoundersClub·AdminPostModal·AdminRoleModal·AdminUserManagement·MyPage·PostDetailPage·RootLayout·ConsultingBookingModal 14개 파일 CSS 변수 교체. `npm run validate` ✅
 
----
+- [Done] 공개 화면 하드코딩 제거 (2026-05-11) — theme.css에 accent-blue/green/purple, warning, success, scrim, shadow-primary, warning/success soft 토큰 추가. LoginPage·ConsultingPage·EventsPage·EventArchivePage·NoticeSection·FoundersClubCalendarWidget·LoadingSpinner·MediaPage·ResourcesPage·BlogPage·FoundersClubPage·UpdatePasswordPage 13개 파일 CSS 변수 교체. `npm run validate` ✅
 
-#### 변경 파일 목록
+- [Done] 리뷰 후속 조치 1차 전체 (2026-05-11) — run_id 셸 주입 차단, crop 손실 회귀 차단, 썸네일 Storage URL 저장 전환, 블로그 큐 페이지네이션+ARIA, AdminConsultingManagement IME Enter 회귀 제거, 모바일 2열→1열/adminLoading 스켈레톤/이메일 말줄임 정리. `npm run validate` ✅
+- [Done] 2차 리팩토링 및 기술 부채 청산 (2026-05-11) — `theme.css`에 공용 surface/border/danger 토큰을 추가하고 `AdminRoleModal`·`AdminConsultingManagement`의 `isDark` 색상 삼항을 제거. `useBlogImportAdmin`을 data/control 파트로 분리하고 filter/pagination/tag draft 파생값을 훅 내부로 이동, stable callback + draft ref로 action 참조 안정화. `naver-blog-sync.yml`에 `curl -f --retry --max-time`와 failure rollback PATCH를 추가. `naverHtmlParser`/`naverImportShared`에 null-safe guard를 보강하고 손상 HTML fallback 테스트를 추가. `node --test scripts/tests/naverHtmlParser.test.mjs` ✅, `npm run validate` ✅
+- [Done] breakpoint 표준화 및 기존 사용처 감사 (2026-05-11) — 공식 기준을 Mobile 320~767 / Tablet 768~1023 / Desktop 1024~1279 / Large Desktop 1280+로 확정하고, `sm(640+)`는 보조 미세조정 단계로 문서화. 현행 사용처 감사 결과 `sm` 70회, `md` 47회, `lg` 30회, `xl` 8회, arbitrary breakpoint 8회, 수동 `@media` 12회 확인. `npm run validate` ✅
 
-**① `supabase/migrations/YYYYMMDDHHMMSS_add_thumbnail_url_to_posts.sql`** (신규)
-```sql
-ALTER TABLE posts ADD COLUMN IF NOT EXISTS thumbnail_url text;
-```
-- nullable, 기존 행에 영향 없음
-- `supabase db push` 후 원격 반영 확인 필요
-
-**② `src/app/components/admin/AdminPostCreate.tsx`**
-- `thumbnailUrl` state 추가 (`string | null`, 초기값 `null`)
-- 편집 진입 시 `editingPost.thumbnail_url`로 초기화 (useEffect 내 `setThumbnailUrl`)
-- `category === "events-archive" || category === "news"` 조건으로 **대표 썸네일 섹션** 렌더링:
-  - `existingImages.filter(isImage)` 목록을 썸네일 그리드(3~4열)로 표시
-  - 클릭 시 해당 URL을 `thumbnailUrl`로 설정 / 재클릭 시 해제
-  - 선택된 이미지: 파란 테두리 + 체크 아이콘 오버레이
-  - 이미지가 없을 때: "첨부 이미지를 먼저 저장하면 여기서 선택할 수 있습니다." 안내
-- `handleConfirmSave` — insert/update 페이로드에 `thumbnail_url: thumbnailUrl ?? null` 포함
-  - `extraFields` 조건 블록 (`events-archive`, `news`) 안에 추가
-
-**③ `src/app/pages/EventArchivePage.tsx`**
-- 카드 렌더링 썸네일 결정 코드 수정:
-  ```ts
-  // 변경 전
-  const thumbnailUrl = attachmentImages[0] ?? (content img 정규식);
-  // 변경 후
-  const thumbnailUrl = post.thumbnail_url
-    ?? attachmentImages[0]
-    ?? (content img 정규식);
-  ```
-
-**④ `src/app/pages/NewsPage.tsx`**
-- 동일한 썸네일 우선순위 적용 (`post.thumbnail_url` 우선)
-
----
-
-#### 검증 매트릭스
-- [ ] `npm run validate` ✅
-- [ ] events-archive 카드: 수동 지정 썸네일 정상 표시 확인
-- [ ] news 카드: 수동 지정 썸네일 정상 표시 확인
-- [ ] 지정 해제 시 자동 폴백(image_url → content img) 동작 확인
-- [ ] 신규 글(기존 이미지 없음)에서 안내 문구 표시 확인
-- [ ] `supabase migration list` 원격 반영 확인
-
----
-
-- [Done] 블로그 동기화 버튼 라벨 수정 (2026-05-08) — `AdminBlogQueueManagement.tsx` "즉시 이관 실행" → "즉시 동기화". `npm run validate` ✅
-- [Done] 보안 리뷰어 지적사항 수정 — MFA 미완료 관리자 nav 노출 차단 (2026-05-08) — `RootLayout` nav/DesignSystem 조건에 `!mfaRequired && mfaEnrolled` 추가; `AdminRoute` loading 중 `null` → `<div aria-hidden />` 교체. `npm run validate` ✅
-- [Done] 관리자 플로팅 nav + `/design-system` 인증 우회 보안 수정 (2026-05-08) — `RootLayout` `loading` 가드 추가(`!adminLoading && isAdmin`), `DesignSystemPage` 비인가 접근 시 `/` 리디렉트, `routes.tsx`에서 `design-system` 경로를 `AdminRoute` 아래로 이동(이중 방어). `npm run validate` ✅
-- [Done] EventArchivePage 통계 섹션 제거 + 연도 필터 + 전 게시판 페이지네이션 통일 (2026-05-08) — `get_event_archive_participant_stats` RPC 호출 제거, 연도 자동 필터 추가, `pagination.tsx` 한국어·라이트모드 수정, Blog/EventArchive(12개)/Notice·News·Events·Resources(10개) 페이지네이션 통일. `npm run validate` ✅
-- [Done] 라이트 모드 CSS 변수 근본 수정 (2026-05-08) — `ThemeProvider`에 `document.documentElement.classList.toggle("dark", isDark)` 추가, `theme.css`에 `html:not(.dark)` 라이트 모드 오버라이드 블록 추가(배경·텍스트·글래스·보더 변수 전체). `EventArchivePage` Pagination import 누락 수정 포함. `npm run validate` ✅
-- [Done] AdminBlogQueueManagement UI/UX 미니멀 리팩터 + 명칭 변경 (2026-05-08) — "블로그 이관 큐" → "블로그 동기화" 사이드바·헤딩 변경. `tabStyle` 탭 필터, `Badge`/`Button` 컴포넌트, 단순 카드(card/border/radius:16), 컬러 accent·인셋 영역 제거. 번들 15.5 → 11.4 kB. `npm run validate` ✅
-- [Done] 블로그 이관 큐 Admin UI + GitHub Actions 즉시 실행 연동 (2026-05-08) — `AdminBlogQueueManagement.tsx` 신규 생성, `AdminSidebar`/`AdminPage` 탭 추가, `sync-naver-blog` Edge Function에 GitHub Actions `workflow_dispatch` 연동 추가.
-- [Done] 네이버 이관 canonical pipeline 5차(32건 스코프 보정 및 queue/콜라주 복구) - `fullCoveragePosts=32`, `partialCoveragePosts=0`, `unknownClassSummary=[]`, `unstructuredPosts=[]`. `npm run validate` ✅
-- [Done] 네이버 이관 canonical pipeline 4차(`se-oglink` link-card 승격) - `fullCoveragePosts=24`, `partialCoveragePosts=0`, `unknownClassSummary=[]`. `npm run validate` ✅
-- [Done] 네이버 이관 canonical pipeline 3차(실데이터 unknown block 수집 및 schema 승격) - `se-sticker`/`se-imageGroup` canonical 승격. `npm run validate` ✅
-- [Done] 네이버 이관 canonical pipeline 2차(anomaly 진단/새 타입 분류 기반) - `getNaverCanonicalDiagnostics()` 추가, PostDetailPage debug 로그 확장. `npm run validate` ✅
-- [Done] 네이버 이관 canonical block pipeline 1차 구현 - `data-gxp-se` 마커 주입, index.css marker-first 이행. `npm run validate` ✅
+## Long-Term Backlog
+- [Backlog] 헤더/어드민/FlowMap 민감 영역 토큰화 — `HeaderSection.tsx`, `AdminPage.tsx`, `FlowMapPage.tsx`, `AdminFlowMap.tsx`, `AdminSidebar.tsx`, 일부 어드민 패널의 레거시 색상 값을 정리한다. 어드민 라이트 모드 스크롤 전 상단 헤더/backdrop 색상 회귀 위험이 있으므로 별도 승인과 브라우저 시각 QA 후 진행한다.
+- [Backlog] 공용 컴포넌트/토큰 설계 정비 — `ui/button.tsx`, `ui/badge.tsx`, `PageShell.tsx`, `sectionTheme.ts`의 raw 색상과 섹션 테마 값을 공용 토큰 체계로 정리한다. 영향 범위가 넓으므로 페이지 단위 토큰화가 안정화된 뒤 별도 차수로 진행한다.

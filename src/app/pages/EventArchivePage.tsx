@@ -5,39 +5,11 @@ import { PageShell } from "../components/PageShell";
 import { useTheme } from "../ThemeContext";
 import { LoadingSpinner, ErrorMessage } from "../components/LoadingSpinner";
 import { cleanText } from "../../utils/text";
+import { getThumbnailImageStyle, resolvePostThumbnail, getThumbnailCandidates } from "../../utils/postThumbnail";
 import { getFilterTabStyle, getMutedLabelStyle } from "../components/contentListStyles";
 import { Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationNext, PaginationLink, PaginationEllipsis } from "../components/ui/pagination";
 
 const PAGE_SIZE = 12;
-
-const decodeFilename = (encoded: string) => {
-  if (encoded.startsWith('b64-')) {
-    try {
-      let b64 = encoded.substring(4).replace(/-/g, '+').replace(/_/g, '/');
-      while (b64.length % 4 !== 0) b64 += '=';
-      return decodeURIComponent(atob(b64));
-    } catch { return encoded; }
-  }
-  return decodeURIComponent(encoded);
-};
-
-const getFileNameFromUrl = (url: string) => {
-  try {
-    const path = url.split('?')[0];
-    let filename = path.split('/').pop() || "";
-    if (filename.includes('---')) filename = filename.split('---').pop()!;
-    else if (filename.match(/^\d+_[a-z0-9]+_/)) filename = filename.split('_').slice(2).join('_');
-    return decodeFilename(filename);
-  } catch { return ""; }
-};
-
-const isImage = (url: string) => {
-  const fileName = getFileNameFromUrl(url);
-  if (fileName.match(/\.(jpeg|jpg|gif|png|webp|avif|svg|jfif|pjpeg|pjp|bmp|heic|heif)$/i)) return true;
-  if (url.match(/\.(jpeg|jpg|gif|png|webp|avif|svg|jfif|pjpeg|pjp|bmp|heic|heif)(?:\?.*)?$/i)) return true;
-  if (url.includes('unsplash.com') || url.includes('picsum.photos') || url.includes('placeholder.com')) return true;
-  return false;
-};
 
 export function EventArchivePage() {
   const { isDark } = useTheme();
@@ -47,12 +19,8 @@ export function EventArchivePage() {
   const [activeTag, setActiveTag] = useState("전체");
   const [activeYear, setActiveYear] = useState("전체");
   const [currentPage, setCurrentPage] = useState(1);
+  const [failedThumbnails, setFailedThumbnails] = useState<Record<string, true>>({});
 
-  const card = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
-  const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
-  const textMain = isDark ? "rgba(255,255,255,0.92)" : "#0f172a";
-  const textMuted = isDark ? "rgba(255,255,255,0.45)" : "rgba(15,23,42,0.45)";
-  const imgPlaceholder = isDark ? "rgba(255,255,255,0.06)" : "#f1f5f9";
 
   useEffect(() => {
     let isMounted = true;
@@ -100,7 +68,7 @@ export function EventArchivePage() {
   const handleYearChange = (year: string) => { setActiveYear(year); setCurrentPage(1); };
 
   return (
-    <PageShell title="행사 아카이브" subtitle="NCF와 함께한 지난 행사의 소중한 기록들을 만나보세요." accentColor="#18A343">
+    <PageShell title="행사 아카이브" subtitle="NCF와 함께한 지난 행사의 소중한 기록들을 만나보세요." accentColor="var(--color-accent-green)">
       <div className="max-w-[1280px] mx-auto pb-[100px]">
         {loading ? (
           <LoadingSpinner />
@@ -140,13 +108,9 @@ export function EventArchivePage() {
                           alignItems: "center",
                           padding: "3px 10px",
                           borderRadius: 999,
-                          border: `1px solid ${isDark ? (active ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.1)") : (active ? "rgba(15,23,42,0.22)" : "rgba(15,23,42,0.1)")}`,
-                          background: active
-                            ? (isDark ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.07)")
-                            : (isDark ? "rgba(255,255,255,0.035)" : "rgba(15,23,42,0.025)"),
-                          color: active
-                            ? (isDark ? "rgba(255,255,255,0.85)" : "rgba(15,23,42,0.8)")
-                            : (isDark ? "rgba(255,255,255,0.45)" : "rgba(15,23,42,0.45)"),
+                          border: `1px solid ${active ? "var(--color-glass-border-strong)" : "var(--color-glass-border)"}`,
+                          background: active ? "var(--color-surface-selected)" : "var(--color-surface-subtle)",
+                          color: active ? "var(--color-text-primary)" : "var(--color-text-muted)",
                           fontSize: 12,
                           fontWeight: active ? 700 : 500,
                           cursor: "pointer",
@@ -164,11 +128,11 @@ export function EventArchivePage() {
             {/* 4-column grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
               {pagedPosts.map((post) => {
-                const attachmentImages = post.image_url?.split(',').filter(isImage) || [];
-                const thumbnailUrl =
-                  attachmentImages.length > 0
-                    ? attachmentImages[0]
-                    : (post.content?.match(/<img[^>]+src="([^">]+)"/) || [])[1];
+                const thumbnail = resolvePostThumbnail(post);
+                const manualFailed = failedThumbnails[post.id] && !!post.thumbnail_url?.trim();
+                const autoUrl = manualFailed ? (getThumbnailCandidates(post.content ?? "", post.image_url)[0]?.url ?? null) : null;
+                const displayUrl = manualFailed ? autoUrl : thumbnail.url;
+                const thumbnailVisible = !!displayUrl && !failedThumbnails[`${post.id}_fb`];
                 const year = new Date(post.created_at).getFullYear();
                 const dateStr = new Date(post.created_at)
                   .toLocaleDateString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" })
@@ -181,26 +145,37 @@ export function EventArchivePage() {
                     to={`/post/${post.id}`}
                     className="rounded-[20px] no-underline overflow-hidden flex flex-col transition-all duration-200 hover:-translate-y-1"
                     style={{
-                      background: card,
-                      border: `1px solid ${border}`,
-                      boxShadow: isDark ? "none" : "0 2px 12px rgba(0,0,0,0.05)",
+                      background: "var(--color-surface-card)",
+                      border: "1px solid var(--color-border-soft)",
+                      boxShadow: "var(--shadow-card-rest)",
                     }}
                   >
                     {/* Thumbnail */}
-                    <div style={{ position: "relative", width: "100%", aspectRatio: "16/10", background: imgPlaceholder, overflow: "hidden" }}>
-                      {thumbnailUrl ? (
-                        <img src={thumbnailUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                    <div style={{ position: "relative", width: "100%", aspectRatio: "16/10", background: "var(--color-skeleton-bg)", overflow: "hidden" }}>
+                      {thumbnailVisible ? (
+                        <img
+                          src={displayUrl ?? ""}
+                          alt=""
+                          onError={() => {
+                            if (!failedThumbnails[post.id]) {
+                              setFailedThumbnails(prev => ({ ...prev, [post.id]: true }));
+                            } else {
+                              setFailedThumbnails(prev => ({ ...prev, [`${post.id}_fb`]: true }));
+                            }
+                          }}
+                          style={getThumbnailImageStyle(manualFailed ? null : thumbnail.crop)}
+                        />
                       ) : (
                         <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke={textMuted} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                             <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
                           </svg>
                         </div>
                       )}
                       <span style={{
                         position: "absolute", bottom: 10, left: 10,
-                        fontSize: 11, fontWeight: 700, color: "#fff",
-                        background: "rgba(0,0,0,0.52)", backdropFilter: "blur(6px)",
+                        fontSize: 11, fontWeight: 700, color: "var(--color-text-primary)",
+                        background: "var(--color-scrim)", backdropFilter: "blur(6px)",
                         padding: "3px 8px", borderRadius: 6,
                       }}>
                         {year}
@@ -218,17 +193,17 @@ export function EventArchivePage() {
                             : <span style={getMutedLabelStyle(isDark)}>행사</span>
                           }
                         </div>
-                        <span style={{ fontSize: 12, color: textMuted, flexShrink: 0 }}>{dateStr}</span>
+                        <span style={{ fontSize: 12, color: "var(--color-text-muted)", flexShrink: 0 }}>{dateStr}</span>
                       </div>
                       <strong style={{
-                        fontSize: 15, fontWeight: 800, color: textMain, lineHeight: 1.4,
+                        fontSize: 15, fontWeight: 800, color: "var(--color-text-primary)", lineHeight: 1.4,
                         display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
                       } as React.CSSProperties}>
                         {post.title}
                       </strong>
                       {excerpt && (
                         <p style={{
-                          margin: 0, fontSize: 13, color: textMuted, lineHeight: 1.55,
+                          margin: 0, fontSize: 13, color: "var(--color-text-muted)", lineHeight: 1.55,
                           display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
                         } as React.CSSProperties}>
                           {excerpt}
