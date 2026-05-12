@@ -1,3 +1,184 @@
+# RESULT: 세션 종료 핫 컨텍스트 (2026-05-12 — 10차)
+
+## 현재 상태
+- `EventApplicationPage` 관리자 관심 분야 선택지 편집 UI를 카드형 행으로 정리했다.
+- 관심 분야 선택지는 `수정/완료`, 삭제(X), 추가(+) 버튼으로 개별 관리한다.
+- 추가 질문이 없는 기본 상태는 얇은 박스 중앙의 + 버튼만 보이도록 줄였다.
+- 관심 분야 수정 중 한글이 한 글자씩만 입력되던 IME 문제를 React key 안정화로 수정했다.
+
+## 이번 세션 주요 변경
+
+| 파일 | 변경 내용 |
+|------|-----------|
+| `src/app/pages/EventApplicationPage.tsx` | 관심 분야 선택지를 textarea에서 개별 행 카드 UI로 변경. `editingInterestIndex`, `newInterestOption`, 선택지 추가/수정/삭제 helper 추가 |
+| `src/app/pages/EventApplicationPage.tsx` | 추가 질문 기본 상태를 얇은 중앙 정렬 + 버튼 박스로 변경하고 기존 추가 질문 사이 + 버튼 스타일을 공통화 |
+| `src/app/pages/EventApplicationPage.tsx` | 관심 분야 수정 input의 React key가 입력값에 따라 바뀌던 문제를 수정해 한글 IME 조합 중 input remount가 발생하지 않게 함 |
+| `PLAN.md` | 승인된 작업을 `[Done]`으로 축약하고 완료 항목 10개 유지 |
+| `RESULT.md` | 이번 변경 및 검증 결과 반영 |
+
+## 검증 결과
+- [x] `npm run validate` (TypeScript, ESLint, Vite production build) ✅
+- [ ] 관리자 로그인 세션 기반 시각 확인
+관리자 인증 세션이 없어 실제 관리자 편집 화면의 입력 조작은 브라우저에서 직접 확인하지 못했고, 코드 경로와 `npm run validate`로 확인했다.
+
+## 종료 전 점검
+- [x] `PLAN.md` 완료 항목 `[Done]` 정리
+- [x] `RESULT.md` 최신 핫 컨텍스트 반영
+- [x] `npm run validate` (TypeScript, ESLint, Vite production build) ✅
+
+---
+
+# RESULT: 세션 종료 핫 컨텍스트 (2026-05-12 — 9차)
+
+## 현재 상태
+- `EventApplicationPage` 관리자 장소 입력을 `장소 이름`/`주소`로 분리했다.
+- 저장은 기존 DB 스키마 변경 없이 `posts.location` TEXT에 `장소이름 | 주소` 형식으로 유지하고, 공개 화면은 `장소이름, 주소`로 표시한다.
+- 관리자 편집 화면에 신청서 흐름을 알 수 있는 섹션 개요를 추가했다.
+- 남은 토큰화 대상: `HeaderSection.tsx`, `AdminPage.tsx`, `FlowMapPage.tsx`, `AdminSidebar.tsx`, `ui/button.tsx`, `PageShell.tsx` — `Long-Term Backlog` 유지.
+
+## 이번 세션 주요 변경
+
+| 파일 | 변경 내용 |
+|------|-----------|
+| `src/app/pages/EventApplicationPage.tsx` | `parseLocationParts`, `composeLocationText`, `getDisplayLocation` helper 추가. 기존 location 값을 `|` 기준으로 이름/주소로 파싱하고, 저장 시 `장소이름 | 주소`, 공개 표시 시 `장소이름, 주소`로 변환 |
+| `src/app/pages/EventApplicationPage.tsx` | 관리자 편집의 장소 입력을 `장소 이름`/`주소` 두 input으로 분리하고, 날짜 블록과 같은 그리드 행에서 과도하게 늘어나지 않도록 정렬 조정 |
+| `src/app/pages/EventApplicationPage.tsx` | 관리자 편집 화면에 `행사 기본 정보`, `신청서 안내`, `1. 참가자 기본 정보`, `2. 관심 분야 & 참여 목적`, `3. 사전 질문`, `4. 추가 질문`, `5. 개인정보 동의 및 완료 안내` 섹션 개요 추가 |
+| `PLAN.md` | 승인된 작업을 `[Done]`으로 축약하고 완료 항목 10개 유지 |
+| `RESULT.md` | 이번 변경 및 검증 결과 반영 |
+
+## 검증 결과
+- [x] `npm run validate` (TypeScript, ESLint, Vite production build) ✅
+- [x] 로컬 브라우저 smoke check: `http://localhost:5175/events/c77036b3-b238-43f3-af94-1e74c63176af/apply` 일반 사용자 화면에서 참가 신청/제출 버튼, 장소 이름 노출, 익명 화면 관리자 `편집` 버튼 미노출, console error 없음 확인 ✅
+- [ ] 관리자 로그인 세션 기반 시각 확인
+관리자 인증 세션이 없어 실제 관리자 편집 화면의 장소 input/섹션 개요는 브라우저에서 직접 확인하지 못했고, 코드 경로와 `npm run validate`로 확인했다.
+
+## 종료 전 점검
+- [x] `PLAN.md` 완료 항목 `[Done]` 정리
+- [x] `RESULT.md` 최신 핫 컨텍스트 반영
+- [x] `npm run validate` (TypeScript, ESLint, Vite production build) ✅
+
+---
+
+# RESULT: 세션 종료 핫 컨텍스트 (2026-05-12 — 8차)
+
+## 현재 상태
+- `EventApplicationPage` 관리자 편집 진입 흐름을 신청 페이지 중심으로 재정리했다.
+- 관리자는 기본 진입 시 일반 신청 페이지를 보고, 질문지 박스 우측 상단 `편집` 버튼으로만 편집 박스에 진입한다.
+- 시간 입력은 `연/월/일 + 시/분(10분 단위)`로 분리하고, 저장 시 기존 `posts.event_date` TEXT에 `YYYY.MM.DD (요일) HH:mm` 형식으로 조합한다.
+- 남은 토큰화 대상: `HeaderSection.tsx`, `AdminPage.tsx`, `FlowMapPage.tsx`, `AdminSidebar.tsx`, `ui/button.tsx`, `PageShell.tsx` — `Long-Term Backlog` 유지.
+
+## 이번 세션 주요 변경
+
+| 파일 | 변경 내용 |
+|------|-----------|
+| `src/app/pages/EventApplicationPage.tsx` | `adminEditing` 상태를 재도입해 기본 화면은 저장된 `post`/`config` 기준 신청 페이지로 렌더링하고, 편집 중에만 `adminDraft`/`draftConfig` 미리보기를 사용하도록 분리. 관리자 전용 `편집` 버튼을 신청 박스 우측 상단에 추가. 저장 성공/취소 시 신청 페이지로 복귀 |
+| `src/app/pages/EventApplicationPage.tsx` | 기존 자유 텍스트 `일시` 입력을 `연/월/일 + 시/분` select로 변경. 기존 `event_date` 문자열은 파싱해 draft에 반영하고, 저장 시 `YYYY.MM.DD (요일) HH:mm`으로 재조합 |
+| `PLAN.md` | 승인된 작업을 `[Done]`으로 축약하고 완료 항목 10개 유지 |
+| `RESULT.md` | 이번 변경 및 검증 결과 반영 |
+
+## 검증 결과
+- [x] `npm run validate` (TypeScript, ESLint, Vite production build) ✅
+- [x] 로컬 브라우저 smoke check: `http://localhost:5175/events/c77036b3-b238-43f3-af94-1e74c63176af/apply` 일반 사용자 화면에서 참가 신청/제출 버튼 노출, `- 일시:` 문단 미노출, 익명 화면 관리자 `편집` 버튼 미노출 확인 ✅
+- [ ] 관리자 로그인 세션 기반 시각 확인
+관리자 인증 세션이 없어 실제 관리자 버튼 클릭/편집 박스 전환은 브라우저에서 직접 확인하지 못했고, 코드 경로와 `npm run validate`로 확인했다.
+
+## 종료 전 점검
+- [x] `PLAN.md` 완료 항목 `[Done]` 정리
+- [x] `RESULT.md` 최신 핫 컨텍스트 반영
+- [x] `npm run validate` (TypeScript, ESLint, Vite production build) ✅
+
+---
+
+# RESULT: 세션 종료 핫 컨텍스트 (2026-05-12 — 7차)
+
+## 현재 상태
+- `EventApplicationPage` 행사 설명/일시/장소 완전 분리 완료.
+- 기존 `content`에 섞여 있던 `<p><strong>- 일시:</strong> ...</p>` 같은 메타 문단은 공개 렌더와 관리자 입력에서 제거된다.
+- 관리자 대표이미지 지정은 단순 URL 입력 대신 기존 `AdvancedThumbnailEditor` 기반 선택/업로드/crop UI로 교체했다.
+- 남은 토큰화 대상: `HeaderSection.tsx`, `AdminPage.tsx`, `FlowMapPage.tsx`, `AdminSidebar.tsx`, `ui/button.tsx`, `PageShell.tsx` — `Long-Term Backlog` 유지.
+
+## 이번 세션 주요 변경
+
+| 파일 | 변경 내용 |
+|------|-----------|
+| `src/app/pages/EventApplicationPage.tsx` | 행사 메타 문단 제거 helper 추가. 관리자 draft 동기화 시 HTML 설명을 plain text로 변환하고 `- 일시/장소/정원` 문단 제거. 저장 시 plain text 설명을 안전한 `<p>` HTML로 변환. 공개 렌더도 정규화된 본문을 사용. 대표이미지 입력을 `AdvancedThumbnailEditor`로 교체하고 crop 결과 data URL을 `uploadThumbnailIfDataUrl()`로 Storage URL화 |
+| `src/utils/postThumbnail.ts` | `ThumbnailAspect`에 배너용 `7/1` 추가, 출력 크기 `1400x200` 추가 |
+| `src/app/components/admin/AdvancedThumbnailEditor.tsx` | `7/1` 비율 라벨을 "행사 신청 배너 비율 7:1"로 표시 |
+| `PLAN.md` | 승인된 작업을 `[Done]`으로 축약하고 완료 항목 10개 유지 |
+| `RESULT.md` | 이번 변경 및 검증 결과 반영 |
+
+## 검증 결과
+- [x] `npm run validate` (TypeScript, ESLint, Vite production build) ✅
+- [x] 로컬 브라우저 smoke check: `http://localhost:5175/events/c77036b3-b238-43f3-af94-1e74c63176af/apply` 일반 사용자 화면에서 `- 일시:` 문단이 본문에서 제거되고, 날짜/장소는 상단 정보로만 표시됨 확인 ✅
+- [ ] 관리자 로그인 세션 기반 시각 확인
+관리자 인증 세션이 없어 실제 관리자 폼에서 `AdvancedThumbnailEditor` 모달 조작까지는 직접 확인하지 못했고, 코드 경로와 `npm run validate`로 확인했다.
+
+## 종료 전 점검
+- [x] `PLAN.md` 완료 항목 `[Done]` 정리
+- [x] `RESULT.md` 최신 핫 컨텍스트 반영
+- [x] `npm run validate` (TypeScript, ESLint, Vite production build) ✅
+
+---
+
+# RESULT: 세션 종료 핫 컨텍스트 (2026-05-12 — 6차)
+
+## 현재 상태
+- `EventApplicationPage` 후속 압축 레이아웃 수정 완료.
+- 대표 이미지는 얇은 crop 높이로 전환했고, 행사 설명 박스는 전역 Quill `min-height: 400px` 영향을 제거해 카드 자체 padding 외의 과한 하단 여백을 줄였다.
+- 관리자 모드는 접힌 "관리자 편집" 헤더/토글 버튼 없이 편집 폼이 즉시 렌더링되도록 단순화했다.
+- 남은 토큰화 대상: `HeaderSection.tsx`, `AdminPage.tsx`, `FlowMapPage.tsx`, `AdminSidebar.tsx`, `ui/button.tsx`, `PageShell.tsx` — `Long-Term Backlog` 유지.
+
+## 이번 세션 주요 변경
+
+| 파일 | 변경 내용 |
+|------|-----------|
+| `src/styles/theme.css` | `--size-event-application-cover-height: clamp(96px, 14vw, 160px)` 추가 |
+| `src/app/pages/EventApplicationPage.tsx` | 대표 이미지 영역 `aspectRatio: "16 / 9"` → 토큰 기반 height crop으로 전환. 본문 렌더링 `ql-editor`에 `minHeight: 0`, `m-0` 적용. `adminEditing` 상태와 접기/수정 버튼 제거, 관리자 편집 폼 즉시 렌더링. 관리자 편집 중 대표 이미지/폼 설정은 `isAdmin ? draftConfig : config` 기준으로 동작하도록 정리 |
+| `PLAN.md` | 승인된 후속 수정 항목을 `[Done]`으로 축약하고 완료 항목 10개 유지 |
+| `RESULT.md` | 이번 후속 수정 및 검증 결과 반영 |
+
+## 검증 결과
+- [x] `npm run validate` (TypeScript, ESLint, Vite production build) ✅
+- [x] 로컬 브라우저 smoke check: `http://localhost:5175/events/c77036b3-b238-43f3-af94-1e74c63176af/apply` 일반 사용자 화면에서 얇은 이미지 crop과 신청 폼 흐름 확인 ✅
+- [ ] 관리자 로그인 세션 기반 시각 확인
+관리자 인증 세션이 없어 브라우저에서 편집 폼 즉시 노출까지는 직접 확인하지 못했고, `isAdmin` 분기에서 토글 없이 편집 폼을 바로 렌더링하는 코드 경로로 확인했다.
+
+## 종료 전 점검
+- [x] `PLAN.md` 완료 항목 `[Done]` 정리
+- [x] `RESULT.md` 최신 핫 컨텍스트 반영
+- [x] `npm run validate` (TypeScript, ESLint, Vite production build) ✅
+
+---
+
+# RESULT: 세션 종료 핫 컨텍스트 (2026-05-12 — 5차)
+
+## 현재 상태
+- `EventApplicationPage` 2컬럼 레이아웃을 단일 컬럼으로 전환 완료.
+- 일반 사용자는 이벤트 정보 카드 아래 참가 신청 폼이 이어지고, 관리자 코드는 정보 카드 아래 편집 패널만 렌더링하도록 분리 완료.
+- 남은 토큰화 대상: `HeaderSection.tsx`, `AdminPage.tsx`, `FlowMapPage.tsx`, `AdminSidebar.tsx`, `ui/button.tsx`, `PageShell.tsx` — `Long-Term Backlog` 유지.
+
+## 이번 세션 주요 변경
+
+| 파일 | 변경 내용 |
+|------|-----------|
+| `src/app/pages/EventApplicationPage.tsx` | `grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr]` 제거 후 `flex flex-col` 단일 컬럼 흐름으로 재구성. 이벤트 정보 카드를 분리하고, `isAdmin` 분기 아래에서 관리자 편집 패널 또는 일반 사용자 신청 패널만 순서대로 렌더링하도록 재배치 |
+| `PLAN.md` | 승인된 `EventApplicationPage` 작업을 `[Done]`으로 축약하고 최신 완료 항목 10개만 유지하도록 정리 |
+| `RESULT.md` | 이번 레이아웃 변경 및 검증 기록 반영 |
+
+## 검증 결과
+- [x] `npm run validate` (TypeScript, ESLint, Vite production build) ✅
+- [x] 로컬 브라우저 smoke check: `http://localhost:5174/events/c77036b3-b238-43f3-af94-1e74c63176af/apply` 데스크톱 기본 뷰포트에서 정보 카드 → 신청 폼 순서 확인 ✅
+- [x] 로컬 브라우저 responsive smoke check: 390x844 모바일 뷰포트에서 동일한 세로 순서 유지 확인 ✅
+- [ ] 관리자 로그인 세션 기반 시각 확인
+관리자 인증 세션이 없어 브라우저에서 편집 패널 렌더링까지는 직접 검증하지 못했고, 대신 `isAdmin ? ... : ...` 분기와 렌더 순서를 코드상으로 확인했다.
+
+## 종료 전 점검
+- [x] `PLAN.md` 완료 항목 `[Done]` 정리
+- [x] `RESULT.md` 최신 핫 컨텍스트 반영
+- [x] `npm run validate` (TypeScript, ESLint, Vite production build) ✅
+
+---
+
 # RESULT: 세션 종료 핫 컨텍스트 (2026-05-12 — 4차)
 
 ## 현재 상태
