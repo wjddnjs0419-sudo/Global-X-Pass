@@ -3,3 +3,4 @@ dist
 .env
 .DS_Store
 *.local
+homepage_system_reference.md
