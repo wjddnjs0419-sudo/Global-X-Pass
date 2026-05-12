@@ -1,4 +1,3 @@
-import { useTheme } from "../../ThemeContext";
 import { LAYERS } from "../../../lib/layers";
 
 interface PendingRoleChange {
@@ -31,14 +30,15 @@ export function AdminRoleModal({
   onConfirm,
   onCancel,
 }: AdminRoleModalProps) {
-  const { isDark } = useTheme();
-  const border    = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
-  const textMain  = isDark ? "rgba(255,255,255,0.92)" : "rgba(10,16,32,0.88)";
-  const textMuted = isDark ? "rgba(255,255,255,0.45)" : "rgba(10,16,32,0.45)";
+  const border = "var(--color-border-soft)";
+  const textMain = "var(--color-text-primary)";
+  const textMuted = "var(--color-text-muted)";
   const panelBg = "var(--color-bg-elevated)";
-  const subtleBg = isDark ? "rgba(255,255,255,0.045)" : "rgba(15,23,42,0.035)";
-  const selectedBg = isDark ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.07)";
-  const labelBorder = isDark ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.09)";
+  const subtleBg = "var(--color-surface-subtle)";
+  const selectedBg = "var(--color-surface-selected)";
+  const labelBorder = "var(--color-border-subtle)";
+  const inputBg = "var(--color-field-bg)";
+  const primaryBg = "var(--color-brand-blue)";
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.46)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: LAYERS.modal, padding: 20, boxSizing: "border-box" }}>
@@ -64,7 +64,7 @@ export function AdminRoleModal({
             onKeyDown={e => { if (e.key === "Enter") onConfirm(); }}
             placeholder="현재 비밀번호"
             autoFocus
-            style={{ width: "100%", padding: "13px 44px 13px 14px", borderRadius: 10, border: `1px solid ${labelBorder}`, background: isDark ? "rgba(255,255,255,0.04)" : "#f8fafc", color: textMain, fontSize: 14, outline: "none", boxSizing: "border-box" }}
+            style={{ width: "100%", padding: "13px 44px 13px 14px", borderRadius: 10, border: `1px solid ${labelBorder}`, background: inputBg, color: textMain, fontSize: 14, outline: "none", boxSizing: "border-box" }}
           />
           <button
             type="button"
@@ -83,7 +83,7 @@ export function AdminRoleModal({
           <button
             onClick={onConfirm}
             disabled={roleConfirmLoading || !roleConfirmPassword}
-            style={{ flex: 1, padding: 13, borderRadius: 10, border: "none", background: "#4377F1", color: "#fff", fontWeight: 750, cursor: roleConfirmLoading || !roleConfirmPassword ? "not-allowed" : "pointer", opacity: roleConfirmLoading || !roleConfirmPassword ? 0.5 : 1, boxShadow: "none" }}
+            style={{ flex: 1, padding: 13, borderRadius: 10, border: "none", background: primaryBg, color: "var(--color-on-primary)", fontWeight: 750, cursor: roleConfirmLoading || !roleConfirmPassword ? "not-allowed" : "pointer", opacity: roleConfirmLoading || !roleConfirmPassword ? 0.5 : 1, boxShadow: "none" }}
           >
             {roleConfirmLoading ? "확인 중..." : "변경 승인"}
           </button>

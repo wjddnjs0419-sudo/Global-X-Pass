@@ -11,8 +11,6 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink, Paginati
 
 const PAGE_SIZE = 10;
 
-const NOTICE_COLOR = "#EA4335";
-
 export function NoticePage() {
   const { isDark } = useTheme();
   const [posts, setPosts] = useState<Post[]>([]);
@@ -20,11 +18,6 @@ export function NoticePage() {
   const [error, setError] = useState(false);
   const [activeTag, setActiveTag] = useState("전체");
   const [currentPage, setCurrentPage] = useState(1);
-
-  const card = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
-  const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
-  const textMain = isDark ? "rgba(255,255,255,0.92)" : "#0f172a";
-  const textMuted = isDark ? "rgba(255,255,255,0.45)" : "rgba(15,23,42,0.5)";
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -47,7 +40,7 @@ export function NoticePage() {
   const handleTagChange = (tag: string) => { setActiveTag(tag); setCurrentPage(1); };
 
   return (
-    <PageShell title="공지사항" subtitle="NCF의 새로운 소식과 안내 사항을 확인하세요." accentColor={NOTICE_COLOR}>
+    <PageShell title="공지사항" subtitle="NCF의 새로운 소식과 안내 사항을 확인하세요." accentColor="var(--color-brand-red)">
       <div className="max-w-[900px] mx-auto pb-[100px]">
         {loading ? (
           <LoadingSpinner />
@@ -77,7 +70,7 @@ export function NoticePage() {
                     key={post.id}
                     to={`/post/${post.id}`}
                     className="rounded-[20px] p-6 no-underline transition-all duration-200 ease-in-out hover:-translate-y-1"
-                    style={{ background: card, border: `1px solid ${border}` }}
+                    style={{ background: "var(--color-surface-card)", border: "1px solid var(--color-border-soft)" }}
                   >
                     <div className="flex-1 flex flex-col justify-center">
                       <div className="flex items-start gap-2 mb-2.5">
@@ -86,7 +79,7 @@ export function NoticePage() {
                             {post.tags}
                           </span>
                         )}
-                        <strong className="m-0 text-[19px] font-bold leading-snug" style={{ color: textMain }}>
+                        <strong className="m-0 text-[19px] font-bold leading-snug" style={{ color: "var(--color-text-primary)" }}>
                           {post.title}
                         </strong>
                       </div>

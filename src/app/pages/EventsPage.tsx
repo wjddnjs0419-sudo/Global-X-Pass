@@ -21,14 +21,6 @@ export function EventsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [acceptedCounts, setAcceptedCounts] = useState<Record<string, number>>({});
 
-  const card = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
-  const textMain = isDark ? "rgba(255,255,255,0.92)" : "#0f172a";
-  const textMuted = isDark ? "rgba(255,255,255,0.45)" : "rgba(15,23,42,0.45)";
-  const borderColor = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
-  const divider = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)";
-  const panelBg = isDark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.015)";
-  const imgPlaceholder = isDark ? "rgb(30,40,60)" : "#f1f5f9";
-
   useEffect(() => {
     Promise.all([
       supabase
@@ -50,7 +42,7 @@ export function EventsPage() {
   }, []);
 
   return (
-    <PageShell title="행사" subtitle="NCF에서 진행하는 다양한 이벤트와 프로그램을 확인해 보세요." accentColor="#18A343">
+    <PageShell title="행사" subtitle="NCF에서 진행하는 다양한 이벤트와 프로그램을 확인해 보세요." accentColor="var(--color-accent-green)">
       <div className="max-w-[1100px] mx-auto pb-[100px]">
         {loading ? (
           <LoadingSpinner />
@@ -99,15 +91,15 @@ export function EventsPage() {
                   key={post.id}
                   className="rounded-3xl overflow-hidden flex flex-col sm:flex-row sm:min-h-[220px] transition-all duration-200 hover:-translate-y-0.5"
                   style={{
-                    background: card,
-                    border: `1px solid ${borderColor}`,
-                    boxShadow: isDark ? "none" : "0 2px 16px rgba(0,0,0,0.06)",
+                    background: "var(--color-surface-card)",
+                    border: "1px solid var(--color-border-soft)",
+                    boxShadow: "var(--shadow-card-rest)",
                   }}
                 >
                   {/* Thumbnail */}
                   <div
                     className="w-full sm:w-[260px] shrink-0 h-52 sm:h-auto sm:self-stretch"
-                    style={{ background: imgPlaceholder }}
+                    style={{ background: "var(--color-img-placeholder)" }}
                   >
                     {thumbnailUrl ? (
                       <img
@@ -117,7 +109,7 @@ export function EventsPage() {
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke={textMuted} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                           <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
                         </svg>
                       </div>
@@ -127,7 +119,7 @@ export function EventsPage() {
                   {/* Center: content */}
                   <div
                     className="flex-1 min-w-0 p-6 sm:p-6 flex flex-col gap-3 overflow-hidden"
-                    style={{ borderRight: `1px solid ${divider}` }}
+                    style={{ borderRight: "1px solid var(--color-border-soft)" }}
                   >
                     {/* Status + type badges */}
                     <div className="flex flex-wrap gap-2">
@@ -153,7 +145,7 @@ export function EventsPage() {
                       className="m-0 font-extrabold leading-snug"
                       style={{
                         fontSize: "clamp(17px,2vw,21px)",
-                        color: isClosed ? textMuted : textMain,
+                        color: isClosed ? "var(--color-text-muted)" : "var(--color-text-primary)",
                       }}
                     >
                       {post.title}
@@ -163,7 +155,7 @@ export function EventsPage() {
                     {excerpt && (
                       <p
                         className="m-0 text-sm leading-relaxed line-clamp-3"
-                        style={{ color: textMuted }}
+                        style={{ color: "var(--color-text-muted)" }}
                       >
                         {excerpt}
                       </p>
@@ -173,25 +165,25 @@ export function EventsPage() {
                   {/* Right: info panel */}
                   <div
                     className="w-full sm:w-[220px] shrink-0 p-5 sm:p-5 flex flex-col gap-3 justify-between"
-                    style={{ background: panelBg }}
+                    style={{ background: "var(--color-surface-subtle)" }}
                   >
                     <div className="flex flex-col gap-2.5">
                       <div>
-                        <p className="m-0 text-[11px] font-bold tracking-wide mb-1" style={{ color: textMuted }}>일시</p>
-                        <p className="m-0 text-sm font-semibold leading-snug" style={{ color: textMain }}>{post.event_date || "일시 미정"}</p>
+                        <p className="m-0 text-[11px] font-bold tracking-wide mb-1" style={{ color: "var(--color-text-muted)" }}>일시</p>
+                        <p className="m-0 text-sm font-semibold leading-snug" style={{ color: "var(--color-text-primary)" }}>{post.event_date || "일시 미정"}</p>
                       </div>
                       <div>
-                        <p className="m-0 text-[11px] font-bold tracking-wide mb-1" style={{ color: textMuted }}>장소</p>
-                        <p className="m-0 text-sm font-semibold leading-snug" style={{ color: textMain }}>{post.location || "장소 미정"}</p>
+                        <p className="m-0 text-[11px] font-bold tracking-wide mb-1" style={{ color: "var(--color-text-muted)" }}>장소</p>
+                        <p className="m-0 text-sm font-semibold leading-snug" style={{ color: "var(--color-text-primary)" }}>{post.location || "장소 미정"}</p>
                       </div>
                       <div>
-                        <p className="m-0 text-[11px] font-bold tracking-wide mb-1" style={{ color: textMuted }}>정원</p>
-                        <p className="m-0 text-sm font-semibold" style={{ color: textMain }}>
+                        <p className="m-0 text-[11px] font-bold tracking-wide mb-1" style={{ color: "var(--color-text-muted)" }}>정원</p>
+                        <p className="m-0 text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
                           {post.capacity != null ? `${post.capacity}명` : "정원 미정"}
                           {post.capacity != null && remaining != null && (
                             <span
                               className="ml-1.5 text-xs font-bold"
-                              style={{ color: remaining <= 5 ? "#F59E0B" : "#0FA37F" }}
+                              style={{ color: remaining <= 5 ? "var(--color-warning)" : "var(--color-success)" }}
                             >
                               / 잔여 {remaining}석
                             </span>
@@ -205,9 +197,9 @@ export function EventsPage() {
                       className="block text-center rounded-xl text-sm font-bold no-underline py-2.5"
                       style={{
                         background: isClosed
-                          ? (isDark ? "rgba(255,255,255,0.06)" : "#f1f5f9")
-                          : "#18A343",
-                        color: isClosed ? textMuted : "#fff",
+                          ? "var(--color-surface-subtle)"
+                          : "var(--color-accent-green)",
+                        color: isClosed ? "var(--color-text-muted)" : "var(--color-text-primary)",
                         pointerEvents: isClosed ? "none" : "auto",
                       }}
                     >

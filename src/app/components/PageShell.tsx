@@ -45,8 +45,8 @@ export function PageShell({ title, subtitle, accentColor = "#20D6A2", children }
           {subtitle && (
             <p
               style={{
-                margin: "12px 0 0",
-                fontSize: 16,
+                margin: "var(--space-sm) 0 0",
+                fontSize: "var(--text-body)",
                 color: "rgba(255,255,255,0.55)",
                 fontWeight: 500,
               }}

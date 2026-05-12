@@ -138,7 +138,7 @@ export function LoginPage() {
       <div className="flex justify-center flex-col items-center gap-4">
         {logoutReason && !mfaFactorId && (
           <div className="w-full max-w-[460px] rounded-[14px] px-5 py-3 text-[13px] font-semibold text-center"
-            style={{ background: "rgba(251,188,5,0.12)", border: "1px solid rgba(251,188,5,0.35)", color: "var(--color-brand-yellow)" }}>
+            style={{ background: "var(--color-warning-soft-bg)", border: "1px solid var(--color-warning-soft-border)", color: "var(--color-brand-yellow)" }}>
             30분 동안 활동이 없어 자동 로그아웃되었습니다. 다시 로그인해 주세요.
           </div>
         )}

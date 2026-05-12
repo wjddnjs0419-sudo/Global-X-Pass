@@ -91,7 +91,7 @@ export function NoticeResourceSection({ isDark = false }: NoticeResourceSectionP
           <div className="grid grid-cols-1 min-[560px]:grid-cols-2 gap-3">
             {loading ? (
               [0, 1, 2, 3].map((i) => (
-                <div key={i} style={{ minHeight: 154, padding: "16px", background: th.cardBg, border: `1px solid ${th.cardBorder}`, borderRadius: "16px" }}>
+                <div key={i} style={{ minHeight: 154, padding: "var(--space-md)", background: th.cardBg, border: `1px solid ${th.cardBorder}`, borderRadius: "16px" }}>
                   <div className="flex justify-between items-start mb-4">
                     <Skeleton className="h-9 w-9 rounded-xl" />
                     <Skeleton className="h-4 w-16" />
@@ -127,10 +127,10 @@ export function NoticeResourceSection({ isDark = false }: NoticeResourceSectionP
             loading={loading}
           />
 
-          <div style={{ display: "flex", flex: 1, flexDirection: "column", gap: "8px", minWidth: 0 }}>
+          <div style={{ display: "flex", flex: 1, flexDirection: "column", gap: "var(--space-xs)", minWidth: 0 }}>
             {loading ? (
               [0, 1, 2, 3].map((i) => (
-                <div key={i} style={{ display: "flex", flex: "1 1 0", alignItems: "center", gap: "12px", minHeight: 74, padding: "13px 16px", background: th.cardBg, border: `1px solid ${th.cardBorder}`, borderRadius: "15px", minWidth: 0 }}>
+                <div key={i} style={{ display: "flex", flex: "1 1 0", alignItems: "center", gap: "var(--space-sm)", minHeight: 74, padding: "13px var(--space-md)", background: th.cardBg, border: `1px solid ${th.cardBorder}`, borderRadius: "15px", minWidth: 0 }}>
                   <Skeleton className="h-9 w-11 shrink-0" />
                   <div className="flex-1 min-w-0 space-y-2">
                     <Skeleton className="h-4 w-5/6" />
@@ -235,8 +235,8 @@ function ResourceCard({
         minHeight: 154,
         display: "flex",
         flexDirection: "column",
-        gap: "12px",
-        padding: "18px",
+        gap: "var(--space-sm)",
+        padding: "var(--space-md)",
         background: cardBg,
         border: `1px solid ${cardBorder}`,
         borderRadius: HOME_CARD_RADIUS,
@@ -271,12 +271,12 @@ function ResourceCard({
         <h3 style={{ margin: "0 0 8px", fontSize: "15px", fontWeight: 800, color: textMain, lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
           {item.title}
         </h3>
-        <p style={{ margin: 0, fontSize: "12px", color: textMuted, lineHeight: 1.6, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+        <p style={{ margin: 0, fontSize: "var(--text-caption)", color: textMuted, lineHeight: 1.6, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
           {cleanText(item.content)}
         </p>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: "6px", color: RESOURCE_COLOR, fontSize: "12px", fontWeight: 800, paddingTop: "2px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "6px", color: RESOURCE_COLOR, fontSize: "var(--text-caption)", fontWeight: 800, paddingTop: "2px" }}>
         자료 확인
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
       </div>
@@ -312,8 +312,8 @@ function NoticeRow({
         flex: "1 1 0",
         display: "flex",
         alignItems: "center",
-        gap: "12px",
-        padding: "15px 18px",
+        gap: "var(--space-sm)",
+        padding: "var(--space-md)",
         background: cardBg,
         border: `1px solid ${cardBorder}`,
         borderRadius: HOME_CARD_RADIUS,
@@ -341,10 +341,10 @@ function NoticeRow({
       <div style={{ width: "1px", height: "26px", background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)", flexShrink: 0 }} />
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        <h3 style={{ minWidth: 0, margin: "0 0 5px", fontSize: "14px", fontWeight: 800, color: textMain, lineHeight: 1.35, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        <h3 style={{ minWidth: 0, margin: "0 0 5px", fontSize: "var(--text-body-sm)", fontWeight: 800, color: textMain, lineHeight: 1.35, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           {notice.title}
         </h3>
-        <p style={{ margin: 0, fontSize: "12px", color: textMuted, lineHeight: 1.45, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        <p style={{ margin: 0, fontSize: "var(--text-caption)", color: textMuted, lineHeight: 1.45, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           {cleanText(notice.content)}
         </p>
       </div>

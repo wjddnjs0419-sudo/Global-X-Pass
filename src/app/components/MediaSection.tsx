@@ -404,7 +404,7 @@ function SectionNotice({
       <p style={{ margin: 0, color: "var(--color-text-primary)", fontSize: 15, fontWeight: 850 }}>
         {title}
       </p>
-      <p style={{ margin: "8px 0 0", color: isDark ? "rgba(255,255,255,0.48)" : "rgba(15,23,42,0.52)", fontSize: 13 }}>
+      <p style={{ margin: "8px 0 0", color: "var(--color-text-muted)", fontSize: 13 }}>
         {description}
       </p>
     </div>

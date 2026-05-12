@@ -1,7 +1,6 @@
 import { Badge } from "../components/ui/badge";
 import { PageShell } from "../components/PageShell";
 import { CONTACT_EMAIL } from "../constants/contact";
-import { useTheme } from "../ThemeContext";
 
 const sections = [
   {
@@ -81,17 +80,16 @@ const sections = [
 ];
 
 export function PrivacyPolicyPage() {
-  const { isDark } = useTheme();
-  const card = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
-  const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
-  const textMain = isDark ? "rgba(255,255,255,0.92)" : "#0f172a";
-  const textMuted = isDark ? "rgba(255,255,255,0.55)" : "rgba(15,23,42,0.58)";
-  const noteBg = isDark ? "rgba(67,119,241,0.10)" : "rgba(67,119,241,0.06)";
+  const card = "var(--color-surface-card)";
+  const border = "var(--color-border-soft)";
+  const textMain = "var(--color-text-primary)";
+  const textMuted = "var(--color-text-muted)";
+  const noteBg = "var(--color-accent-blue-soft-bg)";
 
   return (
-    <PageShell title="개인정보처리방침" subtitle="Global X Pass의 개인정보 처리 기준과 보호 조치를 안내합니다." accentColor="#4377F1">
+    <PageShell title="개인정보처리방침" subtitle="Global X Pass의 개인정보 처리 기준과 보호 조치를 안내합니다." accentColor="var(--color-accent-blue)">
       <div className="max-w-[900px] mx-auto pb-[80px]">
-        <div className="rounded-[20px] px-6 py-6 sm:px-8 sm:py-8 mb-4" style={{ background: noteBg, border: `1px solid ${isDark ? "rgba(67,119,241,0.24)" : "rgba(67,119,241,0.18)"}` }}>
+        <div className="rounded-[20px] px-6 py-6 sm:px-8 sm:py-8 mb-4" style={{ background: noteBg, border: "1px solid var(--color-accent-blue-soft-border)" }}>
           <Badge variant="blue" shape="pill" showDot>PRIVACY</Badge>
           <p className="m-0 mt-4 text-[14px] leading-[1.8]" style={{ color: textMuted }}>
             본 개인정보처리방침은 Global X Pass 서비스 운영 현황을 기준으로 작성되었습니다. 실제 운영 전 개인정보 보호책임자, 수탁사, 법정 보유기간 등 확정 정보가 있는 경우 최신 내용으로 보완해야 합니다.

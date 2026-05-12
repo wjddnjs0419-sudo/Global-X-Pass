@@ -93,12 +93,12 @@ export function AdminBulkResultModal({ results, onClose }: AdminBulkResultModalP
 
           {failList.length > 0 && (
             <div style={{ marginTop: 24 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: "#dc2626", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>등록 실패 목록</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--color-brand-red)", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>등록 실패 목록</div>
               {failList.map((r, i) => (
                 <div key={i} style={{ display: "flex", gap: 12, padding: "8px 0", borderBottom: `1px solid ${border}`, fontSize: 13 }}>
                   <span style={{ fontWeight: 600, color: textMain, minWidth: 80 }}>{r.name || "—"}</span>
                   <span style={{ color: textMuted, minWidth: 160 }}>{r.email}</span>
-                  <span style={{ color: "#ef4444", flex: 1 }}>{r.error}</span>
+                  <span style={{ color: "var(--color-brand-red)", flex: 1 }}>{r.error}</span>
                 </div>
               ))}
             </div>

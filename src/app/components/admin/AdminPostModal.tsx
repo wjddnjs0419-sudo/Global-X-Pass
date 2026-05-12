@@ -34,7 +34,7 @@ export function AdminPostModal({ type, editingId, loading, onConfirm, onCancel }
           <button
             onClick={onConfirm}
             disabled={loading}
-            style={{ flex: 1, padding: 13, borderRadius: 10, border: type === "delete" ? `1px solid ${dangerBorder}` : "none", background: type === "delete" ? dangerBg : "#4377F1", color: type === "delete" ? "#EA4335" : "#fff", fontWeight: 750, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.5 : 1, boxShadow: "none" }}
+            style={{ flex: 1, padding: 13, borderRadius: 10, border: type === "delete" ? `1px solid ${dangerBorder}` : "none", background: type === "delete" ? dangerBg : "var(--color-accent-blue)", color: type === "delete" ? "var(--color-brand-red)" : "var(--color-on-primary)", fontWeight: 750, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.5 : 1, boxShadow: "none" }}
           >
             {loading ? "처리 중..." : "확인"}
           </button>

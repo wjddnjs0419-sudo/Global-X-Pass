@@ -1,7 +1,6 @@
 import { Badge } from "../components/ui/badge";
 import { PageShell } from "../components/PageShell";
 import { CONTACT_EMAIL } from "../constants/contact";
-import { useTheme } from "../ThemeContext";
 
 const sections = [
   {
@@ -76,32 +75,25 @@ const sections = [
 ];
 
 export function TermsOfUsePage() {
-  const { isDark } = useTheme();
-  const card = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
-  const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
-  const textMain = isDark ? "rgba(255,255,255,0.92)" : "#0f172a";
-  const textMuted = isDark ? "rgba(255,255,255,0.55)" : "rgba(15,23,42,0.58)";
-  const noteBg = isDark ? "rgba(32,214,162,0.10)" : "rgba(32,214,162,0.06)";
-
   return (
-    <PageShell title="이용약관" subtitle="Global X Pass 서비스 이용 기준과 회원의 권리 및 의무를 안내합니다." accentColor="#20D6A2">
+    <PageShell title="이용약관" subtitle="Global X Pass 서비스 이용 기준과 회원의 권리 및 의무를 안내합니다." accentColor="var(--color-accent-ncf)">
       <div className="max-w-[900px] mx-auto pb-[80px]">
-        <div className="rounded-[20px] px-6 py-6 sm:px-8 sm:py-8 mb-4" style={{ background: noteBg, border: `1px solid ${isDark ? "rgba(32,214,162,0.24)" : "rgba(32,214,162,0.18)"}` }}>
+        <div className="rounded-[20px] px-6 py-6 sm:px-8 sm:py-8 mb-4" style={{ background: "var(--color-accent-ncf-soft-bg)", border: "1px solid var(--color-accent-ncf-border)" }}>
           <Badge variant="green" shape="pill" showDot>TERMS</Badge>
-          <p className="m-0 mt-4 text-[14px] leading-[1.8]" style={{ color: textMuted }}>
+          <p className="m-0 mt-4 text-[14px] leading-[1.8]" style={{ color: "var(--color-text-muted)" }}>
             본 약관은 Global X Pass 웹사이트와 프로그램 운영에 적용되는 기본 이용 조건입니다. 개별 프로그램에서 별도 안내한 운영 기준이 있는 경우 해당 안내가 함께 적용될 수 있습니다.
           </p>
         </div>
 
-        <div className="rounded-[20px] px-6 py-7 sm:px-8 sm:py-8" style={{ background: card, border: `1px solid ${border}` }}>
+        <div className="rounded-[20px] px-6 py-7 sm:px-8 sm:py-8" style={{ background: "var(--color-surface-card)", border: "1px solid var(--color-border-soft)" }}>
           {sections.map((section) => (
             <section key={section.title} className="mb-7 last:mb-0">
-              <h2 className="m-0 mb-2 text-[15px] font-extrabold leading-[1.45]" style={{ color: textMain }}>
+              <h2 className="m-0 mb-2 text-[15px] font-extrabold leading-[1.45]" style={{ color: "var(--color-text-primary)" }}>
                 {section.title}
               </h2>
               <div className="flex flex-col gap-2">
                 {section.body.map((paragraph) => (
-                  <p key={paragraph} className="m-0 text-[13px] leading-[1.75]" style={{ color: textMuted }}>
+                  <p key={paragraph} className="m-0 text-[13px] leading-[1.75]" style={{ color: "var(--color-text-muted)" }}>
                     {paragraph}
                   </p>
                 ))}

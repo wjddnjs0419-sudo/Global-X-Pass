@@ -37,6 +37,10 @@ const NAVER_STRIPPED_STYLE_PROPS = new Set([
   "max-height",
 ]);
 
+function asHtmlString(value) {
+  return typeof value === "string" ? value : "";
+}
+
 function getAttr(tag, attrName) {
   const escaped = attrName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const match = tag.match(new RegExp(`${escaped}="([^"]*)"`, "i"));
@@ -367,18 +371,20 @@ export function getNaverCanonicalDiagnostics(value = "") {
 }
 
 export function stripNaverImportMeta(value = "") {
-  return value.replace(NAVER_IMPORT_META_PATTERN, "");
+  return asHtmlString(value).replace(NAVER_IMPORT_META_PATTERN, "");
 }
 
 export function isNaverImportedContent(value = "") {
-  return value.includes(NAVER_IMPORT_META_PREFIX) || value.includes(NAVER_IMPORT_CONTAINER_MARKER);
+  const safeValue = asHtmlString(value);
+  return safeValue.includes(NAVER_IMPORT_META_PREFIX) || safeValue.includes(NAVER_IMPORT_CONTAINER_MARKER);
 }
 
 export function extractImageSourcesFromHtml(value = "") {
+  const safeValue = asHtmlString(value);
   const sources = [];
   let match;
 
-  while ((match = NAVER_IMAGE_TAG_PATTERN.exec(value)) !== null) {
+  while ((match = NAVER_IMAGE_TAG_PATTERN.exec(safeValue)) !== null) {
     const tag = match[0];
     const src = getAttr(tag, "src") || getAttr(tag, "data-lazy-src") || getAttr(tag, "data-src");
     if (src) sources.push(src);
@@ -388,9 +394,18 @@ export function extractImageSourcesFromHtml(value = "") {
 }
 
 export function normalizeNaverImportedHtml(value = "") {
-  if (!value) return value;
+  const safeValue = asHtmlString(value);
+  if (!safeValue) return safeValue;
 
-  let normalized = value;
+  let normalized = safeValue;
+
+  // Defense-in-depth: strip all script/style blocks and inline event handlers
+  // before any structural transformation. The render path also runs DOMPurify
+  // via sanitizeRichHtml(), so this is a secondary layer for the parse pipeline.
+  normalized = normalized
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, "")
+    .replace(/\s+on[a-z]{1,30}\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "");
 
   normalized = normalized
     .replace(/<script\b[^>]*class="__se_module_data"[^>]*>[\s\S]*?<\/script>/gi, "")

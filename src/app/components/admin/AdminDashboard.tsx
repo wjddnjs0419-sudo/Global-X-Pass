@@ -128,27 +128,27 @@ export function AdminDashboard({ refreshKey }: AdminDashboardProps) {
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-[18px]">
         {[{ label: "누적 접속량", value: stats.views }, { label: "누적 방문자", value: stats.visitors }, { label: "전체 게시물", value: stats.posts }].map((item) => (
-          <div key={item.label} style={{ background: card, padding: "24px", borderRadius: "16px", border: `1px solid ${border}` }}>
-            <div style={{ color: textMuted, fontSize: "14px", fontWeight: 600, marginBottom: "12px" }}>{item.label}</div>
-            <div style={{ fontSize: "32px", fontWeight: 850, color: textMain }}>{item.value.toLocaleString()}</div>
+          <div key={item.label} style={{ background: card, padding: "22px", borderRadius: "16px", border: `1px solid ${border}` }}>
+            <div style={{ color: textMuted, fontSize: "15px", fontWeight: 600, marginBottom: "12px" }}>{item.label}</div>
+            <div style={{ fontSize: "clamp(30px, 6vw, 34px)", fontWeight: 850, color: textMain }}>{item.value.toLocaleString()}</div>
           </div>
         ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-[18px] mb-[48px]">
-        <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "16px", padding: "24px", overflow: "hidden" }}>
+        <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "16px", padding: "22px", overflow: "hidden" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "22px", flexWrap: "wrap", gap: "12px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
-              <h3 style={{ margin: 0, color: textMain, fontSize: "18px", fontWeight: 800 }}>방문 및 누적 추이</h3>
+              <h3 style={{ margin: 0, color: textMain, fontSize: "20px", fontWeight: 800 }}>방문 및 누적 추이</h3>
               <div style={{ display: "flex", background: panelBg, padding: "4px", borderRadius: "8px", border: `1px solid ${border}` }}>
-                <button onClick={() => setChartPeriod(7)}  style={{ padding: "4px 12px", fontSize: "12px", fontWeight: 750, borderRadius: "6px", border: `1px solid ${chartPeriod === 7 ? labelBorder : "transparent"}`, cursor: "pointer", background: chartPeriod === 7  ? selectedBg : "transparent", color: chartPeriod === 7  ? textMain : textMuted, boxShadow: "none", transition: "all 0.2s" }}>7일</button>
-                <button onClick={() => setChartPeriod(30)} style={{ padding: "4px 12px", fontSize: "12px", fontWeight: 750, borderRadius: "6px", border: `1px solid ${chartPeriod === 30 ? labelBorder : "transparent"}`, cursor: "pointer", background: chartPeriod === 30 ? selectedBg : "transparent", color: chartPeriod === 30 ? textMain : textMuted, boxShadow: "none", transition: "all 0.2s" }}>30일</button>
+                <button onClick={() => setChartPeriod(7)}  style={{ padding: "5px 12px", fontSize: "13px", fontWeight: 750, borderRadius: "7px", border: `1px solid ${chartPeriod === 7 ? labelBorder : "transparent"}`, cursor: "pointer", background: chartPeriod === 7  ? selectedBg : "transparent", color: chartPeriod === 7  ? textMain : textMuted, boxShadow: "none", transition: "all 0.2s" }}>7일</button>
+                <button onClick={() => setChartPeriod(30)} style={{ padding: "5px 12px", fontSize: "13px", fontWeight: 750, borderRadius: "7px", border: `1px solid ${chartPeriod === 30 ? labelBorder : "transparent"}`, cursor: "pointer", background: chartPeriod === 30 ? selectedBg : "transparent", color: chartPeriod === 30 ? textMain : textMuted, boxShadow: "none", transition: "all 0.2s" }}>30일</button>
               </div>
             </div>
-            <div style={{ display: "flex", gap: "12px", fontSize: "11px" }}>
+            <div style={{ display: "flex", gap: "12px", fontSize: "12px", flexWrap: "wrap" }}>
               <span style={{ color: isDark ? "rgba(147,180,248,0.78)" : "rgba(67,119,241,0.72)" }}>● 일간 (좌축)</span>
               <span style={{ color: isDark ? "rgba(76,214,180,0.72)" : "rgba(15,163,127,0.68)" }}>--- 누적 (우축)</span>
             </div>
@@ -158,34 +158,34 @@ export function AdminDashboard({ refreshKey }: AdminDashboardProps) {
               {[0, 0.5, 1].map(t => (
                 <line key={t} x1={0} y1={chartH * (1 - t)} x2={chartW} y2={chartH * (1 - t)} stroke={isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"} strokeWidth="1" />
               ))}
-              <text x="-8" y="8"      textAnchor="end"   fontSize="9" fill="#4377F1" fontWeight="700">{fmtNum(maxViews)}</text>
-              <text x="-8" y={chartH} textAnchor="end"   fontSize="9" fill="#4377F1" opacity="0.5">0</text>
-              <text x={chartW + 8} y="8"      textAnchor="start" fontSize="9" fill="#20D6A2" fontWeight="700">{fmtNum(maxCumul)}</text>
-              <text x={chartW + 8} y={chartH} textAnchor="start" fontSize="9" fill="#20D6A2" opacity="0.5">0</text>
-              <polyline fill="none" stroke="#4377F1" strokeWidth="3" strokeLinejoin="round" points={getPoints('views', maxViews)} style={{ transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)" }} />
-              <polyline fill="none" stroke="#20D6A2" strokeWidth="3" strokeLinejoin="round" points={getPoints('cumulative', maxCumul)} style={{ transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)", strokeDasharray: "6 3" }} />
+              <text x="-8" y="8"      textAnchor="end"   fontSize="9" fill="var(--color-accent-blue)" fontWeight="700">{fmtNum(maxViews)}</text>
+              <text x="-8" y={chartH} textAnchor="end"   fontSize="9" fill="var(--color-accent-blue)" opacity="0.5">0</text>
+              <text x={chartW + 8} y="8"      textAnchor="start" fontSize="9" fill="var(--color-accent-ncf)" fontWeight="700">{fmtNum(maxCumul)}</text>
+              <text x={chartW + 8} y={chartH} textAnchor="start" fontSize="9" fill="var(--color-accent-ncf)" opacity="0.5">0</text>
+              <polyline fill="none" strokeWidth="3" strokeLinejoin="round" points={getPoints('views', maxViews)} style={{ stroke: "var(--color-accent-blue)", transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)" }} />
+              <polyline fill="none" strokeWidth="3" strokeLinejoin="round" points={getPoints('cumulative', maxCumul)} style={{ stroke: "var(--color-accent-ncf)", transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)", strokeDasharray: "6 3" }} />
             </svg>
             <div style={{ position: "relative", height: "20px", marginTop: "12px" }}>
               {chartData.map((d, i) => d.label && (
-                <span key={d.fullDate} style={{ position: "absolute", left: `${(i / (chartPeriod - 1)) * 100}%`, transform: "translateX(-50%)", fontSize: "11px", color: textMuted, fontWeight: 700 }}>{d.label}</span>
+                <span key={d.fullDate} style={{ position: "absolute", left: `${(i / (chartPeriod - 1)) * 100}%`, transform: "translateX(-50%)", fontSize: "12px", color: textMuted, fontWeight: 700 }}>{d.label}</span>
               ))}
             </div>
           </div>
         </div>
 
-        <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "16px", padding: "24px" }}>
-          <h3 style={{ margin: "0 0 24px 0", color: textMain, fontSize: "18px", fontWeight: 800 }}>인기 게시물 Top 5</h3>
+        <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "16px", padding: "22px" }}>
+          <h3 style={{ margin: "0 0 24px 0", color: textMain, fontSize: "20px", fontWeight: 800 }}>인기 게시물 Top 5</h3>
           <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
             {topPosts.length === 0
-              ? <div style={{ color: textMuted, fontSize: "14px", textAlign: "center", padding: "20px" }}>데이터가 없습니다.</div>
+              ? <div style={{ color: textMuted, fontSize: "15px", textAlign: "center", padding: "20px" }}>데이터가 없습니다.</div>
               : topPosts.map((post, i) => (
                 <div key={post.id} style={{ display: "flex", alignItems: "center", gap: "12px", cursor: "pointer" }} onClick={() => navigate(`/post/${post.id}`)}>
                   <div style={{ width: "24px", height: "24px", borderRadius: "6px", background: i < 3 ? (isDark ? "rgba(255,255,255,0.14)" : "rgba(15,23,42,0.10)") : panelBg, border: `1px solid ${labelBorder}`, color: i < 3 ? textMain : textMuted, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: 800, flexShrink: 0 }}>{i + 1}</div>
                   <div style={{ flex: 1, display: "flex", alignItems: "center", gap: "8px", overflow: "hidden" }}>
-                    <span style={{ fontSize: "10px", background: labelBg, border: `1px solid ${labelBorder}`, color: textMuted, padding: "3px 6px", borderRadius: "6px", fontWeight: 700, whiteSpace: "nowrap" }}>{CATEGORIES.find(c => c.id === post.category)?.label}</span>
-                    <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: textMain, fontSize: "14px", fontWeight: 600 }}>{post.title}</div>
+                    <span style={{ fontSize: "11px", background: labelBg, border: `1px solid ${labelBorder}`, color: textMuted, padding: "4px 7px", borderRadius: "7px", fontWeight: 700, whiteSpace: "nowrap" }}>{CATEGORIES.find(c => c.id === post.category)?.label}</span>
+                    <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: textMain, fontSize: "15px", fontWeight: 600 }}>{post.title}</div>
                   </div>
-                  <div style={{ fontSize: "12px", color: textMuted, fontWeight: 700, flexShrink: 0 }}>{post.views || 0}회</div>
+                  <div style={{ fontSize: "13px", color: textMuted, fontWeight: 700, flexShrink: 0 }}>{post.views || 0}회</div>
                 </div>
               ))}
           </div>

@@ -106,7 +106,7 @@ export function ProgramSection({ isDark = false }: ProgramSectionProps) {
         <style>{`
           .program-grid {
             display: grid;
-            gap: 18px;
+            gap: var(--space-lg);
             grid-template-columns: repeat(4, minmax(0, 1fr));
             align-items: stretch;
           }
@@ -136,7 +136,7 @@ function ProgramCard({ program: p, th }: { program: typeof programs[0]; th: Retu
     background: th.cardBg,
     border: `1px solid ${th.cardBorder}`,
     borderRadius: HOME_CARD_RADIUS,
-    padding: "24px",
+    padding: "var(--space-lg)",
     position: "relative",
     overflow: "hidden",
     display: "flex",
@@ -169,13 +169,13 @@ function ProgramCard({ program: p, th }: { program: typeof programs[0]; th: Retu
           color: th.mutedText,
           background: "transparent",
           border: `1px solid ${th.rowDivider}`,
-          padding: "4px 9px", borderRadius: "6px",
+          padding: "var(--space-2xs) 9px", borderRadius: "6px",
         }}>{p.badge}</span>
       </div>
 
       {/* Title & desc */}
       <div style={{ flex: 1 }}>
-        <h3 style={{ color: th.itemTitle, fontSize: "18px", fontWeight: 800, margin: "0 0 10px", letterSpacing: 0, lineHeight: 1.35 }}>
+        <h3 style={{ color: th.itemTitle, fontSize: "var(--text-body-lg)", fontWeight: 800, margin: "0 0 10px", letterSpacing: 0, lineHeight: 1.35 }}>
           {p.title}
         </h3>
         <p style={{ color: th.itemDesc, fontSize: "13px", margin: 0, lineHeight: 1.75 }}>
@@ -191,7 +191,7 @@ function ProgramCard({ program: p, th }: { program: typeof programs[0]; th: Retu
             color: th.mutedText,
             background: th.cardBg,
             border: `1px solid ${th.rowDivider}`,
-            padding: "4px 9px", borderRadius: "7px",
+            padding: "var(--space-2xs) 9px", borderRadius: "7px",
           }}>{tag}</span>
         ))}
       </div>
@@ -202,7 +202,7 @@ function ProgramCard({ program: p, th }: { program: typeof programs[0]; th: Retu
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        gap: "12px",
+        gap: "var(--space-sm)",
         color: p.path ? th.itemTitle : th.mutedText,
         fontSize: "13px",
         fontWeight: 800,

@@ -1,9 +1,7 @@
 import { useTheme } from "../../ThemeContext";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
-import { useBlogImportAdmin, FilterId } from "../../../hooks/useBlogImportAdmin";
-
-const ITEMS_PER_PAGE = 10;
+import { extractQueueLogNo, useBlogImportAdmin } from "../../../hooks/useBlogImportAdmin";
 
 const STATUS_LABEL: Record<string, string> = {
   pending:  "대기중",
@@ -39,11 +37,6 @@ function fmtDate(iso: string | null): string {
   return `${M}/${D} ${h}:${m}`;
 }
 
-function extractLogNo(url: string): string {
-  const m = url.match(/(?:logNo=|nextchallenge\/)(\d{8,})/);
-  return m ? m[1] : url.split("/").pop() ?? url;
-}
-
 export default function AdminBlogQueueManagement() {
   const { isDark } = useTheme();
 
@@ -60,53 +53,28 @@ export default function AdminBlogQueueManagement() {
   const {
     items, runs, loading, fetchError, statusFilter, searchTerm, currentPage,
     tagDrafts, saving, saveErrors, showRuns, triggerLoading, triggerMsg,
+    filterTabs, paginatedItems, totalPages,
     fetchAll, handleApprove, handleSkip, handleRetry, handleTriggerRun,
-    setStatusFilter, setSearchTerm, setCurrentPage, setTagDrafts, setSaveErrors, setShowRuns, setTriggerMsg
+    setStatusFilter, setSearchTerm, setCurrentPage, updateTagDraft, clearSaveError, toggleRuns, setTriggerMsg
   } = useBlogImportAdmin();
 
   const tabStyle = (active: boolean) => ({
-    padding: "10px 20px",
+    padding: "11px 18px",
     borderRadius: 12,
     border: `1px solid ${active ? labelBorder : border}`,
     background: active ? selectedBg : "transparent",
     color: active ? textMain : textMuted,
     fontWeight: 800,
     cursor: "pointer",
-    fontSize: 14,
+    fontSize: 15,
+    lineHeight: 1.25,
     fontFamily: "inherit",
   });
-
-  const pendingCount = items.filter(i => i.status === "pending").length;
-  const failedCount  = items.filter(i => i.status === "failed").length;
-
-  const FILTER_TABS: { id: FilterId; label: string }[] = [
-    { id: "all",      label: `전체 (${items.length})` },
-    { id: "pending",  label: pendingCount  > 0 ? `대기중 (${pendingCount})`  : "대기중" },
-    { id: "approved", label: "승인됨" },
-    { id: "imported", label: "이관완료" },
-    { id: "failed",   label: failedCount   > 0 ? `실패 (${failedCount})`     : "실패" },
-    { id: "skipped",  label: "건너뜀" },
-  ];
-
-  const statusFiltered = statusFilter === "all" ? items : items.filter(i => i.status === statusFilter);
-  const searchFiltered = searchTerm.trim()
-    ? statusFiltered.filter(item => {
-        const q = searchTerm.toLowerCase();
-        return (
-          (item.posts?.title ?? "").toLowerCase().includes(q) ||
-          (item.source_board ?? "").toLowerCase().includes(q) ||
-          extractLogNo(item.source_url).includes(q)
-        );
-      })
-    : statusFiltered;
-
-  const totalPages = Math.max(1, Math.ceil(searchFiltered.length / ITEMS_PER_PAGE));
-  const paginated  = searchFiltered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   if (loading && items.length === 0) {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-        <h3 style={{ fontSize: 22, fontWeight: 800, color: textMain, margin: 0 }}>블로그 동기화</h3>
+        <h3 style={{ fontSize: 24, fontWeight: 800, color: textMain, margin: 0 }}>블로그 동기화</h3>
         <div style={{ display: "flex", gap: 8 }}>
           {[0, 1, 2, 3].map(i => <div key={i} style={{ width: 80, height: 40, borderRadius: 12, background: skColor, animation: "pulse 1.5s ease-in-out infinite" }} />)}
         </div>
@@ -120,8 +88,8 @@ export default function AdminBlogQueueManagement() {
 
       {/* 헤더 */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-        <h3 style={{ fontSize: 22, fontWeight: 800, color: textMain, margin: 0 }}>블로그 동기화</h3>
-        <div style={{ display: "flex", gap: 8 }}>
+        <h3 style={{ fontSize: 24, fontWeight: 800, color: textMain, margin: 0 }}>블로그 동기화</h3>
+        <div className="flex w-full flex-wrap gap-2 sm:w-auto" style={{ gap: 8 }}>
           <Button type="button" variant="outline" size="sm" onClick={fetchAll}>새로고침</Button>
           <Button type="button" variant="default" size="sm" disabled={triggerLoading} onClick={handleTriggerRun}>
             {triggerLoading ? "실행 중..." : "즉시 동기화"}
@@ -132,15 +100,16 @@ export default function AdminBlogQueueManagement() {
       {/* 실행 결과 메시지 */}
       {triggerMsg && (
         <div style={{
-          padding: "12px 16px", borderRadius: 10, fontSize: 13, lineHeight: 1.6,
-          background: triggerMsg.type === "ok" ? labelBg : (isDark ? "rgba(234,67,53,0.08)" : "rgba(234,67,53,0.06)"),
-          border: `1px solid ${triggerMsg.type === "ok" ? labelBorder : "rgba(234,67,53,0.22)"}`,
-          color: triggerMsg.type === "ok" ? textMain : "#EA4335",
+          padding: "13px 16px", borderRadius: 12, fontSize: 14, lineHeight: 1.6,
+          background: triggerMsg.type === "ok" ? labelBg : "var(--color-danger-soft-bg)",
+          border: `1px solid ${triggerMsg.type === "ok" ? labelBorder : "var(--color-danger-soft-border)"}`,
+          color: triggerMsg.type === "ok" ? textMain : "var(--color-brand-red)",
           display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12,
         }}>
           <span>{triggerMsg.text}</span>
           <button
             onClick={() => setTriggerMsg(null)}
+            aria-label="알림 닫기"
             style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", fontSize: 14, padding: 0, lineHeight: 1, flexShrink: 0, opacity: 0.6 }}
           >
             ✕
@@ -149,9 +118,9 @@ export default function AdminBlogQueueManagement() {
       )}
 
       {/* 필터 탭 */}
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        {FILTER_TABS.map(tab => (
-          <button key={tab.id} type="button" onClick={() => setStatusFilter(tab.id)} style={tabStyle(statusFilter === tab.id)}>
+      <div role="group" aria-label="상태 필터" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        {filterTabs.map(tab => (
+          <button key={tab.id} type="button" aria-pressed={statusFilter === tab.id} onClick={() => setStatusFilter(tab.id)} style={tabStyle(statusFilter === tab.id)}>
             {tab.label}
           </button>
         ))}
@@ -164,19 +133,19 @@ export default function AdminBlogQueueManagement() {
         placeholder="제목 · 게시판 · logNo 검색"
         onChange={e => setSearchTerm(e.target.value)}
         style={{
-          maxWidth: 320, padding: "10px 14px", borderRadius: 10,
+          width: "100%", maxWidth: 420, padding: "12px 15px", borderRadius: 12,
           border: `1px solid ${border}`, background: inputBg,
-          color: textMain, fontSize: 13, outline: "none", fontFamily: "inherit",
+          color: textMain, fontSize: 14, outline: "none", fontFamily: "inherit",
         }}
       />
 
       {/* 에러 배너 */}
       {fetchError && (
         <div style={{
-          padding: "16px 20px", borderRadius: 12,
-          background: isDark ? "rgba(234,67,53,0.08)" : "rgba(234,67,53,0.06)",
-          border: "1px solid rgba(234,67,53,0.22)",
-          color: "#EA4335", fontSize: 13, lineHeight: 1.6,
+          padding: "16px 20px", borderRadius: 14,
+          background: "var(--color-danger-soft-bg)",
+          border: "1px solid var(--color-danger-soft-border)",
+          color: "var(--color-brand-red)", fontSize: 14, lineHeight: 1.6,
         }}>
           <strong>데이터를 불러오지 못했습니다.</strong>
           <span style={{ display: "block", marginTop: 4, opacity: 0.8 }}>{fetchError}</span>
@@ -186,12 +155,12 @@ export default function AdminBlogQueueManagement() {
       {/* 큐 목록 */}
       {!fetchError && (
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          {paginated.length === 0 ? (
-            <div style={{ padding: 60, textAlign: "center", color: textMuted, background: card, border: `1px solid ${border}`, borderRadius: 18 }}>
+          {paginatedItems.length === 0 ? (
+            <div style={{ padding: 60, textAlign: "center", color: textMuted, background: card, border: `1px solid ${border}`, borderRadius: 18, fontSize: 15 }}>
               {searchTerm ? "검색 결과가 없습니다." : "해당 상태의 항목이 없습니다."}
             </div>
           ) : (
-            paginated.map(item => {
+            paginatedItems.map(item => {
               const isSaving       = saving.has(item.id);
               const isEventsArchive = item.target_category === "events-archive";
               const isPending      = item.status === "pending";
@@ -204,53 +173,54 @@ export default function AdminBlogQueueManagement() {
               return (
                 <div
                   key={item.id}
-                  style={{ background: card, border: `1px solid ${border}`, borderRadius: 16, padding: "20px 24px", display: "flex", flexDirection: "column", gap: 12 }}
+                  style={{ background: card, border: `1px solid ${border}`, borderRadius: 18, padding: "20px 20px", display: "flex", flexDirection: "column", gap: 12 }}
                 >
                   {/* 상단 */}
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 16, alignItems: "flex-start" }}>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:gap-4 sm:items-start">
                     <div style={{ minWidth: 0, flex: "1 1 auto" }}>
                       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 6 }}>
-                        <strong style={{ color: textMain, fontSize: 14, lineHeight: 1.4 }}>
+                        <strong style={{ color: textMain, fontSize: 16, lineHeight: 1.4 }}>
                           {displayTitle ?? item.source_board ?? item.target_category}
                         </strong>
                         <Badge variant={STATUS_BADGE[item.status]} shape="pill">
                           {STATUS_LABEL[item.status]}
                         </Badge>
                       </div>
-                      <div style={{ color: textMuted, fontSize: 13, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                      <div style={{ color: textMuted, fontSize: 14, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
                         {displayTitle && <span>{item.source_board ?? item.target_category}</span>}
                         <a
                           href={item.source_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          style={{ color: "#4377F1", textDecoration: "none", fontFamily: "monospace", fontSize: 12 }}
+                          style={{ color: "var(--color-accent-blue)", textDecoration: "none", fontFamily: "monospace", fontSize: 13 }}
                         >
-                          #{extractLogNo(item.source_url)} ↗
+                          #{extractQueueLogNo(item.source_url)} ↗
                         </a>
                         {item.suggested_tag && !isPending && (
                           <span>#{item.suggested_tag}</span>
                         )}
                       </div>
                     </div>
-                    <div style={{ color: textMuted, fontSize: 12, whiteSpace: "nowrap", paddingTop: 2 }}>
+                    <div style={{ color: textMuted, fontSize: 13, whiteSpace: "nowrap", paddingTop: 2 }}>
                       {fmtDate(item.created_at)}
                     </div>
                   </div>
 
                   {/* worker 에러 */}
                   {item.error && (
-                    <div style={{ fontSize: 12, color: "#EA4335", background: labelBg, border: `1px solid ${labelBorder}`, padding: "8px 12px", borderRadius: 8, lineHeight: 1.5 }}>
+                    <div style={{ fontSize: 13, color: "var(--color-brand-red)", background: labelBg, border: `1px solid ${labelBorder}`, padding: "9px 12px", borderRadius: 10, lineHeight: 1.5 }}>
                       {item.error}
                     </div>
                   )}
 
                   {/* Admin UI 저장 실패 */}
                   {saveErrors[item.id] && (
-                    <div style={{ fontSize: 12, color: "#EA4335", background: labelBg, border: `1px solid ${labelBorder}`, padding: "8px 12px", borderRadius: 8, lineHeight: 1.5, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                    <div style={{ fontSize: 13, color: "var(--color-brand-red)", background: labelBg, border: `1px solid ${labelBorder}`, padding: "9px 12px", borderRadius: 10, lineHeight: 1.5, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
                       <span>저장 실패: {saveErrors[item.id]}</span>
                       <button
-                        onClick={() => setSaveErrors(prev => { const next = { ...prev }; delete next[item.id]; return next; })}
-                        style={{ background: "none", border: "none", color: "#EA4335", cursor: "pointer", fontSize: 14, padding: 0, lineHeight: 1 }}
+                        onClick={() => clearSaveError(item.id)}
+                        aria-label="오류 메시지 닫기"
+                        style={{ background: "none", border: "none", color: "var(--color-brand-red)", cursor: "pointer", fontSize: 14, padding: 0, lineHeight: 1 }}
                       >
                         ✕
                       </button>
@@ -263,7 +233,7 @@ export default function AdminBlogQueueManagement() {
                       href={`/post/${item.existing_post_id}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      style={{ fontSize: 12, color: "#18A343", textDecoration: "none", fontWeight: 700 }}
+                      style={{ fontSize: 13, color: "var(--color-accent-green)", textDecoration: "none", fontWeight: 700 }}
                     >
                       게시물 보기 →
                     </a>
@@ -277,16 +247,16 @@ export default function AdminBlogQueueManagement() {
                           type="text"
                           value={tagValue}
                           placeholder="태그 (예: 구글, 삼성전자)"
-                          onChange={e => setTagDrafts(prev => ({ ...prev, [item.id]: e.target.value }))}
-                          style={{
-                            flex: 1, minWidth: 160,
-                            padding: "6px 12px", borderRadius: 8,
-                            border: `1px solid ${border}`, background: inputBg,
-                            color: textMain, fontSize: 13, outline: "none", fontFamily: "inherit",
-                          }}
-                        />
-                      ) : (
-                        <span style={{ flex: 1, fontSize: 12, color: textMuted }}>
+                        onChange={e => updateTagDraft(item.id, e.target.value)}
+                        style={{
+                          flex: 1, minWidth: 160,
+                          padding: "9px 12px", borderRadius: 10,
+                          border: `1px solid ${border}`, background: inputBg,
+                          color: textMain, fontSize: 14, outline: "none", fontFamily: "inherit",
+                        }}
+                      />
+                    ) : (
+                        <span style={{ flex: 1, fontSize: 13, color: textMuted }}>
                           태그: <strong style={{ color: textMain }}>#뉴스레터</strong> (자동)
                         </span>
                       )}
@@ -335,7 +305,9 @@ export default function AdminBlogQueueManagement() {
       {/* 실행 기록 */}
       <div>
         <button
-          onClick={() => setShowRuns(v => !v)}
+          onClick={toggleRuns}
+          aria-expanded={showRuns}
+          aria-controls="blog-runs-list"
           style={{
             display: "flex", alignItems: "center", gap: 8,
             padding: "10px 0", background: "transparent", border: "none",
@@ -350,7 +322,7 @@ export default function AdminBlogQueueManagement() {
         </button>
 
         {showRuns && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
+          <div id="blog-runs-list" style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
             {runs.length === 0 ? (
               <div style={{ color: textMuted, fontSize: 13 }}>실행 기록이 없습니다.</div>
             ) : (
@@ -364,14 +336,14 @@ export default function AdminBlogQueueManagement() {
                   <span style={{ color: textMuted }}>
                     발견 {run.discovered_count} · 삽입 {run.inserted_count} · 업데이트 {run.updated_count} · 실패 {run.failed_count}
                   </span>
-                  {run.error && <span style={{ color: "#EA4335", fontSize: 11 }}>{run.error}</span>}
+                  {run.error && <span style={{ color: "var(--color-brand-red)", fontSize: 11 }}>{run.error}</span>}
                   <span style={{ marginLeft: "auto", color: textMuted, flexShrink: 0 }}>{fmtDate(run.created_at)}</span>
                   {run.github_run_id && (
                     <a
                       href={`https://github.com/wjddnjs0419-sudo/Global-X-Pass/actions/runs/${run.github_run_id}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      style={{ fontSize: 11, color: "#4377F1", textDecoration: "none", fontWeight: 600, marginLeft: 6 }}
+                      style={{ fontSize: 11, color: "var(--color-accent-blue)", textDecoration: "none", fontWeight: 600, marginLeft: 6 }}
                     >
                       로그 보기 ↗
                     </a>

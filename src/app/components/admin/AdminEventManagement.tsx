@@ -168,7 +168,7 @@ export function AdminEventManagement() {
 
     const actionCfg = {
       accepted: { label: "승인", bg: selectedBg, border: labelBorder, color: textMain },
-      rejected: { label: "거절", bg: deleteBg, border: deleteBorder, color: "#EA4335" },
+      rejected: { label: "거절", bg: deleteBg, border: deleteBorder, color: "var(--color-brand-red)" },
       cancelled: { label: "취소", bg: labelBg, border: labelBorder, color: textMuted },
       pending: { label: "대기로", bg: labelBg, border: labelBorder, color: textMuted },
     }[status] ?? { label: status, bg: labelBg, border: labelBorder, color: textMuted };

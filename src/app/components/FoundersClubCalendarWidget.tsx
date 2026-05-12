@@ -48,33 +48,33 @@ export function FoundersClubCalendarWidget({ isDark = false }: Props) {
             </h2>
             <p style={{ color: textMuted, margin: 0, fontSize: 14 }}>모집 중인 소그룹 피어 러닝 세션</p>
           </div>
-          <Link to="/founders-club" style={{ fontSize: 13, fontWeight: 700, color: "#A855F7", textDecoration: "none", padding: "8px 18px", borderRadius: 99, border: "1px solid #A855F733", background: "#A855F711" }}>
+          <Link to="/founders-club" style={{ fontSize: 13, fontWeight: 700, color: "#A855F7", textDecoration: "none", padding: "var(--space-xs) 18px", borderRadius: "var(--radius-pill)", border: "1px solid #A855F733", background: "#A855F711" }}>
             전체 보기 →
           </Link>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "var(--space-md)" }}>
           {loading ? (
             [0, 1, 2, 3].map(i => (
-              <div key={i} style={{ background: card, border: `1px solid ${border}`, borderRadius: 16, padding: 20, height: 120, opacity: 0.6 }} className="animate-pulse" />
+              <div key={i} style={{ background: card, border: `1px solid ${border}`, borderRadius: "var(--radius-md)", padding: "var(--space-lg)", height: 120, opacity: 0.6 }} className="animate-pulse" />
             ))
           ) : sessions.map(s => (
             <Link
               key={s.id}
               to="/founders-club"
-              style={{ textDecoration: "none", display: "block", background: card, border: `1px solid ${border}`, borderRadius: 16, padding: "20px 22px", transition: "all 0.2s", boxShadow: isDark ? "none" : "0 2px 12px rgba(0,0,0,0.04)" }}
-              onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = "#A855F7"; (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-2px)"; }}
+              style={{ textDecoration: "none", display: "block", background: card, border: `1px solid ${border}`, borderRadius: "var(--radius-md)", padding: "var(--space-lg)", transition: "all 0.2s", boxShadow: isDark ? "none" : "0 2px 12px rgba(0,0,0,0.04)" }}
+              onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = "var(--color-accent-purple)"; (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-2px)"; }}
               onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = border; (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(0)"; }}
             >
-              <div style={{ fontSize: 11, fontWeight: 800, color: "#A855F7", letterSpacing: "0.1em", marginBottom: 8 }}>
+              <div style={{ fontSize: "var(--text-label)", fontWeight: 800, color: "var(--color-accent-purple)", letterSpacing: "0.1em", marginBottom: "var(--space-xs)" }}>
                 {s.session_date
                   ? new Date(s.session_date).toLocaleDateString("ko-KR", { month: "short", day: "numeric", weekday: "short" })
                   : "날짜 미정"}
               </div>
-              <div style={{ fontWeight: 700, color: textMain, fontSize: 14, lineHeight: 1.4, marginBottom: 10, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+              <div style={{ fontWeight: 700, color: textMain, fontSize: "var(--text-body-sm)", lineHeight: 1.4, marginBottom: 10, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
                 {s.theme}
               </div>
-              <div style={{ fontSize: 11, color: textMuted }}>정원 {s.max_participants}명 · 선착순</div>
+              <div style={{ fontSize: "var(--text-label)", color: textMuted }}>정원 {s.max_participants}명 · 선착순</div>
             </Link>
           ))}
         </div>

@@ -1,3 +1,5 @@
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTheme } from "../../ThemeContext";
 
 type TabId = "dashboard" | "users" | "create" | "manage" | "events" | "consulting" | "founders" | "blog-queue";
@@ -8,7 +10,7 @@ interface AdminSidebarProps {
   adminEmail: string;
 }
 
-const SECTIONS: { label: string; items: { id: TabId; label: string; icon: React.ReactNode }[] }[] = [
+const SECTIONS: { label: string; items: { id: TabId; label: string; icon: ReactNode }[] }[] = [
   {
     label: "Overview",
     items: [
@@ -65,6 +67,9 @@ const SECTIONS: { label: string; items: { id: TabId; label: string; icon: React.
 
 export function AdminSidebar({ activeTab, onTabChange, adminEmail }: AdminSidebarProps) {
   const { isDark } = useTheme();
+  const navRef = useRef<HTMLElement | null>(null);
+  const [canScrollPrev, setCanScrollPrev] = useState(false);
+  const [canScrollNext, setCanScrollNext] = useState(false);
 
   const bg = "var(--color-bg-elevated)";
   const border  = isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.08)";
@@ -73,72 +78,189 @@ export function AdminSidebar({ activeTab, onTabChange, adminEmail }: AdminSideba
   const activeBg = isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.055)";
   const hoverBg = isDark ? "rgba(255,255,255,0.055)" : "rgba(15,23,42,0.04)";
   const activeBorder = isDark ? "rgba(255,255,255,0.14)" : "rgba(15,23,42,0.1)";
+  const arrowBg = isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.07)";
+  const arrowBorder = isDark ? "rgba(255,255,255,0.14)" : "rgba(15,23,42,0.12)";
+
+  const updateScrollState = () => {
+    const nav = navRef.current;
+    if (!nav) return;
+    const maxScroll = nav.scrollWidth - nav.clientWidth;
+    setCanScrollPrev(nav.scrollLeft > 4);
+    setCanScrollNext(nav.scrollLeft < maxScroll - 4);
+  };
+
+  const scrollNav = (direction: -1 | 1) => {
+    const nav = navRef.current;
+    const firstCard = nav?.querySelector<HTMLElement>("[data-admin-nav-section]");
+    if (!nav || !firstCard) return;
+    const gap = 12;
+    nav.scrollBy({ left: direction * (firstCard.offsetWidth + gap), behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+    updateScrollState();
+    nav.addEventListener("scroll", updateScrollState, { passive: true });
+    window.addEventListener("resize", updateScrollState);
+    return () => {
+      nav.removeEventListener("scroll", updateScrollState);
+      window.removeEventListener("resize", updateScrollState);
+    };
+  }, []);
+
+  useEffect(() => {
+    const nav = navRef.current;
+    const activeButton = nav?.querySelector<HTMLElement>("[aria-current='page']");
+    activeButton?.closest<HTMLElement>("[data-admin-nav-section]")?.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+      inline: "center",
+    });
+  }, [activeTab]);
 
   return (
-    <aside style={{
-      width: 240,
-      flexShrink: 0,
-      position: "sticky",
-      top: 72,
-      height: "calc(100vh - 72px)",
-      overflowY: "auto",
-      background: bg,
-      borderRight: `1px solid ${border}`,
-      display: "flex",
-      flexDirection: "column",
-      padding: "28px 14px 24px",
-      gap: 0,
-    }}>
+    <aside
+      className="w-full xl:w-[240px] xl:shrink-0 xl:sticky xl:top-[72px] xl:h-[calc(100vh-72px)]"
+      style={{
+        overflowY: "auto",
+        background: bg,
+        borderRight: `1px solid ${border}`,
+        borderBottom: `1px solid ${border}`,
+        display: "flex",
+        flexDirection: "column",
+        padding: "18px 14px 18px",
+        gap: 0,
+      }}
+    >
       {/* 로고 영역 */}
-      <div style={{ paddingLeft: 12, marginBottom: 28 }}>
-        <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: textMuted }}>Admin Panel</div>
+      <div style={{ paddingLeft: 12, marginBottom: 18 }}>
+        <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: textMuted }}>Admin Panel</div>
       </div>
 
       {/* 네비게이션 */}
-      <nav style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
-        {SECTIONS.map((section, si) => (
-          <div key={si} style={{ marginBottom: 8 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: textMuted, paddingLeft: 12, marginBottom: 4 }}>
-              {section.label}
+      <div className="relative min-w-0">
+        <button
+          type="button"
+          aria-label="이전 어드민 메뉴"
+          onClick={() => scrollNav(-1)}
+          disabled={!canScrollPrev}
+          className="admin-nav-arrow admin-nav-arrow-prev xl:hidden"
+          style={{ background: arrowBg, border: `1px solid ${arrowBorder}`, color: textMain, opacity: canScrollPrev ? 1 : 0 }}
+        >
+          <ChevronLeft size={18} strokeWidth={2.5} />
+        </button>
+        <button
+          type="button"
+          aria-label="다음 어드민 메뉴"
+          onClick={() => scrollNav(1)}
+          disabled={!canScrollNext}
+          className="admin-nav-arrow admin-nav-arrow-next xl:hidden"
+          style={{ background: arrowBg, border: `1px solid ${arrowBorder}`, color: textMain, opacity: canScrollNext ? 1 : 0 }}
+        >
+          <ChevronRight size={18} strokeWidth={2.5} />
+        </button>
+
+        <nav
+          ref={navRef}
+          className="admin-mobile-nav flex gap-3 overflow-x-auto pb-1 xl:flex-1 xl:flex-col xl:gap-4 xl:overflow-visible xl:pb-0"
+          style={{ minWidth: 0 }}
+        >
+          {SECTIONS.map((section, si) => (
+            <div
+              key={si}
+              data-admin-nav-section
+              className="min-w-[calc(100vw-104px)] scroll-mx-[52px] sm:min-w-[220px] xl:min-w-0"
+              style={{
+                marginBottom: 0,
+                padding: "10px 8px 8px",
+                borderRadius: 14,
+                border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.08)"}`,
+                background: isDark ? "rgba(255,255,255,0.025)" : "rgba(255,255,255,0.72)",
+                scrollSnapAlign: "center",
+              }}
+            >
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: textMuted, paddingLeft: 12, marginBottom: 6 }}>
+                {section.label}
+              </div>
+              {section.items.map(item => {
+                const isActive = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => onTabChange(item.id)}
+                    aria-current={isActive ? "page" : undefined}
+                    style={{
+                      width: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      padding: "10px 12px",
+                      borderRadius: 10,
+                      border: `1px solid ${isActive ? activeBorder : "transparent"}`,
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                      fontSize: 14,
+                      fontWeight: isActive ? 750 : 600,
+                      textAlign: "left",
+                      transition: "background 0.12s, border-color 0.12s, color 0.12s",
+                      background: isActive
+                        ? activeBg
+                        : "transparent",
+                      color: isActive
+                        ? textMain
+                        : textMain,
+                    }}
+                    onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = hoverBg; }}
+                    onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+                  >
+                    <span style={{ opacity: isActive ? 0.9 : 0.56, flexShrink: 0, transform: "scale(1.05)" }}>{item.icon}</span>
+                    {item.label}
+                  </button>
+                );
+              })}
             </div>
-            {section.items.map(item => {
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => onTabChange(item.id)}
-                  style={{
-                    width: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    padding: "9px 12px",
-                    borderRadius: 9,
-                    border: `1px solid ${isActive ? activeBorder : "transparent"}`,
-                    cursor: "pointer",
-                    fontFamily: "inherit",
-                    fontSize: 13,
-                    fontWeight: isActive ? 750 : 600,
-                    textAlign: "left",
-                    transition: "background 0.12s, border-color 0.12s, color 0.12s",
-                    background: isActive
-                      ? activeBg
-                      : "transparent",
-                    color: isActive
-                      ? textMain
-                      : textMain,
-                  }}
-                  onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = hoverBg; }}
-                  onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
-                >
-                  <span style={{ opacity: isActive ? 0.9 : 0.56, flexShrink: 0 }}>{item.icon}</span>
-                  {item.label}
-                </button>
-              );
-            })}
-          </div>
-        ))}
-      </nav>
+          ))}
+        </nav>
+      </div>
+
+      <style>{`
+        .admin-mobile-nav {
+          scroll-snap-type: x mandatory;
+          scrollbar-width: none;
+        }
+        .admin-mobile-nav::-webkit-scrollbar {
+          display: none;
+        }
+        .admin-nav-arrow {
+          position: absolute;
+          top: 50%;
+          z-index: 2;
+          width: 36px;
+          height: 56px;
+          transform: translateY(-50%);
+          border-radius: 999px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: opacity 0.16s ease, background 0.16s ease, border-color 0.16s ease;
+        }
+        .admin-nav-arrow:disabled {
+          pointer-events: none;
+        }
+        .admin-nav-arrow-prev {
+          left: 4px;
+        }
+        .admin-nav-arrow-next {
+          right: 4px;
+        }
+        @media (min-width: 1280px) {
+          .admin-mobile-nav {
+            scroll-snap-type: none;
+          }
+        }
+      `}</style>
 
       {/* 하단 어드민 정보 */}
       {adminEmail && (
@@ -157,15 +279,15 @@ export function AdminSidebar({ activeTab, onTabChange, adminEmail }: AdminSideba
             background: isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.06)",
             border: `1px solid ${border}`,
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 12, fontWeight: 800, color: textMain, flexShrink: 0,
+            fontSize: 13, fontWeight: 800, color: textMain, flexShrink: 0,
           }}>
             {adminEmail[0].toUpperCase()}
           </div>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: textMain, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: textMain, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {adminEmail}
             </div>
-            <div style={{ fontSize: 10, color: textMuted, marginTop: 1 }}>관리자</div>
+            <div style={{ fontSize: 11, color: textMuted, marginTop: 1 }}>관리자</div>
           </div>
         </div>
       )}

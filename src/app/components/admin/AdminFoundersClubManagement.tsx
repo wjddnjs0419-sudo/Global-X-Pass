@@ -123,20 +123,20 @@ export function AdminFoundersClubManagement() {
   };
 
   const statusCfg: Record<string, { label: string; color: string }> = {
-    recruiting: { label: "모집중", color: "#18A343" },
-    closed:     { label: "마감",   color: "#EA4335" },
-    completed:  { label: "완료",   color: "#888" },
+    recruiting: { label: "모집중", color: "var(--color-accent-green)" },
+    closed:     { label: "마감",   color: "var(--color-brand-red)" },
+    completed:  { label: "완료",   color: "var(--color-text-muted)" },
   };
 
   const appStatusCfg: Record<string, { label: string; color: string }> = {
-    pending:  { label: "대기",   color: "#FBBC05" },
-    accepted: { label: "승인",   color: "#18A343" },
-    rejected: { label: "거절",   color: "#EA4335" },
-    cancelled: { label: "취소", color: "#64748B" },
+    pending:  { label: "대기",   color: "var(--color-brand-yellow)" },
+    accepted: { label: "승인",   color: "var(--color-accent-green)" },
+    rejected: { label: "거절",   color: "var(--color-brand-red)" },
+    cancelled: { label: "취소", color: "var(--color-neutral)" },
   };
 
   const Badge = ({ status, cfg }: { status: string; cfg: Record<string, { label: string; color: string }> }) => {
-    const c = cfg[status] ?? { label: status, color: "#888" };
+    const c = cfg[status] ?? { label: status, color: "var(--color-text-muted)" };
     return <span style={getStatusPillStyle(c.color, isDark)}>{c.label}</span>;
   };
 
@@ -268,7 +268,7 @@ export function AdminFoundersClubManagement() {
                 ))}
               </select>
             </div>
-            <button onClick={handleCreateSession} disabled={loading || !form.theme.trim()} style={{ padding: "10px", borderRadius: 10, border: "none", background: "#4377F1", color: "#fff", fontWeight: 750, cursor: "pointer", opacity: !form.theme.trim() ? 0.5 : 1, boxShadow: "none" }}>세션 등록</button>
+            <button onClick={handleCreateSession} disabled={loading || !form.theme.trim()} style={{ padding: "10px", borderRadius: 10, border: "none", background: "var(--color-accent-blue)", color: "var(--color-on-primary)", fontWeight: 750, cursor: "pointer", opacity: !form.theme.trim() ? 0.5 : 1, boxShadow: "none" }}>세션 등록</button>
           </div>
 
           {/* Status filter */}
@@ -321,7 +321,7 @@ export function AdminFoundersClubManagement() {
                   <option value="completed">완료</option>
                 </select>
                 <button onClick={() => { setSelectedSession(s); setSubTab("applications"); }} style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${labelBorder}`, background: selectedBg, color: textMain, fontWeight: 750, cursor: "pointer", fontSize: 13 }}>신청 보기</button>
-                <button onClick={() => handleDeleteSession(s.id)} style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${deleteBorder}`, background: deleteBg, color: "#EA4335", fontWeight: 700, cursor: "pointer", fontSize: 13 }}>삭제</button>
+                <button onClick={() => handleDeleteSession(s.id)} style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${deleteBorder}`, background: deleteBg, color: "var(--color-brand-red)", fontWeight: 700, cursor: "pointer", fontSize: 13 }}>삭제</button>
               </div>
             </div>
           ))}
@@ -360,7 +360,7 @@ export function AdminFoundersClubManagement() {
                     <button type="button" disabled={loading} onClick={() => handleUpdateApplication(a.id, "accepted")} style={{ minWidth: 82, height: 32, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "0 12px", borderRadius: 10, border: `1px solid ${labelBorder}`, background: selectedBg, color: textMain, fontSize: 13, fontWeight: 800, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.55 : 1 }}>
                       <Check size={14} />승인
                     </button>
-                    <button type="button" disabled={loading} onClick={() => handleUpdateApplication(a.id, "rejected")} style={{ minWidth: 82, height: 32, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "0 12px", borderRadius: 10, border: `1px solid ${deleteBorder}`, background: deleteBg, color: "#EA4335", fontSize: 13, fontWeight: 800, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.55 : 1 }}>
+                    <button type="button" disabled={loading} onClick={() => handleUpdateApplication(a.id, "rejected")} style={{ minWidth: 82, height: 32, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "0 12px", borderRadius: 10, border: `1px solid ${deleteBorder}`, background: deleteBg, color: "var(--color-brand-red)", fontSize: 13, fontWeight: 800, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.55 : 1 }}>
                       <X size={14} />거절
                     </button>
                   </div>

@@ -91,12 +91,12 @@ export function AdminPostManage({ refreshKey, onStartEdit, onDeleted }: AdminPos
   const currentPosts = filteredPosts.slice((currentPage - 1) * postsPerPage, currentPage * postsPerPage);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h3 style={{ fontSize: "22px", fontWeight: 800, color: textMain }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "24px", overflow: "hidden" }}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h3 style={{ fontSize: "24px", fontWeight: 800, color: textMain, margin: 0 }}>
           게시물 관리 ({loading ? "…" : filteredPosts.length})
         </h3>
-        <div className="flex flex-col sm:flex-row gap-[12px] w-full sm:w-auto">
+        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:gap-3">
           <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className="w-full sm:w-auto" style={{ ...inputStyle, padding: "10px 16px" }}>
             <option value="all">전체 카테고리</option>
             {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}

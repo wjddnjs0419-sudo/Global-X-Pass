@@ -24,6 +24,12 @@ test("naverHtmlParser - parseCategoryNoFromHtml", () => {
   assert.strictEqual(parseCategoryNoFromHtml(html2, "Around X-뉴스레터"), "123");
 });
 
+test("naverHtmlParser - null and invalid category html fallback", () => {
+  assert.strictEqual(parseCategoryNoFromHtml(null, "Around X-뉴스레터"), null);
+  assert.strictEqual(parseCategoryNoFromHtml("<div>broken", null), null);
+  assert.strictEqual(parseCategoryNoFromHtml("<div>broken", "Around X-뉴스레터"), null);
+});
+
 test("naverHtmlParser - normalizeNaverImportedHtml (Empty Spacer Paragraphs)", () => {
   // 빈 문단 제거 확인
   const inputEmpty = `<p class="se-text-paragraph se-text-paragraph-align-left"><br></p>`;
@@ -67,4 +73,33 @@ test("naverHtmlParser - normalizeNaverImportedHtml (Style replacement)", () => {
   const outputStyleKeep = normalizeNaverImportedHtml(inputStyleKeep);
   assert.ok(outputStyleKeep.includes('border: 1px solid black'));
   assert.ok(!outputStyleKeep.includes('padding: 10px'));
+});
+
+test("naverHtmlParser - normalizeNaverImportedHtml strips active content", () => {
+  const input = `
+    <div class="se-main-container" onclick="alert('root')">
+      <style>.x { color: red; }</style>
+      <script>alert('script')</script>
+      <img src="test.jpg" onerror=alert('image') />
+    </div>
+  `;
+  const output = normalizeNaverImportedHtml(input);
+
+  assert.ok(!output.includes("<script"));
+  assert.ok(!output.includes("<style"));
+  assert.ok(!/on(?:click|error)\s*=/i.test(output));
+  assert.ok(output.includes('data-gxp-se-root="naver"'));
+  assert.ok(output.includes('src="test.jpg"'));
+});
+
+test("naverHtmlParser - normalizeNaverImportedHtml (Broken input fallback)", () => {
+  assert.strictEqual(normalizeNaverImportedHtml(null), "");
+  assert.strictEqual(stripNaverImportMeta(null), "");
+  assert.strictEqual(isNaverImportedContent(null), false);
+
+  const brokenHtml = `<div class="se-main-container"><div class="se-component se-text"><p>열리지 않은 태그`;
+  const normalizedBroken = normalizeNaverImportedHtml(brokenHtml);
+  assert.doesNotThrow(() => normalizeNaverImportedHtml(brokenHtml));
+  assert.ok(normalizedBroken.includes('data-gxp-se-root="naver"'));
+  assert.ok(normalizedBroken.includes("<p>열리지 않은 태그"));
 });

@@ -85,12 +85,12 @@ export function RootLayout() {
       {warningVisible && (
         <div style={{
           position: "fixed", inset: 0, zIndex: LAYERS.blockingModal,
-          background: "rgba(0,0,0,0.55)",
+          background: "var(--color-backdrop)",
           display: "flex", alignItems: "center", justifyContent: "center",
         }}>
           <div style={{
             background: "var(--color-bg-overlay)",
-            border: `1px solid ${isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.1)"}`,
+            border: `1px solid var(--color-glass-border-strong)`,
             borderRadius: 20, padding: "36px 40px",
             maxWidth: 400, width: "90%", textAlign: "center",
             boxShadow: "0 24px 64px rgba(0,0,0,0.4)",
@@ -98,20 +98,20 @@ export function RootLayout() {
             <div style={{ fontSize: 18, fontWeight: 700, color: "var(--color-text-primary)", marginBottom: 10 }}>
               자동 로그아웃 안내
             </div>
-            <div style={{ fontSize: 14, color: isDark ? "rgba(255,255,255,0.6)" : "rgba(15,23,42,0.6)", marginBottom: 28, lineHeight: 1.7 }}>
+            <div style={{ fontSize: 14, color: "var(--color-text-secondary)", marginBottom: 28, lineHeight: 1.7 }}>
               30분 동안 활동이 감지되지 않았습니다.<br />계속 이용하시겠습니까?
             </div>
             <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
               <button onClick={extendSession} style={{
                 padding: "11px 22px", borderRadius: 10, border: "none",
-                background: "#4377F1", color: "#fff", fontWeight: 600,
+                background: "var(--color-accent-blue)", color: "var(--color-on-primary)", fontWeight: 600,
                 fontSize: 14, cursor: "pointer",
               }}>계속 사용하기</button>
               <button onClick={logout} style={{
                 padding: "11px 22px", borderRadius: 10,
-                border: `1px solid ${isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.15)"}`,
+                border: `1px solid var(--color-glass-border-strong)`,
                 background: "transparent",
-                color: isDark ? "rgba(255,255,255,0.7)" : "rgba(15,23,42,0.6)",
+                color: "var(--color-text-secondary)",
                 fontWeight: 600, fontSize: 14, cursor: "pointer",
               }}>로그아웃</button>
             </div>

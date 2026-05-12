@@ -4,6 +4,8 @@ export interface Post {
   content: string;
   category: string;
   image_url: string | null;
+  thumbnail_url?: string | null;
+  thumbnail_crop?: ThumbnailCrop | null;
   created_at: string;
   updated_at?: string | null;
   views: number;
@@ -19,6 +21,13 @@ export interface Post {
   event_form_config?: EventFormConfig | null;
   // blog
   is_featured?: boolean | null;
+}
+
+export interface ThumbnailCrop {
+  x: number;
+  y: number;
+  zoom: number;
+  aspect: '16/10' | '10/9';
 }
 
 export interface EventFormConfig {
