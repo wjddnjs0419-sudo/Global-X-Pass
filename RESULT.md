@@ -1,3 +1,129 @@
+# RESULT: 세션 종료 핫 컨텍스트 (2026-05-12 — 15차)
+
+## 현재 상태
+- 사수 결정 기준에 맞춰 게시판/프로그램 접근 경계를 재정렬했다.
+- `resources`, `media`, `blog`, `consulting`, `founders-club`는 로그인 필요 라우트로 묶었다.
+- `expenses`는 비로그인 사용자를 로그인 페이지로 바로 보내고, 로그인 후에는 기존처럼 `participant`/`admin`만 접근 가능하게 유지했다.
+- `news`, `faq`, `events-archive`는 전체 공개 상세/목록으로 유지했다.
+- `notice`, `events`는 공개 목록은 제한된 preview RPC로 열고, 상세(`/post/:id`, `/events/:id/apply`)는 로그인 필요로 막았다.
+
+## 이번 세션 주요 변경
+
+| 파일 | 변경 내용 |
+|------|-----------|
+| `src/app/components/AuthRoute.tsx` | 로그인 필요 라우트를 위한 공통 가드 추가. 비로그인 사용자는 `/login`으로 보내고 원래 경로를 `state.from`에 보존 |
+| `src/app/routes.tsx` | `events/:id/apply`, `resources`, `media`, `blog`, `consulting`, `founders-club`, `expenses`를 `AuthRoute` 하위로 이동 |
+| `src/app/pages/LoginPage.tsx` | 로그인 성공 후 `state.from`이 있으면 원래 접근하려던 페이지로 복귀 |
+| `src/app/pages/PostDetailPage.tsx` | `get_post_access_info()`로 카테고리별 상세 접근 요구사항 확인. 비로그인 제한 상세는 로그인으로 이동, `expenses` 직접 접근은 role 확인 |
+| `src/utils/publicPostPreviews.ts` | 공개 목록용 `list_public_post_previews()` RPC 호출 헬퍼 추가. DB 마이그레이션 적용 전 RPC가 없을 때는 기존 `posts` 조회로 fallback |
+| `NoticePage`, `EventsPage`, `NoticeSection`, `EventSection`, `NoticeResourceSection`, `CommunitySection` | `notice`/`events` 공개 목록을 직접 `posts` 조회 대신 제한 preview RPC로 전환 |
+| `supabase/migrations/20260512150000_realign_public_access_policies.sql` | `anon`의 `posts` 직접 SELECT를 `news`/`faq`/`events-archive`로 제한. `notice`/`events` preview RPC, 상세 접근 판별 RPC 추가. `consultants`/`consulting_slots`/`founders_club_sessions`/`consulting_categories` SELECT를 authenticated 기준으로 조정. `increment_view_count()` 접근 판별도 새 공개 범위로 재정렬 |
+| `GEMINI.md`, `PLAN.md`, `RESULT.md` | 최신 접근 정책과 검증 결과 반영 |
+
+## 검증 결과
+- [x] `npm run validate` (TypeScript, ESLint, Vite production build) ✅
+- [x] 정책명/호출 경로 정적 교차검증: 기존 공개 정책 drop 및 신규 정책/RPC 연결 확인 ✅
+- [x] RPC 미적용 상태 fallback 보강: 목록은 기존 조회로 fallback, 상세는 실제 category 기준으로 `notice`/`events`/`resources`/`media`/`blog`/`expenses` 비로그인 접근 재차 차단 ✅
+- [x] `supabase db push` — `20260512150000_realign_public_access_policies.sql` 원격 적용 ✅
+- [x] `supabase db lint --linked --fail-on error` — No schema errors found ✅
+- [x] `supabase migration list` — local/remote `20260512150000` 일치 확인 ✅
+- [x] `supabase db lint --local --fail-on error` — No schema errors found ✅
+로컬 DB는 lint 통과. 단, `supabase migration list --local` 기준 로컬 DB에는 2026-05-04 이후 migration들이 아직 적용되지 않은 상태라 최신 migration 전체 검증은 원격 linked lint 결과를 기준으로 삼는다.
+
+## 종료 전 점검
+- [x] `PLAN.md` 완료 항목 `[Done]` 정리
+- [x] `RESULT.md` 최신 핫 컨텍스트 반영
+- [x] `npm run validate` ✅
+
+---
+
+# RESULT: 세션 종료 핫 컨텍스트 (2026-05-12 — 15차)
+
+## 현재 상태
+- 게시판 접근 정책 재정렬 마이그레이션(20260512150000)에 따른 프론트엔드 동기화 및 정리를 완료했다.
+- 비로그인 사용자는 이제 `news`, `faq`, `events-archive` 상세 페이지만 볼 수 있으며, 그 외 카테고리는 로그인 페이지로 유도된다.
+- `notice`, `events` 목록은 비로그인 상태에서도 RPC를 통해 미리보기가 가능하다.
+- `AuthRoute`로 보호되는 페이지(`Consulting`, `FoundersClub`, `EventApplication`) 내의 중복된 로그인 체크 로직을 제거했다.
+
+## 이번 세션 주요 변경
+
+| 파일 | 변경 내용 |
+|------|-----------|
+| `src/app/pages/PostDetailPage.tsx` | 비로그인 차단 카테고리(`PUBLIC_DETAIL_CATEGORIES`)가 DB 정책과 일치함을 확인하고 리다이렉션 로직 검증 |
+| `src/app/pages/ConsultingPage.tsx` | 예약 신청 버튼의 중복된 로그인 `alert` 로직 제거 |
+| `src/app/pages/FoundersClubPage.tsx` | 세션 신청 버튼의 중복된 로그인 `alert` 로직 제거 |
+| `src/app/pages/EventApplicationPage.tsx` | 신청 제출 시의 중복된 로그인 `alert` 및 `navigate` 로직 제거 |
+| `src/app/pages/NoticePage.tsx`, `EventsPage.tsx` | 비로그인 목록 조회를 위해 RPC(`list_public_post_previews`)를 사용하는 기존 로직 유지 확인 |
+| `PLAN.md` | 승인된 작업을 `[Done]`으로 축약하고 완료 항목 10개 유지 |
+| `RESULT.md` | 이번 세션 변경 및 검증 결과 반영 |
+
+## 검증 결과
+- [x] `npm run validate` (TypeScript, ESLint, Vite production build) ✅
+- [x] DB RPC(`get_post_access_info`, `list_public_post_previews`, `get_event_application_counts`) 권한 확인 ✅
+
+## 종료 전 점검
+- [x] `PLAN.md` 완료 항목 `[Done]` 정리
+- [x] `RESULT.md` 최신 핫 컨텍스트 반영
+- [x] `npm run validate` (TypeScript, ESLint, Vite production build) ✅
+
+---
+
+# RESULT: 세션 종료 핫 컨텍스트 (2026-05-12 — 14차)
+
+## 현재 상태
+- 미디어 상세와 행사 신청하기 페이지의 `목록으로 돌아가기`가 다시 공통 블루 링크 토큰을 사용하도록 정리했다.
+- 미디어 상세는 카테고리 전용 NCF 초록 back-link를 제거했고, 행사 신청하기는 누락돼 있던 상단 back-link를 추가했다.
+- 공통 스타일은 `contentListStyles.ts`의 헬퍼로 모아 두어 이후 동일 패턴 재사용 시 같은 토큰을 타게 했다.
+
+## 이번 세션 주요 변경
+
+| 파일 | 변경 내용 |
+|------|-----------|
+| `src/app/components/contentListStyles.ts` | `getBackLinkStyle()` 공통 헬퍼 추가. 무배경/무보더, `var(--color-accent-blue)`, 공통 font weight/size/line-height를 한 곳에서 반환 |
+| `src/app/pages/PostDetailPage.tsx` | 미디어 상세 포함 상세 페이지 상단 back-link를 `getBackLinkStyle()`로 교체하고, 문구를 공통 `← 목록으로 돌아가기`로 통일 |
+| `src/app/pages/EventApplicationPage.tsx` | 행사 신청 페이지 최상단에 `getBackLinkStyle()` 기반 `← 목록으로 돌아가기` 버튼 추가. 클릭 시 `/events`로 복귀 |
+| `PLAN.md` | 승인된 작업을 `[Done]`으로 축약하고 완료 항목 10개 유지 |
+| `RESULT.md` | 이번 변경 및 검증 결과 반영 |
+
+## 검증 결과
+- [x] `npm run validate` (TypeScript, ESLint, Vite production build) ✅
+- [ ] 브라우저 시각 확인
+이번 세션은 코드/빌드 기준으로 정리했고, 두 페이지의 실제 브라우저 스크린샷 재확인은 별도로 수행하지 못했다.
+
+## 종료 전 점검
+- [x] `PLAN.md` 완료 항목 `[Done]` 정리
+- [x] `RESULT.md` 최신 핫 컨텍스트 반영
+- [x] `npm run validate` (TypeScript, ESLint, Vite production build) ✅
+
+---
+
+# RESULT: 세션 종료 핫 컨텍스트 (2026-05-12 — 13차)
+
+## 현재 상태
+- `AdminFoundersClubManagement`의 세션 관리 카드가 모바일에서 가로 폭을 과도하게 압축하던 문제를 완화했다.
+- 세션 제목/상태 뱃지와 우측 액션 영역을 모바일 우선 세로 흐름으로 분리해 `모집중`, `신청 보기`, `삭제`가 세로 글자처럼 찌그러지지 않도록 했다.
+- 인앱 브라우저 모바일 뷰포트 확인은 시도했지만 관리자 세션이 없어 실제 `/admin` 화면 진입 검증은 수행하지 못했다.
+
+## 이번 세션 주요 변경
+
+| 파일 | 변경 내용 |
+|------|-----------|
+| `src/app/components/admin/AdminFoundersClubManagement.tsx` | 세션 카드 컨테이너를 `flex-col -> md:flex-row` 구조로 변경. 제목 영역에 `minWidth: 0`, `overflowWrap: "anywhere"`, 상태 row `flexWrap` 적용. 상태 배지에 `whiteSpace: "nowrap"`/`flexShrink: 0` 추가. 액션 영역은 모바일에서 `w-full flex-wrap`, 상태 select는 `minWidth + flex-basis`, `신청 보기`/`삭제` 버튼은 `nowrap`으로 고정 |
+| `PLAN.md` | 승인된 작업을 `[Done]`으로 축약하고 완료 항목 10개 유지 |
+| `RESULT.md` | 이번 변경 및 검증 결과 반영 |
+
+## 검증 결과
+- [x] `npm run validate` (TypeScript, ESLint, Vite production build) ✅
+- [ ] 관리자 로그인 세션 기반 시각 확인
+인앱 브라우저에서 `http://localhost:5173/admin` 모바일 뷰포트 진입은 시도했지만 관리자 세션이 없어 공개 홈으로 표시되어 실제 세션 관리 카드 화면은 확인하지 못했다.
+
+## 종료 전 점검
+- [x] `PLAN.md` 완료 항목 `[Done]` 정리
+- [x] `RESULT.md` 최신 핫 컨텍스트 반영
+- [x] `npm run validate` (TypeScript, ESLint, Vite production build) ✅
+
+---
+
 # RESULT: 세션 종료 핫 컨텍스트 (2026-05-12 — 12차)
 
 ## 현재 상태

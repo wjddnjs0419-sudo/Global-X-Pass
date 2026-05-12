@@ -247,7 +247,7 @@ export function FoundersClubPage() {
                     </div>
                   ) : (
                     <button
-                      onClick={() => { if (!userId) { alert("로그인이 필요합니다."); return; } setApplyTarget(s); setMessage(""); }}
+                      onClick={() => { setApplyTarget(s); setMessage(""); }}
                       disabled={s.status !== "recruiting" || spotsLeft <= 0}
                       style={{ padding: "11px 24px", borderRadius: 12, border: "none", background: s.status === "recruiting" && spotsLeft > 0 ? "var(--color-accent-blue)" : "var(--color-glass-bg-hover)", color: s.status === "recruiting" && spotsLeft > 0 ? "var(--color-on-primary)" : "var(--color-text-muted)", fontWeight: 700, cursor: s.status === "recruiting" && spotsLeft > 0 ? "pointer" : "not-allowed", fontSize: 14, transition: "filter 0.2s" }}
                     >

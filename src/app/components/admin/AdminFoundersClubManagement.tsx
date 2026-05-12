@@ -159,7 +159,7 @@ export function AdminFoundersClubManagement() {
 
   const Badge = ({ status, cfg }: { status: string; cfg: Record<string, { label: string; color: string }> }) => {
     const c = cfg[status] ?? { label: status, color: "var(--color-text-muted)" };
-    return <span style={getStatusPillStyle(c.color, isDark)}>{c.label}</span>;
+    return <span style={{ ...getStatusPillStyle(c.color, isDark), whiteSpace: "nowrap", flexShrink: 0 }}>{c.label}</span>;
   };
 
   if (loading && sessions.length === 0) {
@@ -318,10 +318,10 @@ export function AdminFoundersClubManagement() {
           </div>
 
           {sessions.filter(s => statusFilter === "all" || s.status === statusFilter).map(s => (
-            <div key={s.id} style={{ background: card, border: `1px solid ${border}`, borderRadius: 16, padding: "18px 22px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                  <span style={{ fontWeight: 700, color: textMain }}>{s.theme}</span>
+            <div key={s.id} className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between" style={{ background: card, border: `1px solid ${border}`, borderRadius: 16, padding: "18px 22px" }}>
+              <div style={{ minWidth: 0, flex: "1 1 auto" }}>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
+                  <span style={{ fontWeight: 700, color: textMain, minWidth: 0, overflowWrap: "anywhere" }}>{s.theme}</span>
                   <Badge status={s.status} cfg={statusCfg} />
                 </div>
                 <div style={{ fontSize: 13, color: textMuted }}>
@@ -329,18 +329,18 @@ export function AdminFoundersClubManagement() {
                 </div>
                 <div style={{ fontSize: 12, color: textMuted, marginTop: 4 }}>{formatStructuredLocation(s.location)}</div>
               </div>
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <div className="flex w-full flex-wrap gap-2 md:w-auto md:flex-nowrap md:justify-end" style={{ alignItems: "center" }}>
                 <select
                   value={s.status}
                   onChange={e => handleChangeStatus(s, e.target.value as FoundersClubSession["status"])}
-                  style={{ padding: "7px 10px", borderRadius: 8, border: `1px solid ${border}`, background: inputBg, color: textMain, fontWeight: 700, cursor: "pointer", fontSize: 13 }}
+                  style={{ padding: "7px 10px", borderRadius: 8, border: `1px solid ${border}`, background: inputBg, color: textMain, fontWeight: 700, cursor: "pointer", fontSize: 13, minWidth: 96, flex: "1 1 120px", whiteSpace: "nowrap" }}
                 >
                   <option value="recruiting">모집중</option>
                   <option value="closed">마감</option>
                   <option value="completed">완료</option>
                 </select>
-                <button onClick={() => { setSelectedSession(s); setSubTab("applications"); }} style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${labelBorder}`, background: selectedBg, color: textMain, fontWeight: 750, cursor: "pointer", fontSize: 13 }}>신청 보기</button>
-                <button onClick={() => handleDeleteSession(s.id)} style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${deleteBorder}`, background: deleteBg, color: "var(--color-brand-red)", fontWeight: 700, cursor: "pointer", fontSize: 13 }}>삭제</button>
+                <button onClick={() => { setSelectedSession(s); setSubTab("applications"); }} style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${labelBorder}`, background: selectedBg, color: textMain, fontWeight: 750, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap", flexShrink: 0 }}>신청 보기</button>
+                <button onClick={() => handleDeleteSession(s.id)} style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${deleteBorder}`, background: deleteBg, color: "var(--color-brand-red)", fontWeight: 700, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap", flexShrink: 0 }}>삭제</button>
               </div>
             </div>
           ))}

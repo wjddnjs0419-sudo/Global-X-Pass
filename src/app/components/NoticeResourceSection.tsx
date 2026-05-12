@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { getSectionTheme } from "../utils/sectionTheme";
 import { supabase } from "../../lib/supabaseClient";
+import { fetchPublicPostPreviews } from "../../utils/publicPostPreviews";
 import { cleanText } from "../../utils/text";
 import type { Post } from "../../lib/types";
 import { Button } from "./ui/button";
@@ -36,12 +37,7 @@ export function NoticeResourceSection({ isDark = false }: NoticeResourceSectionP
   useEffect(() => {
     const fetchItems = async () => {
       const [noticeResult, resourceResult] = await Promise.all([
-        supabase
-          .from("posts")
-          .select("*")
-          .eq("category", "notice")
-          .order("created_at", { ascending: false })
-          .limit(4),
+        fetchPublicPostPreviews("notice", 4),
         supabase
           .from("posts")
           .select("*")

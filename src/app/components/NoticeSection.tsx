@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router";
 import { getSectionTheme } from "../utils/sectionTheme";
-import { supabase } from "../../lib/supabaseClient";
+import { fetchPublicPostPreviews } from "../../utils/publicPostPreviews";
 import { cleanText } from "../../utils/text";
 import type { Post } from "../../lib/types";
 import { Badge } from "./ui/badge";
@@ -21,12 +21,7 @@ export function NoticeSection({ isDark = false }: NoticeSectionProps) {
 
   useEffect(() => {
     const fetchNotices = async () => {
-      const { data } = await supabase
-        .from("posts")
-        .select("*")
-        .eq("category", "notice")
-        .order("created_at", { ascending: false })
-        .limit(3);
+      const { data } = await fetchPublicPostPreviews("notice", 3);
       setNotices((data as Post[]) || []);
       setLoading(false);
     };

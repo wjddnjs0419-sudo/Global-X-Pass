@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { supabase } from "../../lib/supabaseClient";
+import { fetchPublicPostPreviews } from "../../utils/publicPostPreviews";
 import { PageShell } from "../components/PageShell";
 import { useTheme } from "../ThemeContext";
 import { LoadingSpinner, ErrorMessage } from "../components/LoadingSpinner";
@@ -24,11 +25,7 @@ export function EventsPage() {
 
   useEffect(() => {
     Promise.all([
-      supabase
-        .from("posts")
-        .select("*")
-        .eq("category", "events")
-        .order("created_at", { ascending: false }),
+      fetchPublicPostPreviews("events", 100),
       supabase.rpc("get_event_application_counts"),
     ]).then(([postsResult, countsResult]) => {
       if (postsResult.error) setError(true);

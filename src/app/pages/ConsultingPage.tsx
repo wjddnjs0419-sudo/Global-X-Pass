@@ -166,7 +166,7 @@ export function ConsultingPage() {
                 )}
 
                 <button
-                  onClick={() => { if (!userId) { alert("로그인이 필요합니다."); return; } setSelected(c); }}
+                  onClick={() => setSelected(c)}
                   style={{ marginTop: "auto", padding: "13px 14px", borderRadius: 12, border: "none", background: "var(--color-accent-blue)", color: "var(--color-on-primary)", fontWeight: 700, cursor: "pointer", fontSize: 15, transition: "filter 0.2s" }}
                   onMouseEnter={e => (e.currentTarget.style.filter = "brightness(1.1)")}
                   onMouseLeave={e => (e.currentTarget.style.filter = "none")}

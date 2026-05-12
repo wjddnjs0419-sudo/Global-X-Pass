@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { supabase } from "../../lib/supabaseClient";
+import { fetchPublicPostPreviews } from "../../utils/publicPostPreviews";
 import { PageShell } from "../components/PageShell";
 import { useTheme } from "../ThemeContext";
 import { LoadingSpinner, ErrorMessage } from "../components/LoadingSpinner";
@@ -21,11 +21,7 @@ export function NoticePage() {
 
   useEffect(() => {
     const fetchPosts = async () => {
-      const { data, error } = await supabase
-        .from("posts")
-        .select("*")
-        .eq("category", "notice")
-        .order("created_at", { ascending: false });
+      const { data, error } = await fetchPublicPostPreviews("notice", 100);
       if (error) setError(true);
       else setPosts(data as Post[]);
       setLoading(false);

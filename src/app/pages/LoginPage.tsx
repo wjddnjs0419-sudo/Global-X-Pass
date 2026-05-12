@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { PageShell } from "../components/PageShell";
 import { useTheme } from "../ThemeContext";
 import { supabase } from "../../lib/supabaseClient";
@@ -11,6 +11,8 @@ const EyeOffIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="n
 export function LoginPage() {
   const { isDark } = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as { from?: string } | null)?.from;
   const logoutReason = sessionStorage.getItem("logout_reason");
   if (logoutReason) sessionStorage.removeItem("logout_reason");
   
@@ -80,9 +82,9 @@ export function LoginPage() {
 
     alert("환영합니다! 로그인이 완료되었습니다.");
     if (profile?.role === "admin") {
-      navigate("/admin");
+      navigate(from ?? "/admin");
     } else {
-      navigate("/");
+      navigate(from ?? "/");
     }
   };
 
@@ -110,9 +112,9 @@ export function LoginPage() {
     } else {
       alert("2단계 인증이 완료되었습니다.");
       if (tempProfile?.role === "admin") {
-        navigate("/admin");
+        navigate(from ?? "/admin");
       } else {
-        navigate("/");
+        navigate(from ?? "/");
       }
     }
   };

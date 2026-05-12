@@ -52,3 +52,19 @@ export function getStatusPillStyle(color: string, _isDark?: boolean): CSSPropert
     lineHeight: 1.2,
   };
 }
+
+export function getBackLinkStyle(): CSSProperties {
+  return {
+    display: "inline-flex",
+    alignItems: "center",
+    padding: 0,
+    border: "none",
+    background: "none",
+    color: "var(--color-accent-blue)",
+    fontSize: "var(--text-body-sm)",
+    fontWeight: "var(--weight-bold)",
+    lineHeight: "var(--leading-snug)",
+    cursor: "pointer",
+    textDecoration: "none",
+  };
+}

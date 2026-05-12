@@ -17,6 +17,7 @@ import { SearchPage } from "./pages/SearchPage";
 import UpdatePasswordPage from "./pages/UpdatePasswordPage";
 import AdminPage from "./pages/AdminPage";
 import { AdminRoute } from "./components/AdminRoute";
+import { AuthRoute } from "./components/AuthRoute";
 import { PostDetailPage } from "./pages/PostDetailPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { ExpensesPage } from "./pages/ExpensesPage";
@@ -35,11 +36,11 @@ export const router = createBrowserRouter([
       { path: "notice", Component: NoticePage },
       { path: "news", Component: NewsPage },
       { path: "events", Component: EventsPage },
-      { path: "events/:id/apply", Component: EventApplicationPage },
+      { path: "events/:id/apply", Component: AuthRoute, children: [{ index: true, Component: EventApplicationPage }] },
       { path: "events/archive", Component: EventArchivePage },
-      { path: "resources", Component: ResourcesPage },
-      { path: "media", Component: MediaPage },
-      { path: "blog", Component: BlogPage },
+      { path: "resources", Component: AuthRoute, children: [{ index: true, Component: ResourcesPage }] },
+      { path: "media", Component: AuthRoute, children: [{ index: true, Component: MediaPage }] },
+      { path: "blog", Component: AuthRoute, children: [{ index: true, Component: BlogPage }] },
       { path: "faq", Component: FaqPage },
       { path: "login", Component: LoginPage },
       { path: "signup", Component: SignupPage },
@@ -49,9 +50,9 @@ export const router = createBrowserRouter([
       { path: "admin", Component: AdminRoute, children: [{ index: true, Component: AdminPage }] },
       { path: "flow-map", Component: AdminRoute, children: [{ index: true, Component: FlowMapPage }] },
       { path: "design-system", Component: AdminRoute, children: [{ index: true, Component: () => null }] },
-      { path: "expenses", Component: ExpensesPage },
-      { path: "consulting", Component: ConsultingPage },
-      { path: "founders-club", Component: FoundersClubPage },
+      { path: "expenses", Component: AuthRoute, children: [{ index: true, Component: ExpensesPage }] },
+      { path: "consulting", Component: AuthRoute, children: [{ index: true, Component: ConsultingPage }] },
+      { path: "founders-club", Component: AuthRoute, children: [{ index: true, Component: FoundersClubPage }] },
       { path: "privacy-policy", Component: PrivacyPolicyPage },
       { path: "terms-of-use", Component: TermsOfUsePage },
       { path: "post/:id", Component: PostDetailPage },
