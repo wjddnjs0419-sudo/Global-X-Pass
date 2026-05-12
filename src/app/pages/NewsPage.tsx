@@ -4,14 +4,14 @@ import { supabase } from "../../lib/supabaseClient";
 import { PageShell } from "../components/PageShell";
 import { useTheme } from "../ThemeContext";
 import { LoadingSpinner, ErrorMessage } from "../components/LoadingSpinner";
-import { isImage } from "../../utils/file";
 import { cleanText } from "../../utils/text";
+import { getThumbnailImageStyle, resolvePostThumbnail, getThumbnailCandidates } from "../../utils/postThumbnail";
 import { getFilterTabStyle, getMutedLabelStyle } from "../components/contentListStyles";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis } from "../components/ui/pagination";
 
 const PAGE_SIZE = 10;
 
-const NEWS_COLOR = "#4377F1";
+const NEWS_COLOR = "var(--color-accent-blue)";
 
 export function NewsPage() {
   const { isDark } = useTheme();
@@ -20,11 +20,12 @@ export function NewsPage() {
   const [error, setError] = useState(false);
   const [activeTag, setActiveTag] = useState("전체");
   const [currentPage, setCurrentPage] = useState(1);
+  const [failedThumbnails, setFailedThumbnails] = useState<Record<string, true>>({});
 
-  const card = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
-  const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
-  const textMain = isDark ? "rgba(255,255,255,0.92)" : "#0f172a";
-  const textMuted = isDark ? "rgba(255,255,255,0.45)" : "rgba(15,23,42,0.5)";
+  const card = "var(--color-surface-card)";
+  const border = "var(--color-border-soft)";
+  const textMain = "var(--color-text-primary)";
+  const textMuted = "var(--color-text-muted)";
   useEffect(() => {
     const fetchPosts = async () => {
       const { data, error } = await supabase
@@ -70,8 +71,11 @@ export function NewsPage() {
             )}
             <div className="flex flex-col gap-4">
               {pagedPosts.map((post) => {
-                const attachmentImages = post.image_url?.split(',').filter(isImage) || [];
-                const thumbnailUrl = attachmentImages.length > 0 ? attachmentImages[0] : (post.content?.match(/<img[^>]+src="([^">]+)"/) || [])[1];
+                const thumbnail = resolvePostThumbnail(post);
+                const manualFailed = failedThumbnails[post.id] && !!post.thumbnail_url?.trim();
+                const autoUrl = manualFailed ? (getThumbnailCandidates(post.content ?? "", post.image_url)[0]?.url ?? null) : null;
+                const displayUrl = manualFailed ? autoUrl : thumbnail.url;
+                const thumbnailVisible = !!displayUrl && !failedThumbnails[`${post.id}_fb`];
                 const excerpt = cleanText(post.content);
 
                 return (
@@ -84,10 +88,21 @@ export function NewsPage() {
                     {/* Thumbnail — flush, no padding */}
                     <div
                       className="w-full h-[180px] sm:w-[200px] sm:h-auto sm:self-stretch shrink-0 flex items-center justify-center"
-                      style={{ background: isDark ? "rgba(255,255,255,0.06)" : "#f1f5f9" }}
+                      style={{ background: "var(--color-bg-overlay)", overflow: "hidden" }}
                     >
-                      {thumbnailUrl ? (
-                        <img src={thumbnailUrl} alt="" className="w-full h-full object-cover block" />
+                      {thumbnailVisible ? (
+                        <img
+                          src={displayUrl ?? ""}
+                          alt=""
+                          onError={() => {
+                            if (!failedThumbnails[post.id]) {
+                              setFailedThumbnails(prev => ({ ...prev, [post.id]: true }));
+                            } else {
+                              setFailedThumbnails(prev => ({ ...prev, [`${post.id}_fb`]: true }));
+                            }
+                          }}
+                          style={getThumbnailImageStyle(manualFailed ? null : thumbnail.crop)}
+                        />
                       ) : (
                         <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke={textMuted} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                           <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />

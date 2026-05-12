@@ -2,8 +2,8 @@ import { useState, useEffect, lazy, Suspense } from "react";
 import { Navigate } from "react-router";
 import { useTheme } from "../ThemeContext";
 import { supabase } from "../../lib/supabaseClient";
-import { LAYERS } from "../../lib/layers";
 import { useAdmin } from "../../hooks/useAdmin";
+import { LAYERS } from "../../lib/layers";
 
 import { HeaderSection } from "../components/HeaderSection";
 import { NotificationBell } from "../components/admin/NotificationBell";
@@ -20,9 +20,21 @@ const AdminBlogQueueManagement    = lazy(() => import('../components/admin/Admin
 
 type TabId = "dashboard" | "users" | "create" | "manage" | "events" | "consulting" | "founders" | "blog-queue";
 
+const ADMIN_ACTIVE_TAB_KEY = "gxp_admin_active_tab";
+const ADMIN_TABS: TabId[] = ["dashboard", "users", "create", "manage", "events", "consulting", "founders", "blog-queue"];
+
+const getStoredAdminTab = (): TabId => {
+  if (typeof window === "undefined") return "dashboard";
+  const stored = window.sessionStorage.getItem(ADMIN_ACTIVE_TAB_KEY) as TabId | null;
+  if (!stored || !ADMIN_TABS.includes(stored)) return "dashboard";
+  // 'create' 탭은 editingPost 없이 복원하면 빈 폼이 노출되므로 dashboard로 fallback
+  if (stored === "create") return "dashboard";
+  return stored;
+};
+
 export default function AdminPage() {
   const { isDark } = useTheme();
-  const { isAdmin, loading: adminLoading } = useAdmin();
+  const { isAdmin, loading: adminLoading, mfaRequired, mfaEnrolled } = useAdmin();
 
   const skColor = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)";
 
@@ -48,7 +60,7 @@ export default function AdminPage() {
     </div>
   );
 
-  const [activeTab, setActiveTab] = useState<TabId>("dashboard");
+  const [activeTab, setActiveTab] = useState<TabId>(() => getStoredAdminTab());
   const [adminEmail, setAdminEmail] = useState("");
   const [adminId, setAdminId]       = useState("");
 
@@ -76,12 +88,14 @@ export default function AdminPage() {
   }, []);
 
   const handleTabChange = (tab: TabId) => {
+    window.sessionStorage.setItem(ADMIN_ACTIVE_TAB_KEY, tab);
     setActiveTab(tab);
     if (tab !== "create") setEditingPost(null);
   };
 
   const handleStartEdit = (post: any) => {
     setEditingPost(post);
+    window.sessionStorage.setItem(ADMIN_ACTIVE_TAB_KEY, "create");
     setActiveTab("create");
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -90,6 +104,7 @@ export default function AdminPage() {
     setPostsRefreshKey(k => k + 1);
     setDashRefreshKey(k => k + 1);
     setEditingPost(null);
+    window.sessionStorage.setItem(ADMIN_ACTIVE_TAB_KEY, "manage");
     setActiveTab("manage");
   };
 
@@ -97,19 +112,31 @@ export default function AdminPage() {
     setDashRefreshKey(k => k + 1);
   };
 
-  if (adminLoading) return null;
+  if (adminLoading) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: "var(--color-bg-surface)" }}>
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, height: "72px", background: "var(--color-admin-header-backdrop)", zIndex: LAYERS.headerBackdrop }} />
+        <HeaderSection isDark={isDark} />
+        <div style={{ marginTop: "72px", padding: "clamp(24px, 5vw, 40px) clamp(18px, 4vw, 44px)" }}>
+          <SkFallback rows={5} />
+        </div>
+      </div>
+    );
+  }
   if (!isAdmin) return <Navigate to="/" replace />;
+  if (!mfaEnrolled) { sessionStorage.setItem("mfa_setup_required", "true"); return <Navigate to="/mypage" replace />; }
+  if (mfaRequired) return <Navigate to="/login" replace />;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: "var(--color-bg-surface)" }}>
-      <div style={{ position: "fixed", top: 0, left: 0, right: 0, height: "72px", background: "#0a1020", zIndex: LAYERS.headerBackdrop }} />
+      <div style={{ position: "fixed", top: 0, left: 0, right: 0, height: "72px", background: "var(--color-admin-header-backdrop)", zIndex: LAYERS.headerBackdrop }} />
       <HeaderSection isDark={isDark} />
       <NotificationBell isDark={isDark} />
 
-      <div style={{ display: "flex", marginTop: "72px", minHeight: "calc(100vh - 72px)" }}>
+      <div className="flex flex-col xl:flex-row" style={{ marginTop: "72px", minHeight: "calc(100vh - 72px)" }}>
         <AdminSidebar activeTab={activeTab} onTabChange={handleTabChange} adminEmail={adminEmail} />
 
-        <main style={{ flex: 1, minWidth: 0, padding: "40px clamp(24px, 4vw, 44px) 72px" }}>
+        <main style={{ flex: 1, minWidth: 0, padding: "clamp(24px, 5vw, 40px) clamp(18px, 4vw, 44px) 72px" }}>
           {activeTab === "dashboard" && (
             <Suspense fallback={<DashSk />}>
               <AdminDashboard refreshKey={dashRefreshKey} />
@@ -141,7 +168,7 @@ export default function AdminPage() {
               <AdminPostCreate
                 editingPost={editingPost}
                 onSaved={handlePostSaved}
-                onCancelled={() => { setEditingPost(null); setActiveTab("manage"); }}
+                onCancelled={() => { setEditingPost(null); window.sessionStorage.setItem(ADMIN_ACTIVE_TAB_KEY, "manage"); setActiveTab("manage"); }}
               />
             </Suspense>
           )}

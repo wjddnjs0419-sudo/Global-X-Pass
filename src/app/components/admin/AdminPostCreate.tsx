@@ -33,6 +33,13 @@ import {
   type MediaCategoryId,
 } from "../../constants/mediaCategories";
 import { useMediaCategories } from "../../../hooks/useMediaCategories";
+import {
+  getPostThumbnailAspect,
+  getThumbnailCandidates,
+  getThumbnailSavePayload,
+  uploadThumbnailIfDataUrl,
+} from "../../../utils/postThumbnail";
+import { AdvancedThumbnailEditor } from "./AdvancedThumbnailEditor";
 
 const ReactQuill = lazy(() => import('react-quill'));
 
@@ -57,6 +64,9 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
   const [mediaAttachmentFiles, setMediaAttachmentFiles] = useState<File[]>([]);
   const [mediaMeta, setMediaMeta] = useState<MediaMeta>(EMPTY_MEDIA_META);
   const [existingImages, setExistingImages] = useState<string[]>([]);
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+  const [pendingThumbnailFile, setPendingThumbnailFile] = useState<File | null>(null);
+  const [fileObjectUrls, setFileObjectUrls] = useState<string[]>([]);
   const [eventMeta, setEventMeta]         = useState<EventMeta>(EMPTY_META);
   const [loading, setLoading]             = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
@@ -76,20 +86,31 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
 
   const quillRef = useRef<ReactQuillType>(null);
 
-  const card     = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
-  const border   = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
-  const textMain = isDark ? "rgba(255,255,255,0.92)" : "rgba(10,16,32,0.88)";
-  const textMuted= isDark ? "rgba(255,255,255,0.45)" : "rgba(10,16,32,0.45)";
-  const inputBg  = isDark ? "rgba(255,255,255,0.04)" : "#fff";
-  const skBg     = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)";
-  const panelBg = isDark ? "rgba(255,255,255,0.035)" : "rgba(15,23,42,0.035)";
-  const selectedBg = isDark ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.07)";
-  const labelBg = isDark ? "rgba(255,255,255,0.045)" : "rgba(15,23,42,0.035)";
-  const labelBorder = isDark ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.09)";
-  const deleteBg = isDark ? "rgba(234,67,53,0.08)" : "rgba(234,67,53,0.06)";
-  const deleteBorder = isDark ? "rgba(234,67,53,0.28)" : "rgba(234,67,53,0.22)";
+  const card = "var(--color-surface-card)";
+  const border = "var(--color-border-soft)";
+  const textMain = "var(--color-text-primary)";
+  const textMuted = "var(--color-text-muted)";
+  const inputBg = "var(--color-field-bg)";
+  const skBg = "var(--color-skeleton-bg)";
+  const panelBg = "var(--color-surface-subtle)";
+  const selectedBg = "var(--color-surface-selected)";
+  const labelBg = "var(--color-surface-subtle)";
+  const labelBorder = "var(--color-border-subtle)";
+  const deleteBg = "var(--color-danger-soft-bg)";
+  const deleteBorder = "var(--color-danger-soft-border)";
 
   const inputStyle = { padding: "12px 16px", borderRadius: 10, background: inputBg, border: `1px solid ${border}`, color: textMain, outline: "none", boxSizing: "border-box" as const };
+  const supportsManualThumbnail = category === "news" || category === "events-archive";
+  const thumbnailAspect = getPostThumbnailAspect(category);
+  const thumbnailCandidates = useMemo(() => {
+    if (!supportsManualThumbnail) return [];
+    const base = getThumbnailCandidates(content, existingImages.join(","));
+    const existingUrls = new Set(base.map(c => c.url));
+    const fileCandidates = fileObjectUrls
+      .map((url, i) => ({ url, label: `새 첨부 이미지 ${i + 1}`, source: "attachment" as const }))
+      .filter(c => !existingUrls.has(c.url));
+    return [...base, ...fileCandidates];
+  }, [content, existingImages, supportsManualThumbnail, fileObjectUrls]);
 
   // editingPost가 바뀔 때 폼 상태 동기화
   useEffect(() => {
@@ -98,6 +119,7 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
       setTitle(editingPost.title || "");
       setContent(editingPost.content || "");
       setExistingImages(editingPost.image_url ? editingPost.image_url.split(',') : []);
+      setThumbnailUrl(editingPost.thumbnail_url || null);
       setFiles([]);
       setMediaCoverFile(null);
       setMediaAttachmentFiles([]);
@@ -114,6 +136,7 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
       setTitle("");
       setContent("");
       setExistingImages([]);
+      setThumbnailUrl(null);
       setFiles([]);
       setMediaCoverFile(null);
       setMediaAttachmentFiles([]);
@@ -121,6 +144,21 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
       setEventMeta(EMPTY_META);
     }
   }, [editingPost?.id]);
+
+  useEffect(() => {
+    if (!supportsManualThumbnail) {
+      if (thumbnailUrl !== null) setThumbnailUrl(null);
+      return;
+    }
+  }, [supportsManualThumbnail, thumbnailUrl]);
+
+  useEffect(() => {
+    const imageFiles = files.filter(isBrowserSafeImageFile);
+    const urls = imageFiles.map(f => URL.createObjectURL(f));
+    setFileObjectUrls(urls);
+    setPendingThumbnailFile(prev => (prev && !files.includes(prev) ? null : prev));
+    return () => urls.forEach(url => URL.revokeObjectURL(url));
+  }, [files]);
 
   const imageHandler = useCallback(() => {
     const input = document.createElement('input');
@@ -283,6 +321,19 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
       }
 
       const finalImageUrl = imageUrls.length > 0 ? imageUrls.join(',') : null;
+      const supportsFinalThumbnail = category === "news" || category === "events-archive";
+      let pendingThumbResolved: string | null = thumbnailUrl;
+      if (pendingThumbnailFile) {
+        const uploadedUrl = await uploadFile(pendingThumbnailFile);
+        pendingThumbResolved = uploadedUrl ?? null;
+      }
+      const resolvedThumbnailUrl = await uploadThumbnailIfDataUrl(pendingThumbResolved);
+      const thumbnailPayload = getThumbnailSavePayload({
+        supportsManualThumbnail: supportsFinalThumbnail,
+        nextThumbnailUrl: resolvedThumbnailUrl,
+        previousThumbnailUrl: editingPost?.thumbnail_url,
+        previousThumbnailCrop: editingPost?.thumbnail_crop,
+      });
       const extraFields = category === 'events'
         ? { event_date: eventMeta.event_date || null, location: eventMeta.location || null, event_status: eventMeta.event_status || null, capacity: eventMeta.capacity ? Number(eventMeta.capacity) : null, tags: eventMeta.tags || null }
         : ['blog', 'events-archive', 'notice', 'news', 'media'].includes(category)
@@ -290,10 +341,10 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
           : {};
 
       if (editingPost) {
-        const { error } = await supabase.from('posts').update({ category, title, content: finalContent, image_url: finalImageUrl, updated_at: new Date().toISOString(), ...extraFields }).eq('id', editingPost.id);
+        const { error } = await supabase.from('posts').update({ category, title, content: finalContent, image_url: finalImageUrl, updated_at: new Date().toISOString(), ...thumbnailPayload, ...extraFields }).eq('id', editingPost.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('posts').insert([{ category, title, content: finalContent, image_url: finalImageUrl, ...extraFields }]);
+        const { error } = await supabase.from('posts').insert([{ category, title, content: finalContent, image_url: finalImageUrl, ...thumbnailPayload, ...extraFields }]);
         if (error) throw error;
       }
       onSaved();
@@ -337,8 +388,7 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
     await hideTag(tag);
     setEventMeta(m => m.tags === tag ? { ...m, tags: "" } : m);
   };
-
-  const renderTagPicker = (_accentColor: string, _bgAlpha: string) => (
+  const renderTagPicker = () => (
     <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "14px 18px", background: panelBg, border: `1px solid ${labelBorder}`, borderRadius: 14 }}>
       <p style={{ margin: 0, fontWeight: 750, fontSize: 13, color: textMain }}>카테고리 <span style={{ fontWeight: 500, color: textMuted, fontSize: 12 }}>(1개 선택)</span></p>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -347,7 +397,7 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
           return (
             <div key={tag} style={{ position: "relative", display: "inline-flex" }}>
               <button type="button" onClick={() => selectTag(tag)} style={{ padding: "5px 12px", borderRadius: 99, fontSize: 13, fontWeight: isSelected ? 750 : 600, cursor: "pointer", border: `1px solid ${isSelected ? labelBorder : "transparent"}`, background: isSelected ? selectedBg : labelBg, color: isSelected ? textMain : textMuted }}>{tag}</button>
-              <button type="button" onClick={() => removePreset(tag)} style={{ position: "absolute", top: -5, right: -5, width: 16, height: 16, borderRadius: "50%", background: isDark ? "rgba(255,255,255,0.16)" : "rgba(15,23,42,0.16)", border: `1px solid ${labelBorder}`, color: "#fff", fontSize: 10, fontWeight: 900, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1, padding: 0 }}>×</button>
+              <button type="button" onClick={() => removePreset(tag)} style={{ position: "absolute", top: -5, right: -5, width: 16, height: 16, borderRadius: "50%", background: "var(--color-surface-selected)", border: `1px solid ${labelBorder}`, color: "var(--color-on-primary)", fontSize: 10, fontWeight: 900, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1, padding: 0 }}>×</button>
             </div>
           );
         })}
@@ -367,6 +417,27 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
       )}
     </div>
   );
+
+  const renderThumbnailPicker = () => {
+    if (!supportsManualThumbnail) return null;
+
+    return (
+      <AdvancedThumbnailEditor
+        aspect={thumbnailAspect}
+        candidates={thumbnailCandidates}
+        value={thumbnailUrl}
+        onChange={(url) => {
+          setThumbnailUrl(url);
+          if (url && fileObjectUrls.includes(url)) {
+            const imgFiles = files.filter(isBrowserSafeImageFile);
+            setPendingThumbnailFile(imgFiles[fileObjectUrls.indexOf(url)] ?? null);
+          } else {
+            setPendingThumbnailFile(null);
+          }
+        }}
+      />
+    );
+  };
 
   const renderMediaTypePicker = () => (
     <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "14px 18px", background: panelBg, border: `1px solid ${labelBorder}`, borderRadius: 14 }}>
@@ -432,25 +503,22 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
 
   return (
     <>
-      <form onSubmit={handleSubmitClick} style={{ background: card, border: `1px solid ${border}`, borderRadius: "16px", padding: "28px", display: "flex", flexDirection: "column", gap: "18px", marginBottom: "40px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <form onSubmit={handleSubmitClick} style={{ background: card, border: `1px solid ${border}`, borderRadius: "16px", padding: "clamp(20px, 5vw, 28px)", display: "flex", flexDirection: "column", gap: "18px", marginBottom: "40px", overflow: "hidden" }}>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <h3 style={{ margin: 0, color: textMain, fontSize: "22px", fontWeight: 800 }}>{editingPost ? "게시물 수정" : "새 게시물 등록"}</h3>
           {editingPost && (
             <button type="button" onClick={onCancelled} style={{ background: "none", border: "none", color: textMuted, fontWeight: 700, cursor: "pointer", fontSize: 14 }}>← 목록으로 돌아가기</button>
           )}
         </div>
 
-        <div style={{ display: "flex", gap: "16px" }}>
-          <select value={category} onChange={e => setCategory(e.target.value)} style={{ ...inputStyle, width: "200px" }}>
+        <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+          <select value={category} onChange={e => setCategory(e.target.value)} className="w-full sm:w-[200px] sm:shrink-0" style={inputStyle}>
             {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
           </select>
-          <input value={title} onChange={e => setTitle(e.target.value)} placeholder="제목을 입력하세요" style={{ ...inputStyle, flex: 1 }} required />
+          <input value={title} onChange={e => setTitle(e.target.value)} placeholder="제목을 입력하세요" className="w-full min-w-0" style={inputStyle} required />
         </div>
 
-        {category === "media" ? renderMediaTypePicker() : ['events', 'blog', 'events-archive', 'notice', 'news'].includes(category) && renderTagPicker(
-          category === "blog" ? "#A855F7" : category === "notice" ? "#EA4335" : category === "media" ? "#20D6A2" : category === "news" ? "#4377F1" : "#18A343",
-          category === "blog" ? "168,85,247" : category === "notice" ? "234,67,53" : category === "media" ? "32,214,162" : category === "news" ? "67,119,241" : "24,163,67",
-        )}
+        {category === "media" ? renderMediaTypePicker() : ['events', 'blog', 'events-archive', 'notice', 'news'].includes(category) && renderTagPicker()}
 
         <div className={isDark ? "quill-dark" : "quill-light"} style={{ background: inputBg, borderRadius: "10px", border: `1px solid ${border}`, overflow: "hidden" }}>
           <Suspense fallback={<div style={{ height: 300, background: skBg, animation: "pulse 1.5s ease-in-out infinite" }} />}>
@@ -464,6 +532,8 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
             />
           </Suspense>
         </div>
+
+        {renderThumbnailPicker()}
 
         {category === "media" && selectedMediaCategoryId && isMediaWideType && (
           <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "14px 18px", background: panelBg, border: `1px solid ${labelBorder}`, borderRadius: 14 }}>
@@ -527,17 +597,17 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
                   <img src={existingMediaCoverUrl} alt="" style={{ width: 64, height: 80, objectFit: "cover", borderRadius: 8, flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ color: textMain, fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{getFileNameFromUrl(existingMediaCoverUrl, "표지 이미지")}</div>
-                    <button type="button" onClick={() => setExistingImages(prev => prev.filter(url => url !== existingMediaCoverUrl))} style={{ marginTop: 8, border: `1px solid ${deleteBorder}`, background: deleteBg, color: "#EA4335", padding: "5px 9px", borderRadius: 8, cursor: "pointer", fontWeight: 800, fontSize: 12 }}>삭제</button>
+                    <button type="button" onClick={() => setExistingImages(prev => prev.filter(url => url !== existingMediaCoverUrl))} style={{ marginTop: 8, border: `1px solid ${deleteBorder}`, background: deleteBg, color: "var(--color-brand-red)", padding: "5px 9px", borderRadius: 8, cursor: "pointer", fontWeight: 800, fontSize: 12 }}>삭제</button>
                   </div>
                 </div>
               )}
               {mediaCoverFile && (
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: 12, background: inputBg, border: `1px solid ${border}`, borderRadius: 12 }}>
                   <span style={{ color: textMain, fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{mediaCoverFile.name}</span>
-                  <button type="button" onClick={() => setMediaCoverFile(null)} style={{ border: `1px solid ${deleteBorder}`, background: deleteBg, color: "#EA4335", padding: "5px 9px", borderRadius: 8, cursor: "pointer", fontWeight: 800, fontSize: 12 }}>취소</button>
+                  <button type="button" onClick={() => setMediaCoverFile(null)} style={{ border: `1px solid ${deleteBorder}`, background: deleteBg, color: "var(--color-brand-red)", padding: "5px 9px", borderRadius: 8, cursor: "pointer", fontWeight: 800, fontSize: 12 }}>취소</button>
                 </div>
               )}
-              <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 112, padding: "22px 18px", background: isDark ? "rgba(255,255,255,0.02)" : "#ffffff", border: `2px dashed ${labelBorder}`, borderRadius: 14, cursor: "pointer", color: textMain, gap: 8 }}>
+              <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 112, padding: "22px 18px", background: "var(--color-surface-card)", border: `2px dashed ${labelBorder}`, borderRadius: 14, cursor: "pointer", color: textMain, gap: 8 }}>
                 <input type="file" accept="image/*" onChange={handleMediaCoverChange} style={{ display: "none" }} />
                 <span style={{ fontWeight: 800, color: textMain }}>+ 표지 이미지 선택</span>
                 <span style={{ fontSize: 12, color: textMuted, textAlign: "center" }}>리포트 표지는 540x675, 영상형은 16:9 권장</span>
@@ -551,18 +621,18 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
                   <p style={{ margin: "6px 0 0", fontSize: 12, color: textMuted, lineHeight: 1.5 }}>상세 페이지의 다운로드 영역에 표시됩니다.</p>
                 </div>
                 {existingMediaAttachmentUrls.map((url) => (
-                  <div key={url} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: 12, background: isDark ? "rgba(255,255,255,0.03)" : "#f8fafc", borderRadius: 12 }}>
+                  <div key={url} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: 12, background: "var(--color-surface-subtle)", borderRadius: 12 }}>
                     <span style={{ color: textMain, fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{getFileNameFromUrl(url, "첨부파일")}</span>
-                    <button type="button" onClick={() => setExistingImages(prev => prev.filter(item => item !== url))} style={{ border: `1px solid ${deleteBorder}`, background: deleteBg, color: "#EA4335", padding: "5px 9px", borderRadius: 8, cursor: "pointer", fontWeight: 800, fontSize: 12 }}>삭제</button>
+                    <button type="button" onClick={() => setExistingImages(prev => prev.filter(item => item !== url))} style={{ border: `1px solid ${deleteBorder}`, background: deleteBg, color: "var(--color-brand-red)", padding: "5px 9px", borderRadius: 8, cursor: "pointer", fontWeight: 800, fontSize: 12 }}>삭제</button>
                   </div>
                 ))}
                 {mediaAttachmentFiles.map((f, idx) => (
-                  <div key={`${f.name}-${idx}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: 12, background: isDark ? "rgba(255,255,255,0.03)" : "#f8fafc", borderRadius: 12 }}>
+                  <div key={`${f.name}-${idx}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: 12, background: "var(--color-surface-subtle)", borderRadius: 12 }}>
                     <span style={{ color: textMain, fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</span>
-                    <button type="button" onClick={() => setMediaAttachmentFiles(prev => prev.filter((_, i) => i !== idx))} style={{ border: `1px solid ${deleteBorder}`, background: deleteBg, color: "#EA4335", padding: "5px 9px", borderRadius: 8, cursor: "pointer", fontWeight: 800, fontSize: 12 }}>취소</button>
+                    <button type="button" onClick={() => setMediaAttachmentFiles(prev => prev.filter((_, i) => i !== idx))} style={{ border: `1px solid ${deleteBorder}`, background: deleteBg, color: "var(--color-brand-red)", padding: "5px 9px", borderRadius: 8, cursor: "pointer", fontWeight: 800, fontSize: 12 }}>취소</button>
                   </div>
                 ))}
-                <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 112, padding: "22px 18px", background: isDark ? "rgba(255,255,255,0.02)" : "#fafafa", border: `2px dashed ${border}`, borderRadius: 14, cursor: "pointer", color: textMain, gap: 8 }}>
+                <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 112, padding: "22px 18px", background: "var(--color-surface-subtle)", border: `2px dashed ${border}`, borderRadius: 14, cursor: "pointer", color: textMain, gap: 8 }}>
                   <input type="file" multiple onChange={handleMediaAttachmentChange} style={{ display: "none" }} />
                   <span style={{ fontWeight: 800, color: textMain }}>+ PDF / 자료 파일 추가</span>
                   <span style={{ fontSize: 12, color: textMuted, textAlign: "center" }}>최대 10MB / PDF, ZIP, DOCX, XLSX, PPTX, HWP 지원</span>
@@ -580,7 +650,7 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" opacity="0.55"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
                   <span style={{ fontWeight: 600, fontSize: "14px" }}>{getFileNameFromUrl(url)}</span>
                 </div>
-                <button type="button" onClick={() => setExistingImages(prev => prev.filter((_, i) => i !== idx))} style={{ border: `1px solid ${deleteBorder}`, background: deleteBg, color: "#EA4335", padding: "6px 12px", borderRadius: "8px", cursor: "pointer", fontWeight: 700, fontSize: "13px" }}>삭제</button>
+                <button type="button" onClick={() => setExistingImages(prev => prev.filter((_, i) => i !== idx))} style={{ border: `1px solid ${deleteBorder}`, background: deleteBg, color: "var(--color-brand-red)", padding: "6px 12px", borderRadius: "8px", cursor: "pointer", fontWeight: 700, fontSize: "13px" }}>삭제</button>
               </div>
             ))}
             {files.map((f, idx) => (
@@ -589,10 +659,10 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" opacity="0.55"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
                   <span style={{ fontWeight: 600, fontSize: "14px" }}>{f.name}</span>
                 </div>
-                <button type="button" onClick={() => setFiles(prev => prev.filter((_, i) => i !== idx))} style={{ border: `1px solid ${deleteBorder}`, background: deleteBg, color: "#EA4335", padding: "6px 12px", borderRadius: "8px", cursor: "pointer", fontWeight: 700, fontSize: "13px" }}>취소</button>
+                <button type="button" onClick={() => setFiles(prev => prev.filter((_, i) => i !== idx))} style={{ border: `1px solid ${deleteBorder}`, background: deleteBg, color: "var(--color-brand-red)", padding: "6px 12px", borderRadius: "8px", cursor: "pointer", fontWeight: 700, fontSize: "13px" }}>취소</button>
               </div>
             ))}
-            <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "30px 20px", background: isDark ? "rgba(255,255,255,0.02)" : "#fafafa", border: `2px dashed ${border}`, borderRadius: "16px", cursor: "pointer", color: textMain, gap: "10px" }}>
+            <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "30px 20px", background: "var(--color-surface-subtle)", border: `2px dashed ${border}`, borderRadius: "16px", cursor: "pointer", color: textMain, gap: "10px" }}>
               <input type="file" accept={DOCUMENT_UPLOAD_ACCEPT} multiple onChange={handleFileChange} style={{ display: "none" }} />
               <span style={{ fontWeight: 750, color: textMain }}>+ 파일 추가하기</span>
               <span style={{ fontSize: "13px", color: textMuted }}>최대 10MB / 이미지 및 문서(PDF, ZIP, DOCX 등) 지원</span>
@@ -601,7 +671,7 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
           </div>
         )}
 
-        <button type="submit" disabled={loading} style={{ padding: "15px", borderRadius: "12px", border: "none", background: "#4377F1", color: "#fff", fontWeight: 800, fontSize: "15px", cursor: "pointer", marginTop: "6px", boxShadow: "none", opacity: loading ? 0.65 : 1 }}>
+        <button type="submit" disabled={loading} style={{ padding: "15px", borderRadius: "12px", border: "none", background: "var(--color-accent-blue)", color: "var(--color-on-primary)", fontWeight: 800, fontSize: "15px", cursor: "pointer", marginTop: "6px", boxShadow: "none", opacity: loading ? 0.65 : 1 }}>
           {loading ? "처리 중..." : editingPost ? "변경사항 저장" : "게시물 등록하기"}
         </button>
       </form>
