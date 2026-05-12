@@ -3,6 +3,9 @@ import { corsHeaders } from "../_shared/cors.ts";
 
 const ENC_PREFIX = "enc:v1:";
 
+const RATE_LIMIT_MAX = 5;
+const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000; // 10분
+
 type SignupPayload = {
   name?: string;
   phone?: string;
@@ -63,6 +66,15 @@ async function waitForProfile(adminClient: ReturnType<typeof createClient>, user
   return null;
 }
 
+function extractIp(req: Request): string {
+  return (
+    req.headers.get("cf-connecting-ip") ??
+    req.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
+    req.headers.get("x-real-ip") ??
+    "unknown"
+  );
+}
+
 Deno.serve(async (req: Request) => {
   const CORS = corsHeaders(req);
 
@@ -108,6 +120,21 @@ Deno.serve(async (req: Request) => {
     const adminClient = createClient(supabaseUrl, serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
+
+    // IP 기반 rate limit 확인 (atomic: DB 함수가 락·검사·기록을 한 번에 처리)
+    // IP를 특정할 수 없는 환경(로컬 개발 등)은 건너뜀
+    const ip = extractIp(req);
+    if (ip !== "unknown") {
+      const { data: allowed, error: rlError } = await adminClient.rpc(
+        "check_and_record_signup_attempt",
+        { p_ip: ip, p_max: RATE_LIMIT_MAX, p_window_ms: RATE_LIMIT_WINDOW_MS },
+      );
+
+      if (rlError) throw rlError;
+      if (!allowed) {
+        return json({ error: "잠시 후 다시 시도해 주세요." }, 429, CORS);
+      }
+    }
 
     const { data: signupData, error: signupError } = await anonClient.auth.signUp({
       email,
