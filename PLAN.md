@@ -3,6 +3,7 @@
 완료된 계획은 `RESULT.md`에 세부 구현 내용과 검증 결과가 기록되어 있으므로, 이 파일에는 활성/예정 작업만 유지합니다. 완료 항목은 `[Done]` 한 줄로 축약하고, 10개를 넘으면 가장 오래된 완료 항목부터 삭제합니다.
 
 ## Pending Approval
+- [Done] 미디어 상세페이지 레이아웃 개선 (2026-05-12) — `theme.css`에 `--size-media-cover-portrait` 토큰 추가. 레포트형 표지 이미지 160px로 축소·상단 정렬, 영상형 세로 스택 전환+YouTube iframe 직접 임베드, "콘텐츠 보기" 버튼 제거. Codex P2(비유튜브 커버 소실) 수정 포함. `npm run validate` ✅
 - [Done] Codex 리뷰 P2 이슈 2건 + 자체 리뷰 P2 1건 수정 (2026-05-12) — `useBlogImportAdmin` buildTagDrafts에 editedTagIdsRef 기반 서버 태그 갱신 로직 추가. `PostDetailPage` editThumbnailCandidates에 editFiles object URL 후보 포함 + pendingThumbnailFile 업로드 흐름 추가 + 취소/권한강등 시 editThumbnailUrl·pendingThumbnailFile 리셋 누락 수정. `npm run validate` ✅
 - [Done] Codex 리뷰 P2 이슈 3건 수정 (2026-05-12) — `AdminPostCreate` 미저장 이미지 파일 썸네일 후보 포함(object URL + 저장 시 업로드), `AdminPage` create 탭 새로고침 복원 시 dashboard fallback, `NewsPage`/`EventArchivePage` 썸네일 404 시 자동 이미지 fallback. `npm run validate` ✅
 
