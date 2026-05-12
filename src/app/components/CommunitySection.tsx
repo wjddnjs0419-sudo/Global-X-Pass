@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import { getSectionTheme, SectionTheme } from "../utils/sectionTheme";
 import { supabase } from "../../lib/supabaseClient";
+import { fetchPublicPostPreviews } from "../../utils/publicPostPreviews";
 import { cleanText } from "../../utils/text";
 import type { Post } from "../../lib/types";
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
@@ -59,20 +60,68 @@ export function CommunitySection({ isDark = false }: CommunitySectionProps) {
   useEffect(() => {
     const fetchTabPosts = async () => {
       setLoading(true);
+      const { data: { session } } = await supabase.auth.getSession();
 
-      let query = supabase
-        .from("posts")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(POSTS_PER_TAB);
+      if (session) {
+        let query = supabase
+          .from("posts")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(POSTS_PER_TAB);
 
-      if (activeTab === "events") {
-        query = query.in("category", ["events", "events-archive"]);
-      } else if (activeTab !== "all") {
-        query = query.eq("category", activeTab);
+        if (activeTab === "events") {
+          query = query.in("category", ["events", "events-archive"]);
+        } else if (activeTab !== "all") {
+          query = query.eq("category", activeTab);
+        }
+
+        const { data } = await query;
+        setDisplayPosts((data as Post[]) || []);
+        setPageDirection(1);
+        setPage(0);
+        setLoading(false);
+        return;
       }
 
-      const { data } = await query;
+      if (activeTab === "all" || activeTab === "notice") {
+        const { data } = await fetchPublicPostPreviews(
+          activeTab === "all" ? null : activeTab,
+          POSTS_PER_TAB,
+        );
+        setDisplayPosts((data as Post[]) || []);
+        setPageDirection(1);
+        setPage(0);
+        setLoading(false);
+        return;
+      }
+
+      if (activeTab === "events") {
+        const [eventsResult, archiveResult] = await Promise.all([
+          fetchPublicPostPreviews("events", POSTS_PER_TAB),
+          supabase
+            .from("posts")
+            .select("*")
+            .eq("category", "events-archive")
+            .order("created_at", { ascending: false })
+            .limit(POSTS_PER_TAB),
+        ]);
+        const combined = [
+          ...((eventsResult.data as Post[] | null) || []),
+          ...((archiveResult.data as Post[] | null) || []),
+        ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        setDisplayPosts(combined.slice(0, POSTS_PER_TAB));
+        setPageDirection(1);
+        setPage(0);
+        setLoading(false);
+        return;
+      }
+
+      const { data } = await supabase
+        .from("posts")
+        .select("*")
+        .eq("category", activeTab)
+        .order("created_at", { ascending: false })
+        .limit(POSTS_PER_TAB);
       setDisplayPosts((data as Post[]) || []);
       setPageDirection(1);
       setPage(0);

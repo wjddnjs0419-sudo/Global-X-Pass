@@ -4,7 +4,7 @@ import { Link, useNavigate, useParams } from "react-router";
 import { Ban, CalendarDays, CheckCircle2, MapPin, Plus, Save, Send, Users, X } from "lucide-react";
 import { PageShell } from "../components/PageShell";
 import { Button } from "../components/ui/button";
-import { getMutedLabelStyle, getStatusPillStyle } from "../components/contentListStyles";
+import { getBackLinkStyle, getMutedLabelStyle, getStatusPillStyle } from "../components/contentListStyles";
 import { AdvancedThumbnailEditor } from "../components/admin/AdvancedThumbnailEditor";
 import { CONTACT_EMAIL } from "../constants/contact";
 import { useTheme } from "../ThemeContext";
@@ -473,11 +473,7 @@ export function EventApplicationPage() {
   };
 
   const handleSubmit = async () => {
-    if (!post || !userId) {
-      alert("로그인이 필요합니다.");
-      navigate("/login");
-      return;
-    }
+    if (!post) return;
     if (isClosed) return alert("마감된 행사입니다.");
     if (!form.company_tech.trim() || !form.applicant_name.trim() || !form.position.trim() || !form.email.trim() || !form.expectation.trim()) {
       alert("필수 항목을 모두 입력해주세요.");
@@ -618,6 +614,9 @@ export function EventApplicationPage() {
     <PageShell title="행사 신청" subtitle={post.title} accentColor="var(--color-accent-green)">
       <div style={{ maxWidth: "var(--container-event-application-max)", margin: "0 auto", paddingBottom: "var(--space-event-application-page-bottom)" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-event-application-page-gap)" }}>
+          <button type="button" onClick={() => navigate("/events")} style={getBackLinkStyle()}>
+            ← 목록으로 돌아가기
+          </button>
           <section>
             <div style={{ background: "var(--color-surface-card)", border: "1px solid var(--color-border-soft)", borderRadius: "var(--radius-event-application-card)", overflow: "hidden" }}>
               <div style={{ height: "var(--size-event-application-cover-height)", background: "var(--color-bg-elevated)" }}>

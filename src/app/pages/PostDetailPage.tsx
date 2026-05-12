@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState, useEffect, useMemo, useRef } from "react";
-import { useParams, useNavigate } from "react-router";
+import { useParams, useNavigate, useLocation } from "react-router";
 import { PageShell } from "../components/PageShell";
 import { useTheme } from "../ThemeContext";
 import { supabase } from "../../lib/supabaseClient";
@@ -44,6 +44,7 @@ import {
   uploadThumbnailIfDataUrl,
 } from "../../utils/postThumbnail";
 import { AdvancedThumbnailEditor } from "../components/admin/AdvancedThumbnailEditor";
+import { getBackLinkStyle } from "../components/contentListStyles";
 
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
@@ -51,6 +52,13 @@ import "react-quill/dist/quill.snow.css";
 const AdminPostCreate = lazy(() => import("../components/admin/AdminPostCreate"));
 
 const MEDIA_COLOR = "var(--color-accent-ncf)";
+type PostAccessInfo = {
+  category: string;
+  requires_auth: boolean;
+  requires_participant_role: boolean;
+};
+const PUBLIC_DETAIL_CATEGORIES = new Set(["news", "faq", "events-archive"]);
+const requiresPostDetailAuth = (category?: string | null) => !PUBLIC_DETAIL_CATEGORIES.has(category || "");
 const CATEGORY_EDIT_THEME: Record<string, { accent: string; softBg: string; softBorder: string; strongBorder: string }> = {
   blog: {
     accent: "var(--color-accent-purple)",
@@ -107,6 +115,7 @@ const BOARD_INFO: Record<string, { title: string; subtitle: string }> = {
 export function PostDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { isDark } = useTheme();
   const { isAdmin, loading: adminLoading, mfaRequired, mfaEnrolled } = useAdmin();
   const [post, setPost] = useState<Post | null>(null);
@@ -177,12 +186,48 @@ export function PostDetailPage() {
     try {
       setLoadError(null);
 
+      const [{ data: { session } }, accessResult] = await Promise.all([
+        supabase.auth.getSession(),
+        supabase.rpc("get_post_access_info", { post_id: id }).maybeSingle(),
+      ]);
+      const accessInfo = accessResult.data as PostAccessInfo | null;
+
+      if (accessInfo?.requires_auth && !session) {
+        navigate("/login", {
+          replace: true,
+          state: { from: `${location.pathname}${location.search}` },
+        });
+        return;
+      }
+
+      if (accessInfo?.requires_participant_role && session) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", session.user.id)
+          .single();
+        const role = profile?.role;
+        if (role !== "admin" && role !== "participant") {
+          setPost(null);
+          setLoadError("이 게시물은 참여사 담당자와 관리자만 열람할 수 있습니다.");
+          return;
+        }
+      }
+
       const { data, error } = await supabase.from("posts").select("*").eq("id", id).maybeSingle();
       if (error) throw error;
 
       if (!data) {
         setPost(null);
         setLoadError("게시물을 찾을 수 없습니다.");
+        return;
+      }
+
+      if (!accessInfo && requiresPostDetailAuth(data.category) && !session) {
+        navigate("/login", {
+          replace: true,
+          state: { from: `${location.pathname}${location.search}` },
+        });
         return;
       }
 
@@ -499,10 +544,9 @@ export function PostDetailPage() {
         <div className="flex justify-between items-center mb-8">
           <button
             onClick={() => post?.category === "media" ? navigate("/media") : navigate(-1)}
-            className="bg-none border-none font-bold cursor-pointer p-0"
-            style={{ color: post?.category === "media" ? MEDIA_COLOR : "var(--color-accent-blue)" }}
+            style={getBackLinkStyle()}
           >
-            {post?.category === "media" ? "← 미디어 목록으로 돌아가기" : "← 목록으로 돌아가기"}
+            ← 목록으로 돌아가기
           </button>
           {canRenderAdminControls && (
             <div className="flex gap-2.5">

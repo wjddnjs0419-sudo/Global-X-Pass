@@ -175,7 +175,7 @@ Work is divided into three distinct tracks, each featuring a **Maker** (Executio
 - **Naver Empty Paragraph Overreach:** empty paragraph 정규화를 `<[^>]+>\s*` 같은 broad 패턴 하나로 처리하지 말 것. `<p><span><img ... /></span></p>` 같은 image-only paragraph까지 빈 문단으로 오인해 뉴스/이벤트 상세의 본문 이미지가 전부 사라질 수 있다.
 - **Naver Broad Has Hide:** `.se-component:has(.se-module-text:empty)`처럼 broad `:has()` 숨김 규칙을 두지 말 것. 뉴스레터형 `se-table` 안의 빈 모듈 하나 때문에 상위 컴포넌트 전체가 `display:none` 되어 본문이 통째로 사라질 수 있다.
 - **Naver Import Thumbnail Duplication:** Naver 이관 글의 썸네일이 본문 첫 이미지와 같다면 `posts.image_url`에 같은 URL을 다시 저장하지 말 것. 카드 썸네일은 본문 첫 이미지를 fallback으로 쓸 수 있으므로, 중복 저장은 상세 페이지 첨부 이미지 중복의 원인이 된다.
-- **Public Posts RLS:** 공개 게시판 상세/목록은 `anon` role로도 검증할 것. RLS 정책이 `TO authenticated`에만 묶이면 글은 DB에 있어도 비로그인 사용자는 `/post/:id`에서 빈 결과를 받는다. 단, `expenses`는 계속 `admin`/`participant`만 읽을 수 있어야 한다.
+- **Board Access RLS:** `news`, `faq`, `events-archive` 상세는 `anon` SELECT를 허용한다. `notice`/`events`는 목록만 공개 preview RPC로 노출하고 상세(`/post/:id`, `/events/:id/apply`)는 로그인 필요다. `resources`/`media`/`blog`/`consulting`/`founders-club`은 로그인 필요, `expenses`는 `admin`/`participant`만 허용한다.
 - **Naver SE Pre-wrap Leak:** pretty-printed Naver SE HTML을 Quill 기본 `white-space: pre-wrap` 상태로 렌더링하지 말 것. 컴포넌트 사이 줄바꿈/들여쓰기가 실제 빈 줄로 렌더링되어 `se-horizontalLine` 주변과 본문 상단에 거대 여백이 생긴다.
 - **Naver ImageStrip Gap Injection:** `se-imageStrip-container`의 각 item width 합계가 이미 100%인 상태에서 별도 `gap`/margin을 추가하지 말 것. 네이버 원본 멀티 이미지 스트립이 줄바꿈되거나 가로 배치가 틀어진다.
 - **Naver Class Token False Positive:** `se-component` 같은 Naver class를 판별할 때 `\bse-component\b` 식 substring 정규식만 믿지 말 것. `se-component-content` 같은 wrapper까지 컴포넌트로 오인되어 canonical coverage/unknown block 진단이 왜곡된다. 반드시 공백 기준 class token 일치로 판별할 것.
