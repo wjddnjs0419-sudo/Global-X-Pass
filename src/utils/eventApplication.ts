@@ -43,15 +43,15 @@ export const mergeEventFormConfig = (config?: EventFormConfig | null): Required<
 });
 
 export const EVENT_APPLICATION_STATUS = {
-  pending: { label: "검토중", color: "#FBBC05" },
-  accepted: { label: "승인", color: "#18A343" },
-  rejected: { label: "거절", color: "#EA4335" },
-  cancelled: { label: "취소", color: "#64748B" },
+  pending: { label: "검토중", color: "var(--color-brand-yellow)" },
+  accepted: { label: "승인", color: "var(--color-accent-green)" },
+  rejected: { label: "거절", color: "var(--color-brand-red)" },
+  cancelled: { label: "취소", color: "var(--color-neutral)" },
 } as const;
 
 export const EVENT_STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  "접수예정": { label: "접수예정", color: "#4377F1", bg: "rgba(67,119,241,0.12)" },
-  "접수중": { label: "접수중", color: "#0FA37F", bg: "rgba(15,163,127,0.12)" },
-  "마감임박": { label: "마감임박", color: "#F59E0B", bg: "rgba(245,158,11,0.12)" },
-  "마감": { label: "마감", color: "#9CA3AF", bg: "rgba(156,163,175,0.12)" },
+  "접수예정": { label: "접수예정", color: "var(--color-accent-blue)", bg: "var(--color-accent-blue-soft-bg)" },
+  "접수중": { label: "접수중", color: "var(--color-success)", bg: "var(--color-success-soft-bg)" },
+  "마감임박": { label: "마감임박", color: "var(--color-warning)", bg: "var(--color-warning-soft-bg)" },
+  "마감": { label: "마감", color: "var(--color-disabled-bg)", bg: "var(--color-neutral-soft-bg)" },
 };

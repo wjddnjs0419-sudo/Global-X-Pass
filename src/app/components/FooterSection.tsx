@@ -87,9 +87,9 @@ export function FooterSection({ isDark = false }: FooterSectionProps) {
   };
 
   return (
-    <footer style={{ width: "100%", borderTop: `1px solid ${borderTop}`, background: footerBg, padding: "32px clamp(18px, 4vw, 40px)", boxSizing: "border-box" }}>
-      <div className="mx-auto flex flex-col gap-8 md:flex-row md:items-end md:justify-between" style={{ maxWidth: 1200 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+    <footer style={{ width: "100%", borderTop: `1px solid ${borderTop}`, background: footerBg, padding: "var(--space-xl) clamp(12px, 3vw, 32px)", boxSizing: "border-box" }}>
+      <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}>
         <div>
           <Link to="/" onClick={handleLogoClick} style={{ display: "inline-block", textDecoration: "none" }}>
             <img src={logoImg} alt="Logo" style={{ height: 20, filter: isDark ? "brightness(0) invert(1)" : "none" }} />

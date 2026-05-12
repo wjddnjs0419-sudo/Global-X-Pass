@@ -68,10 +68,10 @@ export function NoticeSection({ isDark = false }: NoticeSectionProps) {
           )}
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}>
           {loading ? (
             [0, 1, 2].map((i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: "24px", padding: "24px 32px", background: th.cardBg, border: `1px solid ${th.cardBorder}`, borderRadius: "20px" }}>
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: "var(--space-lg)", padding: "var(--space-lg) var(--space-xl)", background: th.cardBg, border: `1px solid ${th.cardBorder}`, borderRadius: "var(--radius-lg)" }}>
                 <Skeleton className="h-12 w-14 shrink-0" />
                 <div style={{ width: "1px", height: "30px", background: th.rowDivider, flexShrink: 0 }} />
                 <div className="flex-1 min-w-0 space-y-2">
@@ -91,14 +91,14 @@ export function NoticeSection({ isDark = false }: NoticeSectionProps) {
                 <div
                   key={notice.id}
                   onClick={() => navigate(`/post/${notice.id}`)}
-                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "24px 32px", background: th.cardBg, border: `1px solid ${th.cardBorder}`, borderRadius: "20px", cursor: "pointer", transition: "all 0.2s ease", boxShadow: th.cardShadow }}
-                  onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.borderColor = "#ef444455"; }}
+                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "var(--space-lg) var(--space-xl)", background: th.cardBg, border: `1px solid ${th.cardBorder}`, borderRadius: "var(--radius-lg)", cursor: "pointer", transition: "all 0.2s ease", boxShadow: th.cardShadow }}
+                  onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.borderColor = "var(--color-danger-soft-border)"; }}
                   onMouseLeave={(e) => { e.currentTarget.style.transform = "none"; e.currentTarget.style.borderColor = th.cardBorder; }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: "24px", flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "var(--space-lg)", flex: 1, minWidth: 0 }}>
                     <div style={{ flexShrink: 0, width: "60px", textAlign: "center" }}>
-                      <div style={{ fontSize: "18px", fontWeight: 800, color: textMain }}>{date.getDate()}</div>
-                      <div style={{ fontSize: "11px", fontWeight: 600, color: textMuted, textTransform: "uppercase" }}>
+                      <div style={{ fontSize: "var(--text-body-lg)", fontWeight: 800, color: textMain }}>{date.getDate()}</div>
+                      <div style={{ fontSize: "var(--text-label)", fontWeight: 600, color: textMuted, textTransform: "uppercase" }}>
                         {date.toLocaleString("en-US", { month: "short" })}
                       </div>
                     </div>
@@ -110,7 +110,7 @@ export function NoticeSection({ isDark = false }: NoticeSectionProps) {
                           {notice.title}
                         </h3>
                       </div>
-                      <p style={{ margin: 0, fontSize: "14px", color: textMuted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      <p style={{ margin: 0, fontSize: "var(--text-body-sm)", color: textMuted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                         {cleanText(notice.content)}
                       </p>
                     </div>

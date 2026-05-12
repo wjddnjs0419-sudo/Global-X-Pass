@@ -22,6 +22,7 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      RAW_RUN_ID: ${{ github.event.inputs.run_id || '' }}
 
     steps:
       - name: Checkout
@@ -36,10 +37,30 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Update github_run_id to Supabase
-        if: "${{ github.event.inputs.run_id != '' }}"
+      - name: Validate optional run_id
+        id: validate_run_id
+        shell: bash
         run: |
-          curl -X PATCH "${{ env.VITE_SUPABASE_URL }}/rest/v1/blog_import_runs?id=eq.${{ github.event.inputs.run_id }}" \
+          if [ -z "$RAW_RUN_ID" ]; then
+            echo "has_run_id=false" >> "$GITHUB_OUTPUT"
+            echo "safe_run_id=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [[ ! "$RAW_RUN_ID" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$ ]]; then
+            echo "::error::workflow_dispatch run_id must be a valid UUID."
+            exit 1
+          fi
+
+          echo "has_run_id=true" >> "$GITHUB_OUTPUT"
+          printf 'safe_run_id=%s\n' "$RAW_RUN_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Update github_run_id to Supabase
+        if: ${{ steps.validate_run_id.outputs.has_run_id == 'true' }}
+        env:
+          SAFE_RUN_ID: ${{ steps.validate_run_id.outputs.safe_run_id }}
+        run: |
+          curl -f --retry 3 --retry-delay 2 --retry-all-errors --max-time 20 -X PATCH "${VITE_SUPABASE_URL}/rest/v1/blog_import_runs?id=eq.${SAFE_RUN_ID}" \
             -H "apikey: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}" \
             -H "Authorization: Bearer ${{ env.SUPABASE_SERVICE_ROLE_KEY }}" \
             -H "Content-Type: application/json" \
@@ -47,9 +68,23 @@ jobs:
             -d "{\"github_run_id\": \"${{ github.run_id }}\"}"
 
       - name: Process blog import queue
+        env:
+          SAFE_RUN_ID: ${{ steps.validate_run_id.outputs.safe_run_id }}
         run: |
-          if [ -n "${{ github.event.inputs.run_id }}" ]; then
-            npm run blog:worker -- --run-id "${{ github.event.inputs.run_id }}"
+          if [ -n "$SAFE_RUN_ID" ]; then
+            npm run blog:worker -- --run-id "$SAFE_RUN_ID"
           else
             npm run blog:worker
           fi
+
+      - name: Mark Supabase run as failed when worker fails
+        if: ${{ failure() && steps.validate_run_id.outputs.has_run_id == 'true' }}
+        env:
+          SAFE_RUN_ID: ${{ steps.validate_run_id.outputs.safe_run_id }}
+        run: |
+          curl -f --retry 3 --retry-delay 2 --retry-all-errors --max-time 20 -X PATCH "${VITE_SUPABASE_URL}/rest/v1/blog_import_runs?id=eq.${SAFE_RUN_ID}" \
+            -H "apikey: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Authorization: Bearer ${{ env.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: return=minimal" \
+            -d "{\"status\":\"failed\",\"error\":\"GitHub Actions worker failed. Check run ${{ github.run_id }} logs.\",\"finished_at\":\"$(date -u +"%Y-%m-%dT%H:%M:%SZ")\"}"

@@ -76,7 +76,7 @@ export function MyPage() {
     borderRadius: "50%",
     border: "none",
     background: isDark ? "rgba(234,67,53,0.14)" : "rgba(234,67,53,0.1)",
-    color: "#EA4335",
+    color: "var(--color-brand-red)",
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
@@ -426,7 +426,7 @@ export function MyPage() {
                   type="submit"
                   disabled={loading || (isMfaEnabled && profile?.role === "admin" && pwChangeMfaOtp.length !== 6)}
                   className={`w-full py-[14px] rounded-xl border-none text-white text-[15px] font-bold font-['Pretendard',sans-serif] mt-2 ${(loading || (isMfaEnabled && profile?.role === "admin" && pwChangeMfaOtp.length !== 6)) ? "cursor-not-allowed" : "cursor-pointer"}`}
-                  style={{ background: (loading || (isMfaEnabled && profile?.role === "admin" && pwChangeMfaOtp.length !== 6)) ? "#9ca3af" : "#4377F1", boxShadow: "none" }}
+                  style={{ background: (loading || (isMfaEnabled && profile?.role === "admin" && pwChangeMfaOtp.length !== 6)) ? "var(--color-disabled-bg)" : "var(--color-accent-blue)", boxShadow: "none" }}
                 >
                   {loading ? "변경 중..." : "새 비밀번호 저장"}
                 </button>
@@ -444,7 +444,7 @@ export function MyPage() {
                   <div className="mb-4" style={{ padding: "16px 20px", borderRadius: 16, background: deleteBg, border: `1px solid ${deleteBorder}` }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
                       <span style={{ fontSize: 16, opacity: 0.7 }}>🔒</span>
-                      <p style={{ margin: 0, fontSize: 14, color: "#EA4335", fontWeight: 750 }}>관리자 패널 접근 전 MFA 설정이 필요합니다</p>
+                      <p style={{ margin: 0, fontSize: 14, color: "var(--color-brand-red)", fontWeight: 750 }}>관리자 패널 접근 전 MFA 설정이 필요합니다</p>
                     </div>
                     <p style={{ margin: 0, fontSize: 13, color: isDark ? "rgba(255,255,255,0.6)" : "rgba(15,23,42,0.6)", lineHeight: 1.5 }}>
                       보안 정책상 관리자 계정은 2단계 인증(MFA)을 반드시 설정해야 합니다. 아래에서 설정을 완료한 후 관리자 패널에 접근할 수 있습니다.
@@ -460,7 +460,7 @@ export function MyPage() {
                       onClick={handleMfaEnroll}
                       disabled={loading}
                       className="w-full py-3 rounded-xl border-none text-white text-[14px] font-bold cursor-pointer"
-                      style={{ background: "#4377F1", boxShadow: "none", opacity: loading ? 0.65 : 1 }}
+                      style={{ background: "var(--color-accent-blue)", boxShadow: "none", opacity: loading ? 0.65 : 1 }}
                     >
                       {loading ? "준비 중..." : "2단계 인증 설정하기"}
                     </button>
@@ -497,7 +497,7 @@ export function MyPage() {
                         onClick={handleMfaVerify}
                         disabled={loading || otpCode.length !== 6}
                         className="w-full py-3 rounded-xl border-none text-white text-[14px] font-bold cursor-pointer mt-4"
-                        style={{ background: "#4377F1", boxShadow: "none", opacity: otpCode.length === 6 ? 1 : 0.5 }}
+                        style={{ background: "var(--color-accent-blue)", boxShadow: "none", opacity: otpCode.length === 6 ? 1 : 0.5 }}
                       >
                         {loading ? "확인 중..." : "인증 완료 및 활성화"}
                       </button>
@@ -521,8 +521,8 @@ export function MyPage() {
                     <button
                       onClick={handleMfaUnenroll}
                       disabled
-                      className="w-full py-3 rounded-xl border-none text-[#ea4335] text-[13px] font-semibold cursor-pointer"
-                      style={{ background: deleteBg, border: `1px solid ${deleteBorder}`, color: "#EA4335", opacity: 0.55, cursor: "not-allowed" }}
+                      className="w-full py-3 rounded-xl border-none text-[13px] font-semibold cursor-pointer"
+                      style={{ background: deleteBg, border: `1px solid ${deleteBorder}`, color: "var(--color-brand-red)", opacity: 0.55, cursor: "not-allowed" }}
                     >
                       관리자 계정은 MFA 해제 불가
                     </button>
@@ -553,12 +553,12 @@ export function MyPage() {
               const slot = r.consulting_slots;
               const consultant = slot?.consultants;
               const statusCfg: Record<string, { label: string; color: string }> = {
-                pending: { label: "대기중", color: "#FBBC05" },
-                confirmed: { label: "확정", color: "#18A343" },
-                rejected: { label: "거절", color: "#EA4335" },
-                cancelled: { label: "취소", color: "#64748B" },
+                pending:   { label: "대기중", color: "var(--color-brand-yellow)" },
+                confirmed: { label: "확정",   color: "var(--color-accent-green)" },
+                rejected:  { label: "거절",   color: "var(--color-brand-red)" },
+                cancelled: { label: "취소",   color: "var(--color-neutral)" },
               };
-              const cfg = statusCfg[r.status] ?? { label: r.status, color: "#888" };
+              const cfg = statusCfg[r.status] ?? { label: r.status, color: "var(--color-text-muted)" };
               const canCancel = r.status === "pending" || r.status === "confirmed";
               return (
                 <div key={r.id} style={requestCardStyle}>
@@ -586,12 +586,12 @@ export function MyPage() {
             {clubApplications.map((a: any) => {
               const session = a.founders_club_sessions;
               const statusCfg: Record<string, { label: string; color: string }> = {
-                pending: { label: "검토중", color: "#FBBC05" },
-                accepted: { label: "수락됨", color: "#18A343" },
-                rejected: { label: "거절됨", color: "#EA4335" },
-                cancelled: { label: "취소", color: "#64748B" },
+                pending:   { label: "검토중",  color: "var(--color-brand-yellow)" },
+                accepted:  { label: "수락됨",  color: "var(--color-accent-green)" },
+                rejected:  { label: "거절됨",  color: "var(--color-brand-red)" },
+                cancelled: { label: "취소",    color: "var(--color-neutral)" },
               };
-              const cfg = statusCfg[a.status] ?? { label: a.status, color: "#888" };
+              const cfg = statusCfg[a.status] ?? { label: a.status, color: "var(--color-text-muted)" };
               const canCancel = a.status === "pending" || a.status === "accepted";
               return (
                 <div key={a.id} style={requestCardStyle}>

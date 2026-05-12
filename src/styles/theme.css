@@ -16,12 +16,14 @@
   --gradient-ncf:    linear-gradient(135deg, #20D6A2 0%, #BEFFF9 100%);  /* NCF 키컬러 */
   --gradient-green:  linear-gradient(135deg, #18A343 0%, #37AD9A 100%);  /* 창구 Green */
   --gradient-blue:   linear-gradient(135deg, #4377F1 0%, #16DBBB 100%);  /* 창구 Blue  */
+  --gradient-blue-soft: linear-gradient(135deg, rgba(67,119,241,0.12) 0%, rgba(32,214,162,0.08) 100%);
   --gradient-yellow: linear-gradient(135deg, #FFEE56 0%, #FFC2B4 100%);  /* 창구 Yellow */
   --gradient-red:    linear-gradient(135deg, #FF4340 0%, #FF7C44 100%);  /* 창구 Red   */
 
   /* --- Background Scale (Deep Space) --- */
-  --color-bg-base:      #070d1a;   /* darkest — section base */
-  --color-bg-surface:   #0a1020;   /* default background */
+  --color-bg-base:              #070d1a;   /* darkest — section base */
+  --color-bg-surface:           #0a1020;   /* default background */
+  --color-admin-header-backdrop: #0a1020;  /* 어드민 헤더 backdrop — 테마 불문 항상 dark */
   --color-bg-elevated:  #0e1628;   /* slightly lighter panels */
   --color-bg-overlay:   #131d30;   /* hover state / elevated cards */
 
@@ -30,6 +32,58 @@
   --color-glass-bg-hover:  rgba(255, 255, 255, 0.07);
   --color-glass-border:    rgba(255, 255, 255, 0.10);
   --color-glass-border-strong: rgba(255, 255, 255, 0.18);
+  --color-surface-card:    rgba(255, 255, 255, 0.04);
+  --color-surface-subtle:  rgba(255, 255, 255, 0.045);
+  --color-surface-selected: rgba(255, 255, 255, 0.10);
+  --color-field-bg:        rgba(255, 255, 255, 0.04);
+  --color-border-soft:     rgba(255, 255, 255, 0.08);
+  --color-border-subtle:   rgba(255, 255, 255, 0.10);
+  --color-skeleton-bg:     rgba(255, 255, 255, 0.06);
+  --color-danger-soft-bg:  rgba(234, 67, 53, 0.08);
+  --color-danger-soft-border: rgba(234, 67, 53, 0.28);
+  --color-warning-soft-bg:    rgba(251, 188,   5, 0.10);
+  --color-warning-soft-border: rgba(251, 188,  5, 0.30);
+  --color-success-soft-bg:    rgba(24,  163,  67, 0.10);
+  --color-success-soft-border: rgba(24,  163,  67, 0.28);
+  --color-neutral-soft-bg:    rgba(156, 163, 175, 0.12);
+  --color-neutral-soft-border: rgba(156, 163, 175, 0.26);
+  --color-accent-blue-soft-bg: rgba(67, 119, 241, 0.10);
+  --color-accent-blue-soft-border: rgba(67, 119, 241, 0.28);
+  --color-accent-blue-soft-border-strong: rgba(67, 119, 241, 0.40);
+  --color-accent-purple-soft-bg: rgba(168, 85, 247, 0.10);
+  --color-accent-purple-soft-border: rgba(168, 85, 247, 0.28);
+  --color-accent-purple-soft-border-strong: rgba(168, 85, 247, 0.40);
+
+  /* --- Accent Colors (창구 Program) --- */
+  --color-accent-blue:   #4377F1;   /* CTA 버튼, 스피너, 링크 강조 */
+  --color-accent-green:  #18A343;   /* 모집중·승인 상태, 행사 신청 */
+  --color-accent-purple: #A855F7;   /* FoundersClub, 블로그 카테고리 */
+  --color-accent-ncf:          #20D6A2;               /* NCF 미디어 카테고리 */
+  --color-accent-ncf-soft-bg:  rgba(32,214,162,0.06); /* NCF 컨테이너 배경 */
+  --color-accent-ncf-badge-bg: rgba(32,214,162,0.14); /* NCF 배지·태그 배경 */
+  --color-accent-ncf-border:   rgba(32,214,162,0.20); /* NCF 컨테이너 테두리 */
+  --color-accent-ncf-border-strong: rgba(32,214,162,0.35); /* NCF 버튼 테두리 */
+  --color-on-ncf:              #07140f;               /* NCF 버튼 위 진한 텍스트 */
+  --color-on-ncf-muted:        #0b6f55;               /* NCF 연한 배경 위 진한 텍스트 */
+  --color-warning:       #F59E0B;   /* 잔여석 경고 등 amber */
+  --color-success:       #0FA37F;   /* 여유석 표시 teal */
+  --color-neutral:       #64748B;   /* 취소·비활성 중립 상태 */
+  --color-scrim:         rgba(0, 0, 0, 0.52);  /* 이미지 위 배지 오버레이 */
+  --color-backdrop:      rgba(0, 0, 0, 0.55);  /* 모달 전체 배경 오버레이 */
+  --color-on-primary:    #ffffff;              /* 컬러 배경 위 텍스트 (항상 흰색) */
+  --color-disabled-bg:   #9ca3af;              /* 비활성 버튼 배경 */
+
+  /* --- Shadows --- */
+  --shadow-primary: 0 8px 24px rgba(67, 119, 241, 0.30);
+  --shadow-card-subtle: 0 10px 30px rgba(0, 0, 0, 0.02);
+  --shadow-card-rest:  none;                             /* light-only, overridden below */
+  --shadow-card-hover: none;                             /* light-only, overridden below */
+  --shadow-dialog: 0 20px 40px rgba(0, 0, 0, 0.20);
+  --shadow-media-cover: 0 14px 28px rgba(0, 0, 0, 0.24);
+  --color-img-placeholder:  rgb(30, 40, 60);             /* 이미지 미로드 플레이스홀더 */
+  --color-capacity-fill:    rgba(255, 255, 255, 0.62);   /* Founders Club 정원 바 채움 */
+  --color-capacity-track:   rgba(255, 255, 255, 0.10);   /* Founders Club 정원 바 트랙 */
+  --color-accent-blue-soft-bg-hover: rgba(67, 119, 241, 0.20); /* 블루 accent 호버 bg */
 
   /* --- Text Scale --- */
   --color-text-primary:   #ffffff;
@@ -170,12 +224,46 @@ html:not(.dark) {
   --color-bg-surface:  #f8fafc;
   --color-bg-elevated: #ffffff;
   --color-bg-overlay:  #f1f5f9;
+  --gradient-blue-soft: linear-gradient(135deg, rgba(67,119,241,0.06) 0%, rgba(32,214,162,0.04) 100%);
 
   /* Glass / Surface */
   --color-glass-bg:              rgba(15, 23, 42, 0.04);
   --color-glass-bg-hover:        rgba(15, 23, 42, 0.07);
   --color-glass-border:          rgba(15, 23, 42, 0.10);
   --color-glass-border-strong:   rgba(15, 23, 42, 0.18);
+  --color-surface-card:          #ffffff;
+  --color-surface-subtle:        rgba(15, 23, 42, 0.035);
+  --color-surface-selected:      rgba(15, 23, 42, 0.07);
+  --color-field-bg:              #f8fafc;
+  --color-border-soft:           rgba(0, 0, 0, 0.08);
+  --color-border-subtle:         rgba(15, 23, 42, 0.09);
+  --color-skeleton-bg:           rgba(0, 0, 0, 0.06);
+  --color-danger-soft-bg:        rgba(234, 67, 53, 0.06);
+  --color-danger-soft-border:    rgba(234, 67, 53, 0.22);
+  --color-warning-soft-bg:       rgba(251, 188,  5, 0.08);
+  --color-warning-soft-border:   rgba(251, 188,  5, 0.25);
+  --color-success-soft-bg:       rgba(24, 163, 67, 0.08);
+  --color-success-soft-border:   rgba(24, 163, 67, 0.22);
+  --color-neutral-soft-bg:       rgba(156, 163, 175, 0.10);
+  --color-neutral-soft-border:   rgba(156, 163, 175, 0.20);
+  --color-accent-blue-soft-bg:   rgba(67, 119, 241, 0.08);
+  --color-accent-blue-soft-border: rgba(67, 119, 241, 0.22);
+  --color-accent-blue-soft-border-strong: rgba(67, 119, 241, 0.34);
+  --color-accent-purple-soft-bg: rgba(168, 85, 247, 0.08);
+  --color-accent-purple-soft-border: rgba(168, 85, 247, 0.22);
+  --color-accent-purple-soft-border-strong: rgba(168, 85, 247, 0.34);
+  --color-accent-ncf-soft-bg:    rgba(32, 214, 162, 0.04);
+  --color-accent-ncf-badge-bg:   rgba(32, 214, 162, 0.12);
+  --color-accent-ncf-border:     rgba(32, 214, 162, 0.16);
+  --shadow-card-subtle:          0 10px 30px rgba(0, 0, 0, 0.02);
+  --shadow-card-rest:            0 2px 16px rgba(0, 0, 0, 0.05);
+  --shadow-card-hover:           0 10px 24px rgba(15, 23, 42, 0.08);
+  --shadow-dialog:               0 20px 40px rgba(0, 0, 0, 0.20);
+  --shadow-media-cover:          0 12px 26px rgba(15, 23, 42, 0.10);
+  --color-img-placeholder:       #f1f5f9;
+  --color-capacity-fill:         #334155;
+  --color-capacity-track:        #e2e8f0;
+  --color-accent-blue-soft-bg-hover: rgba(67, 119, 241, 0.16);
 
   /* Text */
   --color-text-primary:   #0f172a;
@@ -226,6 +314,16 @@ html:not(.dark) {
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+}
+
+/* Always-dark surface: blog featured card has a dark image overlay regardless of theme */
+.blog-featured-card {
+  --color-text-primary:        #ffffff;
+  --color-text-secondary:      rgba(255, 255, 255, 0.72);
+  --color-text-muted:          rgba(255, 255, 255, 0.42);
+  --color-glass-border:        rgba(255, 255, 255, 0.10);
+  --color-glass-border-strong: rgba(255, 255, 255, 0.18);
+  --color-border-soft:         rgba(255, 255, 255, 0.08);
 }
 
 @layer base {

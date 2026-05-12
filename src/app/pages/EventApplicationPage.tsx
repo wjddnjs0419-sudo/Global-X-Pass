@@ -103,18 +103,12 @@ export function EventApplicationPage() {
     customQuestions: [] as EventCustomQuestion[],
   });
 
-  const card = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
-  const panel = isDark ? "rgba(255,255,255,0.025)" : "rgba(15,23,42,0.025)";
-  const border = isDark ? "rgba(255,255,255,0.09)" : "rgba(0,0,0,0.08)";
-  const textMain = isDark ? "rgba(255,255,255,0.92)" : "#0f172a";
-  const textMuted = isDark ? "rgba(255,255,255,0.52)" : "rgba(15,23,42,0.52)";
-  const inputBg = isDark ? "rgba(255,255,255,0.05)" : "#fff";
-  const input = fieldStyle(inputBg, border, textMain);
+  const input = fieldStyle("var(--color-field-bg)", "var(--color-border-soft)", "var(--color-text-primary)");
   const contactButtonStyle: React.CSSProperties = {
-    background: isDark ? "rgba(67,119,241,0.14)" : "#ffffff",
-    border: `1px solid ${isDark ? "rgba(67,119,241,0.45)" : "rgba(67,119,241,0.28)"}`,
-    color: "#4377F1",
-    boxShadow: isDark ? "none" : "0 4px 12px rgba(67,119,241,0.12)",
+    background: "var(--color-accent-blue-soft-bg)",
+    border: "1px solid var(--color-accent-blue-soft-border)",
+    color: "var(--color-accent-blue)",
+    boxShadow: "var(--shadow-card-rest)",
   };
 
   const config = useMemo(() => mergeEventFormConfig(post?.event_form_config), [post?.event_form_config]);
@@ -402,16 +396,16 @@ export function EventApplicationPage() {
   if (!post) return <PageShell title="행사 신청"><p style={{ textAlign: "center", padding: 60 }}>행사를 찾을 수 없습니다.</p></PageShell>;
 
   return (
-    <PageShell title="행사 신청" subtitle={post.title} accentColor="#18A343">
+    <PageShell title="행사 신청" subtitle={post.title} accentColor="var(--color-accent-green)">
       <div className="max-w-[1120px] mx-auto pb-[100px]">
         <div className="grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-6">
           <section style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 24, overflow: "hidden" }}>
+            <div style={{ background: "var(--color-surface-card)", border: "1px solid var(--color-border-soft)", borderRadius: 24, overflow: "hidden" }}>
               <div style={{ aspectRatio: "16 / 9", background: "var(--color-bg-elevated)" }}>
                 {representativeImage ? (
                   <img src={representativeImage} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                 ) : (
-                  <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: textMuted }}>
+                  <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-text-muted)" }}>
                     대표이미지 없음
                   </div>
                 )}
@@ -421,26 +415,26 @@ export function EventApplicationPage() {
                   {statusCfg && <span style={getStatusPillStyle(statusCfg.color, isDark)}>{statusCfg.label}</span>}
                   {capacity != null && <span style={getMutedLabelStyle(isDark)}>{acceptedCount}/{capacity}명 수락</span>}
                 </div>
-                <h2 style={{ margin: 0, color: textMain, fontSize: 24, fontWeight: 900, lineHeight: 1.35 }}>{post.title}</h2>
-                <div style={{ display: "grid", gap: 10, color: textMuted, fontSize: 14 }}>
+                <h2 style={{ margin: 0, color: "var(--color-text-primary)", fontSize: 24, fontWeight: 900, lineHeight: 1.35 }}>{post.title}</h2>
+                <div style={{ display: "grid", gap: 10, color: "var(--color-text-muted)", fontSize: 14 }}>
                   {post.event_date && <span style={{ display: "flex", gap: 8, alignItems: "center" }}><CalendarDays size={16} />{post.event_date}</span>}
                   {post.location && <span style={{ display: "flex", gap: 8, alignItems: "center" }}><MapPin size={16} />{post.location}</span>}
                   {remaining != null && <span style={{ display: "flex", gap: 8, alignItems: "center" }}><Users size={16} />잔여 {remaining}석</span>}
                 </div>
                 <div className={isDark ? "quill-dark" : "quill-light"}>
-                  <div className="ql-editor p-0" style={{ color: textMain }} dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(post.content || "") }} />
+                  <div className="ql-editor p-0" style={{ color: "var(--color-text-primary)" }} dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(post.content || "") }} />
                 </div>
               </div>
             </div>
 
             {isAdmin && (
-              <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 20, padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ background: "var(--color-surface-card)", border: "1px solid var(--color-border-soft)", borderRadius: 20, padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
-                  <strong style={{ color: textMain }}>관리자 편집</strong>
+                  <strong style={{ color: "var(--color-text-primary)" }}>관리자 편집</strong>
                   <Button
                     type="button"
                     onClick={() => setAdminEditing(prev => !prev)}
-                    style={{ background: adminEditing ? (isDark ? "rgba(255,255,255,0.1)" : "#f1f5f9") : "#4377F1", color: adminEditing ? textMain : "#fff", border: adminEditing ? `1px solid ${border}` : "none" }}
+                    style={{ background: adminEditing ? "var(--color-surface-selected)" : "var(--color-accent-blue)", color: adminEditing ? "var(--color-text-primary)" : "var(--color-on-primary)", border: adminEditing ? "1px solid var(--color-border-soft)" : "none" }}
                   >
                     {adminEditing ? "접기" : "신청 페이지 수정"}
                   </Button>
@@ -464,7 +458,7 @@ export function EventApplicationPage() {
                     <textarea style={{ ...input, minHeight: 120, resize: "vertical" }} value={adminDraft.content} onChange={e => setAdminDraft(p => ({ ...p, content: e.target.value }))} placeholder="행사설명 HTML" />
                     <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
                       <input style={{ ...input, flex: 1, minWidth: 220 }} value={adminDraft.image_url} onChange={e => setAdminDraft(p => ({ ...p, image_url: e.target.value }))} placeholder="대표이미지 URL" />
-                      <label className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-md text-sm font-bold cursor-pointer text-white bg-[#4285F4]">
+                      <label className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-md text-sm font-bold cursor-pointer text-white bg-[var(--color-brand-blue)]">
                         <ImagePlus size={16} />
                         이미지
                         <input type="file" accept="image/*" className="hidden" onChange={e => handleAdminImageUpload(e.target.files?.[0])} />
@@ -483,16 +477,16 @@ export function EventApplicationPage() {
                     <textarea style={{ ...input, minHeight: 96, resize: "vertical" }} value={adminDraft.interestOptions} onChange={e => setAdminDraft(p => ({ ...p, interestOptions: e.target.value }))} placeholder="관심 분야 선택지, 한 줄에 하나씩" />
                     <input style={input} value={adminDraft.speakerQuestionLabel} onChange={e => setAdminDraft(p => ({ ...p, speakerQuestionLabel: e.target.value }))} placeholder="사전 질문 문구" />
                     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                      <strong style={{ color: textMain, fontSize: 14 }}>추가 질문</strong>
+                      <strong style={{ color: "var(--color-text-primary)", fontSize: 14 }}>추가 질문</strong>
                       <div style={{ display: "flex", justifyContent: "center" }}>
-                        <button type="button" aria-label="첫 번째 추가 질문 추가" onClick={() => insertCustomQuestion(0)} style={{ width: 30, height: 30, borderRadius: "50%", border: `1px solid ${border}`, background: isDark ? "rgba(255,255,255,0.08)" : "#f8fafc", color: "#4377F1", display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                        <button type="button" aria-label="첫 번째 추가 질문 추가" onClick={() => insertCustomQuestion(0)} style={{ width: 30, height: 30, borderRadius: "50%", border: "1px solid var(--color-border-soft)", background: "var(--color-field-bg)", color: "var(--color-accent-blue)", display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
                           <Plus size={16} />
                         </button>
                       </div>
                       {adminDraft.customQuestions.map((question, index) => (
                         <div key={question.id} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                          <div style={{ position: "relative", padding: "14px 42px 14px 14px", borderRadius: 14, border: `1px solid ${border}`, background: panel, display: "grid", gap: 10 }}>
-                            <button type="button" aria-label="폼 질문 삭제" onClick={() => removeCustomQuestion(question.id)} style={{ position: "absolute", top: 9, right: 9, width: 24, height: 24, borderRadius: "50%", border: "none", background: isDark ? "rgba(234,67,53,0.16)" : "rgba(234,67,53,0.1)", color: "#EA4335", display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                          <div style={{ position: "relative", padding: "14px 42px 14px 14px", borderRadius: 14, border: "1px solid var(--color-border-soft)", background: "var(--color-surface-subtle)", display: "grid", gap: 10 }}>
+                            <button type="button" aria-label="폼 질문 삭제" onClick={() => removeCustomQuestion(question.id)} style={{ position: "absolute", top: 9, right: 9, width: 24, height: 24, borderRadius: "50%", border: "none", background: "var(--color-danger-soft-bg)", color: "var(--color-brand-red)", display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
                               <X size={14} />
                             </button>
                             <input style={input} value={question.label} onChange={e => updateCustomQuestion(question.id, { label: e.target.value })} placeholder="질문 문구" />
@@ -501,14 +495,14 @@ export function EventApplicationPage() {
                                 <option value="short_text">짧은 답변</option>
                                 <option value="long_text">긴 답변</option>
                               </select>
-                              <label style={{ display: "flex", alignItems: "center", gap: 8, color: textMain, fontSize: 13, fontWeight: 700 }}>
+                              <label style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--color-text-primary)", fontSize: 13, fontWeight: 700 }}>
                                 <input type="checkbox" checked={question.required} onChange={e => updateCustomQuestion(question.id, { required: e.target.checked })} />
                                 필수 질문
                               </label>
                             </div>
                           </div>
                           <div style={{ display: "flex", justifyContent: "center" }}>
-                            <button type="button" aria-label={`${index + 2}번째 추가 질문 추가`} onClick={() => insertCustomQuestion(index + 1)} style={{ width: 30, height: 30, borderRadius: "50%", border: `1px solid ${border}`, background: isDark ? "rgba(255,255,255,0.08)" : "#f8fafc", color: "#4377F1", display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                            <button type="button" aria-label={`${index + 2}번째 추가 질문 추가`} onClick={() => insertCustomQuestion(index + 1)} style={{ width: 30, height: 30, borderRadius: "50%", border: "1px solid var(--color-border-soft)", background: "var(--color-field-bg)", color: "var(--color-accent-blue)", display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
                               <Plus size={16} />
                             </button>
                           </div>
@@ -528,14 +522,14 @@ export function EventApplicationPage() {
             )}
           </section>
 
-          <section style={{ background: card, border: `1px solid ${border}`, borderRadius: 24, padding: 26 }}>
+          <section style={{ background: "var(--color-surface-card)", border: "1px solid var(--color-border-soft)", borderRadius: 24, padding: 26 }}>
             {saved || application ? (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 14, padding: "40px 0" }}>
-                <CheckCircle2 size={48} color="#18A343" />
-                <h3 style={{ margin: 0, color: textMain, fontSize: 22, fontWeight: 900 }}>
+                <CheckCircle2 size={48} color="var(--color-accent-green)" />
+                <h3 style={{ margin: 0, color: "var(--color-text-primary)", fontSize: 22, fontWeight: 900 }}>
                   {application?.status === "cancelled" ? "신청이 취소되었습니다." : activeConfig.completionTitle}
                 </h3>
-                <p style={{ margin: 0, color: textMuted, lineHeight: 1.7 }}>
+                <p style={{ margin: 0, color: "var(--color-text-muted)", lineHeight: 1.7 }}>
                   {application?.status === "cancelled" ? "재참가가 필요하면 운영자에게 문의해주세요." : activeConfig.completionMessage}
                 </p>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
@@ -568,12 +562,12 @@ export function EventApplicationPage() {
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
                 <div>
-                  <h3 style={{ margin: "0 0 8px", color: textMain, fontSize: 22, fontWeight: 900 }}>참가 신청</h3>
-                  <p style={{ margin: 0, color: textMuted, lineHeight: 1.65 }}>{activeConfig.intro}</p>
+                  <h3 style={{ margin: "0 0 8px", color: "var(--color-text-primary)", fontSize: 22, fontWeight: 900 }}>참가 신청</h3>
+                  <p style={{ margin: 0, color: "var(--color-text-muted)", lineHeight: 1.65 }}>{activeConfig.intro}</p>
                 </div>
 
-                <div style={{ padding: 18, background: panel, border: `1px solid ${border}`, borderRadius: 18, display: "grid", gap: 12 }}>
-                  <strong style={{ color: textMain }}>1. 참가자 기본 정보</strong>
+                <div style={{ padding: 18, background: "var(--color-surface-subtle)", border: "1px solid var(--color-border-soft)", borderRadius: 18, display: "grid", gap: 12 }}>
+                  <strong style={{ color: "var(--color-text-primary)" }}>1. 참가자 기본 정보</strong>
                   <input style={input} value={form.company_tech} onChange={e => updateField("company_tech", e.target.value)} placeholder={requiredLabel(activeConfig.companyTechLabel)} />
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <input style={input} value={form.applicant_name} onChange={e => updateField("applicant_name", e.target.value)} placeholder={requiredLabel(activeConfig.nameLabel)} />
@@ -585,13 +579,13 @@ export function EventApplicationPage() {
                   </div>
                 </div>
 
-                <div style={{ padding: 18, background: panel, border: `1px solid ${border}`, borderRadius: 18, display: "grid", gap: 12 }}>
-                  <strong style={{ color: textMain }}>2. 관심 분야 & 참여 목적</strong>
+                <div style={{ padding: 18, background: "var(--color-surface-subtle)", border: "1px solid var(--color-border-soft)", borderRadius: 18, display: "grid", gap: 12 }}>
+                  <strong style={{ color: "var(--color-text-primary)" }}>2. 관심 분야 & 참여 목적</strong>
                   <textarea style={{ ...input, minHeight: 110, resize: "vertical" }} value={form.expectation} onChange={e => updateField("expectation", e.target.value)} placeholder={requiredLabel(activeConfig.expectationLabel)} />
-                  <p style={{ margin: 0, color: textMuted, fontSize: 13, fontWeight: 700 }}>{requiredLabel(activeConfig.interestsLabel)}</p>
+                  <p style={{ margin: 0, color: "var(--color-text-muted)", fontSize: 13, fontWeight: 700 }}>{requiredLabel(activeConfig.interestsLabel)}</p>
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {activeConfig.interestOptions.map(option => (
-                      <label key={option} style={{ display: "flex", gap: 10, alignItems: "center", color: textMain, fontSize: 14 }}>
+                      <label key={option} style={{ display: "flex", gap: 10, alignItems: "center", color: "var(--color-text-primary)", fontSize: 14 }}>
                         <input type="checkbox" checked={form.interests.includes(option)} onChange={() => toggleInterest(option)} />
                         {option}
                       </label>
@@ -599,14 +593,14 @@ export function EventApplicationPage() {
                   </div>
                 </div>
 
-                <div style={{ padding: 18, background: panel, border: `1px solid ${border}`, borderRadius: 18, display: "grid", gap: 12 }}>
-                  <strong style={{ color: textMain }}>3. 사전 질문</strong>
+                <div style={{ padding: 18, background: "var(--color-surface-subtle)", border: "1px solid var(--color-border-soft)", borderRadius: 18, display: "grid", gap: 12 }}>
+                  <strong style={{ color: "var(--color-text-primary)" }}>3. 사전 질문</strong>
                   <textarea style={{ ...input, minHeight: 100, resize: "vertical" }} value={form.speaker_question} onChange={e => updateField("speaker_question", e.target.value)} placeholder={activeConfig.speakerQuestionLabel} />
                 </div>
 
                 {activeConfig.customQuestions.map((question, index) => (
-                  <div key={question.id} style={{ padding: 18, background: panel, border: `1px solid ${border}`, borderRadius: 18, display: "grid", gap: 12 }}>
-                    <strong style={{ color: textMain }}>{index + 4}. {question.label}{question.required ? " *" : ""}</strong>
+                  <div key={question.id} style={{ padding: 18, background: "var(--color-surface-subtle)", border: "1px solid var(--color-border-soft)", borderRadius: 18, display: "grid", gap: 12 }}>
+                    <strong style={{ color: "var(--color-text-primary)" }}>{index + 4}. {question.label}{question.required ? " *" : ""}</strong>
                     {question.type === "long_text" ? (
                       <textarea style={{ ...input, minHeight: 100, resize: "vertical" }} value={form.custom_answers[question.id] ?? ""} onChange={e => updateCustomAnswer(question.id, e.target.value)} placeholder={question.label} />
                     ) : (
@@ -615,14 +609,14 @@ export function EventApplicationPage() {
                   </div>
                 ))}
 
-                <div style={{ padding: 18, background: panel, border: `1px solid ${border}`, borderRadius: 18 }}>
-                  <label style={{ display: "flex", gap: 10, alignItems: "flex-start", color: textMain, fontSize: 14, lineHeight: 1.6 }}>
+                <div style={{ padding: 18, background: "var(--color-surface-subtle)", border: "1px solid var(--color-border-soft)", borderRadius: 18 }}>
+                  <label style={{ display: "flex", gap: 10, alignItems: "flex-start", color: "var(--color-text-primary)", fontSize: 14, lineHeight: 1.6 }}>
                     <input type="checkbox" checked={form.privacy_consent} onChange={e => updateField("privacy_consent", e.target.checked)} style={{ marginTop: 4 }} />
                     {requiredLabel(activeConfig.privacyConsentLabel)}
                   </label>
                 </div>
 
-                <Button type="button" size="lg" onClick={handleSubmit} disabled={submitting || isClosed} className="w-full bg-[#18A343] hover:brightness-110">
+                <Button type="button" size="lg" onClick={handleSubmit} disabled={submitting || isClosed} className="w-full bg-[var(--color-accent-green)] hover:brightness-110">
                   <Send size={16} />
                   {isClosed ? "신청 마감" : submitting ? "제출 중..." : "신청 제출"}
                 </Button>

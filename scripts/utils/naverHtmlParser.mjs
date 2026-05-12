@@ -1,6 +1,10 @@
 const IMPORT_META_PREFIX = "<!--GXP_BLOG_IMPORT_META:";
 const NAVER_OG_PLACEHOLDER = "https://ssl.pstatic.net/static/blog/icon/og_270x270.png";
 
+function asString(value) {
+  return typeof value === "string" ? value : "";
+}
+
 export function decodeHtmlEntities(input) {
   if (!input) return "";
 
@@ -102,22 +106,26 @@ function escapeRegex(str) {
 }
 
 export function parseCategoryNoFromHtml(html, targetCategoryName) {
+  const safeHtml = asString(html);
+  const safeTargetCategoryName = asString(targetCategoryName);
+  if (!safeHtml || !safeTargetCategoryName) return null;
+
   const directPat = new RegExp(
-    `categoryNo=(\\d+)[^>]*>\\s*${escapeRegex(targetCategoryName)}\\s*</a>`,
+    `categoryNo=(\\d+)[^>]*>\\s*${escapeRegex(safeTargetCategoryName)}\\s*</a>`,
     "i",
   );
-  const directMatch = html.match(directPat);
+  const directMatch = safeHtml.match(directPat);
   if (directMatch) return directMatch[1];
 
   const jsonPat = /"categoryNo"\s*:\s*(\d+)\s*,\s*"categoryName"\s*:\s*"([^"]+)"/g;
   let m;
-  while ((m = jsonPat.exec(html))) {
-    if (decodeHtmlEntities(m[2]) === targetCategoryName) return m[1];
+  while ((m = jsonPat.exec(safeHtml))) {
+    if (decodeHtmlEntities(m[2]) === safeTargetCategoryName) return m[1];
   }
 
-  const nameIdx = html.indexOf(targetCategoryName);
+  const nameIdx = safeHtml.indexOf(safeTargetCategoryName);
   if (nameIdx !== -1) {
-    const area = html.slice(Math.max(0, nameIdx - 600), nameIdx);
+    const area = safeHtml.slice(Math.max(0, nameIdx - 600), nameIdx);
     const allMatches = [...area.matchAll(/categoryNo=(\d+)/g)];
     if (allMatches.length > 0) return allMatches[allMatches.length - 1][1];
   }

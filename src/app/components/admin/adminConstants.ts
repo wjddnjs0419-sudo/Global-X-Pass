@@ -11,15 +11,15 @@ export const CATEGORIES = [
 ];
 
 export const CATEGORY_COLOR: Record<string, { color: string; bg: string; bgDark: string }> = {
-  notice:           { color: "#EA4335", bg: "#fce8e6", bgDark: "rgba(234,67,53,0.2)"  },
-  news:             { color: "#4377F1", bg: "#eef2ff", bgDark: "rgba(67,119,241,0.2)" },
-  events:           { color: "#18A343", bg: "#e6f4ea", bgDark: "rgba(24,163,67,0.2)"  },
-  "events-archive": { color: "#18A343", bg: "#e6f4ea", bgDark: "rgba(24,163,67,0.2)"  },
-  resources:        { color: "#4377F1", bg: "#eef2ff", bgDark: "rgba(67,119,241,0.2)" },
-  media:            { color: "#20D6A2", bg: "#e6fffa", bgDark: "rgba(32,214,162,0.2)" },
-  blog:             { color: "#A855F7", bg: "#f5eeff", bgDark: "rgba(168,85,247,0.2)" },
-  faq:              { color: "#FBBC05", bg: "#fef9e7", bgDark: "rgba(251,188,5,0.2)"  },
-  expenses:         { color: "#EA4335", bg: "#fce8e6", bgDark: "rgba(234,67,53,0.2)"  },
+  notice:           { color: "var(--color-brand-red)",    bg: "#fce8e6", bgDark: "rgba(234,67,53,0.2)"  },
+  news:             { color: "var(--color-accent-blue)",  bg: "#eef2ff", bgDark: "rgba(67,119,241,0.2)" },
+  events:           { color: "var(--color-accent-green)", bg: "#e6f4ea", bgDark: "rgba(24,163,67,0.2)"  },
+  "events-archive": { color: "var(--color-accent-green)", bg: "#e6f4ea", bgDark: "rgba(24,163,67,0.2)"  },
+  resources:        { color: "var(--color-accent-blue)",  bg: "#eef2ff", bgDark: "rgba(67,119,241,0.2)" },
+  media:            { color: "var(--color-accent-ncf)",   bg: "#e6fffa", bgDark: "rgba(32,214,162,0.2)" },
+  blog:             { color: "var(--color-accent-purple)",bg: "#f5eeff", bgDark: "rgba(168,85,247,0.2)" },
+  faq:              { color: "var(--color-brand-yellow)", bg: "#fef9e7", bgDark: "rgba(251,188,5,0.2)"  },
+  expenses:         { color: "var(--color-brand-red)",    bg: "#fce8e6", bgDark: "rgba(234,67,53,0.2)"  },
 };
 
 export const getLocalDateString = (d: Date) => {

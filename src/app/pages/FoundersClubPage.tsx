@@ -41,11 +41,6 @@ export function FoundersClubPage() {
       return next;
     });
 
-  const card = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
-  const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
-  const textMain = isDark ? "rgba(255,255,255,0.92)" : "#0f172a";
-  const textMuted = isDark ? "rgba(255,255,255,0.45)" : "rgba(15,23,42,0.45)";
-
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -154,18 +149,18 @@ export function FoundersClubPage() {
   };
 
   const statusCfg = {
-    recruiting: { label: "모집중", bg: "#18A34322", color: "#18A343" },
-    closed:     { label: "마감",   bg: "#EA433522", color: "#EA4335" },
-    completed:  { label: "완료",   bg: "#88888822", color: "#888" },
+    recruiting: { label: "모집중", bg: "var(--color-success-soft-bg)",  color: "var(--color-accent-green)" },
+    closed:     { label: "마감",   bg: "var(--color-danger-soft-bg)",   color: "var(--color-brand-red)" },
+    completed:  { label: "완료",   bg: "var(--color-glass-bg)",         color: "var(--color-text-muted)" },
   };
 
   return (
-    <PageShell title="Founder's Club" subtitle="동료 창업자와 함께하는 주제별 소그룹 피어 러닝" accentColor="#A855F7">
+    <PageShell title="Founder's Club" subtitle="동료 창업자와 함께하는 주제별 소그룹 피어 러닝" accentColor="var(--color-accent-purple)">
       <div style={{ maxWidth: 900, margin: "0 auto", paddingBottom: 80 }}>
         {loading ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {[0, 1, 2].map(i => (
-              <div key={i} style={{ background: card, border: `1px solid ${border}`, borderRadius: 20, padding: 28 }}>
+              <div key={i} style={{ background: "var(--color-surface-card)", border: "1px solid var(--color-border-soft)", borderRadius: 20, padding: 28 }}>
                 <div className="flex justify-between items-start mb-4">
                   <Skeleton className="h-6 w-48" />
                   <Skeleton className="h-6 w-16 rounded-full" />
@@ -176,7 +171,7 @@ export function FoundersClubPage() {
             ))}
           </div>
         ) : sessions.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "80px", color: textMuted }}>등록된 세션이 없습니다.</div>
+          <div style={{ textAlign: "center", padding: "80px", color: "var(--color-text-muted)" }}>등록된 세션이 없습니다.</div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {sessions.map(s => {
@@ -184,35 +179,35 @@ export function FoundersClubPage() {
               const spotsLeft = s.max_participants - s.accepted_count;
               const alreadyApplied = !!s.user_application;
               const appStatus = s.user_application?.status;
-              const appColor = appStatus === "accepted" ? "#18A343" : appStatus === "rejected" ? "#EA4335" : appStatus === "cancelled" ? "#64748B" : "#A66F00";
+              const appColor = appStatus === "accepted" ? "var(--color-accent-green)" : appStatus === "rejected" ? "var(--color-brand-red)" : appStatus === "cancelled" ? "var(--color-neutral)" : "var(--color-warning)";
 
               return (
-                <div key={s.id} style={{ background: card, border: `1px solid ${border}`, borderRadius: 20, padding: 28, boxShadow: isDark ? "none" : "0 2px 16px rgba(0,0,0,0.05)" }}>
+                <div key={s.id} style={{ background: "var(--color-surface-card)", border: "1px solid var(--color-border-soft)", borderRadius: 20, padding: 28, boxShadow: "var(--shadow-card-rest)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12, flexWrap: "wrap", gap: 10 }}>
                     <div>
-                      <h3 style={{ margin: "0 0 6px", fontWeight: 800, color: textMain, fontSize: 18 }}>{s.theme}</h3>
+                      <h3 style={{ margin: "0 0 6px", fontWeight: 800, color: "var(--color-text-primary)", fontSize: 18 }}>{s.theme}</h3>
                       {s.session_date && (
-                        <span style={{ fontSize: 13, color: textMuted }}>
+                        <span style={{ fontSize: 13, color: "var(--color-text-muted)" }}>
                           {new Date(s.session_date).toLocaleDateString("ko-KR", { month: "long", day: "numeric", weekday: "short" })}
                           {s.session_time && ` ${s.session_time.slice(0, 5)}`}
                         </span>
                       )}
-                      <div style={{ fontSize: 13, color: textMuted, marginTop: 4 }}>{s.location || "장소 미정"}</div>
+                      <div style={{ fontSize: 13, color: "var(--color-text-muted)", marginTop: 4 }}>{s.location || "장소 미정"}</div>
                     </div>
                     <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                       <span style={getStatusPillStyle(cfg.color, isDark)}>{cfg.label}</span>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: textMuted }}>{s.accepted_count}/{s.max_participants}명</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-muted)" }}>{s.accepted_count}/{s.max_participants}명</span>
                     </div>
                   </div>
 
                   {s.description && (
-                    <p style={{ color: textMuted, fontSize: 14, lineHeight: 1.65, margin: "0 0 16px" }}>{s.description}</p>
+                    <p style={{ color: "var(--color-text-muted)", fontSize: 14, lineHeight: 1.65, margin: "0 0 16px" }}>{s.description}</p>
                   )}
 
                   {/* Spots indicator */}
                   <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
                     {Array.from({ length: s.max_participants }).map((_, i) => (
-                      <div key={i} style={{ height: 6, flex: 1, borderRadius: 99, background: i < s.accepted_count ? (isDark ? "rgba(255,255,255,0.62)" : "#334155") : (isDark ? "rgba(255,255,255,0.1)" : "#e2e8f0") }} />
+                      <div key={i} style={{ height: 6, flex: 1, borderRadius: 99, background: i < s.accepted_count ? "var(--color-capacity-fill)" : "var(--color-capacity-track)" }} />
                     ))}
                   </div>
 
@@ -220,7 +215,7 @@ export function FoundersClubPage() {
                     <div>
                       <button
                         onClick={() => toggleExpanded(s.id)}
-                        style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", cursor: "pointer", padding: 0, color: textMuted, fontSize: 13, fontWeight: 700 }}
+                        style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", cursor: "pointer", padding: 0, color: "var(--color-text-muted)", fontSize: 13, fontWeight: 700 }}
                       >
                         <span>수락된 참여자 {s.accepted_count}명</span>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
@@ -231,14 +226,14 @@ export function FoundersClubPage() {
                       {expandedSessions.has(s.id) && (
                         <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
                           {s.accepted_applicants && s.accepted_applicants.length > 0 ? s.accepted_applicants.map(a => (
-                            <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: textMain, padding: "8px 12px", background: isDark ? "rgba(255,255,255,0.04)" : "#f8fafc", borderRadius: 10 }}>
-                              <div style={{ width: 6, height: 6, borderRadius: "50%", background: textMuted, flexShrink: 0 }} />
+                            <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--color-text-primary)", padding: "8px 12px", background: "var(--color-field-bg)", borderRadius: 10 }}>
+                              <div style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--color-text-muted)", flexShrink: 0 }} />
                               <span style={{ fontWeight: 600 }}>{a.name}</span>
-                              {a.company && <span style={{ color: textMuted }}>· {a.company}</span>}
-                              <span style={{ color: textMuted, marginLeft: "auto", fontSize: 12 }}>{a.email}</span>
+                              {a.company && <span style={{ color: "var(--color-text-muted)" }}>· {a.company}</span>}
+                              <span style={{ color: "var(--color-text-muted)", marginLeft: "auto", fontSize: 12 }}>{a.email}</span>
                             </div>
                           )) : (
-                            <p style={{ color: textMuted, fontSize: 13, margin: 0 }}>수락된 참여자가 없습니다.</p>
+                            <p style={{ color: "var(--color-text-muted)", fontSize: 13, margin: 0 }}>수락된 참여자가 없습니다.</p>
                           )}
                         </div>
                       )}
@@ -253,7 +248,7 @@ export function FoundersClubPage() {
                     <button
                       onClick={() => { if (!userId) { alert("로그인이 필요합니다."); return; } setApplyTarget(s); setMessage(""); }}
                       disabled={s.status !== "recruiting" || spotsLeft <= 0}
-                      style={{ padding: "11px 24px", borderRadius: 12, border: "none", background: s.status === "recruiting" && spotsLeft > 0 ? "#4377F1" : (isDark ? "rgba(255,255,255,0.08)" : "#e2e8f0"), color: s.status === "recruiting" && spotsLeft > 0 ? "#fff" : textMuted, fontWeight: 700, cursor: s.status === "recruiting" && spotsLeft > 0 ? "pointer" : "not-allowed", fontSize: 14, transition: "filter 0.2s" }}
+                      style={{ padding: "11px 24px", borderRadius: 12, border: "none", background: s.status === "recruiting" && spotsLeft > 0 ? "var(--color-accent-blue)" : "var(--color-glass-bg-hover)", color: s.status === "recruiting" && spotsLeft > 0 ? "var(--color-on-primary)" : "var(--color-text-muted)", fontWeight: 700, cursor: s.status === "recruiting" && spotsLeft > 0 ? "pointer" : "not-allowed", fontSize: 14, transition: "filter 0.2s" }}
                     >
                       {s.status !== "recruiting" ? "모집 마감" : spotsLeft <= 0 ? "정원 마감" : `지금 신청 (${spotsLeft}자리 남음)`}
                     </button>
@@ -267,34 +262,34 @@ export function FoundersClubPage() {
 
       {/* Apply modal */}
       {applyTarget && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: LAYERS.modal, padding: 20 }} onClick={e => { if (e.target === e.currentTarget) setApplyTarget(null); }}>
-          <div style={{ background: "var(--color-bg-elevated)", borderRadius: 24, padding: "36px 32px", width: "100%", maxWidth: 440, boxShadow: "0 24px 60px rgba(0,0,0,0.25)" }}>
+        <div style={{ position: "fixed", inset: 0, background: "var(--color-backdrop)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: LAYERS.modal, padding: 20 }} onClick={e => { if (e.target === e.currentTarget) setApplyTarget(null); }}>
+          <div style={{ background: "var(--color-bg-elevated)", borderRadius: 24, padding: "36px 32px", width: "100%", maxWidth: 440, boxShadow: "var(--shadow-dialog)" }}>
             {appliedId === applyTarget.id ? (
               <div style={{ textAlign: "center" }}>
-                <h3 style={{ color: textMain, fontWeight: 800, marginBottom: 12 }}>신청 완료!</h3>
-                <p style={{ color: textMuted, lineHeight: 1.6, marginBottom: 24 }}>신청이 접수되었습니다. 운영자 검토 후 수락 여부가 결정됩니다.</p>
-                <button onClick={() => { setApplyTarget(null); setAppliedId(null); }} style={{ padding: "12px 32px", borderRadius: 12, border: "none", background: "#4377F1", color: "#fff", fontWeight: 700, cursor: "pointer" }}>닫기</button>
+                <h3 style={{ color: "var(--color-text-primary)", fontWeight: 800, marginBottom: 12 }}>신청 완료!</h3>
+                <p style={{ color: "var(--color-text-muted)", lineHeight: 1.6, marginBottom: 24 }}>신청이 접수되었습니다. 운영자 검토 후 수락 여부가 결정됩니다.</p>
+                <button onClick={() => { setApplyTarget(null); setAppliedId(null); }} style={{ padding: "12px 32px", borderRadius: 12, border: "none", background: "var(--color-accent-blue)", color: "var(--color-on-primary)", fontWeight: 700, cursor: "pointer" }}>닫기</button>
               </div>
             ) : (
               <>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-                  <h3 style={{ color: textMain, fontWeight: 800, margin: 0, fontSize: 18 }}>{applyTarget.theme}</h3>
-                  <button onClick={() => setApplyTarget(null)} style={{ background: "none", border: "none", cursor: "pointer", color: textMuted, fontSize: 22 }}>×</button>
+                  <h3 style={{ color: "var(--color-text-primary)", fontWeight: 800, margin: 0, fontSize: 18 }}>{applyTarget.theme}</h3>
+                  <button onClick={() => setApplyTarget(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-text-muted)", fontSize: 22 }}>×</button>
                 </div>
                 {applyTarget.description && (
-                  <p style={{ color: textMain, fontSize: 14, lineHeight: 1.7, margin: "0 0 20px" }}>{applyTarget.description}</p>
+                  <p style={{ color: "var(--color-text-primary)", fontSize: 14, lineHeight: 1.7, margin: "0 0 20px" }}>{applyTarget.description}</p>
                 )}
                 <textarea
                   value={message}
                   onChange={e => setMessage(e.target.value)}
                   placeholder="참여 동기나 기대하는 점을 자유롭게 작성해주세요. (선택)"
                   rows={4}
-                  style={{ width: "100%", padding: "12px 14px", borderRadius: 12, border: `1px solid ${isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.1)"}`, background: isDark ? "rgba(255,255,255,0.05)" : "#f8fafc", color: textMain, outline: "none", resize: "vertical", fontSize: 14, lineHeight: 1.6, boxSizing: "border-box", marginBottom: 16, fontFamily: "inherit" }}
+                  style={{ width: "100%", padding: "12px 14px", borderRadius: 12, border: "1px solid var(--color-border-soft)", background: "var(--color-field-bg)", color: "var(--color-text-primary)", outline: "none", resize: "vertical", fontSize: 14, lineHeight: 1.6, boxSizing: "border-box", marginBottom: 16, fontFamily: "inherit" }}
                 />
                 <button
                   onClick={handleApply}
                   disabled={applying}
-                  style={{ width: "100%", padding: "14px", borderRadius: 12, border: "none", background: "#4377F1", color: "#fff", fontWeight: 800, cursor: "pointer", fontSize: 15, opacity: applying ? 0.6 : 1 }}
+                  style={{ width: "100%", padding: "14px", borderRadius: 12, border: "none", background: "var(--color-accent-blue)", color: "var(--color-on-primary)", fontWeight: 800, cursor: "pointer", fontSize: 15, opacity: applying ? 0.6 : 1 }}
                 >
                   {applying ? "신청 중..." : "신청하기 (선착순)"}
                 </button>

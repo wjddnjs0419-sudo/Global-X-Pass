@@ -210,9 +210,9 @@ export function AdminUserManagement({ refreshKey, adminId }: AdminUserManagement
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
       {/* 헤더 */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h3 style={{ fontSize: "22px", fontWeight: 800, color: textMain }}>회원 관리 ({loading ? "…" : users.length})</h3>
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h3 style={{ fontSize: "24px", fontWeight: 800, color: textMain, margin: 0 }}>회원 관리 ({loading ? "…" : users.length})</h3>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-[10px]" style={{ alignItems: "center" }}>
           <button onClick={downloadCsvTemplate} style={{ padding: "10px 16px", borderRadius: "10px", border: `1px solid ${border}`, background: panelBg, color: textMain, fontWeight: 700, cursor: "pointer", fontSize: "14px" }}>CSV 양식 다운로드</button>
           <label style={{ padding: "10px 16px", borderRadius: "10px", border: `1px solid ${csvLoading ? border : labelBorder}`, background: csvLoading ? panelBg : selectedBg, color: csvLoading ? textMuted : textMain, fontWeight: 750, cursor: csvLoading ? "not-allowed" : "pointer", display: "inline-block", fontSize: "14px" }}>
             {csvLoading ? "처리 중..." : "CSV 일괄 등록"}
@@ -222,7 +222,7 @@ export function AdminUserManagement({ refreshKey, adminId }: AdminUserManagement
       </div>
 
       {/* CSV 안내 */}
-      <div style={{ fontSize: 12, color: textMuted, background: panelBg, border: `1px solid ${border}`, borderRadius: 10, padding: "10px 14px", lineHeight: 1.7 }}>
+      <div style={{ fontSize: 13, color: textMuted, background: panelBg, border: `1px solid ${border}`, borderRadius: 12, padding: "12px 14px", lineHeight: 1.7 }}>
         <strong style={{ color: textMain }}>CSV 형식:</strong> name, email, phone, company, role, password<br />
         password가 비어있으면 <code style={{ fontFamily: `"SF Mono", monospace`, fontSize: 11 }}>GXP-XXXX-XXXX</code> 형식의 임시 비밀번호가 자동 생성됩니다. role은 <code style={{ fontFamily: `"SF Mono", monospace`, fontSize: 11 }}>user</code> 또는 <code style={{ fontFamily: `"SF Mono", monospace`, fontSize: 11 }}>participant</code>만 허용됩니다.
       </div>
@@ -233,7 +233,7 @@ export function AdminUserManagement({ refreshKey, adminId }: AdminUserManagement
         placeholder="이름 / 이메일 / 회사 검색..."
         value={search}
         onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
-        style={{ padding: "12px 16px", borderRadius: 12, border: `1px solid ${border}`, background: inputBg, color: textMain, outline: "none", fontSize: 14 }}
+        style={{ width: "100%", maxWidth: 420, padding: "12px 16px", borderRadius: 12, border: `1px solid ${border}`, background: inputBg, color: textMain, outline: "none", fontSize: 14 }}
       />
 
       {/* 회원 목록 */}
@@ -246,23 +246,23 @@ export function AdminUserManagement({ refreshKey, adminId }: AdminUserManagement
                 const cfg = ROLE_CFG[user.role] ?? ROLE_CFG.user;
                 const isSelf = user.id === adminId;
                 return (
-                  <div key={user.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-[16px] sm:gap-0" style={{ background: card, border: `1px solid ${isSelf ? labelBorder : border}`, borderRadius: "16px", padding: "18px 24px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-                      <span style={{ fontSize: "12px", background: labelBg, border: `1px solid ${labelBorder}`, color: textMuted, padding: "5px 10px", borderRadius: "8px", fontWeight: 700, whiteSpace: "nowrap" }}>{cfg.label}</span>
+                  <div key={user.id} className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between" style={{ background: card, border: `1px solid ${isSelf ? labelBorder : border}`, borderRadius: "16px", padding: "18px 20px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "16px", minWidth: 0 }}>
+                      <span style={{ fontSize: "13px", background: labelBg, border: `1px solid ${labelBorder}`, color: textMuted, padding: "6px 10px", borderRadius: "9px", fontWeight: 700, whiteSpace: "nowrap" }}>{cfg.label}</span>
                       <div style={{ display: "flex", flexDirection: "column" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <strong style={{ color: textMain, fontSize: "16px" }}>{user.name || "이름 없음"}</strong>
-                          {isSelf && <span style={{ fontSize: 11, fontWeight: 750, color: textMain, background: selectedBg, border: `1px solid ${labelBorder}`, padding: "2px 8px", borderRadius: 99 }}>본인</span>}
+                          <strong style={{ color: textMain, fontSize: "17px" }}>{user.name || "이름 없음"}</strong>
+                          {isSelf && <span style={{ fontSize: 12, fontWeight: 750, color: textMain, background: selectedBg, border: `1px solid ${labelBorder}`, padding: "3px 8px", borderRadius: 99 }}>본인</span>}
                         </div>
-                        <span style={{ color: textMuted, fontSize: "13px", marginTop: "4px" }}>{user.email || "이메일 없음"}</span>
+                        <span style={{ color: textMuted, fontSize: "14px", marginTop: "4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email || "이메일 없음"}</span>
                       </div>
                     </div>
-                    <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                    <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center" style={{ alignItems: "stretch" }}>
                       <select
                         value={user.role ?? "user"}
                         onChange={e => handleSetRole(user.id, e.target.value)}
                         disabled={isSelf}
-                        style={{ padding: "9px 12px", borderRadius: "10px", border: `1px solid ${border}`, background: inputBg, color: isSelf ? textMuted : textMain, fontWeight: 700, cursor: isSelf ? "not-allowed" : "pointer", fontSize: 13, opacity: isSelf ? 0.45 : 1 }}
+                        style={{ padding: "10px 12px", borderRadius: "10px", border: `1px solid ${border}`, background: inputBg, color: isSelf ? textMuted : textMain, fontWeight: 700, cursor: isSelf ? "not-allowed" : "pointer", fontSize: 14, opacity: isSelf ? 0.45 : 1 }}
                       >
                         <option value="admin">관리자</option>
                         <option value="participant">참여사 담당자</option>
@@ -271,7 +271,7 @@ export function AdminUserManagement({ refreshKey, adminId }: AdminUserManagement
                       <button
                         onClick={() => handleDeleteUser(user.id)}
                         disabled={isSelf}
-                        style={{ padding: "10px 18px", borderRadius: "10px", border: `1px solid ${isSelf ? border : deleteBorder}`, background: isSelf ? panelBg : deleteBg, color: isSelf ? textMuted : "#EA4335", fontWeight: 700, cursor: isSelf ? "not-allowed" : "pointer", opacity: isSelf ? 0.45 : 1 }}
+                        style={{ padding: "10px 18px", borderRadius: "10px", border: `1px solid ${isSelf ? border : deleteBorder}`, background: isSelf ? panelBg : deleteBg, color: isSelf ? textMuted : "var(--color-brand-red)", fontWeight: 700, cursor: isSelf ? "not-allowed" : "pointer", opacity: isSelf ? 0.45 : 1, fontSize: 14 }}
                       >삭제</button>
                     </div>
                   </div>

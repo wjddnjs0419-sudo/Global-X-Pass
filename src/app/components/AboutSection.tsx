@@ -247,7 +247,7 @@ export function AboutSection({ isDark = false }: AboutSectionProps) {
             }}>
               구글 창구 프로그램
             </h2>
-            <p style={{ color: t.subText, fontSize: "15px", margin: 0, lineHeight: 1.65 }}>
+            <p style={{ color: t.subText, fontSize: "clamp(15px, 3.8vw, 18px)", margin: 0, lineHeight: 1.65 }}>
               당신의 기업이 글로벌 시장에서 PLAY 될 때까지 함께합니다.
             </p>
           </div>
@@ -326,37 +326,37 @@ export function AboutSection({ isDark = false }: AboutSectionProps) {
           <ol
             className="about-tl-mobile"
             style={{
-              flexDirection: "column", gap: "28px",
+              flexDirection: "column", gap: "32px",
               listStyle: "none", padding: 0, margin: 0,
             }}
           >
             {phases.map((phase) => (
-              <li key={phase.year} style={{ display: "flex", gap: "18px", alignItems: "flex-start" }}>
+              <li key={phase.year} style={{ display: "flex", gap: "20px", alignItems: "flex-start" }}>
                 {/* Mini circle — year only */}
                 <div
                   aria-hidden="true"
                   style={{
-                    width: 72, height: 72, borderRadius: "50%", flexShrink: 0,
+                    width: 84, height: 84, borderRadius: "50%", flexShrink: 0,
                     background: phase.gradient,
                     boxShadow: t.ringGlow,
                     display: "flex", alignItems: "center", justifyContent: "center",
                   }}
                 >
-                  <span style={{ fontSize: "15px", fontWeight: 900, color: "#fff", lineHeight: 1, letterSpacing: "-0.5px" }}>
+                  <span style={{ fontSize: "18px", fontWeight: 900, color: "#fff", lineHeight: 1, letterSpacing: "-0.6px" }}>
                     {phase.year}
                   </span>
                 </div>
 
                 {/* Text */}
-                <div style={{ flex: 1, paddingTop: "6px" }}>
-                  <div style={{ fontWeight: 700, fontSize: "15px", color: t.labelColor, marginBottom: "4px" }}>
+                <div style={{ flex: 1, paddingTop: "7px" }}>
+                  <div style={{ fontWeight: 700, fontSize: "17px", color: t.labelColor, marginBottom: "5px", lineHeight: 1.35 }}>
                     {phase.label}
                   </div>
-                  <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "2px" }}>
-                    <li style={{ fontSize: "12px", color: t.descColor, marginBottom: "2px" }}>{phase.desc}</li>
+                  <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "4px" }}>
+                    <li style={{ fontSize: "13.5px", color: t.descColor, marginBottom: "3px", lineHeight: 1.55 }}>{phase.desc}</li>
                     {phase.bullets.map((b) => (
-                      <li key={b} style={{ display: "flex", gap: "7px", alignItems: "flex-start", fontSize: "11.5px", color: t.bulletColor }}>
-                        <span aria-hidden="true" style={{ width: 4, height: 4, borderRadius: "50%", background: phase.solidColor, flexShrink: 0, marginTop: 5 }} />
+                      <li key={b} style={{ display: "flex", gap: "8px", alignItems: "flex-start", fontSize: "13px", color: t.bulletColor, lineHeight: 1.6 }}>
+                        <span aria-hidden="true" style={{ width: 5, height: 5, borderRadius: "50%", background: phase.solidColor, flexShrink: 0, marginTop: 8 }} />
                         {b}
                       </li>
                     ))}

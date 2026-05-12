@@ -67,14 +67,14 @@ export function ConsultingBookingModal({ consultant, isDark, onClose }: Props) {
   }, {});
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: LAYERS.modal, padding: 20 }} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+    <div style={{ position: "fixed", inset: 0, background: "var(--color-backdrop)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: LAYERS.modal, padding: 20 }} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={{ background: "var(--color-bg-elevated)", borderRadius: 24, padding: "36px 32px", width: "100%", maxWidth: 500, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 24px 60px rgba(0,0,0,0.25)" }}>
         {done ? (
           <div style={{ textAlign: "center", padding: "20px 0" }}>
             <div style={{ fontSize: 48, marginBottom: 16 }}>✅</div>
             <h3 style={{ color: textMain, fontWeight: 800, marginBottom: 12 }}>신청 완료!</h3>
             <p style={{ color: textMuted, lineHeight: 1.6 }}>신청이 접수되었습니다. 담당자 검토 후 이메일로 확정 안내를 드립니다.</p>
-            <button onClick={onClose} style={{ marginTop: 24, padding: "12px 32px", borderRadius: 12, border: "none", background: "#4377F1", color: "#fff", fontWeight: 700, cursor: "pointer" }}>닫기</button>
+            <button onClick={onClose} style={{ marginTop: 24, padding: "12px 32px", borderRadius: 12, border: "none", background: "var(--color-accent-blue)", color: "var(--color-on-primary)", fontWeight: 700, cursor: "pointer" }}>닫기</button>
           </div>
         ) : (
           <>
@@ -89,7 +89,7 @@ export function ConsultingBookingModal({ consultant, isDark, onClose }: Props) {
             <div style={{ marginBottom: 20 }}>
               <p style={{ color: textMain, fontWeight: 700, fontSize: 14, margin: "0 0 12px" }}>예약 가능한 시간 선택</p>
               {slots.length === 0 ? (
-                <p style={{ color: textMuted, fontSize: 14, padding: "20px", textAlign: "center", background: isDark ? "rgba(255,255,255,0.03)" : "#f8fafc", borderRadius: 12 }}>현재 예약 가능한 슬롯이 없습니다.</p>
+                <p style={{ color: textMuted, fontSize: 14, padding: "20px", textAlign: "center", background: isDark ? "rgba(255,255,255,0.03)" : "var(--color-bg-surface)", borderRadius: 12 }}>현재 예약 가능한 슬롯이 없습니다.</p>
               ) : (
                 Object.entries(slotsByDate).map(([date, daySlots]) => (
                   <div key={date} style={{ marginBottom: 12 }}>
@@ -101,7 +101,7 @@ export function ConsultingBookingModal({ consultant, isDark, onClose }: Props) {
                         <button
                           key={s.id}
                           onClick={() => setSelectedSlot(s.id)}
-                          style={{ padding: "8px 16px", borderRadius: 10, border: `1px solid ${selectedSlot === s.id ? "#4377F1" : border}`, background: selectedSlot === s.id ? "#4377F1" : "transparent", color: selectedSlot === s.id ? "#fff" : textMain, fontWeight: 600, cursor: "pointer", fontSize: 14, transition: "all 0.15s", textAlign: "left" }}
+                          style={{ padding: "8px 16px", borderRadius: 10, border: `1px solid ${selectedSlot === s.id ? "var(--color-accent-blue)" : border}`, background: selectedSlot === s.id ? "var(--color-accent-blue)" : "transparent", color: selectedSlot === s.id ? "var(--color-on-primary)" : textMain, fontWeight: 600, cursor: "pointer", fontSize: 14, transition: "all 0.15s", textAlign: "left" }}
                         >
                           <span style={{ display: "block" }}>{s.slot_time.slice(0, 5)} ({s.duration_minutes}분)</span>
                           <span style={{ display: "block", fontSize: 11, opacity: 0.75, marginTop: 2 }}>{s.location || "장소 미정"}</span>
@@ -127,7 +127,7 @@ export function ConsultingBookingModal({ consultant, isDark, onClose }: Props) {
             <button
               onClick={handleSubmit}
               disabled={loading || !selectedSlot || !description.trim()}
-              style={{ width: "100%", padding: "14px", borderRadius: 12, border: "none", background: "#4377F1", color: "#fff", fontWeight: 800, cursor: "pointer", fontSize: 15, opacity: !selectedSlot || !description.trim() ? 0.5 : 1 }}
+              style={{ width: "100%", padding: "14px", borderRadius: 12, border: "none", background: "var(--color-accent-blue)", color: "var(--color-on-primary)", fontWeight: 800, cursor: "pointer", fontSize: 15, opacity: !selectedSlot || !description.trim() ? 0.5 : 1 }}
             >
               {loading ? "신청 중..." : "컨설팅 신청하기"}
             </button>

@@ -29,9 +29,17 @@ This file serves as the foundational context and authoritative guide for all AI 
 - **Role Column Guard:** `public.profiles.role`은 authenticated 세션의 직접 UPDATE를 허용하지 말고, DB trigger 또는 동등한 수단으로 service-role 기반 서버 경로에서만 바뀌도록 강제할 것.
 - **Idle Logout:** 28-min idle warning -> 30-min auto-logout. Session stale check on mount (>30 min since `gxp_last_active`).
 
+## No-Hardcode Mandate (CRITICAL)
+- **컴포넌트/페이지/훅/유틸 코드에 디자인 raw 리터럴을 직접 추가하지 말 것.** 색상, 배경, 테두리, 그림자, 간격, 반경, 폰트 크기, z-index 등 반복 가능한 UI 값은 CSS 변수(`var(--color-*)`, `var(--space-*)`, `var(--radius-*)`, `var(--shadow-*)`), 공용 상수, 또는 기존 `isDark` 토큰 패턴을 사용한다.
+- **토큰 정의 파일은 예외다.** `src/styles/theme.css`처럼 디자인 토큰의 원천 값을 선언하는 파일, `adminConstants.ts`처럼 CSS 변수 참조를 카테고리 의미에 매핑하는 파일, Tailwind/shadcn 기반 설정 파일은 필요한 raw 값을 정의할 수 있다.
+- **일회성 raw 값도 먼저 기존 토큰을 찾는다.** 적합한 토큰이 없으면 새 의미 토큰을 `theme.css`에 추가하고 호출부는 그 토큰을 참조한다. 단순히 “이번 화면에만 필요하다”는 이유로 새 hex, `rgba(...)`, 임의 `px` 값을 컴포넌트에 박아 넣지 않는다.
+- **예외가 필요한 경우 사전 동의를 받는다.** Canvas API(`ctx.fillStyle` 등), 외부 라이브러리가 CSS 변수를 수용하지 않는 경우, 계산식상 숫자 리터럴이 도메인 값인 경우처럼 불가피한 예외는 코드 수정 전에 이유와 범위를 사용자에게 설명하고 명시적 승인을 받는다.
+- **기존 레거시 하드코딩은 작업 범위 안에서 건드린 파일부터 줄인다.** 대규모 일괄 정리는 별도 승인 작업으로 분리하되, 새로 수정하는 라인에서는 하드코딩을 늘리지 않는다.
+
 ## Coding Conventions
 - **Data Fetching:** Direct calls via `supabaseClient.ts` within components. No global state managers (Redux/Zustand) unless explicitly added.
 - **Theme Handling:** Use `useTheme()` hook for `isDark` state. Apply conditional styles/classes based on this state.
+- **Breakpoint Standard:** Official layout breakpoints are Mobile `320px ~ 767px` (base), Tablet `768px ~ 1023px` (`md`), Desktop `1024px ~ 1279px` (`lg`), and Large Desktop `1280px+` (`xl`). Treat `sm` (`640px+`) as an auxiliary large-phone / narrow-width adjustment only, not as a primary layout breakpoint.
 - **Korean IME:** Avoid `onKeyDown` with "Enter" for Korean text inputs; use explicit "Add/Confirm" buttons.
 - **File Uploads:** Always use `encodeFilename()` from `@/utils/file.ts` for Supabase Storage to prevent character encoding issues. Images (jpg, png, etc.) must route to the `images` bucket, while non-image files (pdf, zip, docx, etc.) must route to the `documents` bucket.
 - **Public Storage:** The `images` and `documents` buckets are publicly readable. Only public-facing assets and downloadable public resources belong there; sensitive files require a separate private bucket plus signed URL flow.
@@ -104,7 +112,7 @@ All AI agents interacting with this repository MUST adhere to the following work
 8. **Reviewer Summary:** Once changes and validation are complete, the agent must provide a formatted summary of modified files and key changes that the user can easily copy and paste to a Reviewer.
 9. **Review Waiting:** After providing the summary, the agent must pause and wait for the Reviewer's feedback before proceeding with new modifications.
 10. **PLAN Lifecycle, Compaction & Cleanup:** Before implementation, the agent MUST add the approved work as a pending item under `## Pending Approval` in `PLAN.md`. After implementation and successful `npm run validate`, the agent MUST compress that item into a single `[Done]` summary line. If `PLAN.md` accumulates more than 10 `[Done]` items, permanently delete the oldest completed items so the file stays focused on active and upcoming tasks. Detailed implementation notes belong in `RESULT.md`. **CRITICAL: Items classified as 'Technical Debt' or 'Long-term Plan' MUST NEVER be deleted or compressed into `[Done]` until they are completely resolved and verified.**
-11. **`종료` Shortcut:** If the user says `종료`, the agent MUST check whether approved work has been reflected in `PLAN.md`, whether `RESULT.md` contains the latest session summary, and whether the latest `npm run validate` status has been recorded. If anything is missing, update the docs first and only then treat the session as closed. In addition, if any Supabase-related changes were made during the session (schema, RLS, Edge Functions, migrations), the agent MUST run `supabase migration list` to confirm all local migrations are reflected in the remote database. If any migrations are unsynced (Remote column empty), run `supabase db push` before closing.
+11. **`종료` Shortcut:** If the user says `종료`, the agent MUST check whether approved work has been reflected in `PLAN.md`, whether `RESULT.md` contains the latest session summary, and whether the latest `npm run validate` status has been recorded. If anything is missing, update the docs first and only then treat the session as closed. In addition, if any Supabase-related changes were made during the session (schema, RLS, Edge Functions, migrations), the agent MUST run `supabase migration list` to confirm all local migrations are reflected in the remote database. If any migrations are unsynced (Remote column empty), run `supabase db push` before closing. After all checks pass, the agent MUST: (1) run `git status` and `git diff --stat` to identify changed files; (2) draft a commit message summarizing the session's key changes; (3) present the changed file list and draft commit message to the user; (4) ask the user to choose one of **"푸시도 해줘"** (commit + push), **"커밋만"** (commit only, no push), or **"취소"** (skip). Push is **never automatic** — it requires explicit user selection.
 12. **End of Session Documentation:** Whenever concluding a session, the agent MUST update this `GEMINI.md` and any relevant `.gemini_prompts/maker_*.md` files with any new architectural rules, coding conventions, or workflow mandates established during that session.
 
 ## Directory Structure Highlights
@@ -143,6 +151,7 @@ Work is divided into three distinct tracks, each featuring a **Maker** (Executio
 - **Reviewer (`reviewer_security.md`):** Read-only. Audits for Supabase RLS bypasses, PII exposure risks, and Admin MFA logic flaws from an attacker's perspective.
 
 ## 🚫 Anti-Patterns & Lessons Learned
+- **Hook Return Drift:** 큰 훅을 분해한 뒤 제거한 setter/field를 최종 return 객체에 남겨 타입 오류를 만들지 말 것. exported hook contract를 바꿀 때는 return shape와 호출부 destructuring을 한 묶음으로 검증할 것.
 - **PII Direct Query:** `profiles(name, email)`와 같이 PII 테이블을 직접 조인하여 화면에 렌더링하는 코드를 절대 작성하지 말 것. 반드시 `decrypt-profiles` 등 암호화 Edge Function을 사용할 것.
 - **Broad Lint Retrofit:** 기존 코드베이스 정리 없이 저장소 전체에 범용 ESLint recommended 규칙을 한 번에 켜지 말 것. 래칫은 목표 금지 규칙만 좁게 추가하거나 별도 정리 마이그레이션과 함께 도입할 것.
 - **Service-Role Gate:** `SUPABASE_SERVICE_ROLE_KEY`를 사용하는 Edge Function은 호출자 인증과 소유권/관리자 검증을 먼저 통과시키지 않은 채 외부에 열어두지 말 것.
@@ -177,3 +186,5 @@ Work is divided into three distinct tracks, each featuring a **Maker** (Executio
 - **Admin Floating Nav MFA Gate:** `RootLayout`의 관리자 플로팅 nav를 `isAdmin`만으로 게이팅하면 MFA 미완료 관리자 세션에서도 nav가 노출된다. 반드시 `!adminLoading && isAdmin && !mfaRequired && mfaEnrolled` 전체 조건으로 렌더링할 것. `isAdmin` 자체에 aal2를 강제하면 `AdminRoute`의 MFA 리디렉트 흐름이 깨지므로, MFA 상태 확인은 UI 레이어에서 별도로 수행해야 한다.
 - **AdminRoute Loading Null:** `AdminRoute`에서 `loading` 중 `null`을 반환하면 DOM이 비어 타이밍으로 권한 상태 추론이 가능하다. `<Navigate to="/" replace />`는 초기 로드 시 관리자 진입을 차단하는 부작용이 있다. `<div aria-hidden style={{ visibility: "hidden" }} />`처럼 중립적인 빈 요소를 반환할 것.
 - **Trigger-Only Edge Function Confusion:** `sync-naver-blog` Edge Function은 `blog_import_runs`에 queued 행만 생성하고, 실제 크롤링·이관은 GitHub Actions가 처리한다. "즉시 이관 실행" 버튼은 GitHub Actions `workflow_dispatch`까지 연동되어 있으므로 `GITHUB_PAT` secret이 없으면 dispatch가 실패하고 03:00 KST 예약 처리로 fallback된다. `imageCollage(se-imageGroup)`처럼 block type은 분류됐어도 내부 layout marker/CSS가 없으면 원본 이미지 배치가 세로로 무너질 수 있으므로 대표 포스트 브라우저 확인을 병행한다.
+- **Inline Handle Union Type:** TSX에서 위치가 다른 핸들 객체 배열을 inline `as const`로 만들고 `top/right/bottom/left`를 바로 읽지 말 것. 선택 필드가 있는 명시 타입 배열로 분리해 union property 오류를 막는다.
+- **Korean IME onKeyDown Enter:** 한글 입력 필드에 `onKeyDown` + `e.key === "Enter"` 로 제출 로직을 연결하지 말 것. 한글 IME 조합 완료 이벤트와 충돌해 같은 동작이 두 번 실행된다. 반드시 전용 "추가"/"확인" 버튼의 `onClick`으로만 제출 처리할 것.

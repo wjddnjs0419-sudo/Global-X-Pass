@@ -25,11 +25,6 @@ export function BlogPage() {
   const [activeTag, setActiveTag] = useState("전체");
   const [currentPage, setCurrentPage] = useState(1);
 
-  const cardBg = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
-  const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
-  const textMain = isDark ? "rgba(255,255,255,0.92)" : "#0f172a";
-  const textMuted = isDark ? "rgba(255,255,255,0.45)" : "rgba(15,23,42,0.5)";
-  const imgPlaceholder = isDark ? "rgba(255,255,255,0.06)" : "#f1f5f9";
 
   useEffect(() => {
     supabase
@@ -55,7 +50,7 @@ export function BlogPage() {
   const handleTagChange = (tag: string) => { setActiveTag(tag); setCurrentPage(1); };
 
   return (
-    <PageShell title="블로그" subtitle="NCF와 Around X가 전하는 다양한 인사이트와 비즈니스 이야기를 만나보세요." accentColor="#A855F7">
+    <PageShell title="블로그" subtitle="NCF와 Around X가 전하는 다양한 인사이트와 비즈니스 이야기를 만나보세요." accentColor="var(--color-accent-purple)">
       <div className="max-w-[1200px] mx-auto pb-[100px]">
         {loading ? (
           <LoadingSpinner />
@@ -88,28 +83,28 @@ export function BlogPage() {
                 >
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     {featured.is_featured && (
-                      <span style={{ fontSize: 12, fontWeight: 750, color: "rgba(255,255,255,0.78)", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.16)", padding: "4px 10px", borderRadius: 6 }}>
+                      <span style={{ fontSize: 12, fontWeight: 750, color: "var(--color-text-secondary)", background: "var(--color-glass-border)", border: "1px solid var(--color-glass-border-strong)", padding: "4px 10px", borderRadius: 6 }}>
                         추천 아티클
                       </span>
                     )}
                     {featured.tags && (
-                      <span style={{ fontSize: 12, fontWeight: 750, color: "rgba(255,255,255,0.68)", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", padding: "4px 10px", borderRadius: 6 }}>
+                      <span style={{ fontSize: 12, fontWeight: 750, color: "var(--color-text-secondary)", background: "var(--color-border-soft)", border: "1px solid var(--color-glass-border)", padding: "4px 10px", borderRadius: 6 }}>
                         {featured.tags}
                       </span>
                     )}
                   </div>
                   <div>
-                    <h2 style={{ margin: "0 0 12px", fontSize: "clamp(20px,3vw,32px)", fontWeight: 900, color: "#fff", lineHeight: 1.3, maxWidth: 700 }}>
+                    <h2 style={{ margin: "0 0 12px", fontSize: "clamp(20px,3vw,32px)", fontWeight: 900, color: "var(--color-text-primary)", lineHeight: 1.3, maxWidth: 700 }}>
                       {featured.title}
                     </h2>
-                    <p style={{ margin: "0 0 20px", fontSize: 15, color: "rgba(255,255,255,0.7)", lineHeight: 1.65, maxWidth: 600, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" } as React.CSSProperties}>
+                    <p style={{ margin: "0 0 20px", fontSize: 15, color: "var(--color-text-secondary)", lineHeight: 1.65, maxWidth: 600, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" } as React.CSSProperties}>
                       {cleanText(featured.content)}
                     </p>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
-                      <span style={{ fontSize: 13, color: "rgba(255,255,255,0.5)" }}>
+                      <span style={{ fontSize: 13, color: "var(--color-text-muted)" }}>
                         NCF 리서치팀 &nbsp;·&nbsp; {new Date(featured.created_at).toLocaleDateString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" }).replace(/ /g, "")} &nbsp;·&nbsp; 읽기 {mins}분
                       </span>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.72)" }}>읽기 →</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: "var(--color-text-secondary)" }}>읽기 →</span>
                       </div>
                     </div>
                 </Link>
@@ -145,13 +140,13 @@ export function BlogPage() {
                     key={post.id}
                     to={`/post/${post.id}`}
                     className="blog-card rounded-3xl overflow-hidden cursor-pointer transition-transform duration-200 hover:-translate-y-1.5 flex flex-col no-underline block"
-                    style={{ background: cardBg, border: `1px solid ${border}`, boxShadow: isDark ? "none" : "0 2px 12px rgba(0,0,0,0.05)" }}
+                    style={{ background: "var(--color-surface-card)", border: "1px solid var(--color-border-soft)", boxShadow: "var(--shadow-card-rest)" }}
                   >
-                    <div style={{ height: 160, overflow: "hidden", background: imgPlaceholder, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <div style={{ height: 160, overflow: "hidden", background: "var(--color-skeleton-bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       {thumbnailUrl ? (
                         <img src={thumbnailUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                       ) : (
-                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke={textMuted} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                           <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
                         </svg>
                       )}
@@ -165,19 +160,19 @@ export function BlogPage() {
                         ) : (
                           <span style={getMutedLabelStyle(isDark)}>인사이트</span>
                         )}
-                        <span style={{ fontSize: 11, color: textMuted }}>{mins}분 읽기</span>
+                        <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>{mins}분 읽기</span>
                       </div>
                       <h2
-                        style={{ margin: 0, fontSize: 16, fontWeight: 800, color: textMain, lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" } as React.CSSProperties}
+                        style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "var(--color-text-primary)", lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" } as React.CSSProperties}
                       >
                         {post.title}
                       </h2>
                       <p
-                        style={{ margin: 0, fontSize: 13, color: textMuted, lineHeight: 1.6, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" } as React.CSSProperties}
+                        style={{ margin: 0, fontSize: 13, color: "var(--color-text-muted)", lineHeight: 1.6, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" } as React.CSSProperties}
                       >
                         {cleanText(post.content)}
                       </p>
-                      <div style={{ fontSize: 12, color: textMuted, marginTop: "auto", paddingTop: 6 }}>
+                      <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: "auto", paddingTop: 6 }}>
                         NCF 팀 &nbsp;·&nbsp; {dateStr}
                       </div>
                     </div>
@@ -236,7 +231,7 @@ export function BlogPage() {
       </div>
       <style>{`
         .blog-card:focus-visible {
-          outline: 2px solid rgba(168,85,247,0.5);
+          outline: 2px solid var(--color-accent-purple-soft-border-strong);
           outline-offset: 3px;
         }
       `}</style>

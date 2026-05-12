@@ -1,12 +1,11 @@
 import { useState, useEffect, useRef } from "react";
-import type { ChangeEvent, PointerEvent } from "react";
-import { useTheme } from "../../ThemeContext";
 import { Check, X } from "lucide-react";
 import { supabase } from "../../../lib/supabaseClient";
-import { LAYERS } from "../../../lib/layers";
-import { encodeFilename, getFileNameFromUrl } from "../../../utils/file";
+import { encodeFilename } from "../../../utils/file";
+import { isDataImageUrl } from "../../../utils/postThumbnail";
 import { getMutedLabelStyle, getStatusPillStyle } from "../contentListStyles";
-import type { Consultant, ConsultingSlot, ConsultingReservation } from "../../../lib/types";
+import { AdvancedThumbnailEditor } from "./AdvancedThumbnailEditor";
+import type { Consultant, ConsultingSlot } from "../../../lib/types";
 import {
   type ConsultingCategory,
   CONSULTING_CATEGORIES_TABLE,
@@ -24,88 +23,33 @@ type DecryptedProfile = {
   company: string | null;
 };
 
-type PhotoDraft = {
-  file: File;
-  url: string;
+type ConsultantForm = {
+  name: string;
+  category: string;
+  bio: string;
+  expertise: string;
+  image_url: string;
 };
 
-type ImageSize = {
-  width: number;
-  height: number;
-};
+const emptyConsultantForm: ConsultantForm = { name: "", category: "", bio: "", expertise: "", image_url: "" };
 
-type PhotoPan = {
-  x: number;
-  y: number;
-};
-
-const PROFILE_IMAGE_SIZE = 400;
-const CROP_STAGE_SIZE = 280;
-
-const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
-
-function getCoverDrawRect(imageSize: ImageSize, outputSize: number, zoom: number, pan: PhotoPan) {
-  const baseScale = Math.max(outputSize / imageSize.width, outputSize / imageSize.height);
-  const finalScale = baseScale * zoom;
-  const drawWidth = imageSize.width * finalScale;
-  const drawHeight = imageSize.height * finalScale;
-  const maxPanX = Math.max(0, (drawWidth - outputSize) / 2);
-  const maxPanY = Math.max(0, (drawHeight - outputSize) / 2);
-  const clampedPan = {
-    x: clamp(pan.x, -maxPanX, maxPanX),
-    y: clamp(pan.y, -maxPanY, maxPanY),
-  };
-
-  return {
-    width: drawWidth,
-    height: drawHeight,
-    left: (outputSize - drawWidth) / 2 + clampedPan.x,
-    top: (outputSize - drawHeight) / 2 + clampedPan.y,
-    pan: clampedPan,
-  };
+async function uploadConsultantProfileDataUrl(dataUrl: string) {
+  const response = await fetch(dataUrl);
+  const blob = await response.blob();
+  const safeName = encodeFilename("consultant-profile.jpg");
+  const fileName = `${Date.now()}---consultant-profile---${Math.random().toString(36).substr(2, 9)}---${safeName}`;
+  const { error } = await supabase.storage.from("images").upload(fileName, blob, { contentType: "image/jpeg" });
+  if (error) throw error;
+  return supabase.storage.from("images").getPublicUrl(fileName).data.publicUrl;
 }
 
-function createProfileImageBlob(sourceUrl: string, zoom: number, pan: PhotoPan): Promise<Blob> {
-  return new Promise((resolve, reject) => {
-    const image = new Image();
-    image.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = PROFILE_IMAGE_SIZE;
-      canvas.height = PROFILE_IMAGE_SIZE;
-
-      const ctx = canvas.getContext("2d");
-      if (!ctx) {
-        reject(new Error("이미지 편집 도구를 초기화할 수 없습니다."));
-        return;
-      }
-
-      ctx.fillStyle = "#f8fafc";
-      ctx.fillRect(0, 0, PROFILE_IMAGE_SIZE, PROFILE_IMAGE_SIZE);
-
-      const outputPan = {
-        x: pan.x * (PROFILE_IMAGE_SIZE / CROP_STAGE_SIZE),
-        y: pan.y * (PROFILE_IMAGE_SIZE / CROP_STAGE_SIZE),
-      };
-      const drawRect = getCoverDrawRect(
-        { width: image.naturalWidth, height: image.naturalHeight },
-        PROFILE_IMAGE_SIZE,
-        zoom,
-        outputPan
-      );
-
-      ctx.drawImage(image, drawRect.left, drawRect.top, drawRect.width, drawRect.height);
-      canvas.toBlob((blob) => {
-        if (blob) resolve(blob);
-        else reject(new Error("프로필 사진 생성에 실패했습니다."));
-      }, "image/jpeg", 0.92);
-    };
-    image.onerror = () => reject(new Error("선택한 이미지를 불러올 수 없습니다."));
-    image.src = sourceUrl;
-  });
+async function persistConsultantImageUrl(imageUrl: string) {
+  const trimmed = imageUrl.trim();
+  if (!trimmed) return null;
+  return isDataImageUrl(trimmed) ? uploadConsultantProfileDataUrl(trimmed) : trimmed;
 }
 
 export function AdminConsultingManagement() {
-  const { isDark } = useTheme();
   const [subTab, setSubTab] = useState<SubTab>("consultants");
   const [consultants, setConsultants] = useState<Consultant[]>([]);
   const [slots, setSlots] = useState<ConsultingSlot[]>([]);
@@ -116,33 +60,28 @@ export function AdminConsultingManagement() {
   const [consultingCategories, setConsultingCategories] = useState<ConsultingCategory[]>([]);
   const [categoryLabelDrafts, setCategoryLabelDrafts] = useState<Record<string, string>>({});
   const [newCategoryInput, setNewCategoryInput] = useState("");
-  const [form, setForm] = useState({ name: "", category: "", bio: "", expertise: "", image_url: "" });
+  const [form, setForm] = useState<ConsultantForm>(emptyConsultantForm);
+  const [editingConsultantId, setEditingConsultantId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<ConsultantForm>(emptyConsultantForm);
   const slotRequestRef = useRef(0);
-  const photoInputRef = useRef<HTMLInputElement>(null);
-  const dragRef = useRef<{ startX: number; startY: number; pan: PhotoPan } | null>(null);
-  const [photoDraft, setPhotoDraft] = useState<PhotoDraft | null>(null);
-  const [photoSize, setPhotoSize] = useState<ImageSize | null>(null);
-  const [photoZoom, setPhotoZoom] = useState(1);
-  const [photoPan, setPhotoPan] = useState<PhotoPan>({ x: 0, y: 0 });
-  const [photoUploading, setPhotoUploading] = useState(false);
   // Slot form
   const [slotForm, setSlotForm] = useState({ consultant_id: "", slot_date_y: "", slot_date_m: "", slot_date_d: "", slot_time: "", duration_minutes: 60, location: "" });
   const [loading, setLoading] = useState(false);
 
-  const card = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
-  const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
-  const textMain = isDark ? "rgba(255,255,255,0.92)" : "rgba(10,16,32,0.88)";
-  const textMuted = isDark ? "rgba(255,255,255,0.45)" : "rgba(10,16,32,0.45)";
-  const inputBg = isDark ? "rgba(255,255,255,0.04)" : "#fff";
+  const card = "var(--color-surface-card)";
+  const border = "var(--color-border-soft)";
+  const textMain = "var(--color-text-primary)";
+  const textMuted = "var(--color-text-muted)";
+  const inputBg = "var(--color-field-bg)";
   const inputStyle = { padding: "10px 14px", borderRadius: 10, background: inputBg, border: `1px solid ${border}`, color: textMain, outline: "none", width: "100%", boxSizing: "border-box" as const, fontSize: 14 };
 
-  const skColor = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)";
-  const panelBg = isDark ? "rgba(255,255,255,0.035)" : "rgba(15,23,42,0.035)";
-  const labelBg = isDark ? "rgba(255,255,255,0.045)" : "rgba(15,23,42,0.035)";
-  const labelBorder = isDark ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.09)";
-  const selectedBg = isDark ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.07)";
-  const deleteBg = isDark ? "rgba(234,67,53,0.08)" : "rgba(234,67,53,0.06)";
-  const deleteBorder = isDark ? "rgba(234,67,53,0.28)" : "rgba(234,67,53,0.22)";
+  const skColor = "var(--color-skeleton-bg)";
+  const labelBg = "var(--color-surface-subtle)";
+  const labelBorder = "var(--color-border-subtle)";
+  const selectedBg = "var(--color-surface-selected)";
+  const deleteBg = "var(--color-danger-soft-bg)";
+  const deleteBorder = "var(--color-danger-soft-border)";
+  const primaryBg = "var(--color-brand-blue)";
 
   const Sk = ({ h = 78, r = 16 }: { h?: number; r?: number }) => (
     <div style={{ height: h, borderRadius: r, background: skColor, animation: "pulse 1.5s ease-in-out infinite" }} />
@@ -185,12 +124,6 @@ export function AdminConsultingManagement() {
 
     return () => { supabase.removeChannel(channel); };
   }, []);
-
-  useEffect(() => {
-    return () => {
-      if (photoDraft?.url) URL.revokeObjectURL(photoDraft.url);
-    };
-  }, [photoDraft?.url]);
 
   const fetchConsultants = async () => {
     const { data } = await supabase.from("consultants").select("*").order("display_order");
@@ -237,96 +170,60 @@ export function AdminConsultingManagement() {
     if (!form.name.trim()) return;
     setLoading(true);
     const expertise = form.expertise.split(",").map(s => s.trim()).filter(Boolean);
-    const { error } = await supabase.from("consultants").insert({ ...form, expertise, bio: form.bio || null, image_url: form.image_url || null });
-    if (error) alert("생성 실패: " + error.message);
-    else { setForm({ name: "", category: "", bio: "", expertise: "", image_url: "" }); fetchConsultants(); }
-    setLoading(false);
-  };
-
-  const resetPhotoDraft = () => {
-    if (photoDraft?.url) URL.revokeObjectURL(photoDraft.url);
-    setPhotoDraft(null);
-    setPhotoSize(null);
-    setPhotoZoom(1);
-    setPhotoPan({ x: 0, y: 0 });
-    dragRef.current = null;
-    if (photoInputRef.current) photoInputRef.current.value = "";
-  };
-
-  const handlePhotoSelect = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      alert("이미지 파일만 업로드 가능합니다.");
-      e.target.value = "";
-      return;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      alert("사진 파일은 10MB 이하만 업로드 가능합니다.");
-      e.target.value = "";
-      return;
-    }
-
-    if (photoDraft?.url) URL.revokeObjectURL(photoDraft.url);
-    const url = URL.createObjectURL(file);
-    setPhotoDraft({ file, url });
-    setPhotoSize(null);
-    setPhotoZoom(1);
-    setPhotoPan({ x: 0, y: 0 });
-    dragRef.current = null;
-
-    const image = new Image();
-    image.onload = () => setPhotoSize({ width: image.naturalWidth, height: image.naturalHeight });
-    image.src = url;
-  };
-
-  const handlePhotoUpload = async () => {
-    if (!photoDraft) return;
-    setPhotoUploading(true);
     try {
-      const blob = await createProfileImageBlob(photoDraft.url, photoZoom, photoPan);
-      const safeName = encodeFilename(photoDraft.file.name.replace(/\.[^.]+$/, "") + ".jpg");
-      const fileName = `${Date.now()}---consultant-profile---${Math.random().toString(36).substr(2, 9)}---${safeName}`;
-      const { error } = await supabase.storage.from("images").upload(fileName, blob, { contentType: "image/jpeg" });
-      if (error) throw error;
-
-      const url = supabase.storage.from("images").getPublicUrl(fileName).data.publicUrl;
-      setForm(f => ({ ...f, image_url: url }));
-      resetPhotoDraft();
+      const imageUrl = await persistConsultantImageUrl(form.image_url);
+      const { error } = await supabase.from("consultants").insert({ ...form, expertise, bio: form.bio || null, image_url: imageUrl });
+      if (error) alert("생성 실패: " + error.message);
+      else { setForm(emptyConsultantForm); fetchConsultants(); }
     } catch (err: any) {
-      alert("프로필 사진 업로드에 실패했습니다.\n\n" + (err?.message || "알 수 없는 오류"));
+      alert("프로필 사진 업로드 실패: " + (err?.message || "알 수 없는 오류"));
     } finally {
-      setPhotoUploading(false);
+      setLoading(false);
     }
   };
 
-  const clampPhotoPan = (nextPan: PhotoPan, zoom = photoZoom) => {
-    if (!photoSize) return nextPan;
-    return getCoverDrawRect(photoSize, CROP_STAGE_SIZE, zoom, nextPan).pan;
+  const startEditConsultant = (consultant: Consultant) => {
+    setEditingConsultantId(consultant.id);
+    setEditForm({
+      name: consultant.name,
+      category: consultant.category,
+      bio: consultant.bio ?? "",
+      expertise: consultant.expertise.join(", "),
+      image_url: consultant.image_url ?? "",
+    });
   };
 
-  const handleCropPointerDown = (e: PointerEvent<HTMLDivElement>) => {
-    if (!photoSize || photoUploading) return;
-    e.currentTarget.setPointerCapture(e.pointerId);
-    dragRef.current = { startX: e.clientX, startY: e.clientY, pan: photoPan };
+  const cancelEditConsultant = () => {
+    setEditingConsultantId(null);
+    setEditForm(emptyConsultantForm);
   };
 
-  const handleCropPointerMove = (e: PointerEvent<HTMLDivElement>) => {
-    if (!dragRef.current) return;
-    const nextPan = {
-      x: dragRef.current.pan.x + e.clientX - dragRef.current.startX,
-      y: dragRef.current.pan.y + e.clientY - dragRef.current.startY,
-    };
-    setPhotoPan(clampPhotoPan(nextPan));
-  };
-
-  const stopCropDrag = () => {
-    dragRef.current = null;
-  };
-
-  const handlePhotoZoomChange = (nextZoom: number) => {
-    setPhotoZoom(nextZoom);
-    setPhotoPan(prev => clampPhotoPan(prev, nextZoom));
+  const handleUpdateConsultant = async (id: string) => {
+    if (!editForm.name.trim()) return;
+    setLoading(true);
+    const expertise = editForm.expertise.split(",").map(s => s.trim()).filter(Boolean);
+    try {
+      const imageUrl = await persistConsultantImageUrl(editForm.image_url);
+      const { error } = await supabase
+        .from("consultants")
+        .update({
+          name: editForm.name.trim(),
+          category: editForm.category,
+          bio: editForm.bio.trim() || null,
+          expertise,
+          image_url: imageUrl,
+        })
+        .eq("id", id);
+      if (error) alert("수정 실패: " + error.message);
+      else {
+        cancelEditConsultant();
+        fetchConsultants();
+      }
+    } catch (err: any) {
+      alert("프로필 사진 업로드 실패: " + (err?.message || "알 수 없는 오류"));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDeleteConsultant = async (id: string) => {
@@ -378,8 +275,8 @@ export function AdminConsultingManagement() {
   };
 
   const statusBadge = (s: string) => {
-    const cfg = { pending: { label: "대기중", color: "#FBBC05" }, confirmed: { label: "승인", color: "#18A343" }, rejected: { label: "거절", color: "#EA4335" }, cancelled: { label: "취소", color: "#64748B" } }[s] ?? { label: s, color: "#888" };
-    return <span style={getStatusPillStyle(cfg.color, isDark)}>{cfg.label}</span>;
+    const cfg = { pending: { label: "대기중", color: "var(--color-brand-yellow)" }, confirmed: { label: "승인", color: "var(--color-brand-green)" }, rejected: { label: "거절", color: "var(--color-brand-red)" }, cancelled: { label: "취소", color: "#64748B" } }[s] ?? { label: s, color: "#888" };
+    return <span style={getStatusPillStyle(cfg.color)}>{cfg.label}</span>;
   };
 
   if (loading && consultants.length === 0) {
@@ -414,7 +311,7 @@ export function AdminConsultingManagement() {
         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 16, padding: 22, display: "flex", flexDirection: "column", gap: 10 }}>
             <p style={{ margin: 0, fontWeight: 700, color: textMain }}>전문가 등록</p>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 10 }}>
               <input style={inputStyle} placeholder="이름" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
               <select style={inputStyle} value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
                 <option value="">카테고리 선택...</option>
@@ -425,52 +322,83 @@ export function AdminConsultingManagement() {
             </div>
             <input style={inputStyle} placeholder="전문 분야 (쉼표로 구분, 예: M&A, 특허출원)" value={form.expertise} onChange={e => setForm(f => ({ ...f, expertise: e.target.value }))} />
             <input style={inputStyle} placeholder="소개 (선택)" value={form.bio} onChange={e => setForm(f => ({ ...f, bio: e.target.value }))} />
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <span style={{ fontSize: 12, color: textMuted, fontWeight: 700 }}>프로필 사진</span>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, padding: 12, border: `1px solid ${border}`, borderRadius: 14, background: panelBg }}>
-                <div style={{ width: 56, height: 56, borderRadius: "50%", overflow: "hidden", background: selectedBg, border: `1px solid ${labelBorder}`, display: "flex", alignItems: "center", justifyContent: "center", color: textMain, fontWeight: 900, fontSize: 20, flexShrink: 0 }}>
-                  {form.image_url ? (
-                    <img src={form.image_url} alt="프로필 사진 미리보기" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-                  ) : (
-                    form.name.trim()[0] || "?"
-                  )}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: textMain, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {form.image_url ? getFileNameFromUrl(form.image_url, "프로필 사진 등록됨") : "등록된 프로필 사진 없음"}
-                  </div>
-                  <div style={{ fontSize: 12, color: textMuted, marginTop: 3 }}>JPG, JPEG, PNG, GIF 파일을 10MB 이하로 업로드할 수 있습니다.</div>
-                </div>
-                <input ref={photoInputRef} type="file" accept="image/*" onChange={handlePhotoSelect} style={{ display: "none" }} />
-                <button type="button" onClick={() => photoInputRef.current?.click()} style={{ padding: "9px 14px", borderRadius: 10, border: `1px solid ${labelBorder}`, background: selectedBg, color: textMain, fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap" }}>
-                  사진 선택
-                </button>
-                {form.image_url && (
-                  <button type="button" onClick={() => setForm(f => ({ ...f, image_url: "" }))} style={{ padding: "9px 12px", borderRadius: 10, border: `1px solid ${border}`, background: "transparent", color: textMuted, fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap" }}>
-                    제거
-                  </button>
-                )}
-              </div>
-            </div>
-            <button onClick={handleCreateConsultant} disabled={loading || !form.name.trim()} style={{ padding: "10px", borderRadius: 10, border: "none", background: "#4377F1", color: "#fff", fontWeight: 750, cursor: "pointer", opacity: !form.name.trim() ? 0.5 : 1, boxShadow: "none" }}>전문가 등록</button>
+            <AdvancedThumbnailEditor
+              aspect="1/1"
+              candidates={[]}
+              value={form.image_url || null}
+              onChange={value => setForm(f => ({ ...f, image_url: value || "" }))}
+              title="전문가 사진"
+              statusLabel="사진 지정됨"
+              emptyStatusLabel="사진 미지정"
+              appliedLabel="현재 적용된 전문가 사진"
+              emptyText="전문가 사진을 업로드하면 여기에 표시됩니다."
+              singleImageMode
+            />
+            <button onClick={handleCreateConsultant} disabled={loading || !form.name.trim()} style={{ padding: "10px", borderRadius: 10, border: "none", background: primaryBg, color: "var(--color-on-primary)", fontWeight: 750, cursor: "pointer", opacity: !form.name.trim() ? 0.5 : 1, boxShadow: "none" }}>전문가 등록</button>
           </div>
 
           {consultants.map(c => (
-            <div key={c.id} style={{ background: card, border: `1px solid ${border}`, borderRadius: 16, padding: "18px 22px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-                  <span style={{ fontWeight: 700, color: textMain }}>{c.name}</span>
-                  <span style={getMutedLabelStyle(isDark)}>{getConsultingCategoryLabel(c.category, consultingCategories)}</span>
-                  {!c.is_active && <span style={getStatusPillStyle("#64748B", isDark)}>비활성</span>}
+            <div key={c.id} style={{ background: card, border: `1px solid ${border}`, borderRadius: 16, padding: "18px 22px", display: "flex", flexDirection: "column", gap: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+                  {c.image_url && (
+                    <img src={c.image_url} alt="" style={{ width: 44, height: 44, objectFit: "cover", borderRadius: "50%", border: `1px solid ${border}`, flexShrink: 0 }} />
+                  )}
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4, flexWrap: "wrap" }}>
+                      <span style={{ fontWeight: 700, color: textMain }}>{c.name}</span>
+                      <span style={getMutedLabelStyle()}>{getConsultingCategoryLabel(c.category, consultingCategories)}</span>
+                      {!c.is_active && <span style={getStatusPillStyle("var(--color-neutral)")}>비활성</span>}
+                    </div>
+                    {c.expertise.length > 0 && <div style={{ fontSize: 12, color: textMuted }}>{c.expertise.join(" · ")}</div>}
+                  </div>
                 </div>
-                {c.expertise.length > 0 && <div style={{ fontSize: 12, color: textMuted }}>{c.expertise.join(" · ")}</div>}
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                  <button type="button" onClick={() => startEditConsultant(c)} style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${labelBorder}`, background: selectedBg, color: textMain, fontWeight: 700, cursor: "pointer", fontSize: 13 }}>
+                    수정
+                  </button>
+                  <button type="button" onClick={() => handleToggleActive(c.id, c.is_active)} style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${border}`, background: "none", color: textMuted, fontWeight: 700, cursor: "pointer", fontSize: 13 }}>
+                    {c.is_active ? "비활성화" : "활성화"}
+                  </button>
+                  <button type="button" onClick={() => handleDeleteConsultant(c.id)} style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${deleteBorder}`, background: deleteBg, color: "var(--color-brand-red)", fontWeight: 700, cursor: "pointer", fontSize: 13 }}>삭제</button>
+                </div>
               </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <button onClick={() => handleToggleActive(c.id, c.is_active)} style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${border}`, background: "none", color: textMuted, fontWeight: 700, cursor: "pointer", fontSize: 13 }}>
-                  {c.is_active ? "비활성화" : "활성화"}
-                </button>
-                <button onClick={() => handleDeleteConsultant(c.id)} style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${deleteBorder}`, background: deleteBg, color: "#EA4335", fontWeight: 700, cursor: "pointer", fontSize: 13 }}>삭제</button>
-              </div>
+
+              {editingConsultantId === c.id && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10, paddingTop: 14, borderTop: `1px solid ${border}` }}>
+                  <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 10 }}>
+                    <input style={inputStyle} placeholder="이름" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
+                    <select style={inputStyle} value={editForm.category} onChange={e => setEditForm(f => ({ ...f, category: e.target.value }))}>
+                      <option value="">카테고리 선택...</option>
+                      {consultingCategories.map(category => (
+                        <option key={category.id} value={category.id}>{category.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <input style={inputStyle} placeholder="전문 분야 (쉼표로 구분, 예: M&A, 특허출원)" value={editForm.expertise} onChange={e => setEditForm(f => ({ ...f, expertise: e.target.value }))} />
+                  <input style={inputStyle} placeholder="소개 (선택)" value={editForm.bio} onChange={e => setEditForm(f => ({ ...f, bio: e.target.value }))} />
+                  <AdvancedThumbnailEditor
+                    aspect="1/1"
+                    candidates={[]}
+                    value={editForm.image_url || null}
+                    onChange={value => setEditForm(f => ({ ...f, image_url: value || "" }))}
+                    title="전문가 사진"
+                    statusLabel="사진 지정됨"
+                    emptyStatusLabel="사진 미지정"
+                    appliedLabel="현재 적용된 전문가 사진"
+                    emptyText="전문가 사진을 업로드하면 여기에 표시됩니다."
+                    singleImageMode
+                  />
+                  <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, flexWrap: "wrap" }}>
+                    <button type="button" onClick={cancelEditConsultant} disabled={loading} style={{ padding: "9px 14px", borderRadius: 8, border: `1px solid ${border}`, background: "transparent", color: textMain, fontWeight: 800, cursor: loading ? "not-allowed" : "pointer", fontSize: 13 }}>
+                      취소
+                    </button>
+                    <button type="button" onClick={() => handleUpdateConsultant(c.id)} disabled={loading || !editForm.name.trim()} style={{ padding: "9px 16px", borderRadius: 8, border: "none", background: primaryBg, color: "var(--color-on-primary)", fontWeight: 800, cursor: loading || !editForm.name.trim() ? "not-allowed" : "pointer", fontSize: 13, opacity: !editForm.name.trim() ? 0.5 : 1, boxShadow: "none" }}>
+                      저장
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -587,7 +515,7 @@ export function AdminConsultingManagement() {
                 <option value={120}>120분</option>
               </select>
             </div>
-            <button onClick={handleCreateSlot} disabled={loading} style={{ padding: "10px", borderRadius: 10, border: "none", background: "#4377F1", color: "#fff", fontWeight: 750, cursor: "pointer", boxShadow: "none" }}>슬롯 추가</button>
+            <button onClick={handleCreateSlot} disabled={loading} style={{ padding: "10px", borderRadius: 10, border: "none", background: primaryBg, color: "var(--color-on-primary)", fontWeight: 750, cursor: "pointer", boxShadow: "none" }}>슬롯 추가</button>
           </div>
 
           {slots.map(s => (
@@ -602,7 +530,7 @@ export function AdminConsultingManagement() {
                   {{ available: "예약 가능", booked: "예약됨", cancelled: "취소됨" }[s.status]}
                 </span>
                 {s.status === "available" && (
-                  <button onClick={() => handleDeleteSlot(s.id)} style={{ padding: "6px 12px", borderRadius: 8, border: `1px solid ${deleteBorder}`, background: deleteBg, color: "#EA4335", fontWeight: 700, cursor: "pointer", fontSize: 13 }}>삭제</button>
+                  <button onClick={() => handleDeleteSlot(s.id)} style={{ padding: "6px 12px", borderRadius: 8, border: `1px solid ${deleteBorder}`, background: deleteBg, color: "var(--color-brand-red)", fontWeight: 700, cursor: "pointer", fontSize: 13 }}>삭제</button>
                 )}
               </div>
             </div>
@@ -660,7 +588,7 @@ export function AdminConsultingManagement() {
                   const { error } = await supabase.from(CONSULTING_CATEGORIES_TABLE).delete().eq("id", cat.id);
                   if (error) alert("카테고리 삭제 실패: " + error.message);
                 }}
-                style={{ padding: "10px 16px", borderRadius: 10, border: `1px solid ${deleteBorder}`, background: deleteBg, color: "#EA4335", fontWeight: 800, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}
+                style={{ padding: "10px 16px", borderRadius: 10, border: `1px solid ${deleteBorder}`, background: deleteBg, color: "var(--color-brand-red)", fontWeight: 800, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}
               >
                 삭제
               </button>
@@ -674,21 +602,6 @@ export function AdminConsultingManagement() {
               onChange={e => setNewCategoryInput(e.target.value)}
               placeholder="새 카테고리 이름 입력"
               style={{ ...inputStyle, flex: 1 }}
-              onKeyDown={async e => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  const label = newCategoryInput.trim();
-                  if (!label) return;
-                  const maxOrder = consultingCategories.reduce((m, c) => Math.max(m, c.display_order), -1);
-                  const { error } = await supabase.from(CONSULTING_CATEGORIES_TABLE).insert({
-                    id: generateConsultingCategoryId(),
-                    label,
-                    display_order: maxOrder + 1,
-                  });
-                  if (error) alert("카테고리 추가 실패: " + error.message);
-                  else setNewCategoryInput("");
-                }
-              }}
             />
             <button
               type="button"
@@ -705,7 +618,7 @@ export function AdminConsultingManagement() {
                 if (error) alert("카테고리 추가 실패: " + error.message);
                 else setNewCategoryInput("");
               }}
-              style={{ padding: "10px 20px", borderRadius: 10, border: "none", background: "#4377F1", color: "#fff", fontWeight: 800, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}
+              style={{ padding: "10px 20px", borderRadius: 10, border: "none", background: primaryBg, color: "var(--color-on-primary)", fontWeight: 800, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}
             >
               추가
             </button>
@@ -714,104 +627,6 @@ export function AdminConsultingManagement() {
       )}
     </div>
 
-    {photoDraft && (
-      <div style={{ position: "fixed", inset: 0, zIndex: LAYERS.adminModal, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-        <div style={{ width: "min(720px, 100%)", maxHeight: "calc(100vh - 40px)", overflowY: "auto", background: "var(--color-bg-elevated)", border: `1px solid ${border}`, borderRadius: 16, boxShadow: "0 18px 44px rgba(15,23,42,0.20)", padding: "28px 30px" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 18 }}>
-            <h3 style={{ margin: 0, color: textMain, fontSize: 20, fontWeight: 900 }}>사진 올리기</h3>
-            <button type="button" onClick={resetPhotoDraft} disabled={photoUploading} style={{ width: 32, height: 32, borderRadius: "50%", border: "none", background: "transparent", color: textMuted, cursor: "pointer", fontSize: 24, lineHeight: 1 }}>
-              ×
-            </button>
-          </div>
-
-          <ol style={{ margin: "0 0 18px", paddingLeft: 18, color: textMain, fontSize: 13, lineHeight: 1.65 }}>
-            <li>파일 선택 후 원본 사진을 확인해 주세요.</li>
-            <li>사진을 직접 드래그하고 확대해 원형 가이드 안에 얼굴이나 로고가 딱 맞게 들어오도록 맞춰주세요.</li>
-            <li>등록을 누르면 정사각형 이미지로 저장되고, 공개 카드에서는 원형으로 표시됩니다.</li>
-          </ol>
-
-          <div style={{ background: panelBg, border: `1px solid ${labelBorder}`, borderRadius: 12, padding: 18, display: "grid", gridTemplateColumns: "190px 1fr", gap: 20, alignItems: "start", marginBottom: 18 }}>
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-              <strong style={{ color: textMain, fontSize: 13 }}>원본사진</strong>
-              <div style={{ width: 190, height: 190, background: isDark ? "rgba(255,255,255,0.06)" : "#fff", border: `1px solid ${border}`, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <img src={photoDraft.url} alt="원본 사진" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", display: "block" }} />
-              </div>
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-              <strong style={{ color: textMain, fontSize: 13 }}>선택 영역</strong>
-              <div
-                onPointerDown={handleCropPointerDown}
-                onPointerMove={handleCropPointerMove}
-                onPointerUp={stopCropDrag}
-                onPointerCancel={stopCropDrag}
-                style={{
-                  width: CROP_STAGE_SIZE,
-                  height: CROP_STAGE_SIZE,
-                  overflow: "hidden",
-                  background: "#f8fafc",
-                  border: `1px solid ${border}`,
-                  borderRadius: 12,
-                  position: "relative",
-                  touchAction: "none",
-                  cursor: photoUploading ? "not-allowed" : "grab",
-                  userSelect: "none",
-                }}
-              >
-                {photoSize ? (() => {
-                  const drawRect = getCoverDrawRect(photoSize, CROP_STAGE_SIZE, photoZoom, photoPan);
-
-                  return (
-                    <img
-                      src={photoDraft.url}
-                      alt="프로필 사진 편집"
-                      draggable={false}
-                      style={{ position: "absolute", left: drawRect.left, top: drawRect.top, width: drawRect.width, height: drawRect.height, display: "block", pointerEvents: "none" }}
-                    />
-                  );
-                })() : (
-                  <img src={photoDraft.url} alt="프로필 사진 편집" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-                )}
-                <div style={{ position: "absolute", inset: 0, pointerEvents: "none", background: "linear-gradient(90deg, transparent calc(33.333% - 0.5px), rgba(255,255,255,0.65) calc(33.333% - 0.5px), rgba(255,255,255,0.65) calc(33.333% + 0.5px), transparent calc(33.333% + 0.5px), transparent calc(66.666% - 0.5px), rgba(255,255,255,0.65) calc(66.666% - 0.5px), rgba(255,255,255,0.65) calc(66.666% + 0.5px), transparent calc(66.666% + 0.5px)), linear-gradient(0deg, transparent calc(33.333% - 0.5px), rgba(255,255,255,0.65) calc(33.333% - 0.5px), rgba(255,255,255,0.65) calc(33.333% + 0.5px), transparent calc(33.333% + 0.5px), transparent calc(66.666% - 0.5px), rgba(255,255,255,0.65) calc(66.666% - 0.5px), rgba(255,255,255,0.65) calc(66.666% + 0.5px), transparent calc(66.666% + 0.5px))" }} />
-                <div style={{ position: "absolute", inset: 0, pointerEvents: "none", borderRadius: "50%", border: "2px solid rgba(255,255,255,0.95)", boxShadow: "0 0 0 999px rgba(15,23,42,0.34)" }} />
-              </div>
-              <span style={{ color: textMuted, fontSize: 12 }}>사진을 드래그해서 원형 안에 맞춰주세요.</span>
-            </div>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 12, alignItems: "center", marginBottom: 16 }}>
-            <label style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 12, color: textMuted, fontWeight: 700 }}>
-              확대
-              <input type="range" min="1" max="3" step="0.05" value={photoZoom} onChange={e => handlePhotoZoomChange(Number(e.target.value))} />
-            </label>
-            <button type="button" onClick={() => { setPhotoZoom(1); setPhotoPan({ x: 0, y: 0 }); }} disabled={photoUploading} style={{ padding: "9px 12px", borderRadius: 9, border: `1px solid ${border}`, background: "transparent", color: textMuted, fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap" }}>
-              초기화
-            </button>
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", border: `1px solid ${border}`, borderRadius: 10, background: isDark ? "rgba(255,255,255,0.03)" : "#f8fafc", marginBottom: 10 }}>
-            <button type="button" onClick={() => photoInputRef.current?.click()} disabled={photoUploading} style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${border}`, background: inputBg, color: textMain, fontWeight: 700, cursor: "pointer" }}>
-              파일 선택
-            </button>
-            <span style={{ color: textMuted, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{photoDraft.file.name}</span>
-          </div>
-
-          <div style={{ color: textMuted, fontSize: 12, lineHeight: 1.6, marginBottom: 22 }}>
-            · 사진 파일은 10MB 미만의 JPG, JPEG, PNG, GIF 파일만 업로드 가능합니다.<br />
-            · 저장 이미지는 400x400 픽셀로 생성되며, 공개 페이지에서는 원형으로 노출됩니다.
-          </div>
-
-          <div style={{ display: "flex", justifyContent: "center", gap: 10 }}>
-            <button type="button" onClick={resetPhotoDraft} disabled={photoUploading} style={{ minWidth: 110, padding: "12px 18px", borderRadius: 8, border: `1px solid ${border}`, background: "transparent", color: textMain, fontWeight: 800, cursor: "pointer" }}>
-              취소
-            </button>
-            <button type="button" onClick={handlePhotoUpload} disabled={photoUploading} style={{ minWidth: 110, padding: "12px 18px", borderRadius: 8, border: "none", background: "#4377F1", color: "#fff", fontWeight: 800, cursor: "pointer", opacity: photoUploading ? 0.65 : 1, boxShadow: "none" }}>
-              {photoUploading ? "업로드 중..." : "등록"}
-            </button>
-          </div>
-        </div>
-      </div>
-    )}
     </>
   );
 }
@@ -845,7 +660,7 @@ function ReservationCard({ r, card, border, textMain, textMuted, inputStyle, sta
             <button type="button" disabled={loading} onClick={() => onUpdate(r.id, "confirmed", note)} style={{ minWidth: 82, height: 32, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "0 12px", borderRadius: 10, border: `1px solid ${labelBorder}`, background: selectedBg, color: textMain, fontSize: 13, fontWeight: 800, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.55 : 1 }}>
               <Check size={14} />승인
             </button>
-            <button type="button" disabled={loading} onClick={() => onUpdate(r.id, "rejected", note)} style={{ minWidth: 82, height: 32, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "0 12px", borderRadius: 10, border: `1px solid ${deleteBorder}`, background: deleteBg, color: "#EA4335", fontSize: 13, fontWeight: 800, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.55 : 1 }}>
+            <button type="button" disabled={loading} onClick={() => onUpdate(r.id, "rejected", note)} style={{ minWidth: 82, height: 32, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "0 12px", borderRadius: 10, border: `1px solid ${deleteBorder}`, background: deleteBg, color: "var(--color-brand-red)", fontSize: 13, fontWeight: 800, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.55 : 1 }}>
               <X size={14} />거절
             </button>
           </div>

@@ -1158,3 +1158,47 @@ UI 보정 - 행사 카드, 관리자 상태 용어, 공지사항 목록 작업 �
 
 ### 검증 결과
 `npm run validate` 성공
+
+---
+
+## 게시물 대표 썸네일 수동 지정 1차 — 2026-05-11
+
+### 변경 파일
+- `supabase/migrations/20260511090000_add_post_thumbnail_crop.sql`
+- `src/utils/postThumbnail.ts`
+- `src/lib/types.ts`
+- `src/app/components/admin/AdminPostCreate.tsx`
+- `src/app/pages/NewsPage.tsx`
+- `src/app/pages/EventArchivePage.tsx`
+- `PLAN.md`
+
+### 구현 내용
+- `news`, `events-archive` 게시물에서 본문/첨부 이미지 후보를 대표 썸네일로 수동 지정할 수 있게 했다.
+- 게시판별 crop 비율(`news = 10/9`, `events-archive = 16/10`)과 `thumbnail_url`, `thumbnail_crop` 저장/렌더링 경로를 추가했다.
+- 원격 migration 적용과 public 카드 crop 렌더링까지 완료했다.
+
+### 검증 결과
+`npm run validate`, `supabase db push`, `supabase migration list` 성공
+
+---
+
+## 대표 썸네일 고급 이미지 편집 컴포넌트 — 2026-05-11
+
+### 변경 파일
+- `src/app/components/admin/AdvancedThumbnailEditor.tsx`
+- `src/app/components/admin/AdminPostCreate.tsx`
+- `src/app/components/admin/AdminConsultingManagement.tsx`
+- `src/app/pages/AdminPage.tsx`
+- `src/app/pages/PostDetailPage.tsx`
+- `src/utils/postThumbnail.ts`
+- `PLAN.md`
+- `RESULT.md`
+
+### 구현 내용
+- `news`, `events-archive` 게시물의 대표 썸네일 지정 UI를 업로드/후보 선택/canvas crop 기반 고급 편집기로 교체했다.
+- 게시판별 비율(`news = 10/9`, `events-archive = 16/10`)을 유지하고, 적용 시 crop 완료 JPEG data URL을 `thumbnail_url`에 저장하도록 연결했다.
+- 상세 페이지 관리자 수정 모드와 컨설팅 전문가 사진 등록에도 동일 편집기를 연결했다.
+- 관리자 페이지 활성 탭을 `sessionStorage`에 저장해 컨설팅 관리 화면 리마운트 후 대시보드로 돌아가는 현상을 줄였다.
+
+### 검증 결과
+`npm run validate` 성공

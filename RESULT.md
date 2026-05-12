@@ -1,3 +1,26 @@
+# RESULT: 세션 종료 핫 컨텍스트 (2026-05-12 — 3차)
+
+## 현재 상태
+- Codex 리뷰 P2 이슈 2건 + 자체 리뷰 P2 1건 수정 완료.
+- `종료` 시 커밋 플로우 규칙을 `CLAUDE.md` / `GEMINI.md` Rule 11에 추가.
+- 남은 토큰화 대상: `HeaderSection.tsx`, `AdminPage.tsx`, `FlowMapPage.tsx`, `AdminSidebar.tsx`, `ui/button.tsx`, `PageShell.tsx` — `Long-Term Backlog` 유지.
+
+## 이번 세션 주요 변경
+
+| 파일 | 변경 내용 |
+|------|-----------|
+| `src/hooks/useBlogImportAdmin.ts` | `buildTagDrafts`에 `editedIds: Set<string>` 인자 추가. `editedTagIdsRef`로 사용자 편집 ID 추적, 재fetch 시 미편집 항목은 서버 `suggested_tag`로 갱신 |
+| `src/app/pages/PostDetailPage.tsx` | `editFileObjectUrls` / `pendingThumbnailFile` 상태 추가. editFiles 이미지 → object URL 생성/해제 useEffect. editThumbnailCandidates에 file candidates 포함. AdvancedThumbnailEditor onChange에서 file URL 감지 + pendingThumbnailFile 설정. 저장 시 pendingThumbnailFile → Storage 업로드. 취소·권한강등 시 editThumbnailUrl·pendingThumbnailFile 리셋 추가 |
+| `CLAUDE.md` | Rule 11 `종료`에 커밋 플로우 추가 — git status/diff → 커밋 메시지 초안 → "푸시도 해줘"/"커밋만"/"취소" 선택 |
+| `GEMINI.md` | Rule 11 동일 커밋 플로우 추가 |
+
+## 종료 전 점검
+- [x] `PLAN.md` P2 수정 항목 `[Done]` 으로 정리
+- [x] `RESULT.md` 최신 핫 컨텍스트 반영
+- [x] `npm run validate` (TypeScript, ESLint, Vite production build) ✅
+
+---
+
 # RESULT: 세션 종료 핫 컨텍스트 (2026-05-12 — 2차)
 
 ## 현재 상태

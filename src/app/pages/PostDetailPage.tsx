@@ -125,6 +125,8 @@ export function PostDetailPage() {
   const [editLocation, setEditLocation] = useState("");
   const [editCapacity, setEditCapacity] = useState("");
   const [editFiles, setEditFiles] = useState<File[]>([]);
+  const [editFileObjectUrls, setEditFileObjectUrls] = useState<string[]>([]);
+  const [pendingThumbnailFile, setPendingThumbnailFile] = useState<File | null>(null);
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showModal, setShowModal] = useState<{ show: boolean; type: "save" | "delete" | null }>({ show: false, type: null });
@@ -157,6 +159,8 @@ export function PostDetailPage() {
     if (isEditing) {
       setIsEditing(false);
       setEditFiles([]);
+      setEditThumbnailUrl(post?.thumbnail_url ?? null);
+      setPendingThumbnailFile(null);
     }
     if (showModal.show) setShowModal({ show: false, type: null });
   }, [adminLoading, canRenderAdminControls, isEditing, showModal.show]);
@@ -321,7 +325,15 @@ export function PostDetailPage() {
         const isEvent = post?.category === "events";
         const supportsManualThumbnail = post?.category === "news" || post?.category === "events-archive";
         const finalTags = post?.category === "media" ? resolveMediaCategoryId(editTags) : editTags || null;
-        const resolvedThumbnailUrl = await uploadThumbnailIfDataUrl(editThumbnailUrl);
+        let effectiveThumbnailUrl = editThumbnailUrl;
+        if (pendingThumbnailFile) {
+          const safeName = encodeFilename(pendingThumbnailFile.name);
+          const fileName = `${Date.now()}---${Math.random().toString(36).substr(2, 9)}---${safeName}`;
+          const { error: thumbUpError } = await supabase.storage.from("images").upload(fileName, pendingThumbnailFile);
+          if (thumbUpError) throw thumbUpError;
+          effectiveThumbnailUrl = supabase.storage.from("images").getPublicUrl(fileName).data.publicUrl;
+        }
+        const resolvedThumbnailUrl = await uploadThumbnailIfDataUrl(effectiveThumbnailUrl);
         const thumbnailPayload = getThumbnailSavePayload({
           supportsManualThumbnail,
           nextThumbnailUrl: resolvedThumbnailUrl,
@@ -387,10 +399,25 @@ export function PostDetailPage() {
   const mediaBodyImages = post?.category === "media" ? (isMediaWideType ? [] : images.slice(1)) : images;
   const useAdminPostEditor = canRenderAdminControls && isEditing && post?.category === "media";
   const supportsManualThumbnailEdit = post?.category === "news" || post?.category === "events-archive";
-  const editThumbnailCandidates = useMemo(
-    () => supportsManualThumbnailEdit ? getThumbnailCandidates(editContent, existingImages.join(",")) : [],
-    [editContent, existingImages, supportsManualThumbnailEdit],
-  );
+
+  useEffect(() => {
+    if (!supportsManualThumbnailEdit) return;
+    const imageFiles = editFiles.filter(isBrowserSafeImageFile);
+    const urls = imageFiles.map(f => URL.createObjectURL(f));
+    setEditFileObjectUrls(urls);
+    setPendingThumbnailFile(prev => (prev && !editFiles.includes(prev) ? null : prev));
+    return () => urls.forEach(u => URL.revokeObjectURL(u));
+  }, [editFiles, supportsManualThumbnailEdit]);
+
+  const editThumbnailCandidates = useMemo(() => {
+    if (!supportsManualThumbnailEdit) return [];
+    const base = getThumbnailCandidates(editContent, existingImages.join(","));
+    const existingUrls = new Set(base.map(c => c.url));
+    const fileCandidates = editFileObjectUrls
+      .map((url, i) => ({ url, label: `새 첨부 이미지 ${i + 1}`, source: "attachment" as const }))
+      .filter(c => !existingUrls.has(c.url));
+    return [...base, ...fileCandidates];
+  }, [editContent, existingImages, supportsManualThumbnailEdit, editFileObjectUrls]);
 
   useEffect(() => {
     if (!post || typeof window === "undefined") return;
@@ -489,7 +516,7 @@ export function PostDetailPage() {
                     {isSubmitting ? "저장 중..." : "저장하기"}
                   </button>
                   <button 
-                    onClick={() => { setIsEditing(false); setEditFiles([]); }} 
+                    onClick={() => { setIsEditing(false); setEditFiles([]); setEditThumbnailUrl(post?.thumbnail_url ?? null); setPendingThumbnailFile(null); }}
                     className="px-5 py-2 rounded-lg cursor-pointer"
                     style={{ border: `1px solid ${border}`, background: card, color: textMain }}
                   >
@@ -642,7 +669,12 @@ export function PostDetailPage() {
                 aspect={getPostThumbnailAspect(post.category)}
                 candidates={editThumbnailCandidates}
                 value={editThumbnailUrl}
-                onChange={setEditThumbnailUrl}
+                onChange={(url) => {
+                  setEditThumbnailUrl(url);
+                  const imageFiles = editFiles.filter(isBrowserSafeImageFile);
+                  const idx = editFileObjectUrls.indexOf(url ?? "");
+                  setPendingThumbnailFile(idx >= 0 ? (imageFiles[idx] ?? null) : null);
+                }}
               />
             )}
 
