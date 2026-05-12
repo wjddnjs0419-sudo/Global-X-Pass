@@ -1,3 +1,62 @@
+# RESULT: 세션 종료 핫 컨텍스트 (2026-05-12 — 12차)
+
+## 현재 상태
+- `EventApplicationPage`의 잔여 시각 숫자 스타일을 전용 CSS 변수 토큰으로 정리했다.
+- 입력 필드, 카드/패널, 섹션 간격, 라벨/제목 크기, 버튼/아이콘 크기, textarea 최소 높이, 페이지 max-width/bottom spacing이 `var(--...)` 기반이 됐다.
+- 날짜 계산, 정원 계산, 정규식 match index처럼 UI 디자인 값이 아닌 도메인/로직 숫자는 유지했다.
+
+## 이번 세션 주요 변경
+
+| 파일 | 변경 내용 |
+|------|-----------|
+| `src/styles/theme.css` | `--size-event-application-*`, `--space-event-application-*`, `--radius-event-application-*`, `--text-event-application-*`, `--container-event-application-max` 등 EventApplicationPage 전용 의미 토큰 추가 |
+| `src/app/pages/EventApplicationPage.tsx` | `fieldStyle`, `adminGroupStyle`, `compactRowStyle`, `formCardStyle`, `textareaStyle` 등을 토큰 기반으로 정리. inline raw 숫자 스타일과 Tailwind arbitrary spacing/max-width를 토큰 참조로 교체 |
+| `PLAN.md` | 승인된 작업을 `[Done]`으로 축약하고 완료 항목 10개 유지 |
+| `RESULT.md` | 이번 변경 및 검증 결과 반영 |
+
+## 검증 결과
+- [x] `npm run validate` (TypeScript, ESLint, Vite production build) ✅
+- [ ] 관리자 로그인 세션 기반 시각 확인
+관리자 인증 세션이 없어 실제 관리자 편집 화면 조작은 브라우저에서 직접 확인하지 못했고, 코드 경로와 `npm run validate`로 확인했다.
+
+## 종료 전 점검
+- [x] `PLAN.md` 완료 항목 `[Done]` 정리
+- [x] `RESULT.md` 최신 핫 컨텍스트 반영
+- [x] `npm run validate` (TypeScript, ESLint, Vite production build) ✅
+
+---
+
+# RESULT: 세션 종료 핫 컨텍스트 (2026-05-12 — 11차)
+
+## 현재 상태
+- 컨설팅 슬롯 추가와 Founder's Club 세션 추가의 일시/장소 입력 패턴을 공용화했다.
+- 장소는 기존 DB 스키마 변경 없이 `장소명 | 주소`로 저장하고, 사용자 화면에서는 `장소명, 주소`로 표시한다.
+- 기존 단일 장소 문자열은 주소 없이 그대로 표시되어 하위 호환된다.
+- 행사 신청 페이지의 장소 helper도 공용 유틸을 쓰도록 정리했다.
+
+## 이번 세션 주요 변경
+
+| 파일 | 변경 내용 |
+|------|-----------|
+| `src/utils/scheduleFields.ts` | 날짜/시간 option helper, ISO 날짜 조합, 10분 단위 시간 조합, structured location 파싱/조합/표시 formatter 추가 |
+| `src/app/components/admin/AdminConsultingManagement.tsx` | 슬롯 추가 폼의 장소 입력을 `장소 이름`/`주소 또는 링크`로 분리. 저장 시 `consulting_slots.location`에 `장소명 | 주소` 형식으로 저장. 슬롯 목록/예약 승인 표시는 공용 formatter 사용 |
+| `src/app/components/admin/AdminFoundersClubManagement.tsx` | 세션 추가 폼의 장소 입력을 `장소 이름`/`주소 또는 링크`로 분리. 저장 시 `founders_club_sessions.location`에 `장소명 | 주소` 형식으로 저장. 관리자 세션 목록 표시는 공용 formatter 사용 |
+| `src/app/components/ConsultingBookingModal.tsx`, `src/app/pages/FoundersClubPage.tsx`, `src/app/pages/MyPage.tsx` | 일반 사용자에게 보이는 컨설팅/Founder's Club 장소 표시를 `장소명, 주소` 형식으로 통일 |
+| `src/app/pages/EventApplicationPage.tsx`, `src/app/pages/EventsPage.tsx`, `src/app/components/EventSection.tsx` | 행사 장소 표시/저장 helper도 동일 공용 formatter로 연결 |
+| `PLAN.md` | 승인된 작업을 `[Done]`으로 축약하고 완료 항목 10개 유지 |
+
+## 검증 결과
+- [x] `npm run validate` (TypeScript, ESLint, Vite production build) ✅
+- [ ] 관리자 로그인 세션 기반 시각 확인
+관리자 인증 세션이 없어 실제 슬롯/세션 추가 입력 조작은 브라우저에서 직접 확인하지 못했고, 코드 경로와 `npm run validate`로 확인했다.
+
+## 종료 전 점검
+- [x] `PLAN.md` 완료 항목 `[Done]` 정리
+- [x] `RESULT.md` 최신 핫 컨텍스트 반영
+- [x] `npm run validate` (TypeScript, ESLint, Vite production build) ✅
+
+---
+
 # RESULT: 세션 종료 핫 컨텍스트 (2026-05-12 — 10차)
 
 ## 현재 상태

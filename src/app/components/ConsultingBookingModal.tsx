@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { LAYERS } from "../../lib/layers";
 import type { Consultant, ConsultingSlot } from "../../lib/types";
+import { formatStructuredLocation } from "../../utils/scheduleFields";
 
 interface Props {
   consultant: Consultant;
@@ -104,7 +105,7 @@ export function ConsultingBookingModal({ consultant, isDark, onClose }: Props) {
                           style={{ padding: "8px 16px", borderRadius: 10, border: `1px solid ${selectedSlot === s.id ? "var(--color-accent-blue)" : border}`, background: selectedSlot === s.id ? "var(--color-accent-blue)" : "transparent", color: selectedSlot === s.id ? "var(--color-on-primary)" : textMain, fontWeight: 600, cursor: "pointer", fontSize: 14, transition: "all 0.15s", textAlign: "left" }}
                         >
                           <span style={{ display: "block" }}>{s.slot_time.slice(0, 5)} ({s.duration_minutes}분)</span>
-                          <span style={{ display: "block", fontSize: 11, opacity: 0.75, marginTop: 2 }}>{s.location || "장소 미정"}</span>
+                          <span style={{ display: "block", fontSize: 11, opacity: 0.75, marginTop: 2 }}>{formatStructuredLocation(s.location)}</span>
                         </button>
                       ))}
                     </div>

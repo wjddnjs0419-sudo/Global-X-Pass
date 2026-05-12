@@ -82,6 +82,54 @@
   --shadow-media-cover: 0 14px 28px rgba(0, 0, 0, 0.24);
   --size-media-cover-portrait: 160px;  /* 레포트형 표지 이미지 최대 너비 */
   --size-event-application-cover-height: clamp(96px, 14vw, 160px);
+  --size-event-application-row-min: 46px;
+  --size-event-application-action-sm: 26px;
+  --size-event-application-action-md: 30px;
+  --size-event-application-action-lg: 48px;
+  --size-event-application-icon-sm: 14px;
+  --size-event-application-icon-md: 16px;
+  --size-event-application-edit-button-min: 58px;
+  --container-event-application-max: 1120px;
+  --space-event-application-page-bottom: var(--space-4xl);
+  --space-event-application-page-gap: var(--space-lg);
+  --space-event-application-grid-gap: var(--space-sm);
+  --space-event-application-grid-gap-tight: var(--space-xs);
+  --size-event-application-textarea-xs: 72px;
+  --size-event-application-textarea-sm: 80px;
+  --size-event-application-textarea-md: 96px;
+  --size-event-application-textarea-lg: 100px;
+  --size-event-application-textarea-xl: 110px;
+  --space-event-application-field-block: 12px;
+  --space-event-application-field-inline: 14px;
+  --space-event-application-compact-block: 8px;
+  --space-event-application-compact-inline: 10px;
+  --space-event-application-group: 18px;
+  --space-event-application-card: var(--space-lg);
+  --space-event-application-panel: 20px;
+  --space-event-application-form-card: 26px;
+  --space-event-application-centered-y: 40px;
+  --space-event-application-centered-gap: 14px;
+  --space-event-application-loading: var(--space-3xl);
+  --space-event-application-section-gap: 22px;
+  --space-event-application-admin-offset: 18px;
+  --space-event-application-admin-inline-reserve: 82px;
+  --space-event-application-question-action: 42px;
+  --space-event-application-question-card-block: 14px;
+  --space-event-application-question-action-offset: 9px;
+  --radius-event-application-field: 12px;
+  --radius-event-application-compact-field: 10px;
+  --radius-event-application-row: var(--radius-md);
+  --radius-event-application-group: 18px;
+  --radius-event-application-panel: var(--radius-lg);
+  --radius-event-application-card: var(--radius-xl);
+  --text-event-application-title: 24px;
+  --text-event-application-heading: 22px;
+  --text-event-application-admin-title: 15px;
+  --text-event-application-label: 13px;
+  --text-event-application-body: var(--text-body-sm);
+  --leading-event-application-title: 1.35;
+  --leading-event-application-body: 1.65;
+  --leading-event-application-message: 1.7;
   --color-img-placeholder:  rgb(30, 40, 60);             /* 이미지 미로드 플레이스홀더 */
   --color-capacity-fill:    rgba(255, 255, 255, 0.62);   /* Founders Club 정원 바 채움 */
   --color-capacity-track:   rgba(255, 255, 255, 0.10);   /* Founders Club 정원 바 트랙 */

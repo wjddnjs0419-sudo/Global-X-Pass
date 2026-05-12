@@ -3,6 +3,17 @@ import { Check, X } from "lucide-react";
 import { supabase } from "../../../lib/supabaseClient";
 import { encodeFilename } from "../../../utils/file";
 import { isDataImageUrl } from "../../../utils/postThumbnail";
+import {
+  composeIsoDate,
+  composeStructuredLocation,
+  composeTime,
+  formatStructuredLocation,
+  getDayOptions,
+  getHourOptions,
+  getMonthOptions,
+  getTenMinuteOptions,
+  getYearOptions,
+} from "../../../utils/scheduleFields";
 import { getMutedLabelStyle, getStatusPillStyle } from "../contentListStyles";
 import { AdvancedThumbnailEditor } from "./AdvancedThumbnailEditor";
 import type { Consultant, ConsultingSlot } from "../../../lib/types";
@@ -65,7 +76,16 @@ export function AdminConsultingManagement() {
   const [editForm, setEditForm] = useState<ConsultantForm>(emptyConsultantForm);
   const slotRequestRef = useRef(0);
   // Slot form
-  const [slotForm, setSlotForm] = useState({ consultant_id: "", slot_date_y: "", slot_date_m: "", slot_date_d: "", slot_time: "", duration_minutes: 60, location: "" });
+  const [slotForm, setSlotForm] = useState({
+    consultant_id: "",
+    slot_date_y: "",
+    slot_date_m: "",
+    slot_date_d: "",
+    slot_time: "",
+    duration_minutes: 60,
+    locationName: "",
+    locationAddress: "",
+  });
   const [loading, setLoading] = useState(false);
 
   const card = "var(--color-surface-card)";
@@ -239,7 +259,8 @@ export function AdminConsultingManagement() {
 
   const handleCreateSlot = async () => {
     const { slot_date_y: y, slot_date_m: m, slot_date_d: d } = slotForm;
-    const slot_date = y && m && d ? `${y}-${m}-${d}` : "";
+    const slot_date = composeIsoDate(y, m, d);
+    const location = composeStructuredLocation(slotForm.locationName, slotForm.locationAddress);
     if (!slotForm.consultant_id || !slot_date || !slotForm.slot_time) return alert("전문가, 날짜, 시간을 모두 입력해주세요.");
     setLoading(true);
     const { error } = await supabase.from("consulting_slots").insert({
@@ -247,7 +268,7 @@ export function AdminConsultingManagement() {
       slot_date,
       slot_time: slotForm.slot_time,
       duration_minutes: slotForm.duration_minutes,
-      location: slotForm.location.trim() || null,
+      location: location || null,
     });
     if (error) alert("슬롯 생성 실패: " + error.message);
     else { fetchSlots(slotForm.consultant_id); setSelectedConsultant(slotForm.consultant_id); }
@@ -413,12 +434,20 @@ export function AdminConsultingManagement() {
               <option value="">전문가 선택...</option>
               {consultants.map(c => <option key={c.id} value={c.id}>{c.name} — {getConsultingCategoryLabel(c.category, consultingCategories)}</option>)}
             </select>
-            <input
-              style={inputStyle}
-              placeholder="장소 (예: NCF 회의실, Zoom, 별도 안내)"
-              value={slotForm.location}
-              onChange={e => setSlotForm(f => ({ ...f, location: e.target.value }))}
-            />
+            <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 10 }}>
+              <input
+                style={inputStyle}
+                placeholder="장소 이름 (예: NCF 회의실)"
+                value={slotForm.locationName}
+                onChange={e => setSlotForm(f => ({ ...f, locationName: e.target.value }))}
+              />
+              <input
+                style={inputStyle}
+                placeholder="주소 또는 링크 (예: 낙성대역 14길 8)"
+                value={slotForm.locationAddress}
+                onChange={e => setSlotForm(f => ({ ...f, locationAddress: e.target.value }))}
+              />
+            </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <span style={{ fontSize: 12, color: textMuted, fontWeight: 600 }}>날짜</span>
@@ -429,7 +458,7 @@ export function AdminConsultingManagement() {
                     onChange={e => setSlotForm(f => ({ ...f, slot_date_y: e.target.value }))}
                   >
                     <option value="">년</option>
-                    {Array.from({ length: 4 }, (_, i) => String(new Date().getFullYear() + i)).map(y => (
+                    {getYearOptions().map(y => (
                       <option key={y} value={y}>{y}년</option>
                     ))}
                   </select>
@@ -444,7 +473,7 @@ export function AdminConsultingManagement() {
                     }}
                   >
                     <option value="">월</option>
-                    {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0")).map(m => (
+                    {getMonthOptions().map(m => (
                       <option key={m} value={m}>{Number(m)}월</option>
                     ))}
                   </select>
@@ -454,14 +483,9 @@ export function AdminConsultingManagement() {
                     onChange={e => setSlotForm(f => ({ ...f, slot_date_d: e.target.value }))}
                   >
                     <option value="">일</option>
-                    {(() => {
-                      const days = slotForm.slot_date_y && slotForm.slot_date_m
-                        ? new Date(Number(slotForm.slot_date_y), Number(slotForm.slot_date_m), 0).getDate()
-                        : 31;
-                      return Array.from({ length: days }, (_, i) => String(i + 1).padStart(2, "0")).map(d => (
-                        <option key={d} value={d}>{Number(d)}일</option>
-                      ));
-                    })()}
+                    {getDayOptions(slotForm.slot_date_y, slotForm.slot_date_m).map(d => (
+                      <option key={d} value={d}>{Number(d)}일</option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -474,11 +498,11 @@ export function AdminConsultingManagement() {
                     onChange={e => {
                       const h = e.target.value;
                       const m = slotForm.slot_time?.split(":")[1] || "00";
-                      setSlotForm(f => ({ ...f, slot_time: h ? `${h}:${m}` : "" }));
+                      setSlotForm(f => ({ ...f, slot_time: composeTime(h, m) }));
                     }}
                   >
                     <option value="">시</option>
-                    {Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0")).map(h => (
+                    {getHourOptions().map(h => (
                       <option key={h} value={h}>{h}시</option>
                     ))}
                   </select>
@@ -489,14 +513,13 @@ export function AdminConsultingManagement() {
                     onChange={e => {
                       const m = e.target.value;
                       const h = slotForm.slot_time?.split(":")[0] || "";
-                      if (h) setSlotForm(f => ({ ...f, slot_time: `${h}:${m}` }));
+                      if (h) setSlotForm(f => ({ ...f, slot_time: composeTime(h, m) }));
                     }}
                   >
                     <option value="">분</option>
-                    {[0, 10, 20, 30, 40, 50].map(m => {
-                      const val = String(m).padStart(2, "0");
-                      return <option key={val} value={val}>{val}분</option>;
-                    })}
+                    {getTenMinuteOptions().map(val => (
+                      <option key={val} value={val}>{val}분</option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -523,7 +546,7 @@ export function AdminConsultingManagement() {
               <div>
                 <span style={{ fontWeight: 700, color: textMain }}>{s.slot_date} {s.slot_time.slice(0, 5)}</span>
                 <span style={{ marginLeft: 10, fontSize: 12, color: textMuted }}>{s.duration_minutes}분</span>
-                <div style={{ fontSize: 12, color: textMuted, marginTop: 4 }}>{s.location || "장소 미정"}</div>
+                <div style={{ fontSize: 12, color: textMuted, marginTop: 4 }}>{formatStructuredLocation(s.location)}</div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <span style={{ fontSize: 12, fontWeight: 750, color: textMuted, background: labelBg, border: `1px solid ${labelBorder}`, borderRadius: 8, padding: "4px 8px" }}>
@@ -647,7 +670,7 @@ function ReservationCard({ r, card, border, textMain, textMuted, inputStyle, sta
             {statusBadge(r.status)}
         </div>
         <div style={{ fontSize: 13, color: textMuted }}>
-            {consultant?.name} · {slot?.slot_date} {slot?.slot_time?.slice(0, 5)} · {slot?.location || "장소 미정"}
+            {consultant?.name} · {slot?.slot_date} {slot?.slot_time?.slice(0, 5)} · {formatStructuredLocation(slot?.location)}
         </div>
       </div>
         <div style={{ fontSize: 12, color: textMuted }}>{new Date(r.created_at).toLocaleDateString()}</div>

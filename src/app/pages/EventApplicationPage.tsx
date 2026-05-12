@@ -15,6 +15,7 @@ import { isImage } from "../../utils/file";
 import { sanitizeRichHtml } from "../../utils/htmlSecurity";
 import { EVENT_APPLICATION_STATUS, EVENT_STATUS_CONFIG, mergeEventFormConfig } from "../../utils/eventApplication";
 import { getThumbnailCandidates, uploadThumbnailIfDataUrl } from "../../utils/postThumbnail";
+import { composeStructuredLocation, formatStructuredLocation, getDaysInMonth, pad2, parseStructuredLocation } from "../../utils/scheduleFields";
 
 type FormState = {
   company_tech: string;
@@ -57,8 +58,6 @@ const KOREAN_WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 const getRepresentativeImage = (post: Post | null) =>
   post?.image_url?.split(",").map(url => url.trim()).filter(Boolean).find(isImage) ?? "";
 
-const pad2 = (value: string | number) => String(value).padStart(2, "0");
-
 const parseEventDateParts = (value: string) => {
   const match = value.match(EVENT_DATE_PATTERN);
   if (!match) {
@@ -71,13 +70,6 @@ const parseEventDateParts = (value: string) => {
     h: match[4] ? pad2(match[4]) : "",
     minute: match[5] ? pad2(match[5]) : "00",
   };
-};
-
-const getDaysInMonth = (year: string, month: string) => {
-  const y = Number(year);
-  const m = Number(month);
-  if (!y || !m) return 31;
-  return new Date(y, m, 0).getDate();
 };
 
 const composeEventDateText = (draft: {
@@ -95,22 +87,6 @@ const composeEventDateText = (draft: {
 
   const dateText = `${event_date_y}.${event_date_m}.${event_date_d} (${KOREAN_WEEKDAYS[date.getDay()]})`;
   return event_time_h ? `${dateText} ${event_time_h}:${event_time_m || "00"}` : dateText;
-};
-
-const parseLocationParts = (value: string) => {
-  const [name, ...addressParts] = value.split("|");
-  return {
-    name: name.trim(),
-    address: addressParts.join("|").trim(),
-  };
-};
-
-const composeLocationText = (name: string, address: string) =>
-  [name.trim(), address.trim()].filter(Boolean).join(" | ");
-
-const getDisplayLocation = (value: string) => {
-  const { name, address } = parseLocationParts(value);
-  return [name, address].filter(Boolean).join(", ");
 };
 
 const isEventMetaText = (text: string) => EVENT_META_LABEL_PATTERN.test(text.trim());
@@ -159,13 +135,13 @@ const eventDescriptionTextToHtml = (text: string) =>
 
 const fieldStyle = (background: string, border: string, color: string): React.CSSProperties => ({
   width: "100%",
-  padding: "12px 14px",
-  borderRadius: 12,
+  padding: "var(--space-event-application-field-block) var(--space-event-application-field-inline)",
+  borderRadius: "var(--radius-event-application-field)",
   border: `1px solid ${border}`,
   background,
   color,
   outline: "none",
-  fontSize: 14,
+  fontSize: "var(--text-event-application-body)",
   boxSizing: "border-box",
 });
 
@@ -219,32 +195,32 @@ export function EventApplicationPage() {
 
   const input = fieldStyle("var(--color-field-bg)", "var(--color-border-soft)", "var(--color-text-primary)");
   const adminGroupStyle: React.CSSProperties = {
-    padding: 18,
-    borderRadius: 18,
+    padding: "var(--space-event-application-group)",
+    borderRadius: "var(--radius-event-application-group)",
     border: "1px solid var(--color-border-soft)",
     background: "var(--color-surface-subtle)",
     display: "flex",
     flexDirection: "column",
-    gap: 12,
+    gap: "var(--space-sm)",
   };
   const adminGroupTitleStyle: React.CSSProperties = {
     color: "var(--color-text-primary)",
-    fontSize: 15,
-    fontWeight: 900,
+    fontSize: "var(--text-event-application-admin-title)",
+    fontWeight: "var(--weight-black)",
   };
   const compactRowStyle: React.CSSProperties = {
-    minHeight: 46,
-    padding: "8px 10px",
-    borderRadius: 14,
+    minHeight: "var(--size-event-application-row-min)",
+    padding: "var(--space-event-application-compact-block) var(--space-event-application-compact-inline)",
+    borderRadius: "var(--radius-event-application-row)",
     border: "1px solid var(--color-border-soft)",
     background: "var(--color-field-bg)",
     display: "flex",
     alignItems: "center",
-    gap: 10,
+    gap: "var(--space-event-application-compact-inline)",
   };
   const roundAddButtonStyle: React.CSSProperties = {
-    width: 30,
-    height: 30,
+    width: "var(--size-event-application-action-md)",
+    height: "var(--size-event-application-action-md)",
     borderRadius: "50%",
     border: "1px solid var(--color-border-soft)",
     background: "var(--color-field-bg)",
@@ -256,8 +232,8 @@ export function EventApplicationPage() {
     flex: "0 0 auto",
   };
   const roundDeleteButtonStyle: React.CSSProperties = {
-    width: 26,
-    height: 26,
+    width: "var(--size-event-application-action-sm)",
+    height: "var(--size-event-application-action-sm)",
     borderRadius: "50%",
     border: "none",
     background: "var(--color-danger-soft-bg)",
@@ -274,6 +250,39 @@ export function EventApplicationPage() {
     color: "var(--color-accent-blue)",
     boxShadow: "var(--shadow-card-rest)",
   };
+  const compactInputStyle: React.CSSProperties = {
+    ...input,
+    padding: "var(--space-event-application-compact-block) var(--space-event-application-compact-inline)",
+    borderRadius: "var(--radius-event-application-compact-field)",
+    flex: 1,
+  };
+  const fieldLabelStyle: React.CSSProperties = {
+    color: "var(--color-text-muted)",
+    fontSize: "var(--text-event-application-label)",
+    fontWeight: "var(--weight-extrabold)",
+  };
+  const panelStyle: React.CSSProperties = {
+    background: "var(--color-surface-card)",
+    border: "1px solid var(--color-border-soft)",
+    borderRadius: "var(--radius-event-application-panel)",
+    padding: "var(--space-event-application-panel)",
+    display: "flex",
+    flexDirection: "column",
+    gap: "var(--space-sm)",
+  };
+  const formCardStyle: React.CSSProperties = {
+    padding: "var(--space-event-application-group)",
+    background: "var(--color-surface-subtle)",
+    border: "1px solid var(--color-border-soft)",
+    borderRadius: "var(--radius-event-application-group)",
+    display: "grid",
+    gap: "var(--space-sm)",
+  };
+  const textareaStyle = (minHeight: string): React.CSSProperties => ({
+    ...input,
+    minHeight,
+    resize: "vertical",
+  });
 
   const config = useMemo(() => mergeEventFormConfig(post?.event_form_config), [post?.event_form_config]);
   const dateYears = useMemo(() => {
@@ -313,7 +322,7 @@ export function EventApplicationPage() {
   const representativeImage = adminEditing ? adminDraft.image_url : getRepresentativeImage(post);
   const renderedEventContent = useMemo(() => stripEventMetaParagraphs(post?.content || ""), [post?.content]);
   const bannerImageCandidates = useMemo(() => getThumbnailCandidates(post?.content || "", adminDraft.image_url), [adminDraft.image_url, post?.content]);
-  const displayLocation = useMemo(() => getDisplayLocation(post?.location || ""), [post?.location]);
+  const displayLocation = useMemo(() => formatStructuredLocation(post?.location, ""), [post?.location]);
   const capacity = post?.capacity ?? null;
   const remaining = capacity == null ? null : Math.max(capacity - acceptedCount, 0);
   const statusCfg = EVENT_STATUS_CONFIG[post?.event_status ?? ""] ?? null;
@@ -323,7 +332,7 @@ export function EventApplicationPage() {
   const syncAdminDraft = (nextPost: Post) => {
     const nextConfig = mergeEventFormConfig(nextPost.event_form_config);
     const dateParts = parseEventDateParts(nextPost.event_date || "");
-    const locationParts = parseLocationParts(nextPost.location || "");
+    const locationParts = parseStructuredLocation(nextPost.location);
     setAdminDraft({
       title: nextPost.title || "",
       event_date: nextPost.event_date || "",
@@ -545,7 +554,7 @@ export function EventApplicationPage() {
     try {
       const nextCapacity = adminDraft.capacity ? Number(adminDraft.capacity) : null;
       const nextEventDate = composeEventDateText(adminDraft);
-      const nextLocation = composeLocationText(adminDraft.locationName, adminDraft.locationAddress);
+      const nextLocation = composeStructuredLocation(adminDraft.locationName, adminDraft.locationAddress);
       const { data: countsData } = await supabase.rpc("get_event_application_counts");
       const latestAcceptedCount = ((countsData as { post_id: string; accepted_count: number }[] | null) ?? [])
         .find(row => row.post_id === post.id)?.accepted_count ?? acceptedCount;
@@ -602,15 +611,15 @@ export function EventApplicationPage() {
     }
   };
 
-  if (loading) return <PageShell title="행사 신청"><p style={{ textAlign: "center", padding: 60 }}>불러오는 중입니다.</p></PageShell>;
-  if (!post) return <PageShell title="행사 신청"><p style={{ textAlign: "center", padding: 60 }}>행사를 찾을 수 없습니다.</p></PageShell>;
+  if (loading) return <PageShell title="행사 신청"><p style={{ textAlign: "center", padding: "var(--space-event-application-loading)" }}>불러오는 중입니다.</p></PageShell>;
+  if (!post) return <PageShell title="행사 신청"><p style={{ textAlign: "center", padding: "var(--space-event-application-loading)" }}>행사를 찾을 수 없습니다.</p></PageShell>;
 
   return (
     <PageShell title="행사 신청" subtitle={post.title} accentColor="var(--color-accent-green)">
-      <div className="max-w-[1120px] mx-auto pb-[100px]">
-        <div className="flex flex-col gap-6">
+      <div style={{ maxWidth: "var(--container-event-application-max)", margin: "0 auto", paddingBottom: "var(--space-event-application-page-bottom)" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-event-application-page-gap)" }}>
           <section>
-            <div style={{ background: "var(--color-surface-card)", border: "1px solid var(--color-border-soft)", borderRadius: 24, overflow: "hidden" }}>
+            <div style={{ background: "var(--color-surface-card)", border: "1px solid var(--color-border-soft)", borderRadius: "var(--radius-event-application-card)", overflow: "hidden" }}>
               <div style={{ height: "var(--size-event-application-cover-height)", background: "var(--color-bg-elevated)" }}>
                 {representativeImage ? (
                   <img src={representativeImage} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
@@ -620,16 +629,16 @@ export function EventApplicationPage() {
                   </div>
                 )}
               </div>
-              <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <div style={{ padding: "var(--space-event-application-card)", display: "flex", flexDirection: "column", gap: "var(--space-md)" }}>
+                <div style={{ display: "flex", gap: "var(--space-xs)", flexWrap: "wrap" }}>
                   {statusCfg && <span style={getStatusPillStyle(statusCfg.color, isDark)}>{statusCfg.label}</span>}
                   {capacity != null && <span style={getMutedLabelStyle(isDark)}>{acceptedCount}/{capacity}명 수락</span>}
                 </div>
-                <h2 style={{ margin: 0, color: "var(--color-text-primary)", fontSize: 24, fontWeight: 900, lineHeight: 1.35 }}>{post.title}</h2>
-                <div style={{ display: "grid", gap: 10, color: "var(--color-text-muted)", fontSize: 14 }}>
-                  {post.event_date && <span style={{ display: "flex", gap: 8, alignItems: "center" }}><CalendarDays size={16} />{post.event_date}</span>}
-                  {displayLocation && <span style={{ display: "flex", gap: 8, alignItems: "center" }}><MapPin size={16} />{displayLocation}</span>}
-                  {remaining != null && <span style={{ display: "flex", gap: 8, alignItems: "center" }}><Users size={16} />잔여 {remaining}석</span>}
+                <h2 style={{ margin: 0, color: "var(--color-text-primary)", fontSize: "var(--text-event-application-title)", fontWeight: "var(--weight-black)", lineHeight: "var(--leading-event-application-title)" }}>{post.title}</h2>
+                <div style={{ display: "grid", gap: "var(--space-event-application-compact-inline)", color: "var(--color-text-muted)", fontSize: "var(--text-event-application-body)" }}>
+                  {post.event_date && <span style={{ display: "flex", gap: "var(--space-xs)", alignItems: "center" }}><CalendarDays size="var(--size-event-application-icon-md)" />{post.event_date}</span>}
+                  {displayLocation && <span style={{ display: "flex", gap: "var(--space-xs)", alignItems: "center" }}><MapPin size="var(--size-event-application-icon-md)" />{displayLocation}</span>}
+                  {remaining != null && <span style={{ display: "flex", gap: "var(--space-xs)", alignItems: "center" }}><Users size="var(--size-event-application-icon-md)" />잔여 {remaining}석</span>}
                 </div>
                 <div className={isDark ? "quill-dark" : "quill-light"} style={{ marginBottom: 0 }}>
                   <div
@@ -643,16 +652,16 @@ export function EventApplicationPage() {
           </section>
 
           {adminEditing ? (
-            <section style={{ background: "var(--color-surface-card)", border: "1px solid var(--color-border-soft)", borderRadius: 20, padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
+            <section style={panelStyle}>
               <strong style={{ color: "var(--color-text-primary)" }}>관리자 편집</strong>
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
                 <div style={adminGroupStyle}>
                   <strong style={adminGroupTitleStyle}>행사 기본 정보</strong>
                   <input style={input} value={adminDraft.title} onChange={e => setAdminDraft(p => ({ ...p, title: e.target.value }))} placeholder="행사 제목" />
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" style={{ alignItems: "start" }}>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                      <span style={{ color: "var(--color-text-muted)", fontSize: 13, fontWeight: 800 }}>일시</span>
-                      <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2" style={{ alignItems: "start", gap: "var(--space-event-application-grid-gap)" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-xs)" }}>
+                      <span style={fieldLabelStyle}>일시</span>
+                      <div className="grid grid-cols-3" style={{ gap: "var(--space-event-application-grid-gap-tight)" }}>
                         <select style={input} value={adminDraft.event_date_y} onChange={e => setAdminDraft(p => ({ ...p, event_date_y: e.target.value, event_date_d: Number(p.event_date_d) > getDaysInMonth(e.target.value, p.event_date_m) ? "" : p.event_date_d }))}>
                           <option value="">연도</option>
                           {dateYears.map(year => <option key={year} value={year}>{year}</option>)}
@@ -666,7 +675,7 @@ export function EventApplicationPage() {
                           {dateDays.map(day => <option key={day} value={day}>{day}</option>)}
                         </select>
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2" style={{ gap: "var(--space-event-application-grid-gap-tight)" }}>
                         <select style={input} value={adminDraft.event_time_h} onChange={e => setAdminDraft(p => ({ ...p, event_time_h: e.target.value }))}>
                           <option value="">시</option>
                           {timeHours.map(hour => <option key={hour} value={hour}>{hour}시</option>)}
@@ -676,13 +685,13 @@ export function EventApplicationPage() {
                         </select>
                       </div>
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                      <span style={{ color: "var(--color-text-muted)", fontSize: 13, fontWeight: 800 }}>장소</span>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-xs)" }}>
+                      <span style={fieldLabelStyle}>장소</span>
                       <input style={input} value={adminDraft.locationName} onChange={e => setAdminDraft(p => ({ ...p, locationName: e.target.value }))} placeholder="장소 이름" />
                       <input style={input} value={adminDraft.locationAddress} onChange={e => setAdminDraft(p => ({ ...p, locationAddress: e.target.value }))} placeholder="주소" />
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: "var(--space-event-application-grid-gap)" }}>
                     <select style={input} value={adminDraft.event_status} onChange={e => setAdminDraft(p => ({ ...p, event_status: e.target.value }))}>
                       <option value="접수예정">접수예정</option>
                       <option value="접수중">접수중</option>
@@ -691,7 +700,7 @@ export function EventApplicationPage() {
                     </select>
                     <input style={input} type="number" min={0} value={adminDraft.capacity} onChange={e => setAdminDraft(p => ({ ...p, capacity: e.target.value }))} placeholder="정원" />
                   </div>
-                  <textarea style={{ ...input, minHeight: 96, resize: "vertical" }} value={adminDraft.content} onChange={e => setAdminDraft(p => ({ ...p, content: e.target.value }))} placeholder="행사 설명" />
+                  <textarea style={textareaStyle("var(--size-event-application-textarea-md)")} value={adminDraft.content} onChange={e => setAdminDraft(p => ({ ...p, content: e.target.value }))} placeholder="행사 설명" />
                   <AdvancedThumbnailEditor
                     aspect="7/1"
                     candidates={bannerImageCandidates}
@@ -707,11 +716,11 @@ export function EventApplicationPage() {
                 </div>
                 <div style={adminGroupStyle}>
                   <strong style={adminGroupTitleStyle}>신청서 안내</strong>
-                  <textarea style={{ ...input, minHeight: 80, resize: "vertical" }} value={adminDraft.intro} onChange={e => setAdminDraft(p => ({ ...p, intro: e.target.value }))} placeholder="폼 안내 문구" />
+                  <textarea style={textareaStyle("var(--size-event-application-textarea-sm)")} value={adminDraft.intro} onChange={e => setAdminDraft(p => ({ ...p, intro: e.target.value }))} placeholder="폼 안내 문구" />
                 </div>
                 <div style={adminGroupStyle}>
                   <strong style={adminGroupTitleStyle}>1. 참가자 기본 정보</strong>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: "var(--space-event-application-grid-gap)" }}>
                     <input style={input} value={adminDraft.companyTechLabel} onChange={e => setAdminDraft(p => ({ ...p, companyTechLabel: e.target.value }))} placeholder="기업명/기술분야 질문" />
                     <input style={input} value={adminDraft.nameLabel} onChange={e => setAdminDraft(p => ({ ...p, nameLabel: e.target.value }))} placeholder="성함 질문" />
                     <input style={input} value={adminDraft.positionLabel} onChange={e => setAdminDraft(p => ({ ...p, positionLabel: e.target.value }))} placeholder="직책 질문" />
@@ -723,20 +732,20 @@ export function EventApplicationPage() {
                   <strong style={adminGroupTitleStyle}>2. 관심 분야 & 참여 목적</strong>
                   <input style={input} value={adminDraft.expectationLabel} onChange={e => setAdminDraft(p => ({ ...p, expectationLabel: e.target.value }))} placeholder="참여 목적 질문" />
                   <input style={input} value={adminDraft.interestsLabel} onChange={e => setAdminDraft(p => ({ ...p, interestsLabel: e.target.value }))} placeholder="관심 분야 질문" />
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-xs)" }}>
                     {interestOptionItems.map((option, index) => {
                       const isEditingOption = editingInterestIndex === index;
                       return (
                         <div key={index} style={compactRowStyle}>
                           {isEditingOption ? (
                             <input
-                              style={{ ...input, padding: "8px 10px", borderRadius: 10, flex: 1 }}
+                              style={compactInputStyle}
                               value={option}
                               onChange={e => updateInterestOption(index, e.target.value)}
                               placeholder="선택지 이름"
                             />
                           ) : (
-                            <span style={{ flex: 1, color: option ? "var(--color-text-primary)" : "var(--color-text-muted)", fontSize: 14, fontWeight: 700 }}>
+                            <span style={{ flex: 1, color: option ? "var(--color-text-primary)" : "var(--color-text-muted)", fontSize: "var(--text-event-application-body)", fontWeight: "var(--weight-bold)" }}>
                               {option || "빈 선택지"}
                             </span>
                           )}
@@ -745,25 +754,25 @@ export function EventApplicationPage() {
                             variant="outline"
                             size="sm"
                             onClick={() => setEditingInterestIndex(isEditingOption ? null : index)}
-                            style={{ minWidth: 58, background: "var(--color-field-bg)" }}
+                            style={{ minWidth: "var(--size-event-application-edit-button-min)", background: "var(--color-field-bg)" }}
                           >
                             {isEditingOption ? "완료" : "수정"}
                           </Button>
                           <button type="button" aria-label="관심 분야 선택지 삭제" onClick={() => removeInterestOption(index)} style={roundDeleteButtonStyle}>
-                            <X size={14} />
+                            <X size="var(--size-event-application-icon-sm)" />
                           </button>
                         </div>
                       );
                     })}
                     <div style={compactRowStyle}>
                       <input
-                        style={{ ...input, padding: "8px 10px", borderRadius: 10, flex: 1 }}
+                        style={compactInputStyle}
                         value={newInterestOption}
                         onChange={e => setNewInterestOption(e.target.value)}
                         placeholder="새 관심 분야 선택지"
                       />
                       <button type="button" aria-label="관심 분야 선택지 추가" onClick={addInterestOption} style={roundAddButtonStyle}>
-                        <Plus size={16} />
+                        <Plus size="var(--size-event-application-icon-md)" />
                       </button>
                     </div>
                   </div>
@@ -773,35 +782,35 @@ export function EventApplicationPage() {
                   <input style={input} value={adminDraft.speakerQuestionLabel} onChange={e => setAdminDraft(p => ({ ...p, speakerQuestionLabel: e.target.value }))} placeholder="사전 질문 문구" />
                 </div>
                 <div style={adminGroupStyle}>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-event-application-compact-inline)" }}>
                     <strong style={adminGroupTitleStyle}>4. 추가 질문</strong>
                     {adminDraft.customQuestions.length === 0 && (
                       <div style={{ ...compactRowStyle, justifyContent: "center" }}>
                         <button type="button" aria-label="첫 번째 추가 질문 추가" onClick={() => insertCustomQuestion(0)} style={roundAddButtonStyle}>
-                          <Plus size={16} />
+                          <Plus size="var(--size-event-application-icon-md)" />
                         </button>
                       </div>
                     )}
                     {adminDraft.customQuestions.length > 0 && (
                       <div style={{ display: "flex", justifyContent: "center" }}>
                         <button type="button" aria-label="첫 번째 추가 질문 추가" onClick={() => insertCustomQuestion(0)} style={roundAddButtonStyle}>
-                        <Plus size={16} />
+                        <Plus size="var(--size-event-application-icon-md)" />
                       </button>
                       </div>
                     )}
                     {adminDraft.customQuestions.map((question, index) => (
-                      <div key={question.id} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                        <div style={{ position: "relative", padding: "14px 42px 14px 14px", borderRadius: 14, border: "1px solid var(--color-border-soft)", background: "var(--color-surface-subtle)", display: "grid", gap: 10 }}>
-                          <button type="button" aria-label="폼 질문 삭제" onClick={() => removeCustomQuestion(question.id)} style={{ position: "absolute", top: 9, right: 9, width: 24, height: 24, borderRadius: "50%", border: "none", background: "var(--color-danger-soft-bg)", color: "var(--color-brand-red)", display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-                            <X size={14} />
+                      <div key={question.id} style={{ display: "flex", flexDirection: "column", gap: "var(--space-event-application-compact-inline)" }}>
+                        <div style={{ position: "relative", padding: "var(--space-event-application-question-card-block) var(--space-event-application-question-action) var(--space-event-application-question-card-block) var(--space-event-application-question-card-block)", borderRadius: "var(--radius-event-application-row)", border: "1px solid var(--color-border-soft)", background: "var(--color-surface-subtle)", display: "grid", gap: "var(--space-event-application-compact-inline)" }}>
+                          <button type="button" aria-label="폼 질문 삭제" onClick={() => removeCustomQuestion(question.id)} style={{ position: "absolute", top: "var(--space-event-application-question-action-offset)", right: "var(--space-event-application-question-action-offset)", width: "var(--size-event-application-action-sm)", height: "var(--size-event-application-action-sm)", borderRadius: "50%", border: "none", background: "var(--color-danger-soft-bg)", color: "var(--color-brand-red)", display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                            <X size="var(--size-event-application-icon-sm)" />
                           </button>
                           <input style={input} value={question.label} onChange={e => updateCustomQuestion(question.id, { label: e.target.value })} placeholder="질문 문구" />
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: "var(--space-event-application-grid-gap)" }}>
                             <select style={input} value={question.type} onChange={e => updateCustomQuestion(question.id, { type: e.target.value as EventCustomQuestion["type"] })}>
                               <option value="short_text">짧은 답변</option>
                               <option value="long_text">긴 답변</option>
                             </select>
-                            <label style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--color-text-primary)", fontSize: 13, fontWeight: 700 }}>
+                            <label style={{ display: "flex", alignItems: "center", gap: "var(--space-xs)", color: "var(--color-text-primary)", fontSize: "var(--text-event-application-label)", fontWeight: "var(--weight-bold)" }}>
                               <input type="checkbox" checked={question.required} onChange={e => updateCustomQuestion(question.id, { required: e.target.checked })} />
                               필수 질문
                             </label>
@@ -809,7 +818,7 @@ export function EventApplicationPage() {
                         </div>
                         <div style={{ display: "flex", justifyContent: "center" }}>
                           <button type="button" aria-label={`${index + 2}번째 추가 질문 추가`} onClick={() => insertCustomQuestion(index + 1)} style={roundAddButtonStyle}>
-                            <Plus size={16} />
+                            <Plus size="var(--size-event-application-icon-md)" />
                           </button>
                         </div>
                       </div>
@@ -818,13 +827,13 @@ export function EventApplicationPage() {
                 </div>
                 <div style={adminGroupStyle}>
                   <strong style={adminGroupTitleStyle}>5. 개인정보 동의 및 완료 안내</strong>
-                  <textarea style={{ ...input, minHeight: 72, resize: "vertical" }} value={adminDraft.privacyConsentLabel} onChange={e => setAdminDraft(p => ({ ...p, privacyConsentLabel: e.target.value }))} placeholder="개인정보 동의 문구" />
+                  <textarea style={textareaStyle("var(--size-event-application-textarea-xs)")} value={adminDraft.privacyConsentLabel} onChange={e => setAdminDraft(p => ({ ...p, privacyConsentLabel: e.target.value }))} placeholder="개인정보 동의 문구" />
                   <input style={input} value={adminDraft.completionTitle} onChange={e => setAdminDraft(p => ({ ...p, completionTitle: e.target.value }))} placeholder="완료 제목" />
-                  <textarea style={{ ...input, minHeight: 72, resize: "vertical" }} value={adminDraft.completionMessage} onChange={e => setAdminDraft(p => ({ ...p, completionMessage: e.target.value }))} placeholder="완료 안내" />
+                  <textarea style={textareaStyle("var(--size-event-application-textarea-xs)")} value={adminDraft.completionMessage} onChange={e => setAdminDraft(p => ({ ...p, completionMessage: e.target.value }))} placeholder="완료 안내" />
                 </div>
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", gap: "var(--space-event-application-compact-inline)", flexWrap: "wrap" }}>
                     <Button type="button" onClick={handleAdminSave} disabled={submitting}>
-                      <Save size={16} />
+                      <Save size="var(--size-event-application-icon-md)" />
                       {submitting ? "저장 중..." : "저장"}
                     </Button>
                     <Button
@@ -842,30 +851,30 @@ export function EventApplicationPage() {
                 </div>
             </section>
           ) : (
-            <section style={{ position: "relative", background: "var(--color-surface-card)", border: "1px solid var(--color-border-soft)", borderRadius: 24, padding: 26 }}>
+            <section style={{ position: "relative", background: "var(--color-surface-card)", border: "1px solid var(--color-border-soft)", borderRadius: "var(--radius-event-application-card)", padding: "var(--space-event-application-form-card)" }}>
               {isAdmin && (
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={() => setAdminEditing(true)}
-                  style={{ position: "absolute", top: 18, right: 18, background: "var(--color-field-bg)" }}
+                  style={{ position: "absolute", top: "var(--space-event-application-admin-offset)", right: "var(--space-event-application-admin-offset)", background: "var(--color-field-bg)" }}
                 >
                   편집
                 </Button>
               )}
               {saved || application ? (
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 14, padding: "40px 0" }}>
-                  <CheckCircle2 size={48} color="var(--color-accent-green)" />
-                  <h3 style={{ margin: 0, color: "var(--color-text-primary)", fontSize: 22, fontWeight: 900 }}>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: "var(--space-event-application-centered-gap)", padding: "var(--space-event-application-centered-y) 0" }}>
+                  <CheckCircle2 size="var(--size-event-application-action-lg)" color="var(--color-accent-green)" />
+                  <h3 style={{ margin: 0, color: "var(--color-text-primary)", fontSize: "var(--text-event-application-heading)", fontWeight: "var(--weight-black)" }}>
                     {application?.status === "cancelled" ? "신청이 취소되었습니다." : activeConfig.completionTitle}
                   </h3>
-                  <p style={{ margin: 0, color: "var(--color-text-muted)", lineHeight: 1.7 }}>
+                  <p style={{ margin: 0, color: "var(--color-text-muted)", lineHeight: "var(--leading-event-application-message)" }}>
                     {application?.status === "cancelled" ? "재참가가 필요하면 운영자에게 문의해주세요." : activeConfig.completionMessage}
                   </p>
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-event-application-compact-inline)" }}>
                     {application?.status === "cancelled" && (
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+                      <div style={{ display: "flex", gap: "var(--space-xs)", flexWrap: "wrap", justifyContent: "center" }}>
                         <Button asChild variant="outline" size="sm" style={contactButtonStyle}>
                           <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
                         </Button>
@@ -881,7 +890,7 @@ export function EventApplicationPage() {
                     )}
                     {canCancelApplication && (
                       <Button type="button" variant="destructive" onClick={handleCancelApplication} disabled={submitting}>
-                        <Ban size={16} />
+                        <Ban size="var(--size-event-application-icon-md)" />
                         {submitting ? "취소 중..." : "신청 취소"}
                       </Button>
                     )}
@@ -891,32 +900,32 @@ export function EventApplicationPage() {
                   </div>
                 </div>
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-                  <div style={{ paddingRight: isAdmin ? 82 : 0 }}>
-                    <h3 style={{ margin: "0 0 8px", color: "var(--color-text-primary)", fontSize: 22, fontWeight: 900 }}>참가 신청</h3>
-                    <p style={{ margin: 0, color: "var(--color-text-muted)", lineHeight: 1.65 }}>{activeConfig.intro}</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-event-application-section-gap)" }}>
+                  <div style={{ paddingRight: isAdmin ? "var(--space-event-application-admin-inline-reserve)" : 0 }}>
+                    <h3 style={{ margin: "0 0 var(--space-xs)", color: "var(--color-text-primary)", fontSize: "var(--text-event-application-heading)", fontWeight: "var(--weight-black)" }}>참가 신청</h3>
+                    <p style={{ margin: 0, color: "var(--color-text-muted)", lineHeight: "var(--leading-event-application-body)" }}>{activeConfig.intro}</p>
                   </div>
 
-                  <div style={{ padding: 18, background: "var(--color-surface-subtle)", border: "1px solid var(--color-border-soft)", borderRadius: 18, display: "grid", gap: 12 }}>
+                  <div style={formCardStyle}>
                     <strong style={{ color: "var(--color-text-primary)" }}>1. 참가자 기본 정보</strong>
                     <input style={input} value={form.company_tech} onChange={e => updateField("company_tech", e.target.value)} placeholder={requiredLabel(activeConfig.companyTechLabel)} />
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: "var(--space-event-application-grid-gap)" }}>
                       <input style={input} value={form.applicant_name} onChange={e => updateField("applicant_name", e.target.value)} placeholder={requiredLabel(activeConfig.nameLabel)} />
                       <input style={input} value={form.position} onChange={e => updateField("position", e.target.value)} placeholder={requiredLabel(activeConfig.positionLabel)} />
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: "var(--space-event-application-grid-gap)" }}>
                       <input style={input} value={form.email} onChange={e => updateField("email", e.target.value)} placeholder={requiredLabel(activeConfig.emailLabel)} />
                       <input style={input} value={form.phone} onChange={e => updateField("phone", e.target.value)} placeholder={activeConfig.phoneLabel} />
                     </div>
                   </div>
 
-                  <div style={{ padding: 18, background: "var(--color-surface-subtle)", border: "1px solid var(--color-border-soft)", borderRadius: 18, display: "grid", gap: 12 }}>
+                  <div style={formCardStyle}>
                     <strong style={{ color: "var(--color-text-primary)" }}>2. 관심 분야 & 참여 목적</strong>
-                    <textarea style={{ ...input, minHeight: 110, resize: "vertical" }} value={form.expectation} onChange={e => updateField("expectation", e.target.value)} placeholder={requiredLabel(activeConfig.expectationLabel)} />
-                    <p style={{ margin: 0, color: "var(--color-text-muted)", fontSize: 13, fontWeight: 700 }}>{requiredLabel(activeConfig.interestsLabel)}</p>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <textarea style={textareaStyle("var(--size-event-application-textarea-xl)")} value={form.expectation} onChange={e => updateField("expectation", e.target.value)} placeholder={requiredLabel(activeConfig.expectationLabel)} />
+                    <p style={{ margin: 0, color: "var(--color-text-muted)", fontSize: "var(--text-event-application-label)", fontWeight: "var(--weight-bold)" }}>{requiredLabel(activeConfig.interestsLabel)}</p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-xs)" }}>
                       {activeConfig.interestOptions.map(option => (
-                        <label key={option} style={{ display: "flex", gap: 10, alignItems: "center", color: "var(--color-text-primary)", fontSize: 14 }}>
+                        <label key={option} style={{ display: "flex", gap: "var(--space-event-application-compact-inline)", alignItems: "center", color: "var(--color-text-primary)", fontSize: "var(--text-event-application-body)" }}>
                           <input type="checkbox" checked={form.interests.includes(option)} onChange={() => toggleInterest(option)} />
                           {option}
                         </label>
@@ -924,31 +933,31 @@ export function EventApplicationPage() {
                     </div>
                   </div>
 
-                  <div style={{ padding: 18, background: "var(--color-surface-subtle)", border: "1px solid var(--color-border-soft)", borderRadius: 18, display: "grid", gap: 12 }}>
+                  <div style={formCardStyle}>
                     <strong style={{ color: "var(--color-text-primary)" }}>3. 사전 질문</strong>
-                    <textarea style={{ ...input, minHeight: 100, resize: "vertical" }} value={form.speaker_question} onChange={e => updateField("speaker_question", e.target.value)} placeholder={activeConfig.speakerQuestionLabel} />
+                    <textarea style={textareaStyle("var(--size-event-application-textarea-lg)")} value={form.speaker_question} onChange={e => updateField("speaker_question", e.target.value)} placeholder={activeConfig.speakerQuestionLabel} />
                   </div>
 
                   {activeConfig.customQuestions.map((question, index) => (
-                    <div key={question.id} style={{ padding: 18, background: "var(--color-surface-subtle)", border: "1px solid var(--color-border-soft)", borderRadius: 18, display: "grid", gap: 12 }}>
+                    <div key={question.id} style={formCardStyle}>
                       <strong style={{ color: "var(--color-text-primary)" }}>{index + 4}. {question.label}{question.required ? " *" : ""}</strong>
                       {question.type === "long_text" ? (
-                        <textarea style={{ ...input, minHeight: 100, resize: "vertical" }} value={form.custom_answers[question.id] ?? ""} onChange={e => updateCustomAnswer(question.id, e.target.value)} placeholder={question.label} />
+                        <textarea style={textareaStyle("var(--size-event-application-textarea-lg)")} value={form.custom_answers[question.id] ?? ""} onChange={e => updateCustomAnswer(question.id, e.target.value)} placeholder={question.label} />
                       ) : (
                         <input style={input} value={form.custom_answers[question.id] ?? ""} onChange={e => updateCustomAnswer(question.id, e.target.value)} placeholder={question.label} />
                       )}
                     </div>
                   ))}
 
-                  <div style={{ padding: 18, background: "var(--color-surface-subtle)", border: "1px solid var(--color-border-soft)", borderRadius: 18 }}>
-                    <label style={{ display: "flex", gap: 10, alignItems: "flex-start", color: "var(--color-text-primary)", fontSize: 14, lineHeight: 1.6 }}>
-                      <input type="checkbox" checked={form.privacy_consent} onChange={e => updateField("privacy_consent", e.target.checked)} style={{ marginTop: 4 }} />
+                  <div style={{ ...formCardStyle, display: "block" }}>
+                    <label style={{ display: "flex", gap: "var(--space-event-application-compact-inline)", alignItems: "flex-start", color: "var(--color-text-primary)", fontSize: "var(--text-event-application-body)", lineHeight: "var(--leading-normal)" }}>
+                      <input type="checkbox" checked={form.privacy_consent} onChange={e => updateField("privacy_consent", e.target.checked)} style={{ marginTop: "var(--space-2xs)" }} />
                       {requiredLabel(activeConfig.privacyConsentLabel)}
                     </label>
                   </div>
 
                   <Button type="button" size="lg" onClick={handleSubmit} disabled={submitting || isClosed} className="w-full bg-[var(--color-accent-green)] hover:brightness-110">
-                    <Send size={16} />
+                    <Send size="var(--size-event-application-icon-md)" />
                     {isClosed ? "신청 마감" : submitting ? "제출 중..." : "신청 제출"}
                   </Button>
                 </div>

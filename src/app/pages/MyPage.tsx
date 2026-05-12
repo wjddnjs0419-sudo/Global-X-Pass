@@ -9,6 +9,7 @@ import type { Profile } from "../../lib/types";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "../components/ui/input-otp";
 import { EVENT_APPLICATION_STATUS } from "../../utils/eventApplication";
 import { sanitizeSvgMarkup } from "../../utils/htmlSecurity";
+import { formatStructuredLocation } from "../../utils/scheduleFields";
 import { getStatusPillStyle } from "../components/contentListStyles";
 
 export function MyPage() {
@@ -570,7 +571,7 @@ export function MyPage() {
                   <div>
                     <div style={{ fontWeight: 700, color: textMain, fontSize: 14, marginBottom: 4 }}>{consultant?.name}</div>
                     <div style={{ fontSize: 12, color: textMuted }}>{slot?.slot_date} {slot?.slot_time?.slice(0, 5)}</div>
-                    <div style={{ fontSize: 12, color: textMuted, marginTop: 3 }}>{slot?.location || "장소 미정"}</div>
+                    <div style={{ fontSize: 12, color: textMuted, marginTop: 3 }}>{formatStructuredLocation(slot?.location)}</div>
                   </div>
                   {statusPill(cfg)}
                 </div>
@@ -603,7 +604,7 @@ export function MyPage() {
                   <div>
                     <div style={{ fontWeight: 700, color: textMain, fontSize: 14, marginBottom: 4 }}>{session?.theme}</div>
                     <div style={{ fontSize: 12, color: textMuted }}>{session?.session_date ?? "날짜 미정"} {session?.session_time?.slice(0, 5) ?? ""}</div>
-                    <div style={{ fontSize: 12, color: textMuted, marginTop: 3 }}>{session?.location || "장소 미정"}</div>
+                    <div style={{ fontSize: 12, color: textMuted, marginTop: 3 }}>{formatStructuredLocation(session?.location)}</div>
                   </div>
                   {statusPill(cfg)}
                 </div>
@@ -630,7 +631,7 @@ export function MyPage() {
                   <div>
                     <div style={{ fontWeight: 700, color: textMain, fontSize: 14, marginBottom: 4 }}>{event?.title}</div>
                     <div style={{ fontSize: 12, color: textMuted }}>{event?.event_date ?? "일시 미정"}</div>
-                    <div style={{ fontSize: 12, color: textMuted, marginTop: 3 }}>{event?.location || "장소 미정"}</div>
+                    <div style={{ fontSize: 12, color: textMuted, marginTop: 3 }}>{formatStructuredLocation(event?.location)}</div>
                   </div>
                   {statusPill(cfg)}
                 </div>
