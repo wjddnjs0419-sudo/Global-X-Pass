@@ -7,6 +7,7 @@ import { LoadingSpinner, ErrorMessage } from "../components/LoadingSpinner";
 import { cleanText } from "../../utils/text";
 import { isImage } from "../../utils/file";
 import { EVENT_STATUS_CONFIG } from "../../utils/eventApplication";
+import { formatStructuredLocation } from "../../utils/scheduleFields";
 import { getFilterTabStyle, getMutedLabelStyle, getStatusPillStyle } from "../components/contentListStyles";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis } from "../components/ui/pagination";
 
@@ -174,7 +175,7 @@ export function EventsPage() {
                       </div>
                       <div>
                         <p className="m-0 text-[11px] font-bold tracking-wide mb-1" style={{ color: "var(--color-text-muted)" }}>장소</p>
-                        <p className="m-0 text-sm font-semibold leading-snug" style={{ color: "var(--color-text-primary)" }}>{post.location || "장소 미정"}</p>
+                        <p className="m-0 text-sm font-semibold leading-snug" style={{ color: "var(--color-text-primary)" }}>{formatStructuredLocation(post.location)}</p>
                       </div>
                       <div>
                         <p className="m-0 text-[11px] font-bold tracking-wide mb-1" style={{ color: "var(--color-text-muted)" }}>정원</p>

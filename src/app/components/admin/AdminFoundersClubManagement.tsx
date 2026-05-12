@@ -1,6 +1,17 @@
 import { useState, useEffect } from "react";
 import { useTheme } from "../../ThemeContext";
 import { supabase } from "../../../lib/supabaseClient";
+import {
+  composeIsoDate,
+  composeStructuredLocation,
+  composeTime,
+  formatStructuredLocation,
+  getDayOptions,
+  getHourOptions,
+  getMonthOptions,
+  getTenMinuteOptions,
+  getYearOptions,
+} from "../../../utils/scheduleFields";
 import { Check, X } from "lucide-react";
 import { getStatusPillStyle } from "../contentListStyles";
 import type { FoundersClubSession } from "../../../lib/types";
@@ -20,7 +31,17 @@ export function AdminFoundersClubManagement() {
   const [sessions, setSessions] = useState<FoundersClubSession[]>([]);
   const [selectedSession, setSelectedSession] = useState<FoundersClubSession | null>(null);
   const [applications, setApplications] = useState<any[]>([]);
-  const [form, setForm] = useState({ theme: "", description: "", location: "", max_participants: 6, session_date_y: "", session_date_m: "", session_date_d: "", session_time: "" });
+  const [form, setForm] = useState({
+    theme: "",
+    description: "",
+    locationName: "",
+    locationAddress: "",
+    max_participants: 6,
+    session_date_y: "",
+    session_date_m: "",
+    session_date_d: "",
+    session_time: "",
+  });
   const [statusFilter, setStatusFilter] = useState<"all" | "recruiting" | "closed" | "completed">("all");
   const [loading, setLoading] = useState(false);
 
@@ -87,17 +108,18 @@ export function AdminFoundersClubManagement() {
     if (!form.theme.trim()) return;
     setLoading(true);
     const { session_date_y: y, session_date_m: m, session_date_d: d } = form;
-    const session_date = y && m && d ? `${y}-${m}-${d}` : null;
+    const session_date = composeIsoDate(y, m, d) || null;
+    const location = composeStructuredLocation(form.locationName, form.locationAddress);
     const { error } = await supabase.from("founders_club_sessions").insert({
       theme: form.theme.trim(),
       description: form.description.trim() || null,
-      location: form.location.trim() || null,
+      location: location || null,
       max_participants: form.max_participants,
       session_date,
       session_time: form.session_time || null,
     });
     if (error) alert("생성 실패: " + error.message);
-    else { setForm({ theme: "", description: "", location: "", max_participants: 6, session_date_y: "", session_date_m: "", session_date_d: "", session_time: "" }); fetchSessions(); }
+    else { setForm({ theme: "", description: "", locationName: "", locationAddress: "", max_participants: 6, session_date_y: "", session_date_m: "", session_date_d: "", session_time: "" }); fetchSessions(); }
     setLoading(false);
   };
 
@@ -173,7 +195,10 @@ export function AdminFoundersClubManagement() {
             <p style={{ margin: 0, fontWeight: 700, color: textMain }}>새 세션 등록</p>
             <input style={inputStyle} placeholder="테마 (예: SaaS MRR Growth, Vietnam Marketing)" value={form.theme} onChange={e => setForm(f => ({ ...f, theme: e.target.value }))} />
             <input style={inputStyle} placeholder="설명 (선택)" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
-            <input style={inputStyle} placeholder="장소 (예: NCF 라운지, Zoom, 별도 안내)" value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} />
+            <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 10 }}>
+              <input style={inputStyle} placeholder="장소 이름 (예: NCF 라운지)" value={form.locationName} onChange={e => setForm(f => ({ ...f, locationName: e.target.value }))} />
+              <input style={inputStyle} placeholder="주소 또는 링크 (예: 낙성대역 14길 8)" value={form.locationAddress} onChange={e => setForm(f => ({ ...f, locationAddress: e.target.value }))} />
+            </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <span style={{ fontSize: 12, color: textMuted, fontWeight: 600 }}>날짜</span>
@@ -184,7 +209,7 @@ export function AdminFoundersClubManagement() {
                     onChange={e => setForm(f => ({ ...f, session_date_y: e.target.value }))}
                   >
                     <option value="">년</option>
-                    {Array.from({ length: 4 }, (_, i) => String(new Date().getFullYear() + i)).map(y => (
+                    {getYearOptions().map(y => (
                       <option key={y} value={y}>{y}년</option>
                     ))}
                   </select>
@@ -199,7 +224,7 @@ export function AdminFoundersClubManagement() {
                     }}
                   >
                     <option value="">월</option>
-                    {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0")).map(m => (
+                    {getMonthOptions().map(m => (
                       <option key={m} value={m}>{Number(m)}월</option>
                     ))}
                   </select>
@@ -209,14 +234,9 @@ export function AdminFoundersClubManagement() {
                     onChange={e => setForm(f => ({ ...f, session_date_d: e.target.value }))}
                   >
                     <option value="">일</option>
-                    {(() => {
-                      const days = form.session_date_y && form.session_date_m
-                        ? new Date(Number(form.session_date_y), Number(form.session_date_m), 0).getDate()
-                        : 31;
-                      return Array.from({ length: days }, (_, i) => String(i + 1).padStart(2, "0")).map(d => (
-                        <option key={d} value={d}>{Number(d)}일</option>
-                      ));
-                    })()}
+                    {getDayOptions(form.session_date_y, form.session_date_m).map(d => (
+                      <option key={d} value={d}>{Number(d)}일</option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -229,11 +249,11 @@ export function AdminFoundersClubManagement() {
                     onChange={e => {
                       const h = e.target.value;
                       const m = form.session_time?.split(":")[1] || "00";
-                      setForm(f => ({ ...f, session_time: h ? `${h}:${m}` : "" }));
+                      setForm(f => ({ ...f, session_time: composeTime(h, m) }));
                     }}
                   >
                     <option value="">시</option>
-                    {Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0")).map(h => (
+                    {getHourOptions().map(h => (
                       <option key={h} value={h}>{h}시</option>
                     ))}
                   </select>
@@ -244,14 +264,13 @@ export function AdminFoundersClubManagement() {
                     onChange={e => {
                       const m = e.target.value;
                       const h = form.session_time?.split(":")[0] || "";
-                      if (h) setForm(f => ({ ...f, session_time: `${h}:${m}` }));
+                      if (h) setForm(f => ({ ...f, session_time: composeTime(h, m) }));
                     }}
                   >
                     <option value="">분</option>
-                    {[0, 10, 20, 30, 40, 50].map(m => {
-                      const val = String(m).padStart(2, "0");
-                      return <option key={val} value={val}>{val}분</option>;
-                    })}
+                    {getTenMinuteOptions().map(val => (
+                      <option key={val} value={val}>{val}분</option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -308,7 +327,7 @@ export function AdminFoundersClubManagement() {
                 <div style={{ fontSize: 13, color: textMuted }}>
                   정원 {s.max_participants}명 {s.session_date && `· ${s.session_date} ${s.session_time?.slice(0, 5) ?? ""}`}
                 </div>
-                <div style={{ fontSize: 12, color: textMuted, marginTop: 4 }}>{s.location || "장소 미정"}</div>
+                <div style={{ fontSize: 12, color: textMuted, marginTop: 4 }}>{formatStructuredLocation(s.location)}</div>
               </div>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <select

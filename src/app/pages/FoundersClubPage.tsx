@@ -6,6 +6,7 @@ import { LAYERS } from "../../lib/layers";
 import { Skeleton } from "../components/ui/skeleton";
 import type { FoundersClubSession, FoundersClubApplication } from "../../lib/types";
 import { getStatusPillStyle } from "../components/contentListStyles";
+import { formatStructuredLocation } from "../../utils/scheduleFields";
 
 interface Applicant { id: string; name: string; email: string; company: string; }
 
@@ -192,7 +193,7 @@ export function FoundersClubPage() {
                           {s.session_time && ` ${s.session_time.slice(0, 5)}`}
                         </span>
                       )}
-                      <div style={{ fontSize: 13, color: "var(--color-text-muted)", marginTop: 4 }}>{s.location || "장소 미정"}</div>
+                      <div style={{ fontSize: 13, color: "var(--color-text-muted)", marginTop: 4 }}>{formatStructuredLocation(s.location)}</div>
                     </div>
                     <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                       <span style={getStatusPillStyle(cfg.color, isDark)}>{cfg.label}</span>

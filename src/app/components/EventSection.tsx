@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router";
 import { getSectionTheme } from "../utils/sectionTheme";
 import { supabase } from "../../lib/supabaseClient";
 import { cleanText } from "../../utils/text";
+import { formatStructuredLocation } from "../../utils/scheduleFields";
 import type { Post } from "../../lib/types";
 import { Button } from "./ui/button";
 import { Skeleton } from "./ui/skeleton";
@@ -46,7 +47,7 @@ export function EventSection({ isDark = false }: EventSectionProps) {
   const displayDate = featured
     ? (featured.event_date || new Date(featured.created_at).toLocaleDateString("ko-KR"))
     : "";
-  const displayLocation = featured?.location || "NCF 오피스";
+  const displayLocation = formatStructuredLocation(featured?.location, "NCF 오피스");
 
   return (
     <section style={{

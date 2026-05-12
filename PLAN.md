@@ -3,6 +3,8 @@
 완료된 계획은 `RESULT.md`에 세부 구현 내용과 검증 결과가 기록되어 있으므로, 이 파일에는 활성/예정 작업만 유지합니다. 완료 항목은 `[Done]` 한 줄로 축약하고, 10개를 넘으면 가장 오래된 완료 항목부터 삭제합니다.
 
 ## Pending Approval
+- [Done] EventApplicationPage 잔여 숫자 스타일 토큰화 (2026-05-12) — `theme.css`에 EventApplicationPage 전용 의미 토큰을 추가하고, 입력 필드/카드/패널/라벨/버튼/textarea 높이, 페이지 max-width/bottom spacing, 아이콘 크기 등 시각 숫자 값을 `var(--...)` 참조로 교체. 날짜 계산, 배열 길이, 정원 계산 같은 도메인 숫자는 유지. `npm run validate` ✅
+- [Done] 컨설팅/Founder's Club 일시·장소 입력 패턴 공용화 및 공개 표시 통일 (2026-05-12) — `scheduleFields.ts` 공용 유틸로 날짜/시간 select option과 `장소명 | 주소` 저장·`장소명, 주소` 표시 규칙을 통합. `AdminConsultingManagement` 슬롯 추가, `AdminFoundersClubManagement` 세션 추가에 장소 이름/주소 분리 입력 적용. `ConsultingBookingModal`, `FoundersClubPage`, `MyPage`, 행사 목록/홈 섹션 표시를 공용 formatter로 통일. `npm run validate` ✅
 - [Done] EventApplicationPage 관심 분야 선택지 카드형 편집 및 한글 IME 입력 안정화 (2026-05-12) — 관심 분야 선택지를 textarea 대신 얇은 행 카드로 분리해 `수정/완료`, 삭제(X), 추가(+) 버튼으로 관리. 추가 질문이 없을 때는 얇은 기본 박스 중앙에 + 버튼만 표시. 입력값 기반 React key로 한글 조합이 끊기던 문제를 안정 key로 수정. `npm run validate` ✅
 - [Done] EventApplicationPage 장소 분리 입력 및 편집 화면 섹션 개요 추가 (2026-05-12) — 장소 입력을 `장소 이름`/`주소`로 분리하고 기존 `posts.location` TEXT에는 `장소이름 | 주소` 형식으로 저장. 공개 화면은 참가자 관점에서 `장소이름, 주소`로 표시. 관리자 편집 화면에 `행사 기본 정보`, `신청서 안내`, `1. 참가자 기본 정보`, `2. 관심 분야 & 참여 목적`, `3. 사전 질문`, `4. 추가 질문`, `5. 개인정보 동의 및 완료 안내` 섹션 개요 추가. `npm run validate` ✅, 로컬 브라우저 일반 사용자 smoke check ✅
 - [Done] EventApplicationPage 관리자 편집 진입 흐름 및 시간 입력 개선 (2026-05-12) — 관리자는 기본 진입 시 신청 페이지를 보고, 질문지 박스 우측 상단 `편집` 버튼을 누를 때만 관리자 편집 박스로 전환. 저장/취소 후 다시 신청 페이지로 복귀. 일시는 `연/월/일 + 시/분(10분 단위)` select로 분리 입력하고 `YYYY.MM.DD (요일) HH:mm` 형식으로 저장. `npm run validate` ✅, 로컬 브라우저 일반 사용자 smoke check ✅
@@ -11,10 +13,6 @@
 - [Done] EventApplicationPage 레이아웃 단일 컬럼 전환 (2026-05-12) — `EventApplicationPage.tsx`의 `lg` 2컬럼 그리드를 제거하고 `max-w-[1120px]` 단일 컬럼 흐름으로 재구성. 이벤트 정보 카드 전체 너비 유지, 일반 사용자는 정보 카드 아래 참가 신청 폼, 관리자는 정보 카드 아래 편집 패널만 보이도록 분리. `npm run validate` ✅, 로컬 브라우저 데스크톱/모바일(390px) 신청 페이지 smoke check ✅
 - [Done] 미디어 상세페이지 레이아웃 개선 (2026-05-12) — `theme.css`에 `--size-media-cover-portrait` 토큰 추가. 레포트형 표지 이미지 160px로 축소·상단 정렬, 영상형 세로 스택 전환+YouTube iframe 직접 임베드, "콘텐츠 보기" 버튼 제거. Codex P2(비유튜브 커버 소실) 수정 포함. `npm run validate` ✅
 - [Done] Codex 리뷰 P2 이슈 2건 + 자체 리뷰 P2 1건 수정 (2026-05-12) — `useBlogImportAdmin` buildTagDrafts에 editedTagIdsRef 기반 서버 태그 갱신 로직 추가. `PostDetailPage` editThumbnailCandidates에 editFiles object URL 후보 포함 + pendingThumbnailFile 업로드 흐름 추가 + 취소/권한강등 시 editThumbnailUrl·pendingThumbnailFile 리셋 누락 수정. `npm run validate` ✅
-- [Done] Codex 리뷰 P2 이슈 3건 수정 (2026-05-12) — `AdminPostCreate` 미저장 이미지 파일 썸네일 후보 포함(object URL + 저장 시 업로드), `AdminPage` create 탭 새로고침 복원 시 dashboard fallback, `NewsPage`/`EventArchivePage` 썸네일 404 시 자동 이미지 fallback. `npm run validate` ✅
-
-- [Done] 하드코딩 토큰화 4차 — 공개/기능 페이지 잔여 정리 (2026-05-12) — 12개 페이지(`SearchPage`, `SignupPage`, `TermsOfUsePage`, `NoticePage`, `ResourcesPage`, `BlogPage`, `EventArchivePage`, `ConsultingPage`, `MediaPage`, `EventsPage`, `FoundersClubPage`, `EventApplicationPage`)의 raw 색상/rgba/hex를 CSS 변수 기반으로 교체. `theme.css`에 `--color-img-placeholder`, `--color-capacity-fill/track`, `--color-accent-blue-soft-bg-hover`, `--shadow-card-rest/hover` 라이트 토큰 추가. `MediaGrid` props에서 `isDark/textMuted/textMain/placeholderBg` 제거. `npm run validate` ✅
-
 ## Long-Term Backlog
 - [Backlog] 헤더/어드민/FlowMap 민감 영역 토큰화 — `HeaderSection.tsx`, `AdminPage.tsx`, `FlowMapPage.tsx`, `AdminFlowMap.tsx`, `AdminSidebar.tsx`, 일부 어드민 패널의 레거시 색상 값을 정리한다. 어드민 라이트 모드 스크롤 전 상단 헤더/backdrop 색상 회귀 위험이 있으므로 별도 승인과 브라우저 시각 QA 후 진행한다.
 - [Backlog] 공용 컴포넌트/토큰 설계 정비 — `ui/button.tsx`, `ui/badge.tsx`, `PageShell.tsx`, `sectionTheme.ts`의 raw 색상과 섹션 테마 값을 공용 토큰 체계로 정리한다. 영향 범위가 넓으므로 페이지 단위 토큰화가 안정화된 뒤 별도 차수로 진행한다.
