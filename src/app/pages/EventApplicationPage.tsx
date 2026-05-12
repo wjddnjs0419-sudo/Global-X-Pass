@@ -51,7 +51,7 @@ const createCustomQuestion = (): EventCustomQuestion => ({
 });
 
 const requiredLabel = (label: string) => `${label} *`;
-const EVENT_META_LABEL_PATTERN = /^[-\s]*(일시|날짜|장소|위치|정원|인원|상태|모집|잔여)\s*[:：]/;
+
 const EVENT_DATE_PATTERN = /(\d{4})[.\-/]\s*(\d{1,2})[.\-/]\s*(\d{1,2})(?:\s*\([^)]+\))?(?:\s+(\d{1,2}):(\d{2}))?/;
 const KOREAN_WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -89,28 +89,12 @@ const composeEventDateText = (draft: {
   return event_time_h ? `${dateText} ${event_time_h}:${event_time_m || "00"}` : dateText;
 };
 
-const isEventMetaText = (text: string) => EVENT_META_LABEL_PATTERN.test(text.trim());
-
-const stripEventMetaParagraphs = (html: string) => {
+const eventDescriptionHtmlToPlainText = (html: string) => {
   if (!html) return "";
 
-  if (typeof DOMParser === "undefined") return html;
+  if (typeof DOMParser === "undefined") return html.replace(/<[^>]*>/g, "").trim();
 
   const doc = new DOMParser().parseFromString(html, "text/html");
-  doc.body.querySelectorAll("p, li, div").forEach(element => {
-    const text = element.textContent?.replace(/\s+/g, " ").trim() ?? "";
-    if (isEventMetaText(text)) element.remove();
-  });
-  return doc.body.innerHTML.trim();
-};
-
-const eventDescriptionHtmlToPlainText = (html: string) => {
-  const normalized = stripEventMetaParagraphs(html);
-  if (!normalized) return "";
-
-  if (typeof DOMParser === "undefined") return normalized.replace(/<[^>]*>/g, "").trim();
-
-  const doc = new DOMParser().parseFromString(normalized, "text/html");
   const blockTexts = Array.from(doc.body.querySelectorAll("p, li, div, h1, h2, h3, h4, h5, h6"))
     .map(element => element.textContent?.replace(/\s+/g, " ").trim() ?? "")
     .filter(Boolean);
@@ -320,7 +304,7 @@ export function EventApplicationPage() {
   }), [adminDraft]);
   const activeConfig = adminEditing ? draftConfig : config;
   const representativeImage = adminEditing ? adminDraft.image_url : getRepresentativeImage(post);
-  const renderedEventContent = useMemo(() => stripEventMetaParagraphs(post?.content || ""), [post?.content]);
+  const renderedEventContent = post?.content || "";
   const bannerImageCandidates = useMemo(() => getThumbnailCandidates(post?.content || "", adminDraft.image_url), [adminDraft.image_url, post?.content]);
   const displayLocation = useMemo(() => formatStructuredLocation(post?.location, ""), [post?.location]);
   const capacity = post?.capacity ?? null;

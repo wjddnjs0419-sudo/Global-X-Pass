@@ -25,7 +25,7 @@ export function EventsPage() {
 
   useEffect(() => {
     Promise.all([
-      fetchPublicPostPreviews("events", 100),
+      fetchPublicPostPreviews("events"),
       supabase.rpc("get_event_application_counts"),
     ]).then(([postsResult, countsResult]) => {
       if (postsResult.error) setError(true);

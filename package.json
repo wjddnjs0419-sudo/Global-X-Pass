@@ -3,9 +3,15 @@
   "private": true,
   "version": "0.0.1",
   "type": "module",
+  "main": "electron/main.cjs",
   "scripts": {
     "build": "vite build",
     "dev": "vite",
+    "map:dev": "vite --config vite.architecture.config.ts --host 127.0.0.1",
+    "map:build": "vite build --config vite.architecture.config.ts",
+    "app:dev": "GXP_ARCHITECTURE_APP_DEV=1 electron electron/main.cjs",
+    "app:pack": "npm run map:build && electron-builder --dir",
+    "app:build": "npm run map:build && electron-builder",
     "blog:discover": "node scripts/import-blog-posts.mjs --discover",
     "blog:crawl": "node scripts/import-blog-posts.mjs --crawl",
     "blog:import": "node scripts/import-blog-posts.mjs --write",
@@ -82,6 +88,8 @@
     "@types/react": "^18.3.24",
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "4.7.0",
+    "electron": "^42.0.1",
+    "electron-builder": "^26.8.1",
     "eslint": "^9.36.0",
     "globals": "^16.4.0",
     "tailwindcss": "4.1.12",
@@ -99,6 +107,25 @@
     },
     "react-dom": {
       "optional": true
+    }
+  },
+  "build": {
+    "appId": "com.globalxpass.architecturemap",
+    "productName": "Global X Pass Architecture Map",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**/*",
+      "dist-architecture/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "icon": "build/icon.png",
+      "category": "public.app-category.developer-tools",
+      "target": [
+        "dir"
+      ]
     }
   }
 }

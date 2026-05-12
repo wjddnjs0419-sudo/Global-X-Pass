@@ -21,7 +21,7 @@ export function NoticePage() {
 
   useEffect(() => {
     const fetchPosts = async () => {
-      const { data, error } = await fetchPublicPostPreviews("notice", 100);
+      const { data, error } = await fetchPublicPostPreviews("notice");
       if (error) setError(true);
       else setPosts(data as Post[]);
       setLoading(false);
