@@ -196,7 +196,9 @@ export function AdvancedThumbnailEditor({
     ? "뉴스 카드 비율 10:9"
     : aspect === "16/10"
       ? "행사 아카이브 카드 비율 16:10"
-      : "정사각형 비율 1:1";
+      : aspect === "7/1"
+        ? "행사 신청 배너 비율 7:1"
+        : "정사각형 비율 1:1";
 
   useEffect(() => () => {
     if (uploadedSource?.objectUrl) URL.revokeObjectURL(uploadedSource.objectUrl);

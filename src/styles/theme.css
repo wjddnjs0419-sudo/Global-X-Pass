@@ -81,6 +81,7 @@
   --shadow-dialog: 0 20px 40px rgba(0, 0, 0, 0.20);
   --shadow-media-cover: 0 14px 28px rgba(0, 0, 0, 0.24);
   --size-media-cover-portrait: 160px;  /* 레포트형 표지 이미지 최대 너비 */
+  --size-event-application-cover-height: clamp(96px, 14vw, 160px);
   --color-img-placeholder:  rgb(30, 40, 60);             /* 이미지 미로드 플레이스홀더 */
   --color-capacity-fill:    rgba(255, 255, 255, 0.62);   /* Founders Club 정원 바 채움 */
   --color-capacity-track:   rgba(255, 255, 255, 0.10);   /* Founders Club 정원 바 트랙 */

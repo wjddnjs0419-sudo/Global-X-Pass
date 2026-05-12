@@ -2,7 +2,7 @@ import type React from "react";
 import { isImage } from "./file";
 import { supabase } from "../lib/supabaseClient";
 
-export type ThumbnailAspect = "16/10" | "10/9" | "1/1";
+export type ThumbnailAspect = "7/1" | "16/10" | "10/9" | "1/1";
 
 export interface ThumbnailCrop {
   x: number;
@@ -28,6 +28,7 @@ export const MIN_THUMBNAIL_ZOOM = 0.35;
 export const MAX_THUMBNAIL_ZOOM = 3;
 export const ZOOM_STEP = 0.05;
 export const THUMBNAIL_OUTPUT_WIDTH: Record<ThumbnailAspect, number> = {
+  "7/1": 1400,
   "16/10": 1280,
   "10/9": 1000,
   "1/1": 800,
