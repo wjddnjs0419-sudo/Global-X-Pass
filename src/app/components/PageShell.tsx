@@ -1,5 +1,4 @@
 import { ReactNode } from "react";
-import { useTheme } from "../ThemeContext";
 
 interface PageShellProps {
   title: string;
@@ -8,8 +7,7 @@ interface PageShellProps {
   children: ReactNode;
 }
 
-export function PageShell({ title, subtitle, accentColor = "#20D6A2", children }: PageShellProps) {
-  const { isDark } = useTheme();
+export function PageShell({ title, subtitle, children }: PageShellProps) {
   return (
     <div
       style={{
@@ -23,10 +21,8 @@ export function PageShell({ title, subtitle, accentColor = "#20D6A2", children }
       <div
         style={{
           paddingTop: 72,
-          background: isDark
-            ? "linear-gradient(135deg, #0a1020 0%, #101828 100%)"
-            : "linear-gradient(135deg, #0f172a 0%, #1a2744 100%)",
-          borderBottom: `1px solid ${isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.08)"}`,
+          background: "var(--page-banner-bg)",
+          borderBottom: "1px solid var(--page-banner-border)",
         }}
       >
         <div style={{ maxWidth: 1200, margin: "0 auto", padding: "clamp(40px, 7vw, 56px) clamp(18px, 4vw, 32px) clamp(36px, 6vw, 52px)" }}>
@@ -35,7 +31,7 @@ export function PageShell({ title, subtitle, accentColor = "#20D6A2", children }
               margin: 0,
               fontSize: "clamp(28px, 4vw, 44px)",
               fontWeight: 800,
-              color: "#ffffff",
+              color: "var(--color-on-primary)",
               letterSpacing: "-0.03em",
               lineHeight: 1.15,
             }}
@@ -47,7 +43,7 @@ export function PageShell({ title, subtitle, accentColor = "#20D6A2", children }
               style={{
                 margin: "var(--space-sm) 0 0",
                 fontSize: "var(--text-body)",
-                color: "rgba(255,255,255,0.55)",
+                color: "var(--page-banner-subtext)",
                 fontWeight: 500,
               }}
             >

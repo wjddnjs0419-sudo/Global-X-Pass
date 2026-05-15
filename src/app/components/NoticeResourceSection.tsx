@@ -26,7 +26,7 @@ const SECTION_ACCENT_CLASS = {
 } as const;
 
 export function NoticeResourceSection({ isDark = false }: NoticeResourceSectionProps) {
-  const th = getSectionTheme(isDark);
+  const th = getSectionTheme();
   const [notices, setNotices] = useState<Post[]>([]);
   const [resources, setResources] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);

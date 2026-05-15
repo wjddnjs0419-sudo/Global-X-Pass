@@ -23,7 +23,6 @@ import { NotFoundPage } from "./pages/NotFoundPage";
 import { ExpensesPage } from "./pages/ExpensesPage";
 import { ConsultingPage } from "./pages/ConsultingPage";
 import { FoundersClubPage } from "./pages/FoundersClubPage";
-import { FlowMapPage } from "./pages/FlowMapPage";
 import { PrivacyPolicyPage } from "./pages/PrivacyPolicyPage";
 import { TermsOfUsePage } from "./pages/TermsOfUsePage";
 
@@ -48,7 +47,6 @@ export const router = createBrowserRouter([
       { path: "search", Component: SearchPage },
       { path: "update-password", Component: UpdatePasswordPage },
       { path: "admin", Component: AdminRoute, children: [{ index: true, Component: AdminPage }] },
-      { path: "flow-map", Component: AdminRoute, children: [{ index: true, Component: FlowMapPage }] },
       { path: "design-system", Component: AdminRoute, children: [{ index: true, Component: () => null }] },
       { path: "expenses", Component: AuthRoute, children: [{ index: true, Component: ExpensesPage }] },
       { path: "consulting", Component: AuthRoute, children: [{ index: true, Component: ConsultingPage }] },

@@ -75,7 +75,7 @@ const programs: {
 ];
 
 export function ProgramSection({ isDark = false }: ProgramSectionProps) {
-  const th = getSectionTheme(isDark);
+  const th = getSectionTheme();
   return (
     <section style={{
       position: "relative", width: "100vw", maxWidth: "100%",

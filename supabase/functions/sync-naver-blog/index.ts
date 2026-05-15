@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { requireVerifiedAdmin } from "../_shared/adminAuth.ts";
+import { captureEfError } from "../_shared/errorLogger.ts";
 
 const ALLOWED_TRIGGER_SOURCES = new Set(["manual", "cron", "worker", "github_actions"]);
 const GITHUB_REPO    = "wjddnjs0419-sudo/Global-X-Pass";
@@ -120,6 +121,7 @@ Deno.serve(async (req: Request) => {
       dispatchError,
     }, 200, cors);
   } catch (err: unknown) {
+    await captureEfError("ef-blog-sync", err, { req, severity: "medium" });
     const message = err instanceof Error ? err.message : String(err);
     return jsonResponse({ error: message }, 400, cors);
   }

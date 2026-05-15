@@ -26,6 +26,9 @@
 2. **승인 후 구현:** 사용자의 계획 승인을 받으면 즉시 관련 파일(`.tsx`, `.ts`, `.sql` 등)을 생성하거나 수정하여 동작하는 코드를 제시합니다. 새 작업은 승인 전 `PLAN.md`의 `## Pending Approval`에 있고, 구현과 `npm run validate` 성공 후에만 `[Done]`으로 압축합니다.
 3. **재사용 및 효율성:** 기존에 정의된 UI 컴포넌트(`src/app/components/ui/`)와 유틸리티 함수를 최대한 재사용하여 코드 중복을 최소화합니다.
 4. **Supabase 최적화:** 데이터베이스 조회(Select), 추가(Insert), 수정(Update) 시 효율적인 쿼리를 작성하고, 실시간성(Realtime)이나 보안(RLS) 요건을 충족합니다.
+5. **실시간 아키텍처 맵 유지:** `/flow-map`의 실시간 맵은 `scripts/generate-architecture-map.mjs`가 생성하는 `src/generated/architectureMap.json`을 사용합니다. 구조 변경 시 생성기와 JSDoc 태그(`@role`, `@plain`, `@notes`, `@critical`, `@cluster`, `@tag`)를 함께 고려하고, 에러 배지가 필요한 파일은 `src/lib/errorLogger.ts`의 `NodeId`와 맵 노드 ID를 맞춥니다.
+6. **UX 관측성:** 주요 Supabase/RPC 실패를 `setError`나 `console.error`로만 끝내지 말고 `logSupabaseFailure()`로 기록합니다. 중요한 CTA는 `data-monitor-action`을 붙여 무반응 후보를 추적할 수 있게 합니다.
+7. **QA 비밀값 경계:** Playwright 테스트, 진단 스크립트, QA 운영 문서에 QA 계정/비밀번호/MFA 시크릿을 평문 하드코딩하지 않습니다. `QA_ADMIN_EMAIL`, `QA_ADMIN_PASSWORD`, `QA_ADMIN_MFA_SECRET`, 필요 시 `QA_USER_EMAIL`, `QA_USER_PASSWORD` 환경 변수 또는 CI Secret만 사용합니다.
 
 ## 기술 스택 및 제약 사항
 - React 18, TypeScript, Supabase Client.

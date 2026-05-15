@@ -1,6 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { requireVerifiedAdmin } from "../_shared/adminAuth.ts";
+import { captureEfError } from "../_shared/errorLogger.ts";
+import { clearUserMfaFactors } from "../_shared/mfa.ts";
 
 const ALLOWED_ROLES = new Set(["admin", "participant", "user"]);
 
@@ -67,6 +69,19 @@ Deno.serve(async (req: Request) => {
     const adminClient = createClient(supabaseUrl, serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
+    const { data: currentProfile, error: currentProfileError } = await adminClient
+      .from("profiles")
+      .select("role")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (currentProfileError) {
+      throw currentProfileError;
+    }
+    if (!currentProfile) {
+      return json({ error: "역할을 변경할 회원을 찾지 못했습니다." }, 404, cors);
+    }
+
     const { data: updatedProfile, error: updateError } = await adminClient
       .from("profiles")
       .update({ role: newRole })
@@ -81,9 +96,15 @@ Deno.serve(async (req: Request) => {
       return json({ error: "역할을 변경할 회원을 찾지 못했습니다." }, 404, cors);
     }
 
-    return json({ success: true, role: updatedProfile.role }, 200, cors);
+    let clearedFactorCount = 0;
+    if (currentProfile.role === "admin" && newRole !== "admin") {
+      clearedFactorCount = await clearUserMfaFactors(adminClient, userId);
+    }
+
+    return json({ success: true, role: updatedProfile.role, clearedFactorCount }, 200, cors);
   } catch (err) {
     console.error("[update-user-role]", err);
+    await captureEfError("ef-update-role", err, { req, severity: "high" });
     const message = err instanceof Error ? err.message : "Internal server error";
     return json({ error: message }, 500, cors);
   }

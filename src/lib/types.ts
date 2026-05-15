@@ -15,6 +15,7 @@ export interface Post {
   event_date?: string | null;
   location?: string | null;
   event_status?: string | null;
+  application_deadline?: string | null;
   capacity?: number | null;
   slots_remaining?: number | null;
   tags?: string | null;
@@ -159,4 +160,31 @@ export interface PageView {
   page_path: string;
   user_agent: string;
   referrer: string;
+}
+
+// ── Runtime observability ─────────────────────────────────────────
+export type ErrorIssueStatus = 'open' | 'monitoring' | 'resolved' | 'reopened' | 'ignored';
+export type ErrorSeverity = 'low' | 'medium' | 'high' | 'critical';
+
+export interface ErrorIssue {
+  fingerprint: string;
+  source: string;
+  severity: ErrorSeverity;
+  status: ErrorIssueStatus;
+  message: string;
+  stack: string | null;
+  path: string | null;
+  context: Record<string, unknown> | null;
+  source_location: string | null;
+  first_seen_at: string;
+  last_seen_at: string;
+  last_build_id: string | null;
+  last_log_id: string | null;
+  occurrence_count: number;
+  monitoring_at: string | null;
+  resolved_at: string | null;
+  ignored_at: string | null;
+  reopened_at: string | null;
+  resolved_note: string | null;
+  updated_at: string;
 }

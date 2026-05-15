@@ -171,15 +171,14 @@ export function HeaderSection({ isDark = false }: HeaderSectionProps) {
         { label: "Search", path: "/search" },
       ];
 
-  const useLightText = !scrolled;
-  const textColor = useLightText ? "rgba(255,255,255,0.92)" : isDark ? "rgba(255,255,255,0.92)" : "rgba(10,16,32,0.88)";
-  const textColorMuted = useLightText ? "rgba(255,255,255,0.7)" : isDark ? "rgba(255,255,255,0.7)" : "rgba(10,16,32,0.65)";
-  const headerBg = scrolled ? (isDark ? "rgba(10,16,32,0.82)" : "rgba(255,255,255,0.86)") : "transparent";
-  const headerBorder = scrolled ? (isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.06)") : "1px solid transparent";
-  const menuBorder = isDark ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.09)";
-  const menuSelectedBg = isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.055)";
-  const sidebarText = isDark ? "rgba(255,255,255,0.72)" : "rgba(10,16,32,0.70)";
-  const sidebarSection = isDark ? "rgba(255,255,255,0.92)" : "rgba(10,16,32,0.92)";
+  const textColor      = !scrolled || isDark ? "var(--header-text)"       : "var(--header-text-on-light)";
+  const textColorMuted = !scrolled || isDark ? "var(--header-text-muted)" : "var(--header-text-on-light-muted)";
+  const headerBg       = scrolled ? "var(--header-bg-scrolled)" : "transparent";
+  const headerBorder   = scrolled ? "1px solid var(--header-border-scrolled)" : "1px solid transparent";
+  const menuBorder     = "var(--header-menu-border)";
+  const menuSelectedBg = "var(--header-menu-hover)";
+  const sidebarText    = "var(--header-sidebar-text)";
+  const sidebarSection = "var(--header-sidebar-section)";
 
   return (
     <>
@@ -246,7 +245,7 @@ export function HeaderSection({ isDark = false }: HeaderSectionProps) {
                         }
                       }}
                       className="absolute left-1/2 top-[calc(100%+6px)] min-w-[160px] -translate-x-1/2 rounded-[14px] p-[8px] backdrop-blur-[20px]"
-                      style={{ background: isDark ? "rgba(16,22,42,0.96)" : "rgba(255,255,255,0.98)", border: `1px solid ${menuBorder}`, boxShadow: "0 14px 34px rgba(15,23,42,0.14)" }}
+                      style={{ background: "var(--header-dropdown-bg)", border: `1px solid ${menuBorder}`, boxShadow: "var(--header-dropdown-shadow)" }}
                     >
                       {m.items.map((it) => (
                         <Link
@@ -254,7 +253,7 @@ export function HeaderSection({ isDark = false }: HeaderSectionProps) {
                           to={it.path}
                           onClick={() => setOpenMenu(null)}
                           className="block rounded-[8px] px-[14px] py-[10px] text-[14px] font-medium no-underline transition-colors duration-150 ease-in-out"
-                          style={{ color: isDark ? "rgba(255,255,255,0.88)" : "rgba(10,16,32,0.82)" }}
+                          style={{ color: "var(--header-dropdown-text)" }}
                           onMouseEnter={(e) => (e.currentTarget.style.background = menuSelectedBg)}
                           onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                         >
@@ -274,7 +273,7 @@ export function HeaderSection({ isDark = false }: HeaderSectionProps) {
                 src={logoImg}
                 alt="로고"
                 className="h-[18px] max-w-[140px] w-auto object-contain transition-all duration-300 ease-in-out min-[380px]:h-[19px] min-[380px]:max-w-[160px] sm:h-[20px] sm:max-w-[190px] md:h-[22px] md:max-w-[230px] xl:h-[24px] xl:max-w-[280px]"
-                style={{ filter: useLightText ? "brightness(0) invert(1)" : isDark ? "brightness(0) invert(1)" : "none" }}
+                style={{ filter: !scrolled || isDark ? "brightness(0) invert(1)" : "none" }}
               />
             </Link>
           </div>
@@ -335,7 +334,7 @@ export function HeaderSection({ isDark = false }: HeaderSectionProps) {
       </header>
 
       {sidebarOpen && (
-        <div onClick={() => setSidebarOpen(false)} className="fixed inset-0 bg-[rgba(5,8,20,0.55)] backdrop-blur-[4px] animate-[fadeIn_0.25s_ease]" style={{ zIndex: LAYERS.mobileMenuBackdrop }} />
+        <div onClick={() => setSidebarOpen(false)} className="fixed inset-0 bg-[var(--header-backdrop)] backdrop-blur-[4px] animate-[fadeIn_0.25s_ease]" style={{ zIndex: LAYERS.mobileMenuBackdrop }} />
       )}
 
       <aside
@@ -349,17 +348,17 @@ export function HeaderSection({ isDark = false }: HeaderSectionProps) {
           zIndex: LAYERS.mobileMenuPanel,
           background: "var(--color-bg-surface)",
           borderRight: `1px solid ${menuBorder}`,
-          boxShadow: "8px 0 34px rgba(15,23,42,0.16)",
+          boxShadow: "var(--header-shadow)",
           visibility: sidebarOpen ? "visible" : "hidden",
           pointerEvents: sidebarOpen ? "auto" : "none",
         }}
       >
-        <div className="h-[72px] px-[24px] flex items-center justify-between" style={{ borderBottom: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"}` }}>
+        <div className="h-[72px] px-[24px] flex items-center justify-between" style={{ borderBottom: "1px solid var(--header-sidebar-divider)" }}>
           <Link to="/" onClick={() => setSidebarOpen(false)}>
-            <img src={logoImg} alt="로고" className="h-[22px] object-contain" style={{ filter: isDark ? "brightness(0) invert(1)" : "none" }} />
+            <img src={logoImg} alt="로고" className="h-[22px] object-contain" style={{ filter: isDark ? "brightness(0) invert(1)" : "none" }}  />
           </Link>
           <button ref={sidebarCloseButtonRef} type="button" aria-label="모바일 메뉴 닫기" onClick={() => setSidebarOpen(false)} className="w-[36px] h-[36px] rounded-[10px] bg-transparent border-none cursor-pointer flex items-center justify-center">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={isDark ? "rgba(255,255,255,0.85)" : "rgba(10,16,32,0.75)"} strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ stroke: "var(--header-close-icon)" }} strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
           </button>
         </div>
         <nav className="flex-1 overflow-y-auto px-[16px] py-[20px]">
@@ -376,7 +375,7 @@ export function HeaderSection({ isDark = false }: HeaderSectionProps) {
             </div>
           ))}
 
-          <div className="mt-[24px] pt-[20px] xl:hidden" style={{ borderTop: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"}` }}>
+          <div className="mt-[24px] pt-[20px] xl:hidden" style={{ borderTop: "1px solid var(--header-sidebar-divider)" }}>
             <div className="px-[12px] py-[6px] text-[12px] font-black tracking-[0.10em] uppercase" style={{ color: sidebarSection }}>
               ACCOUNT
             </div>

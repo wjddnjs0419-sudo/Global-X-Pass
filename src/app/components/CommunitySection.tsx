@@ -49,7 +49,7 @@ const TAB_ACCENT: Record<string, "blue" | "green" | "red" | "purple"> = {
 };
 
 export function CommunitySection({ isDark = false }: CommunitySectionProps) {
-  const th = getSectionTheme(isDark);
+  const th = getSectionTheme();
   const [activeTab, setActiveTab] = useState("all");
   const [displayPosts, setDisplayPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);

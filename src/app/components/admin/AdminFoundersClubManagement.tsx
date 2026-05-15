@@ -12,7 +12,7 @@ import {
   getTenMinuteOptions,
   getYearOptions,
 } from "../../../utils/scheduleFields";
-import { Check, X } from "lucide-react";
+import { Check, Trash2, X } from "lucide-react";
 import { getStatusPillStyle } from "../contentListStyles";
 import type { FoundersClubSession } from "../../../lib/types";
 
@@ -25,12 +25,31 @@ type DecryptedProfile = {
   company: string | null;
 };
 
+type ApplicationCounts = {
+  total_count: number;
+  active_count: number;
+  pending_count: number;
+  accepted_count: number;
+  rejected_count: number;
+  cancelled_count: number;
+};
+
+type FoundersClubApplicationRow = {
+  id: string;
+  user_id: string;
+  status: "pending" | "accepted" | "rejected" | "cancelled";
+  message: string | null;
+  created_at: string;
+  profile: DecryptedProfile | null;
+};
+
 export function AdminFoundersClubManagement() {
   const { isDark } = useTheme();
   const [subTab, setSubTab] = useState<SubTab>("sessions");
   const [sessions, setSessions] = useState<FoundersClubSession[]>([]);
   const [selectedSession, setSelectedSession] = useState<FoundersClubSession | null>(null);
-  const [applications, setApplications] = useState<any[]>([]);
+  const [applications, setApplications] = useState<FoundersClubApplicationRow[]>([]);
+  const [countsBySession, setCountsBySession] = useState<Record<string, ApplicationCounts>>({});
   const [form, setForm] = useState({
     theme: "",
     description: "",
@@ -75,32 +94,56 @@ export function AdminFoundersClubManagement() {
     }
   }, [selectedSession]);
 
+  const emptyCounts = (): ApplicationCounts => ({
+    total_count: 0,
+    active_count: 0,
+    pending_count: 0,
+    accepted_count: 0,
+    rejected_count: 0,
+    cancelled_count: 0,
+  });
+
+  const getSessionCounts = (sessionId?: string | null) =>
+    (sessionId ? countsBySession[sessionId] : null) ?? emptyCounts();
+
   const fetchSessions = async () => {
-    const { data } = await supabase.from("founders_club_sessions").select("*").order("created_at", { ascending: false });
+    const [{ data }, { data: counts, error: countsError }] = await Promise.all([
+      supabase.from("founders_club_sessions").select("*").order("created_at", { ascending: false }),
+      supabase.rpc("get_founders_club_application_counts"),
+    ]);
+    if (countsError) console.error("Founder's Club 신청 집계 조회 오류:", countsError.message);
+    if (counts) {
+      const nextCounts = ((counts as ({ session_id: string } & ApplicationCounts)[] | null) ?? []).reduce<Record<string, ApplicationCounts>>((acc, row) => {
+        acc[row.session_id] = {
+          total_count: row.total_count ?? 0,
+          active_count: row.active_count ?? 0,
+          pending_count: row.pending_count ?? 0,
+          accepted_count: row.accepted_count ?? 0,
+          rejected_count: row.rejected_count ?? 0,
+          cancelled_count: row.cancelled_count ?? 0,
+        };
+        return acc;
+      }, {});
+      setCountsBySession(nextCounts);
+    } else {
+      setCountsBySession({});
+    }
     if (data) setSessions(data as FoundersClubSession[]);
   };
 
   const fetchApplications = async (sessionId: string) => {
-    const [{ data }, { data: profiles, error: profileError }] = await Promise.all([
-      supabase
-        .from("founders_club_applications")
-        .select("*")
-        .eq("session_id", sessionId)
-        .order("created_at"),
-      supabase.functions.invoke("decrypt-profiles"),
-    ]);
+    const { data, error } = await supabase.functions.invoke("founders-club-admin-applications", {
+      body: { sessionId },
+    });
 
-    if (profileError) console.error("신청자 프로필 복호화 오류:", profileError.message);
+    if (error) {
+      console.error("Founder's Club 신청 조회 오류:", error.message);
+      return;
+    }
 
-    const profileById = new Map(
-      ((profiles as DecryptedProfile[] | null) ?? []).map(profile => [profile.id, profile])
-    );
-
-    if (data) {
-      setApplications(data.map(application => ({
-        ...application,
-        profile: profileById.get(application.user_id) ?? null,
-      })));
+    setApplications((data?.applications ?? []) as FoundersClubApplicationRow[]);
+    if ((data?.deleted ?? 0) > 0) {
+      fetchSessions();
     }
   };
 
@@ -139,7 +182,16 @@ export function AdminFoundersClubManagement() {
   const handleUpdateApplication = async (id: string, status: "accepted" | "rejected") => {
     setLoading(true);
     const { error } = await supabase.from("founders_club_applications").update({ status }).eq("id", id);
-    if (error) alert("처리 실패: " + error.message);
+    if (error) alert(error.message.includes("founders club capacity reached") ? "정원이 마감되어 더 이상 승인할 수 없습니다." : "처리 실패: " + error.message);
+    else if (selectedSession) { fetchApplications(selectedSession.id); fetchSessions(); }
+    setLoading(false);
+  };
+
+  const handleDeleteApplication = async (id: string) => {
+    if (!window.confirm("이 신청 내역을 삭제하시겠습니까? 삭제 후에는 복구할 수 없습니다.")) return;
+    setLoading(true);
+    const { error } = await supabase.from("founders_club_applications").delete().eq("id", id);
+    if (error) alert("삭제 실패: " + error.message);
     else if (selectedSession) { fetchApplications(selectedSession.id); fetchSessions(); }
     setLoading(false);
   };
@@ -161,6 +213,8 @@ export function AdminFoundersClubManagement() {
     const c = cfg[status] ?? { label: status, color: "var(--color-text-muted)" };
     return <span style={{ ...getStatusPillStyle(c.color, isDark), whiteSpace: "nowrap", flexShrink: 0 }}>{c.label}</span>;
   };
+
+  const selectedCounts = getSessionCounts(selectedSession?.id);
 
   if (loading && sessions.length === 0) {
     return (
@@ -325,7 +379,10 @@ export function AdminFoundersClubManagement() {
                   <Badge status={s.status} cfg={statusCfg} />
                 </div>
                 <div style={{ fontSize: 13, color: textMuted }}>
-                  정원 {s.max_participants}명 {s.session_date && `· ${s.session_date} ${s.session_time?.slice(0, 5) ?? ""}`}
+                  정원 {s.max_participants}명 · 수락 {getSessionCounts(s.id).accepted_count}명 · 신청 {getSessionCounts(s.id).total_count}건{s.session_date && ` · ${s.session_date} ${s.session_time?.slice(0, 5) ?? ""}`}
+                </div>
+                <div style={{ fontSize: 12, color: textMuted, marginTop: 4 }}>
+                  대기 {getSessionCounts(s.id).pending_count}건 · 취소 {getSessionCounts(s.id).cancelled_count}건 · 거절 {getSessionCounts(s.id).rejected_count}건
                 </div>
                 <div style={{ fontSize: 12, color: textMuted, marginTop: 4 }}>{formatStructuredLocation(s.location)}</div>
               </div>
@@ -353,38 +410,61 @@ export function AdminFoundersClubManagement() {
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {sessions.map(s => (
               <button key={s.id} onClick={() => setSelectedSession(s)} style={{ padding: "8px 16px", borderRadius: 10, border: `1px solid ${selectedSession?.id === s.id ? labelBorder : border}`, background: selectedSession?.id === s.id ? selectedBg : "transparent", color: selectedSession?.id === s.id ? textMain : textMuted, fontWeight: selectedSession?.id === s.id ? 750 : 600, cursor: "pointer", fontSize: 13 }}>
-                {s.theme}
+                {s.theme} · 신청 {getSessionCounts(s.id).total_count}
               </button>
             ))}
           </div>
 
           {!selectedSession ? (
             <div style={{ textAlign: "center", padding: "60px", color: textMuted }}>세션을 선택하세요.</div>
-          ) : applications.length === 0 ? (
+          ) : (
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {[
+                { label: "전체", value: `${selectedCounts.total_count}건` },
+                { label: "대기", value: `${selectedCounts.pending_count}건` },
+                { label: "승인", value: `${selectedCounts.accepted_count}건` },
+                { label: "거절", value: `${selectedCounts.rejected_count}건` },
+                { label: "취소", value: `${selectedCounts.cancelled_count}건` },
+              ].map(item => (
+                <div key={item.label} style={{ padding: "10px 12px", borderRadius: 12, border: `1px solid ${border}`, background: card, color: textMain, fontSize: 13, fontWeight: 700 }}>
+                  {item.label} {item.value}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!selectedSession ? null : applications.length === 0 ? (
             <div style={{ textAlign: "center", padding: "60px", color: textMuted }}>신청이 없습니다.</div>
           ) : applications.map(a => (
             <div key={a.id} style={{ background: card, border: `1px solid ${border}`, borderRadius: 16, padding: "18px 22px" }}>
               <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div style={{ minWidth: 0, flex: "1 1 auto" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                  <span style={{ fontWeight: 700, color: textMain }}>{a.profile?.name || "이름 없음"}</span>
+                  <span style={{ fontWeight: 700, color: textMain }}>{a.profile?.name || "프로필 정보 없음"}</span>
                   <span style={{ fontSize: 12, color: textMuted }}>{a.profile?.company}</span>
                   <Badge status={a.status} cfg={appStatusCfg} />
+                  {!a.profile?.name && (
+                    <span style={{ fontSize: 11, color: textMuted, fontWeight: 700 }}>정리 필요</span>
+                  )}
                 </div>
                 {a.message && <div style={{ fontSize: 13, color: textMuted, marginTop: 4 }}>{a.message}</div>}
                 <div style={{ fontSize: 12, color: textMuted, marginTop: 4 }}>{new Date(a.created_at).toLocaleString()}</div>
                 </div>
-                {a.status === "pending" && (
-                  <div className="flex flex-wrap gap-2 md:min-w-[180px] md:justify-end">
+                <div className="flex flex-wrap gap-2 md:min-w-[180px] md:justify-end">
+                  {a.status === "pending" && (
+                    <>
                     <button type="button" disabled={loading} onClick={() => handleUpdateApplication(a.id, "accepted")} style={{ minWidth: 82, height: 32, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "0 12px", borderRadius: 10, border: `1px solid ${labelBorder}`, background: selectedBg, color: textMain, fontSize: 13, fontWeight: 800, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.55 : 1 }}>
                       <Check size={14} />승인
                     </button>
                     <button type="button" disabled={loading} onClick={() => handleUpdateApplication(a.id, "rejected")} style={{ minWidth: 82, height: 32, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "0 12px", borderRadius: 10, border: `1px solid ${deleteBorder}`, background: deleteBg, color: "var(--color-brand-red)", fontSize: 13, fontWeight: 800, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.55 : 1 }}>
                       <X size={14} />거절
                     </button>
-                  </div>
-                )}
-                {a.status !== "pending" && <div className="hidden md:block md:min-w-[180px]" />}
+                    </>
+                  )}
+                  <button type="button" disabled={loading} onClick={() => handleDeleteApplication(a.id)} style={{ minWidth: 82, height: 32, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "0 12px", borderRadius: 10, border: `1px solid ${deleteBorder}`, background: deleteBg, color: "var(--color-brand-red)", fontSize: 13, fontWeight: 800, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.55 : 1 }}>
+                    <Trash2 size={14} />삭제
+                  </button>
+                </div>
                 </div>
             </div>
           ))}

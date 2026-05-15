@@ -55,6 +55,9 @@
 - **Home Motion Restraint:** In public content sections, keep motion sparse. Prefer targeted transitions and card hover around `translateY(-2px)`; avoid broad `transition: all`, glow blobs, radial gradients, and decorative dot grids unless a section has an approved exception.
 - **Public/Admin Separation:** Public home sections must not expose admin edit controls, representative pickers, or inline editing UI. Admin actions stay in admin pages unless the plan explicitly changes that product boundary.
 - **Derived Data Rule:** Do not convert system-derived values into manual inputs. Event remaining seats are derived from acceptance state and `capacity`; `slots_remaining` is fallback/system-managed display data, not an editor-owned truth.
+- **Live Architecture Map:** 개인용 로컬 앱 `/architecture.html`의 실시간 맵 데이터는 `scripts/generate-architecture-map.mjs`와 `src/generated/architectureMap.json`을 통해 생성한다. `npm run map:dev`로 실행하며, 운영 웹사이트 라우트에는 노출하지 않는다. 구조 변경 시 생성기를 우선 갱신하고, 중요한 파일은 JSDoc 태그(`@role`, `@plain`, `@notes`, `@critical`, `@cluster`, `@tag`)로 맵 설명을 보강한다. 런타임 에러 위치는 `src/lib/errorLogger.ts`의 `NodeId`와 맵 노드 ID가 일치해야 배지로 표시된다.
+- **UX Observability:** 중요한 Supabase/RPC/Storage 실패를 `setError`나 `console.error`로만 처리하지 말고 `src/lib/uxTelemetry.ts`의 `logSupabaseFailure()` 또는 `logActionFailure()`로 함께 기록한다. 클릭 무반응 감지가 필요한 주요 버튼에는 `data-monitor-action`을 붙이고, 레이아웃 overflow/interactive target 이슈는 `uxHealth` low severity 로그로 확인한다.
+- **QA Secrets Boundary:** Playwright/진단 스크립트/QA 문서에서 QA 계정, 비밀번호, MFA 시크릿을 하드코딩하지 말 것. 자동 QA 자격 증명은 로컬 셸 환경 변수 또는 GitHub Actions Secrets(`QA_ADMIN_EMAIL`, `QA_ADMIN_PASSWORD`, `QA_ADMIN_MFA_SECRET`, 필요 시 `QA_USER_EMAIL`, `QA_USER_PASSWORD`)로만 주입한다.
 - **Documentation Canon:** Keep root guidance documents lean. `GEMINI.md` (or `CLAUDE.md`) is the canonical project router, while temporary execution state lives in `PLAN.md` / `RESULT.md`.
 - **Blog Import Convention:** Around X 블로그 이관은 RSS로 후보를 발견하고 `PostView.naver`의 `se-main-container` 본문을 파싱하는 반자동 manifest 방식으로 유지할 것. 뉴스레터는 `Around X-뉴스레터` 게시판 기준 `news` + `뉴스레터` 고정 태그, 행사 아카이브는 manifest에서 글별 수동 태그를 지정하고, 썸네일은 1차에서 네이버 원본 이미지 URL을 사용한다. 중복 감지는 본문 앞 `GXP_BLOG_IMPORT_META` HTML comment의 `sourceUrl`로 처리할 것.
 - **Blog Sync Automation Boundary:** Supabase 자동화는 `pg_cron` + `pg_net`으로 Edge Function을 호출하는 경량 트리거/델타 확인/큐 적재까지를 기본 경계로 삼는다. 전체 Naver 페이지네이션 크롤링과 이미지 미러링은 Edge Function 제한을 고려해 Node 기반 외부 worker 또는 수동 스크립트에서 처리하는 방향을 우선 검토할 것.
@@ -64,7 +67,7 @@
 
 | Change Type | Required Extra Checks |
 |---|---|
-| UI/UX or layout | Responsive smoke check for affected routes; use browser or screenshot verification when visual behavior matters. |
+| UI/UX or layout | Responsive smoke check for affected routes; use browser or screenshot verification when visual behavior matters. QA 요청으로 브라우저 기반 검증을 수행할 때는 사용자가 별도로 숨김을 요청하지 않는 한 visible 인앱 브라우저를 기본으로 사용한다. |
 | Supabase schema, migration, RLS, RPC | Confirm migration files, RLS naming convention, `public.is_admin()` usage for admin paths, and React field/response-shape dependencies. |
 | Edge Function | Confirm CORS origins, request/response shape compatibility, and `requireVerifiedAdmin()` for service-role admin operations. |
 | Auth, role, MFA, PII | Confirm no direct PII display query, decrypt/encrypt Edge Function flow, role boundary, and AAL2/MFA impact. |

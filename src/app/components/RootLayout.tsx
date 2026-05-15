@@ -4,18 +4,14 @@ import { useTheme } from "../ThemeContext";
 import { HeaderSection } from "./HeaderSection";
 import { FooterSection } from "./FooterSection";
 import { DesignSystemPage } from "./DesignSystemPage";
+import { ErrorBoundary } from "./ErrorBoundary";
 import { useTracker } from "../../hooks/useTracker";
 import { useAdmin } from "../../hooks/useAdmin";
 import { useIdleLogout } from "../../hooks/useIdleLogout";
 import { supabase } from "../../lib/supabaseClient";
 import { LAYERS } from "../../lib/layers";
-
-const NAV_TABS = [
-  { id: "site",         icon: "🌐", label: "사이트 미리보기", path: "/" },
-  { id: "admin",        icon: "📊", label: "관리자 페이지",   path: "/admin" },
-  { id: "design-system",icon: "🎨", label: "디자인 시스템",   path: "/design-system" },
-  { id: "flow-map",     icon: "🗂", label: "서비스 흐름도",    path: "/flow-map" },
-] as const;
+import { logError, guessSourceFromStack } from "../../lib/errorLogger";
+import { installUxHealthChecks } from "../../lib/uxHealth";
 
 export function RootLayout() {
   const { isDark, toggle } = useTheme();
@@ -37,6 +33,35 @@ export function RootLayout() {
     };
   }, []);
 
+  // 글로벌 에러 핸들러: React 외부에서 발생한 런타임 에러 + unhandled promise rejection 수집
+  useEffect(() => {
+    const onError = (event: ErrorEvent) => {
+      const error = event.error instanceof Error ? event.error : new Error(event.message);
+      const source = guessSourceFromStack(error.stack);
+      void logError(source, error, {
+        severity: "high",
+        context: { kind: "window.onerror", filename: event.filename, line: event.lineno, col: event.colno },
+      });
+    };
+    const onRejection = (event: PromiseRejectionEvent) => {
+      const reason = event.reason;
+      const error = reason instanceof Error ? reason : new Error(String(reason));
+      const source = guessSourceFromStack(error.stack);
+      void logError(source, error, {
+        severity: "high",
+        context: { kind: "unhandledrejection" },
+      });
+    };
+    window.addEventListener("error", onError);
+    window.addEventListener("unhandledrejection", onRejection);
+    return () => {
+      window.removeEventListener("error", onError);
+      window.removeEventListener("unhandledrejection", onRejection);
+    };
+  }, []);
+
+  useEffect(() => installUxHealthChecks(), []);
+
   // 재방문 시 30분 이상 지났으면 자동 로그아웃
   useEffect(() => {
     const STALE_MS = 30 * 60 * 1000;
@@ -55,29 +80,16 @@ export function RootLayout() {
   const isAdminPage = location.pathname.startsWith("/admin");
   const isDesignSystem = location.pathname === "/design-system";
 
-  const currentTab = isDesignSystem
-    ? "design-system"
-    : location.pathname.startsWith("/flow-map")
-    ? "flow-map"
-    : location.pathname.startsWith("/admin")
-    ? "admin"
-    : "site";
-
-  const navBg = isDark ? "rgba(10,16,32,0.92)" : "rgba(255,255,255,0.94)";
-  const navBorder = isDark ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.09)";
-  const navShadow = isDark ? "0 12px 34px rgba(0,0,0,0.34)" : "0 12px 30px rgba(15,23,42,0.10)";
-  const tabInactive = isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.45)";
-  const tabActiveBg = isDark ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.07)";
-  const tabActiveText = isDark ? "rgba(255,255,255,0.92)" : "rgba(10,16,32,0.88)";
-
   return (
     <div style={{ width: "100%", minHeight: "100dvh", background: "var(--color-bg-surface)", display: "flex", flexDirection: "column", transition: "background 0.4s ease" }}>
       {!isDesignSystem && !isAdminPage && <HeaderSection isDark={isDark} />}
 
       <main style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-        {isDesignSystem
-          ? (!adminLoading && isAdmin && !mfaRequired && mfaEnrolled ? <DesignSystemPage isDark={isDark} /> : (!adminLoading ? <Navigate to="/" replace /> : null))
-          : <Outlet />}
+        <ErrorBoundary>
+          {isDesignSystem
+            ? (!adminLoading && isAdmin && !mfaRequired && mfaEnrolled ? <DesignSystemPage isDark={isDark} /> : (!adminLoading ? <Navigate to="/" replace /> : null))
+            : <Outlet />}
+        </ErrorBoundary>
       </main>
 
       {!isDesignSystem && <FooterSection isDark={isDark} />}
@@ -119,24 +131,6 @@ export function RootLayout() {
         </div>
       )}
 
-      {!adminLoading && isAdmin && !mfaRequired && mfaEnrolled && (
-        <nav className="fixed bottom-[24px] left-1/2 -translate-x-1/2 flex gap-[4px] sm:gap-[6px] items-center rounded-full p-[6px] w-[90%] max-w-max justify-center overflow-x-auto whitespace-nowrap scrollbar-hide" style={{
-          zIndex: LAYERS.adminFloating,
-          background: navBg, backdropFilter: "blur(20px)", border: `1px solid ${navBorder}`,
-          boxShadow: navShadow,
-        }}>
-          {NAV_TABS.map((tab) => (
-            <button key={tab.id} onClick={() => navigate(tab.path)} className="border-none rounded-full px-[12px] py-[6px] sm:px-[18px] sm:py-[8px] text-[11px] sm:text-[13px] font-bold cursor-pointer transition-all duration-200 whitespace-nowrap flex-shrink-0" style={{
-              background: currentTab === tab.id ? tabActiveBg : "transparent",
-              color: currentTab === tab.id ? tabActiveText : tabInactive,
-              border: `1px solid ${currentTab === tab.id ? navBorder : "transparent"}`,
-            }}>
-              <span style={{ opacity: currentTab === tab.id ? 0.72 : 0.46, marginRight: 6 }}>{tab.icon}</span>
-              {tab.label}
-            </button>
-          ))}
-        </nav>
-      )}
     </div>
   );
 }

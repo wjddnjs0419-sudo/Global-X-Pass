@@ -3,6 +3,7 @@ import { useTheme } from "../../ThemeContext";
 import { supabase } from "../../../lib/supabaseClient";
 import { AdminRoleModal } from "./AdminRoleModal";
 import { AdminBulkResultModal } from "./AdminBulkResultModal";
+import { AdminMfaResetModal } from "./AdminMfaResetModal";
 
 interface AdminUserManagementProps {
   refreshKey: number;
@@ -56,6 +57,7 @@ export function AdminUserManagement({ refreshKey, adminId }: AdminUserManagement
   const [bulkResult, setBulkResult]     = useState<{ results: RegisterResult[] } | null>(null);
 
   const [pendingRoleChange, setPendingRoleChange] = useState<{ userId: string; newRole: string; targetName: string; currentRole: string } | null>(null);
+  const [pendingMfaReset, setPendingMfaReset] = useState<{ userId: string; targetName: string } | null>(null);
   const [roleConfirmPassword, setRoleConfirmPassword] = useState("");
   const [roleConfirmLoading, setRoleConfirmLoading]   = useState(false);
   const [showRolePassword, setShowRolePassword]       = useState(false);
@@ -114,13 +116,50 @@ export function AdminUserManagement({ refreshKey, adminId }: AdminUserManagement
       if (data?.error) throw new Error(data.error);
 
       await fetchUsers();
-      alert("역할이 변경되었습니다.");
+      const resetNotice = data?.clearedFactorCount > 0 ? ` 관리자 MFA ${data.clearedFactorCount}개도 함께 초기화되었습니다.` : "";
+      alert(`역할이 변경되었습니다.${resetNotice}`);
       setPendingRoleChange(null);
       setRoleConfirmPassword("");
       setShowRolePassword(false);
     } catch (err: unknown) {
       const message = await extractFunctionErrorMessage(err, "역할 변경 중 오류가 발생했습니다.");
       alert("역할 변경 실패: " + message);
+      setRoleConfirmPassword("");
+    } finally {
+      setRoleConfirmLoading(false);
+    }
+  };
+
+  const handleResetUserMfa = async (id: string) => {
+    if (id === adminId) {
+      alert("본인 계정의 MFA는 이 경로로 초기화할 수 없습니다.");
+      return;
+    }
+    const target = users.find((u) => u.id === id);
+    setPendingMfaReset({ userId: id, targetName: target?.name || target?.email || "회원" });
+  };
+
+  const handleConfirmMfaReset = async () => {
+    if (!pendingMfaReset || !roleConfirmPassword) return;
+    setRoleConfirmLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("reset-mfa", {
+        body: {
+          userId: pendingMfaReset.userId,
+          currentPassword: roleConfirmPassword,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      alert(`MFA가 초기화되었습니다.${data?.clearedFactorCount ? ` 삭제된 factor ${data.clearedFactorCount}개` : ""}`);
+      setPendingMfaReset(null);
+      setRoleConfirmPassword("");
+      setShowRolePassword(false);
+    } catch (err: unknown) {
+      const message = await extractFunctionErrorMessage(err, "MFA 초기화 중 오류가 발생했습니다.");
+      alert("MFA 초기화 실패: " + message);
       setRoleConfirmPassword("");
     } finally {
       setRoleConfirmLoading(false);
@@ -273,6 +312,15 @@ export function AdminUserManagement({ refreshKey, adminId }: AdminUserManagement
                         disabled={isSelf}
                         style={{ padding: "10px 18px", borderRadius: "10px", border: `1px solid ${isSelf ? border : deleteBorder}`, background: isSelf ? panelBg : deleteBg, color: isSelf ? textMuted : "var(--color-brand-red)", fontWeight: 700, cursor: isSelf ? "not-allowed" : "pointer", opacity: isSelf ? 0.45 : 1, fontSize: 14 }}
                       >삭제</button>
+                      {user.role === "admin" && (
+                        <button
+                          onClick={() => handleResetUserMfa(user.id)}
+                          disabled={isSelf}
+                          style={{ padding: "10px 18px", borderRadius: "10px", border: `1px solid ${isSelf ? border : deleteBorder}`, background: isSelf ? panelBg : deleteBg, color: isSelf ? textMuted : "var(--color-brand-red)", fontWeight: 700, cursor: isSelf ? "not-allowed" : "pointer", opacity: isSelf ? 0.45 : 1, fontSize: 14 }}
+                        >
+                          MFA 초기화
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
@@ -301,6 +349,19 @@ export function AdminUserManagement({ refreshKey, adminId }: AdminUserManagement
           roleLabels={ROLE_LABELS}
           onConfirm={handleConfirmRoleChange}
           onCancel={() => { setPendingRoleChange(null); setRoleConfirmPassword(""); setShowRolePassword(false); }}
+        />
+      )}
+
+      {pendingMfaReset && (
+        <AdminMfaResetModal
+          pendingMfaReset={pendingMfaReset}
+          roleConfirmPassword={roleConfirmPassword}
+          setRoleConfirmPassword={setRoleConfirmPassword}
+          showRolePassword={showRolePassword}
+          setShowRolePassword={setShowRolePassword}
+          roleConfirmLoading={roleConfirmLoading}
+          onConfirm={handleConfirmMfaReset}
+          onCancel={() => { setPendingMfaReset(null); setRoleConfirmPassword(""); setShowRolePassword(false); }}
         />
       )}
 
