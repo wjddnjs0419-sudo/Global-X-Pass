@@ -9,6 +9,7 @@ import type { Profile } from "../../lib/types";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "../components/ui/input-otp";
 import { EVENT_APPLICATION_STATUS } from "../../utils/eventApplication";
 import { sanitizeSvgMarkup } from "../../utils/htmlSecurity";
+import { challengeAndPersistTotpVerification, getTotpFactorSnapshot } from "../../utils/mfa";
 import { formatStructuredLocation } from "../../utils/scheduleFields";
 import { getStatusPillStyle } from "../components/contentListStyles";
 
@@ -32,6 +33,7 @@ export function MyPage() {
   // MFA States
   const [mfaQr, setMfaQr] = useState<string | null>(null);
   const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
+  const [mfaPendingFactorName, setMfaPendingFactorName] = useState<string | null>(null);
   const [otpCode, setOtpCode] = useState("");
   const [isMfaEnabled, setIsMfaEnabled] = useState(false);
   const [mfaSetupRequired, setMfaSetupRequired] = useState(() => {
@@ -119,6 +121,86 @@ export function MyPage() {
     setEventApplications(eventData || []);
   };
 
+  const syncMfaState = async () => {
+    const { data: factorData, error: factorError } = await supabase.auth.mfa.listFactors();
+    if (factorError) {
+      console.error("MFA factor 조회 오류:", factorError.message);
+      return {
+        verifiedTotpFactor: null,
+        pendingTotpFactor: null,
+        hasVerifiedTotpFactor: false,
+        hasPendingTotpFactor: false,
+      };
+    }
+
+    const snapshot = getTotpFactorSnapshot(factorData);
+    setIsMfaEnabled(snapshot.hasVerifiedTotpFactor);
+    setMfaPendingFactorName(snapshot.pendingTotpFactor?.friendly_name ?? null);
+
+    if (snapshot.hasVerifiedTotpFactor) {
+      setMfaFactorId(null);
+      setMfaQr(null);
+      setOtpCode("");
+      setMfaSetupRequired(false);
+    } else {
+      setMfaFactorId(snapshot.pendingTotpFactor?.id ?? null);
+    }
+
+    return snapshot;
+  };
+
+  const beginMfaEnrollment = async (forceReset = false) => {
+    if (!user) return;
+
+    setLoading(true);
+    const snapshot = await syncMfaState();
+    if (snapshot.hasVerifiedTotpFactor) {
+      setLoading(false);
+      return;
+    }
+
+    if (snapshot.pendingTotpFactor && !forceReset) {
+      setMfaQr(null);
+      setLoading(false);
+      return;
+    }
+
+    if (snapshot.pendingTotpFactor && forceReset) {
+      const { error: resetError } = await supabase.auth.mfa.unenroll({ factorId: snapshot.pendingTotpFactor.id });
+      if (resetError) {
+        alert("기존 미완료 MFA 설정 초기화 실패: " + resetError.message);
+        setLoading(false);
+        return;
+      }
+      setMfaFactorId(null);
+      setMfaPendingFactorName(null);
+      setMfaQr(null);
+      setOtpCode("");
+    }
+
+    const { data, error } = await supabase.auth.mfa.enroll({
+      factorType: "totp",
+      issuer: "Global X Pass",
+      friendlyName: user.email ?? "Admin",
+    });
+
+    if (error) {
+      if (error.message.includes("friendly name")) {
+        await syncMfaState();
+        alert("이전에 시작한 MFA 설정이 남아 있습니다. 이미 OTP 앱에 추가했다면 아래 인증으로 마무리하고, 아니라면 초기화 후 다시 설정해 주세요.");
+      } else {
+        alert("MFA 설정 중 오류: " + error.message);
+      }
+      setLoading(false);
+      return;
+    }
+
+    setMfaQr(data.totp.qr_code);
+    setMfaFactorId(data.id);
+    setMfaPendingFactorName(data.friendly_name ?? user.email ?? "Admin");
+    setLoading(false);
+  };
+
   useEffect(() => {
     const fetchUserAndProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -136,10 +218,7 @@ export function MyPage() {
         setProfileLoaded(true);
 
         // MFA Factor check
-        const { data: factors } = await supabase.auth.mfa.listFactors();
-        if (factors?.totp?.some(f => f.status === "verified")) {
-          setIsMfaEnabled(true);
-        }
+        await syncMfaState();
 
         if (data?.role !== "admin") {
           await Promise.all([
@@ -264,50 +343,36 @@ export function MyPage() {
 
   // MFA Functions
   const handleMfaEnroll = async () => {
-    setLoading(true);
-    const { data, error } = await supabase.auth.mfa.enroll({
-      factorType: "totp",
-      issuer: "Global X Pass",
-      friendlyName: user?.email ?? "Admin",
-    });
+    await beginMfaEnrollment(false);
+  };
 
-    if (error) {
-      alert("MFA 설정 중 오류: " + error.message);
-    } else {
-      setMfaQr(data.totp.qr_code);
-      setMfaFactorId(data.id);
-    }
-    setLoading(false);
+  const handleMfaResetPending = async () => {
+    if (!window.confirm("기존에 시작한 MFA 설정을 초기화하고 새 QR 코드로 다시 설정하시겠습니까?")) return;
+    await beginMfaEnrollment(true);
   };
 
   const handleMfaVerify = async () => {
-    if (!mfaFactorId || !otpCode) return;
+    if (!mfaFactorId || otpCode.length !== 6) return;
     setLoading(true);
 
-    const { data: challengeData, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: mfaFactorId });
-    if (challengeError) {
-      alert("인증 오류: " + challengeError.message);
+    const { error: verifyError } = await challengeAndPersistTotpVerification(supabase, mfaFactorId, otpCode);
+    if (verifyError) {
+      if (verifyError.message.includes("Refresh Token")) {
+        alert("MFA 세션 갱신에 실패했습니다. 다시 로그인한 뒤 다시 시도해 주세요.");
+      } else {
+        alert("인증 오류: " + verifyError.message);
+      }
       setLoading(false);
       return;
     }
 
-    const { error: verifyError } = await supabase.auth.mfa.verify({
-      factorId: mfaFactorId,
-      challengeId: challengeData.id,
-      code: otpCode,
-    });
-
-    if (verifyError) {
-      alert("번호가 올바르지 않습니다.");
-    } else {
-      setIsMfaEnabled(true);
-      setMfaSetupRequired(false);
-      setMfaQr(null);
-      setMfaFactorId(null);
-      setOtpCode("");
-      alert("MFA 설정이 완료되었습니다! 관리자 패널에 접근할 수 있습니다.");
-      navigate("/admin");
-    }
+    await syncMfaState();
+    setMfaSetupRequired(false);
+    setMfaQr(null);
+    setMfaFactorId(null);
+    setOtpCode("");
+    alert("MFA 설정이 완료되었습니다! 관리자 패널에 접근할 수 있습니다.");
+    navigate("/admin");
     setLoading(false);
   };
 
@@ -320,10 +385,10 @@ export function MyPage() {
     setLoading(true);
     
     const { data: factors } = await supabase.auth.mfa.listFactors();
-    const verifiedFactor = factors?.totp?.find(f => f.status === "verified");
+    const { verifiedTotpFactor } = getTotpFactorSnapshot(factors);
     
-    if (verifiedFactor) {
-      const { error } = await supabase.auth.mfa.unenroll({ factorId: verifiedFactor.id });
+    if (verifiedTotpFactor) {
+      const { error } = await supabase.auth.mfa.unenroll({ factorId: verifiedTotpFactor.id });
       if (error) alert("해제 실패: " + error.message);
       else {
         alert("2단계 인증이 해제되었습니다.");
@@ -334,6 +399,7 @@ export function MyPage() {
   };
 
   if (!user) return null;
+  const hasPendingMfaSetup = !isMfaEnabled && Boolean(mfaFactorId);
 
   const getProfileText = (value?: string | null) => {
     if (!profileLoaded) return "불러오는 중...";
@@ -445,7 +511,7 @@ export function MyPage() {
                   <div className="mb-4" style={{ padding: "16px 20px", borderRadius: 16, background: deleteBg, border: `1px solid ${deleteBorder}` }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
                       <span style={{ fontSize: 16, opacity: 0.7 }}>🔒</span>
-                      <p style={{ margin: 0, fontSize: 14, color: "var(--color-brand-red)", fontWeight: 750 }}>관리자 패널 접근 전 MFA 설정이 필요합니다</p>
+                      <p style={{ margin: 0, fontSize: 14, color: "var(--color-brand-red)", fontWeight: 750 }}>{hasPendingMfaSetup ? "관리자 패널 접근 전 MFA 설정 마무리가 필요합니다" : "관리자 패널 접근 전 MFA 설정이 필요합니다"}</p>
                     </div>
                     <p style={{ margin: 0, fontSize: 13, color: isDark ? "rgba(255,255,255,0.6)" : "rgba(15,23,42,0.6)", lineHeight: 1.5 }}>
                       보안 정책상 관리자 계정은 2단계 인증(MFA)을 반드시 설정해야 합니다. 아래에서 설정을 완료한 후 관리자 패널에 접근할 수 있습니다.
@@ -453,7 +519,7 @@ export function MyPage() {
                   </div>
                 )}
 
-                {!isMfaEnabled && !mfaQr && (
+                {!isMfaEnabled && !hasPendingMfaSetup && (
                   <div style={{ padding: "20px", borderRadius: 16, background: panelBg, border: `1px solid ${labelBorder}` }}>
                     <p style={{ margin: "0 0 12px", fontSize: 14, color: textMain, fontWeight: 750 }}>2단계 인증(OTP)이 설정되어 있지 않습니다.</p>
                     <p style={{ margin: "0 0 20px", fontSize: 13, color: textMuted, lineHeight: 1.5 }}>보안 정책상 관리자 계정은 Google Authenticator 등 OTP 앱을 통한 2단계 인증을 반드시 설정해야 합니다.</p>
@@ -468,13 +534,25 @@ export function MyPage() {
                   </div>
                 )}
 
-                {!isMfaEnabled && mfaQr && (
+                {hasPendingMfaSetup && (
                   <div style={{ padding: "20px", borderRadius: 16, background: card, border: `1px solid ${border}`, textAlign: "center" }}>
-                    <p style={{ margin: "0 0 16px", fontSize: 14, color: textMain, fontWeight: 700 }}>OTP 앱으로 QR 코드를 스캔하세요</p>
-                    <div 
-                      dangerouslySetInnerHTML={{ __html: sanitizeSvgMarkup(mfaQr) }} 
-                      style={{ background: "#fff", padding: 12, borderRadius: 12, display: "inline-block", marginBottom: 20 }}
-                    />
+                    <p style={{ margin: "0 0 16px", fontSize: 14, color: textMain, fontWeight: 700 }}>
+                      {mfaQr ? "OTP 앱으로 QR 코드를 스캔하세요" : "이전에 시작한 MFA 설정을 마무리하세요"}
+                    </p>
+                    {mfaQr ? (
+                      <div
+                        dangerouslySetInnerHTML={{ __html: sanitizeSvgMarkup(mfaQr) }}
+                        style={{ background: "#fff", padding: 12, borderRadius: 12, display: "inline-block", marginBottom: 20 }}
+                      />
+                    ) : (
+                      <div style={{ marginBottom: 20, padding: "14px 16px", borderRadius: 12, background: panelBg, border: `1px solid ${labelBorder}`, textAlign: "left" }}>
+                        <p style={{ margin: "0 0 8px", fontSize: 13, color: textMain, fontWeight: 700 }}>이미 같은 MFA factor가 생성되어 있습니다.</p>
+                        <p style={{ margin: 0, fontSize: 13, color: textMuted, lineHeight: 1.5 }}>
+                          {mfaPendingFactorName ? `"${mfaPendingFactorName}"` : "이 계정"}으로 시작한 MFA 등록이 아직 완료되지 않았습니다.
+                          이미 OTP 앱에 추가했다면 아래 6자리 코드를 입력해 마무리하고, QR을 잃어버렸다면 초기화 후 다시 설정해 주세요.
+                        </p>
+                      </div>
+                    )}
                     <div className="text-left">
                       <p style={{ margin: "0 0 12px", fontSize: 13, color: textMuted }}>인증 앱에 표시된 6자리 번호를 입력하세요</p>
                       <div className="flex justify-center mb-6">
@@ -503,11 +581,20 @@ export function MyPage() {
                         {loading ? "확인 중..." : "인증 완료 및 활성화"}
                       </button>
                       <button
-                        onClick={() => { setMfaQr(null); setMfaFactorId(null); setOtpCode(""); }}
-                        style={{ width: "100%", background: "none", border: "none", color: textMuted, fontSize: 13, marginTop: 12, cursor: "pointer", textDecoration: "underline" }}
+                        onClick={handleMfaResetPending}
+                        disabled={loading}
+                        style={{ width: "100%", background: "none", border: "none", color: textMuted, fontSize: 13, marginTop: 12, cursor: loading ? "not-allowed" : "pointer", textDecoration: "underline", opacity: loading ? 0.6 : 1 }}
                       >
-                        취소
+                        기존 설정 초기화 후 다시 설정
                       </button>
+                      {mfaQr && (
+                        <button
+                          onClick={() => { setMfaQr(null); setOtpCode(""); }}
+                          style={{ width: "100%", background: "none", border: "none", color: textMuted, fontSize: 13, marginTop: 10, cursor: "pointer", textDecoration: "underline" }}
+                        >
+                          QR 닫기
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}

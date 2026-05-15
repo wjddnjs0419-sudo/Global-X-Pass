@@ -37,7 +37,7 @@ const MEDIA_SHOWCASE_GAP = {
 type MediaPost = Post;
 
 export function MediaSection({ isDark = false }: MediaSectionProps) {
-  const th = getSectionTheme(isDark);
+  const th = getSectionTheme();
   const [posts, setPosts] = useState<MediaPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import architectureMap from "@/generated/architectureMap.json";
-import { LocateFixed, Search } from "lucide-react";
+import { Bell, ExternalLink, LocateFixed, PlayCircle, RefreshCw, Search, Trash2 } from "lucide-react";
 import { supabase } from "../../../lib/supabaseClient";
 import { logActionFailure, logSupabaseFailure } from "../../../lib/uxTelemetry";
 import { explainError } from "../../../lib/errorExplainer";
@@ -11,6 +11,11 @@ declare global {
       openTerminal: (command?: string) => Promise<void>;
       readMapData: () => Promise<{ ok: boolean; data?: ArchitectureMap; error?: string }>;
       refreshMap: () => Promise<{ ok: boolean; output?: string; code?: number }>;
+      readQaRuns: () => Promise<QaRunsResult>;
+      triggerQaRun: () => Promise<QaTriggerResult>;
+      getGithubTokenStatus: () => Promise<{ ok: boolean; connected: boolean }>;
+      saveGithubToken: (token: string) => Promise<{ ok: boolean; connected: boolean; error?: string; statusCode?: number | null }>;
+      clearGithubToken: () => Promise<{ ok: boolean; connected: boolean }>;
     };
   }
 }
@@ -94,7 +99,73 @@ type ArchitectureMap = {
   edges: MapEdge[];
 };
 
+type QaRunConclusion = "success" | "failure" | "cancelled" | "skipped" | "timed_out" | "action_required" | null;
+
+type QaFailedStep = {
+  job: string;
+  step: string;
+  conclusion: string;
+};
+
+type QaRun = {
+  id: string;
+  runNumber: number;
+  runAttempt: number;
+  name: string;
+  displayTitle: string;
+  event: string;
+  status: string;
+  conclusion: QaRunConclusion;
+  branch: string;
+  actor: string | null;
+  createdAt: string;
+  updatedAt: string;
+  htmlUrl: string;
+  failedStep: QaFailedStep | null;
+};
+
+type QaRunsResult =
+  | { ok: true; repo: string; workflow: string; runs: QaRun[]; fetchedAt: string }
+  | { ok: false; error: string; statusCode?: number | null; needsToken?: boolean };
+
+type QaTriggerResult =
+  | { ok: true; workflow: string; branch: string; triggeredAt: string }
+  | { ok: false; error: string; statusCode?: number | null; needsToken?: boolean };
+
+type BlogImportRun = {
+  id: string;
+  trigger_source: string;
+  status: string;
+  discovered_count: number;
+  inserted_count: number;
+  updated_count: number;
+  skipped_count: number;
+  failed_count: number;
+  error: string | null;
+  created_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+  github_run_id?: string | null;
+};
+
+type BlogSyncRun = {
+  id: string;
+  status: string;
+  trigger_source: string;
+  dry_run: boolean;
+  created_at: string;
+};
+
+type BlogSyncResult = {
+  success?: boolean;
+  run?: BlogSyncRun;
+  dispatched?: boolean;
+  dispatchError?: string | null;
+  error?: string;
+};
+
 type FilterId = "overview" | "errors" | "dead" | "auth" | "events" | "consulting" | "founders" | "admin" | "pii" | "all";
+type SidebarTab = "map" | "alerts" | "ops";
 type NodeStatus = "safe" | "watch" | "danger";
 type PositionedNode = MapNode & { x: number; y: number; w: number; h: number; color: string; status: NodeStatus };
 type ClusterBounds = {
@@ -183,6 +254,12 @@ const ACTIVE_ISSUE_STATUSES = new Set<IssueStatus>(["open", "reopened"]);
 const WATCH_ISSUE_STATUSES = new Set<IssueStatus>(["monitoring", "ignored"]);
 const VISIBLE_ISSUE_STATUSES: IssueStatus[] = ["open", "reopened", "monitoring", "ignored"];
 const CURRENT_BUILD_ID = __GXP_BUILD_ID__;
+const ALERT_STORAGE_KEYS = {
+  qa: "gxp_architecture_alerts_qa_v2",
+  blog: "gxp_architecture_alerts_blog_v1",
+} as const;
+const QA_WORKFLOW_URL = "https://github.com/wjddnjs0419-sudo/Global-X-Pass/actions/workflows/daily-qa.yml";
+const NAVER_BLOG_SYNC_WORKFLOW_URL = "https://github.com/wjddnjs0419-sudo/Global-X-Pass/actions/workflows/naver-blog-sync.yml";
 
 const STATUS_RANK: Record<NodeStatus, number> = {
   safe: 1,
@@ -207,6 +284,28 @@ const STATUS_META: Record<NodeStatus, { label: string; color: string; bg: string
     bg: "color-mix(in srgb, var(--color-brand-red) 10%, transparent)",
   },
 };
+
+function readStoredAlertState(storageKey: string) {
+  if (typeof window === "undefined") return { readIds: new Set<string>(), hiddenIds: new Set<string>() };
+  try {
+    const raw = window.localStorage.getItem(storageKey);
+    const parsed = raw ? JSON.parse(raw) as { readIds?: string[]; hiddenIds?: string[] } : {};
+    return {
+      readIds: new Set(parsed.readIds ?? []),
+      hiddenIds: new Set(parsed.hiddenIds ?? []),
+    };
+  } catch {
+    return { readIds: new Set<string>(), hiddenIds: new Set<string>() };
+  }
+}
+
+function writeStoredAlertState(storageKey: string, readIds: Set<string>, hiddenIds: Set<string>) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(storageKey, JSON.stringify({
+    readIds: Array.from(readIds),
+    hiddenIds: Array.from(hiddenIds),
+  }));
+}
 
 const getClusterPalette = (clusterColor: string) =>
   CLUSTER_PALETTE[clusterColor] ?? CLUSTER_PALETTE.blue;
@@ -298,6 +397,44 @@ const formatTime = (value: string) => new Intl.DateTimeFormat("ko-KR", {
   minute: "2-digit",
 }).format(new Date(value));
 
+const formatTriggerSource = (source: string) => {
+  if (source === "manual") return "수동 실행";
+  if (source === "cron") return "예약 실행";
+  if (source === "worker") return "워커";
+  if (source === "github_actions") return "GitHub Actions";
+  return source;
+};
+
+const getBlogRunMeta = (run: BlogImportRun) => {
+  if (run.status === "queued") {
+    return { label: "대기중", color: "#f5b942", bg: "#2b240f" };
+  }
+  if (run.status === "running") {
+    return { label: "진행중", color: "#4ea1ff", bg: "#102033" };
+  }
+  if (run.status === "success") {
+    return { label: "성공", color: "#34a853", bg: "#0f2a15" };
+  }
+  if (run.status === "cancelled" || run.status === "skipped") {
+    return { label: "중단", color: "#f5b942", bg: "#2b240f" };
+  }
+  if (run.failed_count > 0 || run.error) {
+    return { label: "실패", color: "#ea4335", bg: "#2a1010" };
+  }
+  return { label: run.status, color: "#8a8a8a", bg: "#1c1c1c" };
+};
+
+const getBlogRunSummary = (run: BlogImportRun) => {
+  if (run.status === "queued") {
+    return "대기열에 등록됐습니다. GitHub Actions가 곧 처리합니다.";
+  }
+  const successCount = run.inserted_count + run.updated_count;
+  if (run.status === "running") {
+    return `발견 ${run.discovered_count} · 성공 ${successCount} · 건너뜀 ${run.skipped_count} · 실패 ${run.failed_count}`;
+  }
+  return `발견 ${run.discovered_count} · 성공 ${successCount} · 건너뜀 ${run.skipped_count} · 실패 ${run.failed_count}`;
+};
+
 const summarizeStack = (stack: string | null) => {
   if (!stack) return "stack 없음";
   return stack.split("\n").slice(0, 3).join("\n");
@@ -343,15 +480,187 @@ export function LiveArchitectureMap() {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
+  const [sidebarTab, setSidebarTab] = useState<SidebarTab>("map");
+  const [qaRuns, setQaRuns] = useState<QaRun[]>([]);
+  const [qaLoading, setQaLoading] = useState(false);
+  const [qaError, setQaError] = useState<string | null>(null);
+  const [qaFetchedAt, setQaFetchedAt] = useState<string | null>(null);
+  const [qaSelectedIds, setQaSelectedIds] = useState<Set<string>>(() => new Set());
+  const [qaReadIds, setQaReadIds] = useState<Set<string>>(() => readStoredAlertState(ALERT_STORAGE_KEYS.qa).readIds);
+  const [qaHiddenIds, setQaHiddenIds] = useState<Set<string>>(() => readStoredAlertState(ALERT_STORAGE_KEYS.qa).hiddenIds);
+  const [qaTriggerLoading, setQaTriggerLoading] = useState(false);
+  const [qaTriggerMessage, setQaTriggerMessage] = useState<string | null>(null);
+  const [qaTriggerError, setQaTriggerError] = useState<string | null>(null);
+  const [githubTokenConnected, setGithubTokenConnected] = useState(false);
+  const [githubTokenInput, setGithubTokenInput] = useState("");
+  const [githubTokenSaving, setGithubTokenSaving] = useState(false);
+  const [githubTokenError, setGithubTokenError] = useState<string | null>(null);
+  const [blogRuns, setBlogRuns] = useState<BlogImportRun[]>([]);
+  const [blogLoading, setBlogLoading] = useState(false);
+  const [blogError, setBlogError] = useState<string | null>(null);
+  const [blogFetchedAt, setBlogFetchedAt] = useState<string | null>(null);
+  const [blogSelectedIds, setBlogSelectedIds] = useState<Set<string>>(() => new Set());
+  const [blogReadIds, setBlogReadIds] = useState<Set<string>>(() => readStoredAlertState(ALERT_STORAGE_KEYS.blog).readIds);
+  const [blogHiddenIds, setBlogHiddenIds] = useState<Set<string>>(() => readStoredAlertState(ALERT_STORAGE_KEYS.blog).hiddenIds);
+  const [blogSyncLoading, setBlogSyncLoading] = useState(false);
+  const [blogSyncResult, setBlogSyncResult] = useState<BlogSyncResult | null>(null);
+  const [blogSyncError, setBlogSyncError] = useState<string | null>(null);
 
   const openTerminal = (command?: string) => {
     window.electronAPI?.openTerminal(command);
+  };
+
+  const loadQaRuns = async () => {
+    if (!window.electronAPI?.readQaRuns) {
+      setQaError("아키텍처 앱에서만 QA 알림을 불러올 수 있습니다.");
+      return;
+    }
+    setQaLoading(true);
+    setQaError(null);
+    const result = await window.electronAPI.readQaRuns();
+    if (result.ok === true) {
+      setQaRuns(result.runs);
+      setQaFetchedAt(result.fetchedAt);
+    } else {
+      const tokenHint = result.needsToken ? " 로컬 환경 변수 GXP_GITHUB_TOKEN 또는 GITHUB_TOKEN이 필요합니다." : "";
+      setQaError(`${result.error}.${tokenHint}`);
+    }
+    setQaLoading(false);
+  };
+
+  const loadBlogRuns = async () => {
+    setBlogLoading(true);
+    setBlogError(null);
+
+    const { data, error } = await supabase
+      .from("blog_import_runs")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    if (error) {
+      logSupabaseFailure("architecture-map", "load_blog_sync_alerts", error);
+      setBlogError(error.message);
+      setBlogLoading(false);
+      return;
+    }
+
+    setBlogRuns((data ?? []) as BlogImportRun[]);
+    setBlogFetchedAt(new Date().toISOString());
+    setBlogLoading(false);
+  };
+
+  const persistQaInboxState = (nextReadIds: Set<string>, nextHiddenIds: Set<string>) => {
+    setQaReadIds(nextReadIds);
+    setQaHiddenIds(nextHiddenIds);
+    writeStoredAlertState(ALERT_STORAGE_KEYS.qa, nextReadIds, nextHiddenIds);
+  };
+
+  const persistBlogInboxState = (nextReadIds: Set<string>, nextHiddenIds: Set<string>) => {
+    setBlogReadIds(nextReadIds);
+    setBlogHiddenIds(nextHiddenIds);
+    writeStoredAlertState(ALERT_STORAGE_KEYS.blog, nextReadIds, nextHiddenIds);
+  };
+
+  const saveGithubToken = async () => {
+    if (!window.electronAPI?.saveGithubToken) return;
+    const token = githubTokenInput.trim();
+    if (!token) {
+      setGithubTokenError("토큰을 입력해 주세요.");
+      return;
+    }
+    setGithubTokenSaving(true);
+    setGithubTokenError(null);
+    const result = await window.electronAPI.saveGithubToken(token);
+    setGithubTokenSaving(false);
+    if (!result.ok) {
+      setGithubTokenConnected(false);
+      setGithubTokenError(result.error ?? "GitHub 연결에 실패했습니다.");
+      return;
+    }
+    setGithubTokenInput("");
+    setGithubTokenConnected(true);
+    void loadQaRuns();
+  };
+
+  const clearGithubToken = async () => {
+    if (!window.electronAPI?.clearGithubToken) return;
+    await window.electronAPI.clearGithubToken();
+    setGithubTokenInput("");
+    setGithubTokenError(null);
+    setGithubTokenConnected(false);
+    setQaRuns([]);
+  };
+
+  const triggerQaRun = async () => {
+    if (!window.electronAPI?.triggerQaRun) {
+      setQaTriggerError("아키텍처 앱에서만 QA 실행을 요청할 수 있습니다.");
+      return;
+    }
+    setQaTriggerLoading(true);
+    setQaTriggerError(null);
+    setQaTriggerMessage(null);
+
+    const result = await window.electronAPI.triggerQaRun();
+    setQaTriggerLoading(false);
+
+    if (result.ok !== true) {
+      const tokenHint = result.needsToken ? " GitHub token 연결 또는 fallback env가 필요합니다." : "";
+      setQaTriggerError(`${result.error}.${tokenHint}`);
+      return;
+    }
+
+    setQaTriggerMessage(`Daily Production QA를 main 브랜치 기준으로 실행 요청했습니다. ${formatTime(result.triggeredAt)}에 dispatch 완료.`);
+    await loadQaRuns();
+  };
+
+  const triggerBlogSync = async () => {
+    setBlogSyncLoading(true);
+    setBlogSyncError(null);
+    setBlogSyncResult(null);
+
+    const { data, error } = await supabase.functions.invoke("sync-naver-blog", {
+      body: { triggerSource: "manual" },
+    });
+
+    if (error) {
+      let message = error.message ?? "블로그 동기화 요청에 실패했습니다.";
+      try {
+        const body = await (error as { context?: Response }).context?.json?.() as { error?: string } | undefined;
+        message = body?.error ?? message;
+      } catch {
+        // Edge Function error bodies are not guaranteed to be JSON.
+      }
+      logSupabaseFailure("architecture-map", "trigger_manual_blog_sync", new Error(message));
+      setBlogSyncError(message);
+      setBlogSyncLoading(false);
+      return;
+    }
+
+    setBlogSyncResult((data ?? {}) as BlogSyncResult);
+    await loadBlogRuns();
+    setBlogSyncLoading(false);
   };
 
   useEffect(() => {
     if (!window.electronAPI?.readMapData) return;
     void window.electronAPI.readMapData().then((result) => {
       if (result.ok && result.data) setMapData(result.data);
+    });
+  }, []);
+
+  useEffect(() => {
+    void loadQaRuns();
+  }, []);
+
+  useEffect(() => {
+    void loadBlogRuns();
+  }, []);
+
+  useEffect(() => {
+    if (!window.electronAPI?.getGithubTokenStatus) return;
+    void window.electronAPI.getGithubTokenStatus().then((result) => {
+      if (result.ok) setGithubTokenConnected(result.connected);
     });
   }, []);
 
@@ -399,7 +708,7 @@ export function LiveArchitectureMap() {
           errMsg = (firstError as { message?: string }).message ?? errMsg;
         }
         if (cancelled) return;
-        logSupabaseFailure("admin-page", "fetch_error_issues_for_live_architecture_map", new Error(errMsg));
+        logSupabaseFailure("architecture-map", "fetch_error_issues_for_live_architecture_map", new Error(errMsg));
         setLoadError(errMsg);
         setIssues([]);
         setLogs([]);
@@ -412,46 +721,86 @@ export function LiveArchitectureMap() {
 
     void fetchLogs();
 
-    const issuesChannel = supabase
-      .channel(`realtime-error-issues-${windowMinutes}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "error_issues" },
-        (payload) => {
-          const next = payload.new as ErrorIssue;
-          setIssues((prev) => {
-            const rest = prev.filter((issue) => issue.fingerprint !== next.fingerprint);
-            if (!VISIBLE_ISSUE_STATUSES.includes(next.status)) return rest;
-            return [next, ...rest].sort((a, b) => new Date(b.last_seen_at).getTime() - new Date(a.last_seen_at).getTime()).slice(0, 300);
-          });
-        },
-      )
-      .subscribe((status) => {
-        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
-          logActionFailure("admin-page", "subscribe_error_issues_realtime", `Realtime subscription ${status}`, {
-            severity: "medium",
-            context: { status, windowMinutes },
-          });
-        }
-      });
+    const MAX_RETRIES = 5;
+    const BASE_RETRY_MS = 2_000;
 
-    const logsChannel = supabase
-      .channel(`realtime-error-logs-history-${windowMinutes}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "error_logs" },
-        (payload) => {
-          const next = payload.new as ErrorLog;
-          if (new Date(next.created_at).getTime() < new Date(since).getTime()) return;
-          setLogs((prev) => [next, ...prev].slice(0, 500));
-        },
-      )
-      .subscribe();
+    let activeIssuesChannel: ReturnType<typeof supabase.channel> | null = null;
+    let activeLogsChannel: ReturnType<typeof supabase.channel> | null = null;
+    const retryTimers: ReturnType<typeof setTimeout>[] = [];
+
+    function subscribeIssuesChannel(attempt: number) {
+      if (cancelled) return;
+      const ch = supabase
+        .channel(`realtime-error-issues-${windowMinutes}-${attempt}`)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "error_issues" },
+          (payload) => {
+            const next = payload.new as ErrorIssue;
+            setIssues((prev) => {
+              const rest = prev.filter((issue) => issue.fingerprint !== next.fingerprint);
+              if (!VISIBLE_ISSUE_STATUSES.includes(next.status)) return rest;
+              return [next, ...rest].sort((a, b) => new Date(b.last_seen_at).getTime() - new Date(a.last_seen_at).getTime()).slice(0, 300);
+            });
+          },
+        )
+        .subscribe((status) => {
+          if (status !== "CHANNEL_ERROR" && status !== "TIMED_OUT") return;
+          if (cancelled) return;
+          void supabase.removeChannel(ch);
+          activeIssuesChannel = null;
+          if (attempt < MAX_RETRIES) {
+            const t = setTimeout(() => { subscribeIssuesChannel(attempt + 1); }, BASE_RETRY_MS * Math.pow(2, attempt));
+            retryTimers.push(t);
+          } else {
+            logActionFailure("architecture-map", "subscribe_error_issues_realtime", `Realtime subscription ${status}`, {
+              severity: "medium",
+              context: { status, windowMinutes, attempt },
+            });
+          }
+        });
+      activeIssuesChannel = ch;
+    }
+
+    function subscribeLogsChannel(attempt: number) {
+      if (cancelled) return;
+      const ch = supabase
+        .channel(`realtime-error-logs-history-${windowMinutes}-${attempt}`)
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "error_logs" },
+          (payload) => {
+            const next = payload.new as ErrorLog;
+            if (new Date(next.created_at).getTime() < new Date(since).getTime()) return;
+            setLogs((prev) => [next, ...prev].slice(0, 500));
+          },
+        )
+        .subscribe((status) => {
+          if (status !== "CHANNEL_ERROR" && status !== "TIMED_OUT") return;
+          if (cancelled) return;
+          void supabase.removeChannel(ch);
+          activeLogsChannel = null;
+          if (attempt < MAX_RETRIES) {
+            const t = setTimeout(() => { subscribeLogsChannel(attempt + 1); }, BASE_RETRY_MS * Math.pow(2, attempt));
+            retryTimers.push(t);
+          } else {
+            logActionFailure("architecture-map", "subscribe_error_logs_realtime", `Realtime subscription ${status}`, {
+              severity: "medium",
+              context: { status, windowMinutes, attempt },
+            });
+          }
+        });
+      activeLogsChannel = ch;
+    }
+
+    subscribeIssuesChannel(0);
+    subscribeLogsChannel(0);
 
     return () => {
       cancelled = true;
-      void supabase.removeChannel(issuesChannel);
-      void supabase.removeChannel(logsChannel);
+      retryTimers.forEach(clearTimeout);
+      if (activeIssuesChannel) void supabase.removeChannel(activeIssuesChannel);
+      if (activeLogsChannel) void supabase.removeChannel(activeLogsChannel);
     };
   }, [windowMinutes]);
 
@@ -579,8 +928,14 @@ export function LiveArchitectureMap() {
     displayWidth: Math.max(1320, (positioned.width + MAP_VIEWBOX_PADDING * 2) * STATIC_MAP_SCALE),
     displayHeight: Math.max(620, (positioned.height + MAP_VIEWBOX_PADDING * 2) * STATIC_MAP_SCALE),
   };
+  const visibleQaRuns = useMemo(() => qaRuns.filter((run) => !qaHiddenIds.has(run.id)), [qaHiddenIds, qaRuns]);
+  const visibleBlogRuns = useMemo(() => blogRuns.filter((run) => !blogHiddenIds.has(run.id)), [blogHiddenIds, blogRuns]);
+  const unreadQaCount = visibleQaRuns.filter((run) => !qaReadIds.has(run.id)).length;
+  const unreadBlogCount = visibleBlogRuns.filter((run) => !blogReadIds.has(run.id)).length;
+  const unreadAlertsCount = unreadQaCount + unreadBlogCount;
 
   const focusNode = (nodeId: string) => {
+    setSidebarTab("map");
     if (!positioned.positions.get(nodeId) && !getFallbackNodePosition(nodeId, mapData)) {
       setFilter("all");
       setSelectedId(nodeId);
@@ -595,8 +950,61 @@ export function LiveArchitectureMap() {
   };
 
   const clearSelection = () => {
+    setSidebarTab("map");
     setSelectedId(null);
     setSelectedFingerprint(null);
+  };
+
+  const toggleQaRunSelection = (runId: string) => {
+    setQaSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(runId)) next.delete(runId);
+      else next.add(runId);
+      return next;
+    });
+  };
+
+  const setAllQaSelected = (selected: boolean) => {
+    setQaSelectedIds(selected ? new Set(visibleQaRuns.map((run) => run.id)) : new Set());
+  };
+
+  const markQaRunsRead = (ids: string[]) => {
+    const nextReadIds = new Set(qaReadIds);
+    ids.forEach((id) => nextReadIds.add(id));
+    persistQaInboxState(nextReadIds, qaHiddenIds);
+  };
+
+  const hideQaRuns = (ids: string[]) => {
+    const nextHiddenIds = new Set(qaHiddenIds);
+    ids.forEach((id) => nextHiddenIds.add(id));
+    persistQaInboxState(qaReadIds, nextHiddenIds);
+    setQaSelectedIds(new Set());
+  };
+
+  const toggleBlogRunSelection = (runId: string) => {
+    setBlogSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(runId)) next.delete(runId);
+      else next.add(runId);
+      return next;
+    });
+  };
+
+  const setAllBlogSelected = (selected: boolean) => {
+    setBlogSelectedIds(selected ? new Set(visibleBlogRuns.map((run) => run.id)) : new Set());
+  };
+
+  const markBlogRunsRead = (ids: string[]) => {
+    const nextReadIds = new Set(blogReadIds);
+    ids.forEach((id) => nextReadIds.add(id));
+    persistBlogInboxState(nextReadIds, blogHiddenIds);
+  };
+
+  const hideBlogRuns = (ids: string[]) => {
+    const nextHiddenIds = new Set(blogHiddenIds);
+    ids.forEach((id) => nextHiddenIds.add(id));
+    persistBlogInboxState(blogReadIds, nextHiddenIds);
+    setBlogSelectedIds(new Set());
   };
 
   const updateIssueStatus = async (fingerprint: string, action: "monitoring" | "resolved" | "ignored") => {
@@ -623,7 +1031,7 @@ export function LiveArchitectureMap() {
 
     const { error } = await supabase.rpc(rpcName, { p_fingerprint: fingerprint, p_note: null });
     if (error) {
-      logSupabaseFailure("admin-page", `update_error_issue_${action}`, error, {
+      logSupabaseFailure("architecture-map", `update_error_issue_${action}`, error, {
         context: { fingerprint, action },
       });
       setLoadError(error.message);
@@ -654,6 +1062,7 @@ export function LiveArchitectureMap() {
             data-monitor-action={`live-map-filter-${item.id}`}
             onClick={() => {
               setFilter(item.id);
+              setSidebarTab("map");
               clearSelection();
             }}
             style={{
@@ -680,6 +1089,53 @@ export function LiveArchitectureMap() {
             {label}
           </span>
         ))}
+        <button
+          type="button"
+          data-monitor-action="open-alerts"
+          onClick={() => setSidebarTab("alerts")}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            border: `1px solid ${sidebarTab === "alerts" ? "#4ea1ff" : "#2a2a2a"}`,
+            background: sidebarTab === "alerts" ? "#1e2a3a" : "#1c1c1c",
+            color: sidebarTab === "alerts" ? "#4ea1ff" : "#8a8a8a",
+            borderRadius: 999,
+            padding: "5px 11px",
+            fontSize: 11,
+            fontWeight: 800,
+            cursor: "pointer",
+          }}
+        >
+          <Bell size={12} aria-hidden />
+          Alerts
+          {unreadAlertsCount > 0 && (
+            <span style={{ minWidth: 18, height: 18, borderRadius: 999, background: "#ea4335", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900 }}>
+              {unreadAlertsCount > 99 ? "99+" : unreadAlertsCount}
+            </span>
+          )}
+        </button>
+        <button
+          type="button"
+          data-monitor-action="open-ops-panel"
+          onClick={() => setSidebarTab("ops")}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            border: `1px solid ${sidebarTab === "ops" ? "#4ea1ff" : "#2a2a2a"}`,
+            background: sidebarTab === "ops" ? "#1e2a3a" : "#1c1c1c",
+            color: sidebarTab === "ops" ? "#4ea1ff" : "#8a8a8a",
+            borderRadius: 999,
+            padding: "5px 11px",
+            fontSize: 11,
+            fontWeight: 800,
+            cursor: "pointer",
+          }}
+        >
+          <PlayCircle size={12} aria-hidden />
+          Ops
+        </button>
         <div style={{ position: "relative", minWidth: 210, flex: "0 1 250px" }}>
           <Search size={13} aria-hidden style={{ position: "absolute", left: 10, top: 9, color: "#8a8a8a" }} />
           <input
@@ -873,6 +1329,7 @@ export function LiveArchitectureMap() {
                     transform={`translate(${node.x},${node.y})`}
                     onClick={(event) => {
                       event.stopPropagation();
+                      setSidebarTab("map");
                       setSelectedId(node.id);
                       setSelectedFingerprint(null);
                     }}
@@ -921,13 +1378,96 @@ export function LiveArchitectureMap() {
             </g>
           </svg>
         </div>
-        <aside style={{ width: 320, flex: "0 0 320px", background: "#161616", borderLeft: "1px solid #2a2a2a", overflow: "auto", padding: "18px 16px" }}>
+        <aside style={{ width: 360, flex: "0 0 360px", background: "#161616", borderLeft: "1px solid #2a2a2a", overflow: "auto", padding: "14px 14px 18px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: 14 }}>
+            {[
+              { id: "map" as SidebarTab, label: "Map", icon: LocateFixed },
+              { id: "alerts" as SidebarTab, label: "Alerts", icon: Bell },
+              { id: "ops" as SidebarTab, label: "Ops", icon: PlayCircle },
+            ].map((item) => {
+              const Icon = item.icon;
+              const active = sidebarTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setSidebarTab(item.id)}
+                  style={{
+                    border: `1px solid ${active ? "#4ea1ff" : "#2a2a2a"}`,
+                    background: active ? "#1e2a3a" : "#1c1c1c",
+                    color: active ? "#4ea1ff" : "#8a8a8a",
+                    borderRadius: 7,
+                    padding: "8px 10px",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 7,
+                    fontSize: 11,
+                    fontWeight: 900,
+                    cursor: "pointer",
+                  }}
+                >
+                  <Icon size={13} aria-hidden />
+                  {item.label}
+                  {item.id === "alerts" && unreadAlertsCount > 0 && (
+                    <span style={{ minWidth: 17, height: 17, borderRadius: 999, background: "#ea4335", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900 }}>
+                      {unreadAlertsCount > 99 ? "99+" : unreadAlertsCount}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
           {loadError && (
             <div style={{ color: "#ff3860", borderLeft: "3px solid #ff3860", background: "#1a1010", padding: "8px 10px", fontSize: 11, lineHeight: 1.6, marginBottom: 14 }}>
               error_issues 조회 실패: {loadError}
             </div>
           )}
-          {selectedNode ? (
+          {sidebarTab === "alerts" ? (
+            <AlertsSidebar
+              qaRuns={visibleQaRuns}
+              qaLoading={qaLoading}
+              qaError={qaError}
+              qaFetchedAt={qaFetchedAt}
+              qaSelectedIds={qaSelectedIds}
+              qaReadIds={qaReadIds}
+              tokenConnected={githubTokenConnected}
+              tokenInput={githubTokenInput}
+              tokenSaving={githubTokenSaving}
+              tokenError={githubTokenError}
+              blogRuns={visibleBlogRuns}
+              blogLoading={blogLoading}
+              blogError={blogError}
+              blogFetchedAt={blogFetchedAt}
+              blogSelectedIds={blogSelectedIds}
+              blogReadIds={blogReadIds}
+              onTokenInputChange={setGithubTokenInput}
+              onSaveToken={() => { void saveGithubToken(); }}
+              onClearToken={() => { void clearGithubToken(); }}
+              onRefreshQa={() => { void loadQaRuns(); }}
+              onRefreshBlog={() => { void loadBlogRuns(); }}
+              onToggleQaSelection={toggleQaRunSelection}
+              onSelectAllQa={setAllQaSelected}
+              onMarkQaRead={(ids) => markQaRunsRead(ids)}
+              onHideQa={(ids) => hideQaRuns(ids)}
+              onToggleBlogSelection={toggleBlogRunSelection}
+              onSelectAllBlog={setAllBlogSelected}
+              onMarkBlogRead={(ids) => markBlogRunsRead(ids)}
+              onHideBlog={(ids) => hideBlogRuns(ids)}
+            />
+          ) : sidebarTab === "ops" ? (
+            <OperationsSidebar
+              qaTriggerLoading={qaTriggerLoading}
+              qaTriggerMessage={qaTriggerMessage}
+              qaTriggerError={qaTriggerError}
+              qaTokenConnected={githubTokenConnected}
+              syncLoading={blogSyncLoading}
+              syncResult={blogSyncResult}
+              syncError={blogSyncError}
+              onTriggerQaRun={() => { void triggerQaRun(); }}
+              onTriggerBlogSync={() => { void triggerBlogSync(); }}
+            />
+          ) : selectedNode ? (
             <NodeSidebar
               node={selectedNode}
               status={getNodeStatus(selectedNode.id, issuesBySource, logsBySource)}
@@ -956,6 +1496,633 @@ export function LiveArchitectureMap() {
         </aside>
       </div>
     </section>
+  );
+}
+
+function getQaRunMeta(run: QaRun) {
+  if (run.status !== "completed") {
+    return { label: "진행중", color: "#4ea1ff", bg: "#102033" };
+  }
+  if (run.conclusion === "success") {
+    return { label: "성공", color: "#34a853", bg: "#0f2a15" };
+  }
+  if (run.conclusion === "cancelled" || run.conclusion === "skipped") {
+    return { label: "중단", color: "#f5b942", bg: "#2b240f" };
+  }
+  return { label: "실패", color: "#ea4335", bg: "#2a1010" };
+}
+
+function AlertsSidebar({
+  qaRuns,
+  qaLoading,
+  qaError,
+  qaFetchedAt,
+  qaSelectedIds,
+  qaReadIds,
+  tokenConnected,
+  tokenInput,
+  tokenSaving,
+  tokenError,
+  blogRuns,
+  blogLoading,
+  blogError,
+  blogFetchedAt,
+  blogSelectedIds,
+  blogReadIds,
+  onTokenInputChange,
+  onSaveToken,
+  onClearToken,
+  onRefreshQa,
+  onRefreshBlog,
+  onToggleQaSelection,
+  onSelectAllQa,
+  onMarkQaRead,
+  onHideQa,
+  onToggleBlogSelection,
+  onSelectAllBlog,
+  onMarkBlogRead,
+  onHideBlog,
+}: {
+  qaRuns: QaRun[];
+  qaLoading: boolean;
+  qaError: string | null;
+  qaFetchedAt: string | null;
+  qaSelectedIds: Set<string>;
+  qaReadIds: Set<string>;
+  tokenConnected: boolean;
+  tokenInput: string;
+  tokenSaving: boolean;
+  tokenError: string | null;
+  blogRuns: BlogImportRun[];
+  blogLoading: boolean;
+  blogError: string | null;
+  blogFetchedAt: string | null;
+  blogSelectedIds: Set<string>;
+  blogReadIds: Set<string>;
+  onTokenInputChange: (value: string) => void;
+  onSaveToken: () => void;
+  onClearToken: () => void;
+  onRefreshQa: () => void;
+  onRefreshBlog: () => void;
+  onToggleQaSelection: (runId: string) => void;
+  onSelectAllQa: (selected: boolean) => void;
+  onMarkQaRead: (ids: string[]) => void;
+  onHideQa: (ids: string[]) => void;
+  onToggleBlogSelection: (runId: string) => void;
+  onSelectAllBlog: (selected: boolean) => void;
+  onMarkBlogRead: (ids: string[]) => void;
+  onHideBlog: (ids: string[]) => void;
+}) {
+  return (
+    <>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 12 }}>
+        <div>
+          <h2 style={{ fontSize: 13, fontWeight: 900, margin: 0, color: "#e8e8e8" }}>Alerts</h2>
+          <div style={{ color: "#8a8a8a", fontSize: 10, marginTop: 4 }}>실행 결과와 운영 소식을 메일함처럼 쌓아 봅니다.</div>
+        </div>
+      </div>
+
+      <div style={{ border: `1px solid ${tokenConnected ? "#1f4a2a" : "#2a2a2a"}`, background: tokenConnected ? "#0f1f14" : "#111", borderRadius: 8, padding: 10, marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 8 }}>
+          <span style={{ color: tokenConnected ? "#34a853" : "#8a8a8a", fontSize: 11, fontWeight: 900 }}>
+            GitHub {tokenConnected ? "연결됨" : "연결 필요"}
+          </span>
+          {tokenConnected && (
+            <button type="button" onClick={onClearToken} style={compactDangerButtonStyle}>
+              연결 해제
+            </button>
+          )}
+        </div>
+        <div style={{ color: "#8a8a8a", fontSize: 10, lineHeight: 1.5, marginBottom: tokenConnected ? 0 : 8 }}>
+          QA Alerts 조회와 QA 수동 실행은 이 GitHub token 또는 fallback env를 사용합니다. 블로그 Alerts는 `blog_import_runs`를 읽습니다.
+        </div>
+        {!tokenConnected && (
+          <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", gap: 6 }}>
+            <input
+              type="password"
+              value={tokenInput}
+              onChange={(event) => onTokenInputChange(event.currentTarget.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") onSaveToken();
+              }}
+              placeholder="GitHub token"
+              style={{
+                minWidth: 0,
+                border: "1px solid #2a2a2a",
+                background: "#1c1c1c",
+                color: "#e8e8e8",
+                borderRadius: 6,
+                padding: "8px 9px",
+                fontSize: 11,
+                outline: "none",
+              }}
+            />
+            <button type="button" onClick={onSaveToken} disabled={tokenSaving} style={compactButtonStyle}>
+              {tokenSaving ? "확인중" : "연결"}
+            </button>
+          </div>
+        )}
+        {tokenError && (
+          <div style={{ color: "#ffb4b4", fontSize: 10, lineHeight: 1.5, marginTop: 7 }}>
+            {tokenError}
+          </div>
+        )}
+      </div>
+
+      <QaAlertsSection
+        runs={qaRuns}
+        loading={qaLoading}
+        error={qaError}
+        fetchedAt={qaFetchedAt}
+        selectedIds={qaSelectedIds}
+        readIds={qaReadIds}
+        onRefresh={onRefreshQa}
+        onToggleSelection={onToggleQaSelection}
+        onSelectAll={onSelectAllQa}
+        onMarkRead={onMarkQaRead}
+        onHide={onHideQa}
+      />
+
+      <div style={{ height: 1, background: "#2a2a2a", margin: "14px 0" }} />
+
+      <BlogAlertsSection
+        runs={blogRuns}
+        loading={blogLoading}
+        error={blogError}
+        fetchedAt={blogFetchedAt}
+        selectedIds={blogSelectedIds}
+        readIds={blogReadIds}
+        onRefresh={onRefreshBlog}
+        onToggleSelection={onToggleBlogSelection}
+        onSelectAll={onSelectAllBlog}
+        onMarkRead={onMarkBlogRead}
+        onHide={onHideBlog}
+      />
+    </>
+  );
+}
+
+function QaAlertsSection({
+  runs,
+  loading,
+  error,
+  fetchedAt,
+  selectedIds,
+  readIds,
+  onRefresh,
+  onToggleSelection,
+  onSelectAll,
+  onMarkRead,
+  onHide,
+}: {
+  runs: QaRun[];
+  loading: boolean;
+  error: string | null;
+  fetchedAt: string | null;
+  selectedIds: Set<string>;
+  readIds: Set<string>;
+  onRefresh: () => void;
+  onToggleSelection: (runId: string) => void;
+  onSelectAll: (selected: boolean) => void;
+  onMarkRead: (ids: string[]) => void;
+  onHide: (ids: string[]) => void;
+}) {
+  const allSelected = runs.length > 0 && runs.every((run) => selectedIds.has(run.id));
+  const selectedRunIds = Array.from(selectedIds).filter((id) => runs.some((run) => run.id === id));
+  const unreadCount = runs.filter((run) => !readIds.has(run.id)).length;
+
+  return (
+    <section>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 12 }}>
+        <div>
+          <h3 style={{ fontSize: 13, fontWeight: 900, margin: 0, color: "#e8e8e8" }}>QA</h3>
+          <div style={{ color: "#8a8a8a", fontSize: 10, marginTop: 4 }}>
+            {loading ? "동기화 중" : fetchedAt ? `동기화 ${formatTime(fetchedAt)}` : "동기화 대기"}
+          </div>
+        </div>
+        <button type="button" onClick={onRefresh} disabled={loading} style={iconButtonStyle} title="새로고침">
+          <RefreshCw size={14} aria-hidden />
+        </button>
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+        <label style={{ ...compactButtonStyle, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <input
+            type="checkbox"
+            checked={allSelected}
+            onChange={(event) => onSelectAll(event.currentTarget.checked)}
+            style={{ width: 13, height: 13, margin: 0 }}
+          />
+          전체 선택
+        </label>
+        <button type="button" disabled={selectedRunIds.length === 0} onClick={() => onMarkRead(selectedRunIds)} style={compactButtonStyle}>
+          읽음
+        </button>
+        <button type="button" disabled={selectedRunIds.length === 0} onClick={() => onHide(selectedRunIds)} style={compactDangerButtonStyle}>
+          선택 삭제
+        </button>
+        <button type="button" disabled={runs.length === 0} onClick={() => onHide(runs.map((run) => run.id))} style={compactDangerButtonStyle}>
+          전체 삭제
+        </button>
+      </div>
+
+      <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+        <span style={qaMetricStyle}>{runs.length} inbox</span>
+        <span style={qaMetricStyle}>{unreadCount} unread</span>
+      </div>
+
+      {error && (
+        <div style={{ color: "#ffb4b4", borderLeft: "3px solid #ea4335", background: "#1a1010", padding: "8px 10px", fontSize: 11, lineHeight: 1.6, marginBottom: 12 }}>
+          {error}
+        </div>
+      )}
+
+      {runs.length === 0 && !loading ? (
+        <div style={{ color: "#8a8a8a", fontSize: 12, lineHeight: 1.7, padding: "18px 4px" }}>
+          표시할 QA 알림이 없습니다.
+        </div>
+      ) : runs.map((run) => {
+        const meta = getQaRunMeta(run);
+        const unread = !readIds.has(run.id);
+        const selected = selectedIds.has(run.id);
+        const failedText = run.failedStep
+          ? `${run.failedStep.job} / ${run.failedStep.step}`
+          : run.conclusion && run.conclusion !== "success"
+          ? "실패 step 정보를 불러오지 못했습니다."
+          : null;
+
+        return (
+          <article key={run.id} style={{ border: `1px solid ${selected ? "#4ea1ff" : "#2a2a2a"}`, background: unread ? "#171d21" : "#121212", borderRadius: 8, padding: 10, marginBottom: 8 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "18px minmax(0, 1fr) auto", gap: 8, alignItems: "start" }}>
+              <input
+                type="checkbox"
+                checked={selected}
+                onChange={() => onToggleSelection(run.id)}
+                style={{ width: 14, height: 14, marginTop: 3 }}
+                aria-label={`${run.displayTitle} 선택`}
+              />
+              <button
+                type="button"
+                onClick={() => onMarkRead([run.id])}
+                style={{ border: 0, background: "transparent", color: "#e8e8e8", padding: 0, textAlign: "left", minWidth: 0, cursor: "pointer" }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                  {unread && <span style={{ width: 7, height: 7, borderRadius: 999, background: "#4ea1ff", flex: "0 0 auto" }} />}
+                  <span style={{ fontSize: 12, fontWeight: unread ? 900 : 750, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    #{run.runNumber} {run.displayTitle}
+                  </span>
+                </div>
+                <div style={{ color: "#8a8a8a", fontSize: 10, marginTop: 4 }}>
+                  {formatTime(run.createdAt)} · {run.branch} · {run.event}
+                </div>
+              </button>
+              <span style={{ border: `1px solid ${meta.color}`, background: meta.bg, color: meta.color, borderRadius: 999, padding: "3px 7px", fontSize: 10, fontWeight: 900 }}>
+                {meta.label}
+              </span>
+            </div>
+            {failedText && (
+              <div style={{ color: "#ffb4b4", fontSize: 11, lineHeight: 1.5, marginTop: 8, paddingLeft: 26 }}>
+                {failedText}
+              </div>
+            )}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginTop: 9, paddingLeft: 26 }}>
+              <span style={{ color: "#8a8a8a", fontSize: 10 }}>attempt {run.runAttempt} · {run.actor ?? "unknown"}</span>
+              <button
+                type="button"
+                onClick={() => window.open(run.htmlUrl, "_blank", "noopener,noreferrer")}
+                style={linkButtonStyle}
+              >
+                <ExternalLink size={12} aria-hidden />
+                GitHub
+              </button>
+            </div>
+          </article>
+        );
+      })}
+
+      {runs.length > 0 && (
+        <button type="button" onClick={() => onHide(runs.map((run) => run.id))} style={{ ...compactDangerButtonStyle, width: "100%", justifyContent: "center", marginTop: 6 }}>
+          <Trash2 size={13} aria-hidden />
+          인박스 비우기
+        </button>
+      )}
+    </section>
+  );
+}
+
+function BlogAlertsSection({
+  runs,
+  loading,
+  error,
+  fetchedAt,
+  selectedIds,
+  readIds,
+  onRefresh,
+  onToggleSelection,
+  onSelectAll,
+  onMarkRead,
+  onHide,
+}: {
+  runs: BlogImportRun[];
+  loading: boolean;
+  error: string | null;
+  fetchedAt: string | null;
+  selectedIds: Set<string>;
+  readIds: Set<string>;
+  onRefresh: () => void;
+  onToggleSelection: (runId: string) => void;
+  onSelectAll: (selected: boolean) => void;
+  onMarkRead: (ids: string[]) => void;
+  onHide: (ids: string[]) => void;
+}) {
+  const allSelected = runs.length > 0 && runs.every((run) => selectedIds.has(run.id));
+  const selectedRunIds = Array.from(selectedIds).filter((id) => runs.some((run) => run.id === id));
+  const unreadCount = runs.filter((run) => !readIds.has(run.id)).length;
+
+  return (
+    <section>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 12 }}>
+        <div>
+          <h3 style={{ fontSize: 13, fontWeight: 900, margin: 0, color: "#e8e8e8" }}>블로그 동기화</h3>
+          <div style={{ color: "#8a8a8a", fontSize: 10, marginTop: 4 }}>
+            {loading ? "동기화 중" : fetchedAt ? `동기화 ${formatTime(fetchedAt)}` : "동기화 대기"}
+          </div>
+        </div>
+        <button type="button" onClick={onRefresh} disabled={loading} style={iconButtonStyle} title="새로고침">
+          <RefreshCw size={14} aria-hidden />
+        </button>
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+        <label style={{ ...compactButtonStyle, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <input
+            type="checkbox"
+            checked={allSelected}
+            onChange={(event) => onSelectAll(event.currentTarget.checked)}
+            style={{ width: 13, height: 13, margin: 0 }}
+          />
+          전체 선택
+        </label>
+        <button type="button" disabled={selectedRunIds.length === 0} onClick={() => onMarkRead(selectedRunIds)} style={compactButtonStyle}>
+          읽음
+        </button>
+        <button type="button" disabled={selectedRunIds.length === 0} onClick={() => onHide(selectedRunIds)} style={compactDangerButtonStyle}>
+          선택 삭제
+        </button>
+        <button type="button" disabled={runs.length === 0} onClick={() => onHide(runs.map((run) => run.id))} style={compactDangerButtonStyle}>
+          전체 삭제
+        </button>
+      </div>
+
+      <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+        <span style={qaMetricStyle}>{runs.length} inbox</span>
+        <span style={qaMetricStyle}>{unreadCount} unread</span>
+      </div>
+
+      {error && (
+        <div style={{ color: "#ffb4b4", borderLeft: "3px solid #ea4335", background: "#1a1010", padding: "8px 10px", fontSize: 11, lineHeight: 1.6, marginBottom: 12 }}>
+          {error}
+        </div>
+      )}
+
+      {runs.length === 0 && !loading ? (
+        <div style={{ color: "#8a8a8a", fontSize: 12, lineHeight: 1.7, padding: "18px 4px" }}>
+          표시할 블로그 동기화 알림이 없습니다.
+        </div>
+      ) : runs.map((run) => {
+        const meta = getBlogRunMeta(run);
+        const unread = !readIds.has(run.id);
+        const selected = selectedIds.has(run.id);
+
+        return (
+          <article key={run.id} style={{ border: `1px solid ${selected ? "#4ea1ff" : "#2a2a2a"}`, background: unread ? "#171d21" : "#121212", borderRadius: 8, padding: 10, marginBottom: 8 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "18px minmax(0, 1fr) auto", gap: 8, alignItems: "start" }}>
+              <input
+                type="checkbox"
+                checked={selected}
+                onChange={() => onToggleSelection(run.id)}
+                style={{ width: 14, height: 14, marginTop: 3 }}
+                aria-label={`블로그 동기화 run ${run.id} 선택`}
+              />
+              <button
+                type="button"
+                onClick={() => onMarkRead([run.id])}
+                style={{ border: 0, background: "transparent", color: "#e8e8e8", padding: 0, textAlign: "left", minWidth: 0, cursor: "pointer" }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                  {unread && <span style={{ width: 7, height: 7, borderRadius: 999, background: "#a855f7", flex: "0 0 auto" }} />}
+                  <span style={{ fontSize: 12, fontWeight: unread ? 900 : 750, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {formatTriggerSource(run.trigger_source)} 블로그 동기화
+                  </span>
+                </div>
+                <div style={{ color: "#8a8a8a", fontSize: 10, marginTop: 4 }}>
+                  {formatTime(run.created_at)} · run {run.id.slice(0, 8)} · {run.status}
+                </div>
+              </button>
+              <span style={{ border: `1px solid ${meta.color}`, background: meta.bg, color: meta.color, borderRadius: 999, padding: "3px 7px", fontSize: 10, fontWeight: 900 }}>
+                {meta.label}
+              </span>
+            </div>
+            <div style={{ color: "#d6d6d6", fontSize: 11, lineHeight: 1.55, marginTop: 8, paddingLeft: 26 }}>
+              {getBlogRunSummary(run)}
+            </div>
+            {run.error && (
+              <div style={{ color: "#ffb4b4", fontSize: 11, lineHeight: 1.5, marginTop: 8, paddingLeft: 26 }}>
+                {run.error}
+              </div>
+            )}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginTop: 9, paddingLeft: 26 }}>
+              <span style={{ color: "#8a8a8a", fontSize: 10 }}>
+                시작 {run.started_at ? formatTime(run.started_at) : "대기"} · 종료 {run.finished_at ? formatTime(run.finished_at) : "미완료"}
+              </span>
+              {run.github_run_id ? (
+                <button
+                  type="button"
+                  onClick={() => window.open(`https://github.com/wjddnjs0419-sudo/Global-X-Pass/actions/runs/${run.github_run_id}`, "_blank", "noopener,noreferrer")}
+                  style={linkButtonStyle}
+                >
+                  <ExternalLink size={12} aria-hidden />
+                  GitHub
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => window.open(NAVER_BLOG_SYNC_WORKFLOW_URL, "_blank", "noopener,noreferrer")}
+                  style={linkButtonStyle}
+                >
+                  <ExternalLink size={12} aria-hidden />
+                  Workflow
+                </button>
+              )}
+            </div>
+          </article>
+        );
+      })}
+
+      {runs.length > 0 && (
+        <button type="button" onClick={() => onHide(runs.map((run) => run.id))} style={{ ...compactDangerButtonStyle, width: "100%", justifyContent: "center", marginTop: 6 }}>
+          <Trash2 size={13} aria-hidden />
+          인박스 비우기
+        </button>
+      )}
+    </section>
+  );
+}
+
+function OperationsSidebar({
+  qaTriggerLoading,
+  qaTriggerMessage,
+  qaTriggerError,
+  qaTokenConnected,
+  syncLoading,
+  syncResult,
+  syncError,
+  onTriggerQaRun,
+  onTriggerBlogSync,
+}: {
+  qaTriggerLoading: boolean;
+  qaTriggerMessage: string | null;
+  qaTriggerError: string | null;
+  qaTokenConnected: boolean;
+  syncLoading: boolean;
+  syncResult: BlogSyncResult | null;
+  syncError: string | null;
+  onTriggerQaRun: () => void;
+  onTriggerBlogSync: () => void;
+}) {
+  const run = syncResult?.run;
+  const dispatched = syncResult?.dispatched === true;
+  const dispatchFailed = syncResult && syncResult.dispatched === false;
+
+  return (
+    <>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 12 }}>
+        <div>
+          <h2 style={{ fontSize: 13, fontWeight: 900, margin: 0, color: "#e8e8e8" }}>Ops</h2>
+          <div style={{ color: "#8a8a8a", fontSize: 10, marginTop: 4 }}>수동 실행은 여기서, 처리 결과는 Alerts에서 계속 확인합니다.</div>
+        </div>
+      </div>
+
+      <section style={{ border: "1px solid #2a2a2a", background: "#111", borderRadius: 10, padding: 12, marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+          <span style={{ width: 8, height: 8, borderRadius: 999, background: "#4ea1ff" }} />
+          <h3 style={{ color: "#e8e8e8", fontSize: 13, fontWeight: 900, margin: 0 }}>QA 수동 실행</h3>
+        </div>
+        <p style={{ color: "#bbbbbb", fontSize: 11, lineHeight: 1.65, margin: "0 0 8px" }}>
+          `Daily Production QA` GitHub Actions를 `main` 브랜치 기준으로 즉시 실행합니다. 실행 이력과 실패 step은 Alerts의 QA 섹션에 메일형으로 쌓입니다.
+        </p>
+        <div style={{ color: qaTokenConnected ? "#8a8a8a" : "#ffcf7d", fontSize: 10, lineHeight: 1.5, marginBottom: 12 }}>
+          {qaTokenConnected
+            ? "앱에 저장된 GitHub token으로 바로 실행할 수 있습니다."
+            : "앱 저장 token이 없으면 fallback env(GXP_GITHUB_TOKEN / GITHUB_TOKEN / GH_TOKEN)에 의존합니다."}
+        </div>
+        <button
+          type="button"
+          data-monitor-action="trigger-manual-qa-run"
+          onClick={onTriggerQaRun}
+          disabled={qaTriggerLoading}
+          style={{
+            ...compactButtonStyle,
+            width: "100%",
+            justifyContent: "center",
+            border: "1px solid #4ea1ff",
+            background: qaTriggerLoading ? "#1c1c1c" : "#102033",
+            color: "#d8ebff",
+            cursor: qaTriggerLoading ? "wait" : "pointer",
+            padding: "9px 10px",
+          }}
+        >
+          <PlayCircle size={14} aria-hidden />
+          {qaTriggerLoading ? "QA 실행 요청 중..." : "QA 실행"}
+        </button>
+        {qaTriggerError && (
+          <div style={{ color: "#ffb4b4", borderLeft: "3px solid #ea4335", background: "#1a1010", padding: "8px 10px", fontSize: 11, lineHeight: 1.6, marginTop: 12 }}>
+            요청 실패: {qaTriggerError}
+          </div>
+        )}
+        {qaTriggerMessage && (
+          <div style={{ color: "#d8ebff", borderLeft: "3px solid #4ea1ff", background: "#102033", padding: "8px 10px", fontSize: 11, lineHeight: 1.6, marginTop: 12 }}>
+            {qaTriggerMessage}
+          </div>
+        )}
+        <div style={{ marginTop: 10 }}>
+          <button
+            type="button"
+            onClick={() => window.open(QA_WORKFLOW_URL, "_blank", "noopener,noreferrer")}
+            style={linkButtonStyle}
+          >
+            <ExternalLink size={12} aria-hidden />
+            GitHub workflow 보기
+          </button>
+        </div>
+      </section>
+
+      <section style={{ border: "1px solid #2a2a2a", background: "#111", borderRadius: 10, padding: 12, marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+          <span style={{ width: 8, height: 8, borderRadius: 999, background: "#a855f7" }} />
+          <h3 style={{ color: "#e8e8e8", fontSize: 13, fontWeight: 900, margin: 0 }}>블로그 동기화</h3>
+        </div>
+        <p style={{ color: "#bbbbbb", fontSize: 11, lineHeight: 1.65, margin: "0 0 12px" }}>
+          관리자 화면의 `즉시 동기화`와 같은 경로로 `sync-naver-blog` Edge Function을 호출합니다.
+          실행 기록은 `blog_import_runs`에 남고, 상세 상태와 집계는 Alerts의 블로그 동기화 섹션에서 계속 확인할 수 있습니다.
+        </p>
+        <button
+          type="button"
+          data-monitor-action="trigger-manual-blog-sync"
+          onClick={onTriggerBlogSync}
+          disabled={syncLoading}
+          style={{
+            ...compactButtonStyle,
+            width: "100%",
+            justifyContent: "center",
+            border: "1px solid #a855f7",
+            background: syncLoading ? "#1c1c1c" : "#20132a",
+            color: "#f0d7ff",
+            cursor: syncLoading ? "wait" : "pointer",
+            padding: "9px 10px",
+          }}
+        >
+          <PlayCircle size={14} aria-hidden />
+          {syncLoading ? "동기화 요청 중..." : "블로그 동기화 실행"}
+        </button>
+      </section>
+
+      {syncError && (
+        <div style={{ color: "#ffb4b4", borderLeft: "3px solid #ea4335", background: "#1a1010", padding: "8px 10px", fontSize: 11, lineHeight: 1.6, marginBottom: 12 }}>
+          요청 실패: {syncError}
+        </div>
+      )}
+
+      {syncResult && (
+        <section style={{ border: `1px solid ${dispatched ? "#1f4a2a" : "#3a2020"}`, background: dispatched ? "#0f1f14" : "#1a1010", borderRadius: 10, padding: 12 }}>
+          <div style={{ color: dispatched ? "#34a853" : "#ffb4b4", fontSize: 12, fontWeight: 900, marginBottom: 8 }}>
+            {dispatched ? "GitHub Actions 실행 요청 완료" : "run은 등록됐지만 Actions 트리거 실패"}
+          </div>
+          {run && (
+            <div style={{ display: "grid", gap: 6, marginBottom: 10 }}>
+              <div style={opsResultRowStyle}><span>Run ID</span><strong>{run.id}</strong></div>
+              <div style={opsResultRowStyle}><span>Status</span><strong>{run.status}</strong></div>
+              <div style={opsResultRowStyle}><span>Source</span><strong>{run.trigger_source}</strong></div>
+              <div style={opsResultRowStyle}><span>Created</span><strong>{formatTime(run.created_at)}</strong></div>
+            </div>
+          )}
+          {dispatchFailed && (
+            <div style={{ color: "#ffb4b4", fontSize: 11, lineHeight: 1.55, marginBottom: 10 }}>
+              {syncResult.dispatchError ?? "GitHub Actions dispatch 실패 사유를 받지 못했습니다."}
+              {" "}예약된 03:00 KST 자동 처리 흐름은 그대로 유지됩니다.
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => window.open(NAVER_BLOG_SYNC_WORKFLOW_URL, "_blank", "noopener,noreferrer")}
+            style={linkButtonStyle}
+          >
+            <ExternalLink size={12} aria-hidden />
+            GitHub workflow 보기
+          </button>
+        </section>
+      )}
+    </>
   );
 }
 
@@ -1245,6 +2412,73 @@ const plainSidebarButtonStyle: CSSProperties = {
   padding: "10px 0",
   textAlign: "left",
   cursor: "pointer",
+};
+
+const iconButtonStyle: CSSProperties = {
+  width: 30,
+  height: 30,
+  border: "1px solid #2a2a2a",
+  background: "#1c1c1c",
+  color: "#8a8a8a",
+  borderRadius: 7,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  cursor: "pointer",
+};
+
+const compactButtonStyle: CSSProperties = {
+  border: "1px solid #2a2a2a",
+  background: "#1c1c1c",
+  color: "#e8e8e8",
+  borderRadius: 6,
+  padding: "6px 8px",
+  fontSize: 10,
+  fontWeight: 850,
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 5,
+  cursor: "pointer",
+};
+
+const compactDangerButtonStyle: CSSProperties = {
+  ...compactButtonStyle,
+  color: "#ffb4b4",
+  border: "1px solid #3a2020",
+  background: "#1a1010",
+};
+
+const linkButtonStyle: CSSProperties = {
+  border: "1px solid #2a2a2a",
+  background: "transparent",
+  color: "#4ea1ff",
+  borderRadius: 6,
+  padding: "5px 7px",
+  fontSize: 10,
+  fontWeight: 850,
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 5,
+  cursor: "pointer",
+};
+
+const qaMetricStyle: CSSProperties = {
+  border: "1px solid #2a2a2a",
+  background: "#111",
+  color: "#8a8a8a",
+  borderRadius: 999,
+  padding: "4px 8px",
+  fontSize: 10,
+  fontWeight: 850,
+};
+
+const opsResultRowStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "72px minmax(0, 1fr)",
+  gap: 8,
+  color: "#bbbbbb",
+  fontSize: 11,
+  lineHeight: 1.45,
 };
 
 const issueActionButtonStyle: CSSProperties = {

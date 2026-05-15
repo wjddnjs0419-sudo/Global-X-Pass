@@ -7,10 +7,11 @@ import { useTheme } from "../ThemeContext";
 import { LoadingSpinner, ErrorMessage } from "../components/LoadingSpinner";
 import { cleanText } from "../../utils/text";
 import { isImage } from "../../utils/file";
-import { EVENT_STATUS_CONFIG } from "../../utils/eventApplication";
-import { formatStructuredLocation } from "../../utils/scheduleFields";
+import { EVENT_STATUS_CONFIG, getEffectiveEventStatus, getEventRemaining, isEventApplicationOpen } from "../../utils/eventApplication";
+import { formatLocalDateTime, formatStructuredLocation } from "../../utils/scheduleFields";
 import { getFilterTabStyle, getMutedLabelStyle, getStatusPillStyle } from "../components/contentListStyles";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis } from "../components/ui/pagination";
+import { logSupabaseFailure } from "../../lib/uxTelemetry";
 
 const PAGE_SIZE = 10;
 
@@ -28,8 +29,15 @@ export function EventsPage() {
       fetchPublicPostPreviews("events"),
       supabase.rpc("get_event_application_counts"),
     ]).then(([postsResult, countsResult]) => {
-      if (postsResult.error) setError(true);
-      else if (postsResult.data) setPosts(postsResult.data);
+      if (postsResult.error) {
+        logSupabaseFailure("events-page", "fetch_public_event_previews", postsResult.error);
+        setError(true);
+      } else if (postsResult.data) {
+        setPosts(postsResult.data);
+      }
+      if (countsResult.error) {
+        logSupabaseFailure("events-page", "get_event_application_counts", countsResult.error, { severity: "low" });
+      }
       const counts = ((countsResult.data as { post_id: string; accepted_count: number }[] | null) ?? []).reduce<Record<string, number>>((acc, row) => {
         acc[row.post_id] = row.accepted_count;
         return acc;
@@ -79,10 +87,11 @@ export function EventsPage() {
               const tags = post.tags
                 ? post.tags.split(",").map((t: string) => t.trim()).filter(Boolean)
                 : [];
-              const statusCfg = post.event_status ? EVENT_STATUS_CONFIG[post.event_status] : null;
               const acceptedCount = acceptedCounts[post.id] ?? 0;
-              const remaining = post.capacity != null ? Math.max(post.capacity - acceptedCount, 0) : post.slots_remaining;
-              const isClosed = post.event_status === "마감" || remaining === 0;
+              const effectiveEventStatus = getEffectiveEventStatus(post, acceptedCount);
+              const statusCfg = effectiveEventStatus ? EVENT_STATUS_CONFIG[effectiveEventStatus] : null;
+              const remaining = getEventRemaining(post, acceptedCount);
+              const isOpen = isEventApplicationOpen(post, acceptedCount);
 
               return (
                 <div
@@ -143,7 +152,7 @@ export function EventsPage() {
                       className="m-0 font-extrabold leading-snug"
                       style={{
                         fontSize: "clamp(17px,2vw,21px)",
-                        color: isClosed ? "var(--color-text-muted)" : "var(--color-text-primary)",
+                        color: !isOpen ? "var(--color-text-muted)" : "var(--color-text-primary)",
                       }}
                     >
                       {post.title}
@@ -171,6 +180,10 @@ export function EventsPage() {
                         <p className="m-0 text-sm font-semibold leading-snug" style={{ color: "var(--color-text-primary)" }}>{post.event_date || "일시 미정"}</p>
                       </div>
                       <div>
+                        <p className="m-0 text-[11px] font-bold tracking-wide mb-1" style={{ color: "var(--color-text-muted)" }}>신청 마감</p>
+                        <p className="m-0 text-sm font-semibold leading-snug" style={{ color: "var(--color-text-primary)" }}>{formatLocalDateTime(post.application_deadline, "제한 없음")}</p>
+                      </div>
+                      <div>
                         <p className="m-0 text-[11px] font-bold tracking-wide mb-1" style={{ color: "var(--color-text-muted)" }}>장소</p>
                         <p className="m-0 text-sm font-semibold leading-snug" style={{ color: "var(--color-text-primary)" }}>{formatStructuredLocation(post.location)}</p>
                       </div>
@@ -194,14 +207,14 @@ export function EventsPage() {
                       to={`/events/${post.id}/apply`}
                       className="block text-center rounded-xl text-sm font-bold no-underline py-2.5"
                       style={{
-                        background: isClosed
+                        background: !isOpen
                           ? "var(--color-surface-subtle)"
                           : "var(--color-accent-green)",
-                        color: isClosed ? "var(--color-text-muted)" : "var(--color-text-primary)",
-                        pointerEvents: isClosed ? "none" : "auto",
+                        color: !isOpen ? "var(--color-text-muted)" : "var(--color-text-primary)",
+                        pointerEvents: !isOpen ? "none" : "auto",
                       }}
                     >
-                      {isClosed ? "마감됨" : "신청하기 →"}
+                      {!isOpen ? (effectiveEventStatus === "접수예정" ? "접수 예정" : "마감됨") : "신청하기 →"}
                     </Link>
                   </div>
                 </div>

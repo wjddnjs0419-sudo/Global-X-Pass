@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
+import { captureEfError } from "../_shared/errorLogger.ts";
 
 Deno.serve(async (req) => {
   const cors = corsHeaders(req);
@@ -54,6 +55,7 @@ Deno.serve(async (req) => {
       status: 200,
     });
   } catch (err: unknown) {
+    await captureEfError("ef-change-password", err, { req, severity: "medium" });
     const message = err instanceof Error ? err.message : String(err);
     return new Response(JSON.stringify({ error: message }), {
       headers: { ...cors, "Content-Type": "application/json" },

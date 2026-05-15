@@ -4,6 +4,7 @@ import { PageShell } from "../components/PageShell";
 import { useTheme } from "../ThemeContext";
 import { supabase } from "../../lib/supabaseClient";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "../components/ui/input-otp";
+import { challengeAndPersistTotpVerification, getTotpFactorSnapshot } from "../../utils/mfa";
 
 const EyeIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>;
 const EyeOffIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" x2="23" y2="23"></line></svg>;
@@ -63,18 +64,18 @@ export function LoginPage() {
     // Check MFA (aal2 requirement)
     const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
     const { data: factors } = await supabase.auth.mfa.listFactors();
-    const verifiedFactor = factors?.totp?.find(f => f.status === "verified");
+    const { verifiedTotpFactor } = getTotpFactorSnapshot(factors);
 
-    if (profile?.role === "admin" && aalData?.nextLevel === "aal2" && aalData?.currentLevel !== "aal2" && verifiedFactor) {
+    if (profile?.role === "admin" && aalData?.nextLevel === "aal2" && aalData?.currentLevel !== "aal2" && verifiedTotpFactor) {
       // Admin with MFA enrolled but not yet verified this session — show OTP challenge
-      setMfaFactorId(verifiedFactor.id);
+      setMfaFactorId(verifiedTotpFactor.id);
       setTempProfile(profile);
       setLoading(false);
       return;
     }
 
-    if (profile?.role === "admin" && !verifiedFactor) {
-      // Admin without MFA — force enrollment before granting access
+    if (profile?.role === "admin" && !verifiedTotpFactor) {
+      // Admin without a verified factor — force enrollment or recovery before granting access
       sessionStorage.setItem("mfa_setup_required", "true");
       navigate("/mypage");
       return;
@@ -93,29 +94,19 @@ export function LoginPage() {
     if (!mfaFactorId || otpCode.length !== 6) return;
 
     setLoading(true);
-    const { data: challengeData, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: mfaFactorId });
-    if (challengeError) {
-      alert("인증 오류: " + challengeError.message);
+    const { error: verifyError } = await challengeAndPersistTotpVerification(supabase, mfaFactorId, otpCode);
+
+    if (verifyError) {
+      alert("인증 오류: " + verifyError.message);
       setLoading(false);
       return;
     }
 
-    const { error: verifyError } = await supabase.auth.mfa.verify({
-      factorId: mfaFactorId,
-      challengeId: challengeData.id,
-      code: otpCode,
-    });
-
-    if (verifyError) {
-      alert("인증번호가 올바르지 않습니다.");
-      setLoading(false);
+    alert("2단계 인증이 완료되었습니다.");
+    if (tempProfile?.role === "admin") {
+      navigate(from ?? "/admin");
     } else {
-      alert("2단계 인증이 완료되었습니다.");
-      if (tempProfile?.role === "admin") {
-        navigate(from ?? "/admin");
-      } else {
-        navigate(from ?? "/");
-      }
+      navigate(from ?? "/");
     }
   };
 

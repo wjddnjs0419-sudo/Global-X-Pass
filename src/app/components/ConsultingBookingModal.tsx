@@ -42,7 +42,15 @@ export function ConsultingBookingModal({ consultant, isDark, onClose }: Props) {
     if (!user) { alert("로그인이 필요합니다."); setLoading(false); return; }
 
     const { error } = await supabase.from("consulting_reservations").insert({ slot_id: selectedSlot, user_id: user.id, description: description.trim() });
-    if (error) { alert("신청 실패: " + error.message); setLoading(false); return; }
+    if (error) {
+      if (error.code === "23505") {
+        alert("이미 다른 분이 예약한 시간입니다. 다른 시간대를 선택해주세요.");
+      } else {
+        alert("예약 중 오류가 발생했습니다. 다시 시도해주세요.");
+      }
+      setLoading(false);
+      return;
+    }
 
     const { data: updatedSlots } = await supabase
       .from("consulting_slots")

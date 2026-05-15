@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
+import { captureEfError } from "../_shared/errorLogger.ts";
 
 const ENC_PREFIX = "enc:v1:";
 
@@ -191,6 +192,7 @@ Deno.serve(async (req: Request) => {
     }, 200, CORS);
   } catch (err) {
     console.error("[signup-profile]", err);
+    await captureEfError("ef-signup", err, { req, severity: "high" });
 
     if (createdUserId) {
       try {

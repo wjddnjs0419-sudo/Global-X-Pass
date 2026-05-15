@@ -11,7 +11,7 @@ import { Skeleton } from "./ui/skeleton";
 interface NoticeSectionProps { isDark?: boolean; }
 
 export function NoticeSection({ isDark = false }: NoticeSectionProps) {
-  const th = getSectionTheme(isDark);
+  const th = getSectionTheme();
   const navigate = useNavigate();
   const [notices, setNotices] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);

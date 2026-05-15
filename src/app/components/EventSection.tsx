@@ -20,7 +20,7 @@ import {
 interface EventSectionProps { isDark?: boolean; }
 
 export function EventSection({ isDark = false }: EventSectionProps) {
-  const th = getSectionTheme(isDark);
+  const th = getSectionTheme();
   const navigate = useNavigate();
   const [events, setEvents] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);

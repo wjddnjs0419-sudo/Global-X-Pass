@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
+import { generateArchitectureMap } from './scripts/generate-architecture-map.mjs'
 
 
 function figmaAssetResolver() {
@@ -16,9 +17,50 @@ function figmaAssetResolver() {
   }
 }
 
+function architectureMapGenerator() {
+  let timer: ReturnType<typeof setTimeout> | null = null
+  const regenerate = () => {
+    if (timer) clearTimeout(timer)
+    timer = setTimeout(() => {
+      generateArchitectureMap()
+      timer = null
+    }, 80)
+  }
+
+  return {
+    name: 'architecture-map-generator',
+    buildStart() {
+      generateArchitectureMap()
+    },
+    configureServer(server) {
+      server.watcher.add([
+        path.resolve(__dirname, 'src/**/*.{ts,tsx}'),
+        path.resolve(__dirname, 'supabase/functions/**/*.ts'),
+      ])
+
+      server.watcher.on('change', (file) => {
+        const normalized = file.split(path.sep).join('/')
+        if (normalized.includes('/src/generated/architectureMap.json')) return
+        if (normalized.includes('/src/') || normalized.includes('/supabase/functions/')) {
+          regenerate()
+        }
+      })
+    },
+  }
+}
+
 export default defineConfig({
+  define: {
+    __GXP_BUILD_ID__: JSON.stringify(
+      process.env.VITE_BUILD_ID ||
+      process.env.VERCEL_GIT_COMMIT_SHA ||
+      process.env.GITHUB_SHA ||
+      new Date().toISOString(),
+    ),
+  },
   plugins: [
     figmaAssetResolver(),
+    architectureMapGenerator(),
     // The React and Tailwind plugins are both required for Make, even if
     // Tailwind is not being actively used – do not remove them
     react(),
