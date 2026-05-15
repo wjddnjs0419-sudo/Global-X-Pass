@@ -12,23 +12,23 @@ const badgeVariants = cva(
         default:
           "border-transparent bg-primary text-primary-foreground",
         secondary:
-          "bg-[rgba(100,116,139,0.12)] border-[rgba(100,116,139,0.25)] text-slate-600 dark:bg-[rgba(255,255,255,0.1)] dark:border-[rgba(255,255,255,0.35)] dark:text-slate-200",
+          "bg-[var(--badge-secondary-bg)] border-[var(--badge-secondary-border)] text-[var(--badge-secondary-text)]",
         destructive:
           "border-transparent bg-destructive text-white",
         outline:
-          "bg-transparent border-slate-200 text-slate-500 dark:border-white/25 dark:text-slate-300",
+          "bg-transparent border-[var(--badge-outline-border)] text-[var(--badge-outline-text)]",
         blue:
-          "bg-[rgba(67,119,241,0.08)] border-[rgba(67,119,241,0.20)] text-[#4377F1]",
+          "bg-[var(--color-accent-blue-soft-bg)] border-[var(--color-accent-blue-soft-border)] text-[var(--color-accent-blue)]",
         green:
-          "bg-[rgba(24,163,67,0.08)] border-[rgba(24,163,67,0.20)] text-[#18A343]",
+          "bg-[var(--color-success-soft-bg)] border-[var(--color-success-soft-border)] text-[var(--color-accent-green)]",
         yellow:
-          "bg-[rgba(251,188,5,0.10)] border-[rgba(251,188,5,0.22)] text-[#A66F00]",
+          "bg-[var(--color-warning-soft-bg)] border-[var(--color-warning-soft-border)] text-[var(--badge-yellow-text)]",
         red:
-          "bg-[rgba(234,67,53,0.08)] border-[rgba(234,67,53,0.20)] text-[#EA4335]",
+          "bg-[var(--color-danger-soft-bg)] border-[var(--color-danger-soft-border)] text-[var(--color-brand-red)]",
         purple:
-          "bg-[rgba(168,85,247,0.08)] border-[rgba(168,85,247,0.20)] text-[#A855F7]",
+          "bg-[var(--color-accent-purple-soft-bg)] border-[var(--color-accent-purple-soft-border)] text-[var(--color-accent-purple)]",
         glass:
-          "bg-[rgba(255,255,255,0.08)] border-[rgba(255,255,255,0.22)] text-white",
+          "bg-[var(--badge-glass-bg)] border-[var(--badge-glass-border)] text-white",
       },
       shape: {
         default: "rounded-md",
@@ -51,14 +51,14 @@ interface BadgeProps
 
 const DOT_COLOR: Record<string, string> = {
   default: "bg-white",
-  secondary: "bg-slate-400 dark:bg-slate-300",
+  secondary: "bg-[var(--badge-secondary-text)]",
   destructive: "bg-white",
-  outline: "bg-slate-300 dark:bg-slate-400",
-  blue: "bg-[#4377F1]",
-  green: "bg-[#18A343]",
-  yellow: "bg-[#FBBC05]",
-  red: "bg-[#EA4335]",
-  purple: "bg-[#A855F7]",
+  outline: "bg-[var(--badge-outline-text)]",
+  blue: "bg-[var(--color-accent-blue)]",
+  green: "bg-[var(--color-accent-green)]",
+  yellow: "bg-[var(--color-brand-yellow)]",
+  red: "bg-[var(--color-brand-red)]",
+  purple: "bg-[var(--color-accent-purple)]",
   glass: "bg-white",
 };
 

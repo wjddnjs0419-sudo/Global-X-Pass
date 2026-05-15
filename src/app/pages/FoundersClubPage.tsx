@@ -7,8 +7,18 @@ import { Skeleton } from "../components/ui/skeleton";
 import type { FoundersClubSession, FoundersClubApplication } from "../../lib/types";
 import { getStatusPillStyle } from "../components/contentListStyles";
 import { formatStructuredLocation } from "../../utils/scheduleFields";
+import { logSupabaseFailure } from "../../lib/uxTelemetry";
 
 interface Applicant { id: string; name: string; email: string; company: string; }
+
+interface ApplicationCounts {
+  total_count: number;
+  active_count: number;
+  pending_count: number;
+  accepted_count: number;
+  rejected_count: number;
+  cancelled_count: number;
+}
 
 interface DecryptedProfile {
   id: string;
@@ -19,6 +29,7 @@ interface DecryptedProfile {
 
 interface SessionWithCount extends FoundersClubSession {
   accepted_count: number;
+  application_counts: ApplicationCounts;
   user_application?: FoundersClubApplication | null;
   accepted_applicants?: Applicant[];
 }
@@ -60,43 +71,78 @@ export function FoundersClubPage() {
 
   const fetchSessions = async (uid: string | null, admin: boolean) => {
     setLoading(true);
-    const { data } = await supabase
+    const { data, error: sessionsError } = await supabase
       .from("founders_club_sessions")
       .select("*")
       .order("created_at", { ascending: false });
 
+    if (sessionsError) {
+      logSupabaseFailure("founders-club", "fetch_founders_club_sessions", sessionsError);
+      setLoading(false);
+      return;
+    }
+
     if (!data) { setLoading(false); return; }
 
     const sessionIds = data.map(session => session.id);
-    const [{ data: acceptedApps, error: acceptedAppsError }, { data: userApps, error: userAppsError }] = await Promise.all([
-      supabase
-        .from("founders_club_applications")
-        .select("session_id, user_id")
-        .in("session_id", sessionIds)
-        .eq("status", "accepted"),
-      uid && !admin
+    const [{ data: countRows, error: countError }, { data: acceptedApps, error: acceptedAppsError }, { data: userApps, error: userAppsError }] = await Promise.all([
+      supabase.rpc("get_founders_club_application_counts"),
+      admin
+        ? supabase
+            .from("founders_club_applications")
+            .select("session_id, user_id")
+            .in("session_id", sessionIds)
+            .eq("status", "accepted")
+        : Promise.resolve({ data: null, error: null }),
+      uid
         ? supabase
             .from("founders_club_applications")
             .select("*")
             .in("session_id", sessionIds)
             .eq("user_id", uid)
+            .in("status", ["pending", "accepted"])
         : Promise.resolve({ data: null, error: null }),
     ]);
 
-    if (acceptedAppsError) console.error("세션 수락 인원 조회 오류:", acceptedAppsError.message);
-    if (userAppsError) console.error("내 Founder's Club 신청 조회 오류:", userAppsError.message);
+    if (countError) {
+      console.error("세션 신청 집계 조회 오류:", countError.message);
+      logSupabaseFailure("founders-club", "get_founders_club_application_counts", countError);
+    }
+    if (acceptedAppsError) {
+      console.error("세션 수락 인원 조회 오류:", acceptedAppsError.message);
+      logSupabaseFailure("founders-club", "fetch_accepted_founders_club_applications", acceptedAppsError, { severity: "low" });
+    }
+    if (userAppsError) {
+      console.error("내 Founder's Club 신청 조회 오류:", userAppsError.message);
+      logSupabaseFailure("founders-club", "fetch_my_founders_club_applications", userAppsError);
+    }
 
     let profileById = new Map<string, DecryptedProfile>();
     if (admin && acceptedApps && acceptedApps.length > 0) {
       const { data: profiles, error: profileError } = await supabase.functions.invoke("decrypt-profiles");
       if (profileError) {
         console.error("참여자 프로필 복호화 오류:", profileError.message);
+        logSupabaseFailure("founders-club", "decrypt_founders_club_accepted_profiles", profileError);
       } else {
         profileById = new Map(
           ((profiles as DecryptedProfile[] | null) ?? []).map(profile => [profile.id, profile])
         );
       }
     }
+
+    const countsBySession = new Map<string, ApplicationCounts>(
+      ((countRows as ({ session_id: string } & ApplicationCounts)[] | null) ?? []).map(row => [
+        row.session_id,
+        {
+          total_count: row.total_count ?? 0,
+          active_count: row.active_count ?? 0,
+          pending_count: row.pending_count ?? 0,
+          accepted_count: row.accepted_count ?? 0,
+          rejected_count: row.rejected_count ?? 0,
+          cancelled_count: row.cancelled_count ?? 0,
+        },
+      ])
+    );
 
     const acceptedIdsBySession = new Map<string, string[]>();
     (acceptedApps ?? []).forEach(application => {
@@ -110,6 +156,14 @@ export function FoundersClubPage() {
     );
 
     const enriched = await Promise.all(data.map(async (s) => {
+      const applicationCounts = countsBySession.get(s.id) ?? {
+        total_count: 0,
+        active_count: 0,
+        pending_count: 0,
+        accepted_count: 0,
+        rejected_count: 0,
+        cancelled_count: 0,
+      };
       const acceptedUserIds = acceptedIdsBySession.get(s.id) ?? [];
       let acceptedApplicants: Applicant[] = [];
       if (admin && acceptedUserIds.length > 0) {
@@ -126,7 +180,8 @@ export function FoundersClubPage() {
 
       return {
         ...s,
-        accepted_count: acceptedUserIds.length,
+        accepted_count: applicationCounts.accepted_count,
+        application_counts: applicationCounts,
         user_application: userApplicationBySession.get(s.id) ?? null,
         accepted_applicants: acceptedApplicants,
       };
@@ -197,7 +252,10 @@ export function FoundersClubPage() {
                     </div>
                     <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                       <span style={getStatusPillStyle(cfg.color, isDark)}>{cfg.label}</span>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-muted)" }}>{s.accepted_count}/{s.max_participants}명</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-muted)" }}>수락 {s.accepted_count}/{s.max_participants}명</span>
+                      {isAdmin && (
+                        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-muted)" }}>신청 {s.application_counts.total_count}건</span>
+                      )}
                     </div>
                   </div>
 

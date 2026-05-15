@@ -7,6 +7,7 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 Every complex task must follow this exact lifecycle. Do not skip steps.
 
 0.  **Session Shortcuts:** 사용자의 첫 메시지가 `ㅎㅇ`이면 에이전트의 종류에 따라 `GEMINI.md` 또는 `CLAUDE.md`를 읽고, 이어서 `PLAN.md`, `RESULT.md`를 읽어 현재 상태를 요약한 뒤에만 새 작업으로 들어간다. 사용자가 `종료`라고 하면 `PLAN.md`의 완료 반영, `RESULT.md` 최신화, 최근 `npm run validate` 기록 여부를 먼저 점검한다.
+0-1. **QA Browser Visibility:** 사용자가 `qa`를 요청하거나 브라우저 기반 검증을 명시적으로 맡기면 `CODEX_QA.md`를 참고하고, 별도 요청이 없어도 인앱 브라우저를 visible 상태로 직접 띄운 채 진행한다. 단, 사용자가 백그라운드 검증만 원한다고 명시한 경우에는 예외로 한다.
 1.  **Research & Initial Plan:** 새 작업은 `PLAN.md`의 `## Pending Approval` 아래에 추가한다. 이 단계에서 아키텍처, 수정 파일, 구현 전략을 문서화한다.
 2.  **User Review (Wait for Feedback):** Stop and ask the user to review `PLAN.md`. The user will provide feedback via comments inside `PLAN.md`.
 3.  **Iterative Revision:** Read the comments in `PLAN.md`, update the plan, and repeat until the user gives explicit approval to "Implement".
@@ -112,7 +113,6 @@ Note: Most components bypass Tailwind dark mode (`dark:` prefix) entirely and us
 | `/mypage` | `MyPage` | Authenticated only; shows profile info, consulting reservations, club applications, password change |
 | `/search` | `SearchPage` | **Static hardcoded data** — not connected to DB |
 | `/update-password` | `UpdatePasswordPage` | Password reset flow via Supabase magic link |
-| `/flow-map` | `FlowMapPage` | Admin-only (guarded by `AdminRoute`) |
 | `/admin` | `AdminPage` | Admin-only, 6-tab dashboard |
 
 ### Hooks (`src/hooks/`)
@@ -189,7 +189,7 @@ Beyond standard `profiles` and `posts`, the project adds:
 
 **Skeleton UI:** `@keyframes pulse` is defined in `src/styles/index.css`. Each panel renders its own skeleton rows during loading.
 
-`AdminFlowMap` is a separate admin-only page at `/flow-map`, not a tab. `NotificationBell` is a standalone component in the admin header.
+`AdminFlowMap` and `LiveArchitectureMap` are private architecture-map surfaces, not website routes. Run them locally via `npm run map:dev` and open `/architecture.html`. `NotificationBell` is a standalone component in the admin header.
 
 **`fetchUsers`** in `AdminUserManagement` calls the `decrypt-profiles` Edge Function — the profiles table stores PII as ciphertext. Realtime subscription triggers `fetchUsers()` on profile changes.
 

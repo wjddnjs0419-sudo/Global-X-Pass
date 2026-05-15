@@ -1,4 +1,7 @@
-import type { EventCustomQuestion, EventFormConfig } from "../lib/types";
+import type { EventCustomQuestion, EventFormConfig, Post } from "../lib/types";
+
+export const EVENT_LOW_REMAINING_RATIO = 0.2;
+export const EVENT_DEADLINE_SOON_DAYS = 3;
 
 export const DEFAULT_EVENT_FORM_CONFIG: Required<EventFormConfig> = {
   intro: "행사 운영과 안내를 위해 아래 정보를 입력해주세요.",
@@ -54,4 +57,62 @@ export const EVENT_STATUS_CONFIG: Record<string, { label: string; color: string;
   "접수중": { label: "접수중", color: "var(--color-success)", bg: "var(--color-success-soft-bg)" },
   "마감임박": { label: "마감임박", color: "var(--color-warning)", bg: "var(--color-warning-soft-bg)" },
   "마감": { label: "마감", color: "var(--color-disabled-bg)", bg: "var(--color-neutral-soft-bg)" },
+};
+
+export const getEventRemaining = (post: Pick<Post, "capacity" | "slots_remaining">, acceptedCount?: number | null) => {
+  if (post.capacity != null && acceptedCount != null) return Math.max(post.capacity - acceptedCount, 0);
+  return post.slots_remaining ?? null;
+};
+
+const getDeadlineTime = (deadline?: string | null) => {
+  if (!deadline) return null;
+  const time = new Date(deadline).getTime();
+  return Number.isNaN(time) ? null : time;
+};
+
+export const isEventDeadlinePassed = (deadline?: string | null, now = new Date()) => {
+  const deadlineTime = getDeadlineTime(deadline);
+  return deadlineTime != null && deadlineTime <= now.getTime();
+};
+
+export const isEventDeadlineSoon = (deadline?: string | null, now = new Date()) => {
+  const deadlineTime = getDeadlineTime(deadline);
+  if (deadlineTime == null || deadlineTime <= now.getTime()) return false;
+
+  const soonTime = now.getTime() + EVENT_DEADLINE_SOON_DAYS * 24 * 60 * 60 * 1000;
+  return deadlineTime <= soonTime;
+};
+
+export const getEffectiveEventStatus = (
+  post: Pick<Post, "event_status" | "capacity" | "slots_remaining" | "application_deadline">,
+  acceptedCount?: number | null,
+  now = new Date(),
+) => {
+  const currentStatus = post.event_status || "접수예정";
+  const remaining = getEventRemaining(post, acceptedCount);
+
+  if (isEventDeadlinePassed(post.application_deadline, now)) return "마감";
+  if (remaining != null && remaining <= 0) return "마감";
+  if (currentStatus === "접수예정" || currentStatus === "마감") return currentStatus;
+  if (isEventDeadlineSoon(post.application_deadline, now)) return "마감임박";
+
+  if (
+    post.capacity != null &&
+    post.capacity > 0 &&
+    remaining != null &&
+    remaining / post.capacity <= EVENT_LOW_REMAINING_RATIO
+  ) {
+    return "마감임박";
+  }
+
+  if (currentStatus === "접수중" || currentStatus === "마감임박") return "접수중";
+  return currentStatus;
+};
+
+export const isEventApplicationOpen = (
+  post: Pick<Post, "event_status" | "capacity" | "slots_remaining" | "application_deadline">,
+  acceptedCount?: number | null,
+) => {
+  const status = getEffectiveEventStatus(post, acceptedCount);
+  return status === "접수중" || status === "마감임박";
 };

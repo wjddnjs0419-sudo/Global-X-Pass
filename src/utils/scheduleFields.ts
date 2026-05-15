@@ -38,6 +38,9 @@ export const getDayOptions = (year: string, month: string) =>
 export const getHourOptions = () =>
   Array.from({ length: 24 }, (_, i) => pad2(i));
 
+export const getMinuteOptions = () =>
+  Array.from({ length: 60 }, (_, i) => pad2(i));
+
 export const getTenMinuteOptions = () =>
   [0, 10, 20, 30, 40, 50].map(pad2);
 
@@ -53,4 +56,41 @@ export const parseTimeParts = (value?: string | null) => {
     hour,
     minute: minute || "00",
   };
+};
+
+export const composeLocalDateTimeIso = (
+  year: string,
+  month: string,
+  day: string,
+  hour: string,
+  minute: string,
+) => {
+  if (!year || !month || !day || !hour) return null;
+  const date = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute || "00"));
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString();
+};
+
+export const parseDateTimeParts = (value?: string | null) => {
+  if (!value) return { year: "", month: "", day: "", hour: "", minute: "00" };
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return { year: "", month: "", day: "", hour: "", minute: "00" };
+
+  return {
+    year: String(date.getFullYear()),
+    month: pad2(date.getMonth() + 1),
+    day: pad2(date.getDate()),
+    hour: pad2(date.getHours()),
+    minute: pad2(date.getMinutes()),
+  };
+};
+
+export const formatLocalDateTime = (value?: string | null, fallback = "") => {
+  if (!value) return fallback;
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return fallback;
+
+  return `${date.getFullYear()}.${pad2(date.getMonth() + 1)}.${pad2(date.getDate())} ${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
 };

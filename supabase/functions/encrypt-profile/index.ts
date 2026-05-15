@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { requireVerifiedAdmin } from "../_shared/adminAuth.ts";
+import { captureEfError } from "../_shared/errorLogger.ts";
 
 const ENC_PREFIX = "enc:v1:";
 
@@ -129,6 +130,7 @@ Deno.serve(async (req: Request) => {
     });
   } catch (err) {
     console.error("[encrypt-profile]", err);
+    await captureEfError("ef-encrypt", err, { req, severity: "high" });
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { ...CORS, "Content-Type": "application/json" },

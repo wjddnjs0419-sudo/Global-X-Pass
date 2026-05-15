@@ -3,6 +3,10 @@
 > **CRITICAL:** This document tracks past mistakes, build failures, and architectural pitfalls to prevent recurrence. AI agents MUST review this list before implementing changes.
 
 ## 🚫 Anti-Patterns & Lessons Learned
+- [2026-05-15] **QA Secret Hardcode:** Playwright 테스트, 진단 스크립트, QA 운영 문서에 QA 계정/비밀번호/MFA 시크릿을 평문으로 커밋하지 말 것. 자동 QA 자격 증명은 `QA_ADMIN_*`/`QA_USER_*` 환경 변수 또는 GitHub Secrets로만 주입한다.
+- [2026-05-15] **Architecture App Validation Drift:** `architecture.html`/`LiveArchitectureMap` 같은 개인용 Electron 맵 UI를 수정할 때 `npm run validate`만으로 끝내지 말 것. Electron 앱은 `dist-architecture`와 패키징된 `.app`를 읽으므로 최소 `npm run map:build`, 패키지 사용 중이면 `npm run app:pack`까지 함께 검증해야 “코드는 바뀌었는데 앱은 그대로” 상태를 막을 수 있다.
+- [2026-05-14] 아이콘 컴포넌트를 `Map`, `Set`, `Date`처럼 전역 생성자와 같은 이름으로 import하지 말 것. TSX 파일 안의 `new Map<...>()` 같은 표준 타입 생성자까지 아이콘 컴포넌트로 shadowing되어 타입 오류가 연쇄 발생한다.
+- [2026-05-14] React 이벤트 핸들러에서 ref null 체크 후 비동기 state updater 안에서 `ref.current!`를 다시 읽지 말 것. updater 실행 전 다른 이벤트가 ref를 null로 만들 수 있으므로, 체크 직후 로컬 const 스냅샷을 사용한다.
 - **Hook Return Drift:** 큰 훅을 분해한 뒤 제거한 setter/field를 최종 return 객체에 남겨 타입 오류를 만들지 말 것. exported hook contract를 바꿀 때는 return shape와 호출부 destructuring을 한 묶음으로 검증할 것.
 - **PII Direct Query:** `profiles(name, email)`와 같이 PII 테이블을 직접 조인하여 화면에 렌더링하는 코드를 절대 작성하지 말 것. 반드시 `decrypt-profiles` 등 암호화 Edge Function을 사용할 것.
 - **Broad Lint Retrofit:** 기존 코드베이스 정리 없이 저장소 전체에 범용 ESLint recommended 규칙을 한 번에 켜지 말 것. 래칫은 목표 금지 규칙만 좁게 추가하거나 별도 정리 마이그레이션과 함께 도입할 것.

@@ -65,16 +65,27 @@ export function FooterSection({ isDark = false }: FooterSectionProps) {
   const footerBg = "var(--color-bg-surface)";
   const linkStyle: React.CSSProperties = {
     color: textMuted,
+    display: "inline-flex",
+    alignItems: "center",
+    minHeight: 24,
     fontSize: 12,
     fontWeight: 600,
     textDecoration: "none",
     whiteSpace: "nowrap",
+  };
+  const logoLinkStyle: React.CSSProperties = {
+    display: "inline-flex",
+    alignItems: "center",
+    minHeight: 24,
+    textDecoration: "none",
   };
   const socialLinkStyle: React.CSSProperties = {
     color: textMain,
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
+    width: 32,
+    height: 32,
     lineHeight: 1,
     textDecoration: "none",
   };
@@ -91,7 +102,7 @@ export function FooterSection({ isDark = false }: FooterSectionProps) {
       <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}>
         <div>
-          <Link to="/" onClick={handleLogoClick} style={{ display: "inline-block", textDecoration: "none" }}>
+          <Link to="/" onClick={handleLogoClick} style={logoLinkStyle}>
             <img src={logoImg} alt="Logo" style={{ height: 20, filter: isDark ? "brightness(0) invert(1)" : "none" }} />
           </Link>
         </div>

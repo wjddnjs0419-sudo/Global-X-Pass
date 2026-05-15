@@ -3,6 +3,9 @@
 //  /src/app/components/DesignSystemPage.tsx
 // ============================================================
 
+import { useNavigate } from "react-router";
+import { getBackLinkStyle } from "./contentListStyles";
+
 interface ThemeTokens {
   pageBg: string;
   dotGrid: string;
@@ -189,6 +192,7 @@ interface DesignSystemPageProps {
 
 export function DesignSystemPage({ isDark = false }: DesignSystemPageProps) {
   const th = makeTheme(isDark);
+  const navigate = useNavigate();
 
   const brandGradients = [
     { name: "--gradient-ncf",    from: "#20D6A2", to: "#BEFFF9", gradient: "linear-gradient(135deg, #20D6A2 0%, #BEFFF9 100%)", label: "NCF 키컬러",  role: "NCF 브랜드 메인 컬러" },
@@ -268,6 +272,15 @@ export function DesignSystemPage({ isDark = false }: DesignSystemPageProps) {
       }} />
 
       <div style={{ position: "relative", zIndex: 1, maxWidth: "1200px", margin: "0 auto" }}>
+
+        {/* Back link — 홈으로 돌아가기 */}
+        <button
+          type="button"
+          onClick={() => navigate("/")}
+          style={{ ...getBackLinkStyle(), marginBottom: "var(--space-lg)" }}
+        >
+          ← 홈으로 돌아가기
+        </button>
 
         {/* Header */}
         <div style={{

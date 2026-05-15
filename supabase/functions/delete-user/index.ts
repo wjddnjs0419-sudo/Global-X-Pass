@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { requireVerifiedAdmin } from "../_shared/adminAuth.ts";
+import { captureEfError } from "../_shared/errorLogger.ts";
 
 Deno.serve(async (req) => {
   const cors = corsHeaders(req);
@@ -31,7 +32,14 @@ Deno.serve(async (req) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    // profiles에 auth.users FK cascade가 없으므로 명시적으로 먼저 삭제
+    // Program records should disappear immediately when an account is removed.
+    await Promise.all([
+      adminClient.from("event_applications").delete().eq("user_id", userId),
+      adminClient.from("founders_club_applications").delete().eq("user_id", userId),
+      adminClient.from("consulting_reservations").delete().eq("user_id", userId),
+    ]);
+
+    // profiles에 auth.users FK cascade가 없던 과거 스키마까지 고려해 명시적으로 먼저 삭제
     await adminClient.from("profiles").delete().eq("id", userId);
 
     // auth.users 삭제 → 이후 동일 이메일로 재가입 가능
@@ -43,6 +51,7 @@ Deno.serve(async (req) => {
       status: 200,
     });
   } catch (err: unknown) {
+    await captureEfError("ef-delete", err, { req, severity: "high" });
     const message = err instanceof Error ? err.message : String(err);
     return new Response(JSON.stringify({ error: message }), {
       headers: { ...cors, "Content-Type": "application/json" },

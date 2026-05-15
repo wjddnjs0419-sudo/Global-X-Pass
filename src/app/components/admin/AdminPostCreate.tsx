@@ -39,13 +39,45 @@ import {
   getThumbnailSavePayload,
   uploadThumbnailIfDataUrl,
 } from "../../../utils/postThumbnail";
+import {
+  composeLocalDateTimeIso,
+  getDayOptions,
+  getDaysInMonth,
+  getHourOptions,
+  getMinuteOptions,
+  getMonthOptions,
+  getYearOptions,
+  parseDateTimeParts,
+} from "../../../utils/scheduleFields";
 import { AdvancedThumbnailEditor } from "./AdvancedThumbnailEditor";
 
 const ReactQuill = lazy(() => import('react-quill'));
 
-type EventMeta = { event_date: string; location: string; event_status: string; capacity: string; tags: string };
+type EventMeta = {
+  event_date: string;
+  location: string;
+  event_status: string;
+  capacity: string;
+  application_deadline_y: string;
+  application_deadline_m: string;
+  application_deadline_d: string;
+  application_deadline_h: string;
+  application_deadline_minute: string;
+  tags: string;
+};
 
-const EMPTY_META: EventMeta = { event_date: "", location: "", event_status: "접수예정", capacity: "", tags: "" };
+const EMPTY_META: EventMeta = {
+  event_date: "",
+  location: "",
+  event_status: "접수예정",
+  capacity: "",
+  application_deadline_y: "",
+  application_deadline_m: "",
+  application_deadline_d: "",
+  application_deadline_h: "",
+  application_deadline_minute: "00",
+  tags: "",
+};
 
 interface AdminPostCreateProps {
   editingPost: any | null;
@@ -111,10 +143,24 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
       .filter(c => !existingUrls.has(c.url));
     return [...base, ...fileCandidates];
   }, [content, existingImages, supportsManualThumbnail, fileObjectUrls]);
+  const deadlineYears = useMemo(() => {
+    const years = getYearOptions();
+    return eventMeta.application_deadline_y && !years.includes(eventMeta.application_deadline_y)
+      ? [eventMeta.application_deadline_y, ...years]
+      : years;
+  }, [eventMeta.application_deadline_y]);
+  const deadlineMonths = useMemo(() => getMonthOptions(), []);
+  const deadlineDays = useMemo(
+    () => getDayOptions(eventMeta.application_deadline_y, eventMeta.application_deadline_m),
+    [eventMeta.application_deadline_m, eventMeta.application_deadline_y]
+  );
+  const deadlineHours = useMemo(() => getHourOptions(), []);
+  const deadlineMinutes = useMemo(() => getMinuteOptions(), []);
 
   // editingPost가 바뀔 때 폼 상태 동기화
   useEffect(() => {
     if (editingPost) {
+      const deadlineParts = parseDateTimeParts(editingPost.application_deadline);
       setCategory(editingPost.category || "notice");
       setTitle(editingPost.title || "");
       setContent(editingPost.content || "");
@@ -129,6 +175,11 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
         location:        editingPost.location || "",
         event_status:    editingPost.event_status || "접수예정",
         capacity:        editingPost.capacity != null ? String(editingPost.capacity) : "",
+        application_deadline_y: deadlineParts.year,
+        application_deadline_m: deadlineParts.month,
+        application_deadline_d: deadlineParts.day,
+        application_deadline_h: deadlineParts.hour,
+        application_deadline_minute: deadlineParts.minute,
         tags:            editingPost.category === "media" ? resolveMediaCategoryId(editingPost.tags) || "" : editingPost.tags || "",
       });
     } else {
@@ -334,8 +385,15 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
         previousThumbnailUrl: editingPost?.thumbnail_url,
         previousThumbnailCrop: editingPost?.thumbnail_crop,
       });
+      const applicationDeadline = composeLocalDateTimeIso(
+        eventMeta.application_deadline_y,
+        eventMeta.application_deadline_m,
+        eventMeta.application_deadline_d,
+        eventMeta.application_deadline_h,
+        eventMeta.application_deadline_minute,
+      );
       const extraFields = category === 'events'
-        ? { event_date: eventMeta.event_date || null, location: eventMeta.location || null, event_status: eventMeta.event_status || null, capacity: eventMeta.capacity ? Number(eventMeta.capacity) : null, tags: eventMeta.tags || null }
+        ? { event_date: eventMeta.event_date || null, location: eventMeta.location || null, event_status: eventMeta.event_status || null, application_deadline: applicationDeadline, capacity: eventMeta.capacity ? Number(eventMeta.capacity) : null, tags: eventMeta.tags || null }
         : ['blog', 'events-archive', 'notice', 'news', 'media'].includes(category)
           ? { tags: category === 'media' ? finalMediaCategoryId : eventMeta.tags || null }
           : {};
@@ -581,6 +639,37 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
                   {render()}
                 </div>
               ))}
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: textMuted }}>신청 마감일시 (선택)</label>
+              <div className="grid grid-cols-2 sm:grid-cols-5" style={{ gap: 8 }}>
+                <select style={{ ...inputStyle, fontSize: 14 }} value={eventMeta.application_deadline_y} onChange={e => setEventMeta(m => ({ ...m, application_deadline_y: e.target.value, application_deadline_d: Number(m.application_deadline_d) > getDaysInMonth(e.target.value, m.application_deadline_m) ? "" : m.application_deadline_d }))}>
+                  <option value="">연도</option>
+                  {deadlineYears.map(year => <option key={year} value={year}>{year}</option>)}
+                </select>
+                <select style={{ ...inputStyle, fontSize: 14 }} value={eventMeta.application_deadline_m} onChange={e => setEventMeta(m => ({ ...m, application_deadline_m: e.target.value, application_deadline_d: Number(m.application_deadline_d) > getDaysInMonth(m.application_deadline_y, e.target.value) ? "" : m.application_deadline_d }))}>
+                  <option value="">월</option>
+                  {deadlineMonths.map(month => <option key={month} value={month}>{month}</option>)}
+                </select>
+                <select style={{ ...inputStyle, fontSize: 14 }} value={eventMeta.application_deadline_d} onChange={e => setEventMeta(m => ({ ...m, application_deadline_d: e.target.value }))}>
+                  <option value="">일</option>
+                  {deadlineDays.map(day => <option key={day} value={day}>{day}</option>)}
+                </select>
+                <select style={{ ...inputStyle, fontSize: 14 }} value={eventMeta.application_deadline_h} onChange={e => setEventMeta(m => ({ ...m, application_deadline_h: e.target.value }))}>
+                  <option value="">시</option>
+                  {deadlineHours.map(hour => <option key={hour} value={hour}>{hour}시</option>)}
+                </select>
+                <select style={{ ...inputStyle, fontSize: 14 }} value={eventMeta.application_deadline_minute} onChange={e => setEventMeta(m => ({ ...m, application_deadline_minute: e.target.value }))}>
+                  {deadlineMinutes.map(minute => <option key={minute} value={minute}>{minute}분</option>)}
+                </select>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEventMeta(m => ({ ...m, application_deadline_y: "", application_deadline_m: "", application_deadline_d: "", application_deadline_h: "", application_deadline_minute: "00" }))}
+                style={{ alignSelf: "flex-start", border: "none", background: "transparent", color: textMuted, fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0 }}
+              >
+                마감일시 비우기
+              </button>
             </div>
           </div>
         )}

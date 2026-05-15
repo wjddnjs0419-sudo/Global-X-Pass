@@ -13,9 +13,9 @@ import { useAdmin } from "../../hooks/useAdmin";
 import type { EventApplication, EventCustomQuestion, EventFormConfig, Post, Profile } from "../../lib/types";
 import { isImage } from "../../utils/file";
 import { sanitizeRichHtml } from "../../utils/htmlSecurity";
-import { EVENT_APPLICATION_STATUS, EVENT_STATUS_CONFIG, mergeEventFormConfig } from "../../utils/eventApplication";
+import { EVENT_APPLICATION_STATUS, EVENT_STATUS_CONFIG, getEffectiveEventStatus, getEventRemaining, isEventApplicationOpen, mergeEventFormConfig } from "../../utils/eventApplication";
 import { getThumbnailCandidates, uploadThumbnailIfDataUrl } from "../../utils/postThumbnail";
-import { composeStructuredLocation, formatStructuredLocation, getDaysInMonth, pad2, parseStructuredLocation } from "../../utils/scheduleFields";
+import { composeLocalDateTimeIso, composeStructuredLocation, formatLocalDateTime, formatStructuredLocation, getDaysInMonth, getMinuteOptions, pad2, parseDateTimeParts, parseStructuredLocation } from "../../utils/scheduleFields";
 
 type FormState = {
   company_tech: string;
@@ -158,6 +158,11 @@ export function EventApplicationPage() {
     locationName: "",
     locationAddress: "",
     event_status: "접수예정",
+    application_deadline_y: "",
+    application_deadline_m: "",
+    application_deadline_d: "",
+    application_deadline_h: "",
+    application_deadline_minute: "00",
     capacity: "",
     content: "",
     image_url: "",
@@ -281,7 +286,17 @@ export function EventApplicationPage() {
     return Array.from({ length: count }, (_, index) => pad2(index + 1));
   }, [adminDraft.event_date_m, adminDraft.event_date_y]);
   const timeHours = useMemo(() => Array.from({ length: 24 }, (_, index) => pad2(index)), []);
-  const timeMinutes = useMemo(() => Array.from({ length: 6 }, (_, index) => pad2(index * 10)), []);
+  const eventTimeMinutes = useMemo(() => Array.from({ length: 6 }, (_, index) => pad2(index * 10)), []);
+  const deadlineMinutes = useMemo(() => getMinuteOptions(), []);
+  const deadlineYears = useMemo(() => {
+    const years = Array.from({ length: 5 }, (_, index) => String(new Date().getFullYear() + index));
+    if (adminDraft.application_deadline_y && !years.includes(adminDraft.application_deadline_y)) years.unshift(adminDraft.application_deadline_y);
+    return years;
+  }, [adminDraft.application_deadline_y]);
+  const deadlineDays = useMemo(() => {
+    const count = getDaysInMonth(adminDraft.application_deadline_y, adminDraft.application_deadline_m);
+    return Array.from({ length: count }, (_, index) => pad2(index + 1));
+  }, [adminDraft.application_deadline_m, adminDraft.application_deadline_y]);
   const interestOptionItems = useMemo(() => {
     const rows = adminDraft.interestOptions.split("\n").map(item => item.trim());
     return rows.length === 1 && rows[0] === "" ? [] : rows;
@@ -308,14 +323,16 @@ export function EventApplicationPage() {
   const bannerImageCandidates = useMemo(() => getThumbnailCandidates(post?.content || "", adminDraft.image_url), [adminDraft.image_url, post?.content]);
   const displayLocation = useMemo(() => formatStructuredLocation(post?.location, ""), [post?.location]);
   const capacity = post?.capacity ?? null;
-  const remaining = capacity == null ? null : Math.max(capacity - acceptedCount, 0);
-  const statusCfg = EVENT_STATUS_CONFIG[post?.event_status ?? ""] ?? null;
-  const isClosed = post?.event_status === "마감" || remaining === 0;
+  const remaining = post ? getEventRemaining(post, acceptedCount) : null;
+  const effectiveEventStatus = post ? getEffectiveEventStatus(post, acceptedCount) : post?.event_status ?? "";
+  const statusCfg = EVENT_STATUS_CONFIG[effectiveEventStatus ?? ""] ?? null;
+  const isApplicationOpen = post ? isEventApplicationOpen(post, acceptedCount) : false;
   const canCancelApplication = application?.status === "pending" || application?.status === "accepted";
 
   const syncAdminDraft = (nextPost: Post) => {
     const nextConfig = mergeEventFormConfig(nextPost.event_form_config);
     const dateParts = parseEventDateParts(nextPost.event_date || "");
+    const deadlineParts = parseDateTimeParts(nextPost.application_deadline);
     const locationParts = parseStructuredLocation(nextPost.location);
     setAdminDraft({
       title: nextPost.title || "",
@@ -329,6 +346,11 @@ export function EventApplicationPage() {
       locationName: locationParts.name,
       locationAddress: locationParts.address,
       event_status: nextPost.event_status || "접수예정",
+      application_deadline_y: deadlineParts.year,
+      application_deadline_m: deadlineParts.month,
+      application_deadline_d: deadlineParts.day,
+      application_deadline_h: deadlineParts.hour,
+      application_deadline_minute: deadlineParts.minute,
       capacity: nextPost.capacity != null ? String(nextPost.capacity) : "",
       content: eventDescriptionHtmlToPlainText(nextPost.content || ""),
       image_url: getRepresentativeImage(nextPost),
@@ -372,7 +394,7 @@ export function EventApplicationPage() {
 
       if (uid) {
         const [{ data: appData }, { data: profileData }] = await Promise.all([
-          supabase.from("event_applications").select("*").eq("post_id", id).eq("user_id", uid).maybeSingle(),
+          supabase.from("event_applications").select("*").eq("post_id", id).eq("user_id", uid).in("status", ["pending", "accepted"]).maybeSingle(),
           supabase.functions.invoke("decrypt-own-profile"),
         ]);
         if (appData) setApplication(appData as EventApplication);
@@ -458,7 +480,7 @@ export function EventApplicationPage() {
 
   const handleSubmit = async () => {
     if (!post) return;
-    if (isClosed) return alert("마감된 행사입니다.");
+    if (!isApplicationOpen) return alert(effectiveEventStatus === "접수예정" ? "아직 접수 시작 전입니다." : "마감된 행사입니다.");
     if (!form.company_tech.trim() || !form.applicant_name.trim() || !form.position.trim() || !form.email.trim() || !form.expectation.trim()) {
       alert("필수 항목을 모두 입력해주세요.");
       return;
@@ -534,12 +556,24 @@ export function EventApplicationPage() {
     try {
       const nextCapacity = adminDraft.capacity ? Number(adminDraft.capacity) : null;
       const nextEventDate = composeEventDateText(adminDraft);
+      const nextApplicationDeadline = composeLocalDateTimeIso(
+        adminDraft.application_deadline_y,
+        adminDraft.application_deadline_m,
+        adminDraft.application_deadline_d,
+        adminDraft.application_deadline_h,
+        adminDraft.application_deadline_minute,
+      );
       const nextLocation = composeStructuredLocation(adminDraft.locationName, adminDraft.locationAddress);
       const { data: countsData } = await supabase.rpc("get_event_application_counts");
       const latestAcceptedCount = ((countsData as { post_id: string; accepted_count: number }[] | null) ?? [])
         .find(row => row.post_id === post.id)?.accepted_count ?? acceptedCount;
       const nextRemaining = nextCapacity == null ? null : Math.max(nextCapacity - latestAcceptedCount, 0);
-      const nextEventStatus = nextCapacity != null && nextRemaining === 0 ? "마감" : adminDraft.event_status;
+      const nextEventStatus = getEffectiveEventStatus({
+        event_status: adminDraft.event_status,
+        capacity: nextCapacity,
+        slots_remaining: nextRemaining,
+        application_deadline: nextApplicationDeadline,
+      }, latestAcceptedCount);
       const existingUrls = post.image_url?.split(",").map(url => url.trim()).filter(Boolean) ?? [];
       const nonCoverUrls = existingUrls.filter(url => url !== getRepresentativeImage(post));
       const resolvedCoverUrl = await uploadThumbnailIfDataUrl(adminDraft.image_url.trim() || null);
@@ -569,6 +603,7 @@ export function EventApplicationPage() {
           event_date: nextEventDate || null,
           location: nextLocation || null,
           event_status: nextEventStatus,
+          application_deadline: nextApplicationDeadline,
           capacity: nextCapacity,
           slots_remaining: nextRemaining,
           content: eventDescriptionTextToHtml(adminDraft.content),
@@ -620,6 +655,7 @@ export function EventApplicationPage() {
                 <h2 style={{ margin: 0, color: "var(--color-text-primary)", fontSize: "var(--text-event-application-title)", fontWeight: "var(--weight-black)", lineHeight: "var(--leading-event-application-title)" }}>{post.title}</h2>
                 <div style={{ display: "grid", gap: "var(--space-event-application-compact-inline)", color: "var(--color-text-muted)", fontSize: "var(--text-event-application-body)" }}>
                   {post.event_date && <span style={{ display: "flex", gap: "var(--space-xs)", alignItems: "center" }}><CalendarDays size="var(--size-event-application-icon-md)" />{post.event_date}</span>}
+                  {post.application_deadline && <span style={{ display: "flex", gap: "var(--space-xs)", alignItems: "center" }}><Ban size="var(--size-event-application-icon-md)" />신청 마감 {formatLocalDateTime(post.application_deadline)}</span>}
                   {displayLocation && <span style={{ display: "flex", gap: "var(--space-xs)", alignItems: "center" }}><MapPin size="var(--size-event-application-icon-md)" />{displayLocation}</span>}
                   {remaining != null && <span style={{ display: "flex", gap: "var(--space-xs)", alignItems: "center" }}><Users size="var(--size-event-application-icon-md)" />잔여 {remaining}석</span>}
                 </div>
@@ -664,7 +700,7 @@ export function EventApplicationPage() {
                           {timeHours.map(hour => <option key={hour} value={hour}>{hour}시</option>)}
                         </select>
                         <select style={input} value={adminDraft.event_time_m} onChange={e => setAdminDraft(p => ({ ...p, event_time_m: e.target.value }))}>
-                          {timeMinutes.map(minute => <option key={minute} value={minute}>{minute}분</option>)}
+                          {eventTimeMinutes.map(minute => <option key={minute} value={minute}>{minute}분</option>)}
                         </select>
                       </div>
                     </div>
@@ -682,6 +718,37 @@ export function EventApplicationPage() {
                       <option value="마감">마감</option>
                     </select>
                     <input style={input} type="number" min={0} value={adminDraft.capacity} onChange={e => setAdminDraft(p => ({ ...p, capacity: e.target.value }))} placeholder="정원" />
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-xs)" }}>
+                    <span style={fieldLabelStyle}>신청 마감일시 (선택)</span>
+                    <div className="grid grid-cols-2 sm:grid-cols-5" style={{ gap: "var(--space-event-application-grid-gap-tight)" }}>
+                      <select style={input} value={adminDraft.application_deadline_y} onChange={e => setAdminDraft(p => ({ ...p, application_deadline_y: e.target.value, application_deadline_d: Number(p.application_deadline_d) > getDaysInMonth(e.target.value, p.application_deadline_m) ? "" : p.application_deadline_d }))}>
+                        <option value="">연도</option>
+                        {deadlineYears.map(year => <option key={year} value={year}>{year}</option>)}
+                      </select>
+                      <select style={input} value={adminDraft.application_deadline_m} onChange={e => setAdminDraft(p => ({ ...p, application_deadline_m: e.target.value, application_deadline_d: Number(p.application_deadline_d) > getDaysInMonth(p.application_deadline_y, e.target.value) ? "" : p.application_deadline_d }))}>
+                        <option value="">월</option>
+                        {dateMonths.map(month => <option key={month} value={month}>{month}</option>)}
+                      </select>
+                      <select style={input} value={adminDraft.application_deadline_d} onChange={e => setAdminDraft(p => ({ ...p, application_deadline_d: e.target.value }))}>
+                        <option value="">일</option>
+                        {deadlineDays.map(day => <option key={day} value={day}>{day}</option>)}
+                      </select>
+                      <select style={input} value={adminDraft.application_deadline_h} onChange={e => setAdminDraft(p => ({ ...p, application_deadline_h: e.target.value }))}>
+                        <option value="">시</option>
+                        {timeHours.map(hour => <option key={hour} value={hour}>{hour}시</option>)}
+                      </select>
+                      <select style={input} value={adminDraft.application_deadline_minute} onChange={e => setAdminDraft(p => ({ ...p, application_deadline_minute: e.target.value }))}>
+                        {deadlineMinutes.map(minute => <option key={minute} value={minute}>{minute}분</option>)}
+                      </select>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setAdminDraft(p => ({ ...p, application_deadline_y: "", application_deadline_m: "", application_deadline_d: "", application_deadline_h: "", application_deadline_minute: "00" }))}
+                      style={{ alignSelf: "flex-start", border: "none", background: "transparent", color: "var(--color-text-muted)", fontSize: "var(--text-event-application-label)", fontWeight: "var(--weight-extrabold)", cursor: "pointer", padding: 0 }}
+                    >
+                      마감일시 비우기
+                    </button>
                   </div>
                   <textarea style={textareaStyle("var(--size-event-application-textarea-md)")} value={adminDraft.content} onChange={e => setAdminDraft(p => ({ ...p, content: e.target.value }))} placeholder="행사 설명" />
                   <AdvancedThumbnailEditor
@@ -855,7 +922,7 @@ export function EventApplicationPage() {
                   <p style={{ margin: 0, color: "var(--color-text-muted)", lineHeight: "var(--leading-event-application-message)" }}>
                     {application?.status === "cancelled" ? "재참가가 필요하면 운영자에게 문의해주세요." : activeConfig.completionMessage}
                   </p>
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-event-application-compact-inline)" }}>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-event-application-compact-inline)", width: "100%", maxWidth: "320px" }}>
                     {application?.status === "cancelled" && (
                       <div style={{ display: "flex", gap: "var(--space-xs)", flexWrap: "wrap", justifyContent: "center" }}>
                         <Button asChild variant="outline" size="sm" style={contactButtonStyle}>
@@ -872,12 +939,12 @@ export function EventApplicationPage() {
                       </span>
                     )}
                     {canCancelApplication && (
-                      <Button type="button" variant="destructive" onClick={handleCancelApplication} disabled={submitting}>
+                      <Button type="button" variant="destructive" onClick={handleCancelApplication} disabled={submitting} style={{ width: "100%" }}>
                         <Ban size="var(--size-event-application-icon-md)" />
                         {submitting ? "취소 중..." : "신청 취소"}
                       </Button>
                     )}
-                    <Button asChild variant="outline">
+                    <Button asChild variant="outline" style={{ width: "100%" }}>
                       <Link to="/mypage">내 신청 내역 보기</Link>
                     </Button>
                   </div>
@@ -939,9 +1006,9 @@ export function EventApplicationPage() {
                     </label>
                   </div>
 
-                  <Button type="button" size="lg" onClick={handleSubmit} disabled={submitting || isClosed} className="w-full bg-[var(--color-accent-green)] hover:brightness-110">
+                  <Button type="button" size="lg" onClick={handleSubmit} disabled={submitting || !isApplicationOpen} className="w-full bg-[var(--color-accent-green)] hover:brightness-110">
                     <Send size="var(--size-event-application-icon-md)" />
-                    {isClosed ? "신청 마감" : submitting ? "제출 중..." : "신청 제출"}
+                    {!isApplicationOpen ? (effectiveEventStatus === "접수예정" ? "접수 예정" : "신청 마감") : submitting ? "제출 중..." : "신청 제출"}
                   </Button>
                 </div>
               )}

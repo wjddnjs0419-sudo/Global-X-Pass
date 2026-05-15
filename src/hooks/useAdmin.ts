@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
+import { getTotpFactorSnapshot } from "../utils/mfa";
 
 export function useAdmin() {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -34,7 +35,7 @@ export function useAdmin() {
       // 3. Check if a verified TOTP factor exists
       if (isUserAdmin) {
         const { data: factors } = await supabase.auth.mfa.listFactors();
-        setMfaEnrolled(factors?.totp?.some(f => f.status === "verified") ?? false);
+        setMfaEnrolled(getTotpFactorSnapshot(factors).hasVerifiedTotpFactor);
       }
 
       setLoading(false);

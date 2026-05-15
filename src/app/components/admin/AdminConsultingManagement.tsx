@@ -34,6 +34,26 @@ type DecryptedProfile = {
   company: string | null;
 };
 
+type ConsultingReservationRow = {
+  id: string;
+  slot_id: string;
+  user_id: string;
+  description: string;
+  status: "pending" | "confirmed" | "rejected" | "cancelled";
+  admin_note: string | null;
+  created_at: string;
+  consulting_slots?: {
+    slot_date?: string | null;
+    slot_time?: string | null;
+    location?: string | null;
+    consultants?: {
+      name?: string | null;
+      category?: string | null;
+    } | null;
+  } | null;
+  profile: DecryptedProfile | null;
+};
+
 type ConsultantForm = {
   name: string;
   category: string;
@@ -64,7 +84,7 @@ export function AdminConsultingManagement() {
   const [subTab, setSubTab] = useState<SubTab>("consultants");
   const [consultants, setConsultants] = useState<Consultant[]>([]);
   const [slots, setSlots] = useState<ConsultingSlot[]>([]);
-  const [reservations, setReservations] = useState<any[]>([]);
+  const [reservations, setReservations] = useState<ConsultingReservationRow[]>([]);
   const [selectedConsultant, setSelectedConsultant] = useState<string>("");
 
   // Consultant form
@@ -75,6 +95,7 @@ export function AdminConsultingManagement() {
   const [editingConsultantId, setEditingConsultantId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<ConsultantForm>(emptyConsultantForm);
   const slotRequestRef = useRef(0);
+  const categoriesSeededRef = useRef(false);
   // Slot form
   const [slotForm, setSlotForm] = useState({
     consultant_id: "",
@@ -124,22 +145,39 @@ export function AdminConsultingManagement() {
   }, [selectedConsultant]);
 
   useEffect(() => {
-    const fetchCategories = async () => {
-      const { data } = await supabase
-        .from(CONSULTING_CATEGORIES_TABLE)
-        .select("*")
-        .order("display_order");
-      const cats = (data as ConsultingCategory[] | null) ?? DEFAULT_CONSULTING_CATEGORIES;
-      const resolved = cats.length > 0 ? cats : DEFAULT_CONSULTING_CATEGORIES;
+    const applyCategories = (resolved: ConsultingCategory[]) => {
       setConsultingCategories(resolved);
       setCategoryLabelDrafts(Object.fromEntries(resolved.map(c => [c.id, c.label])));
     };
 
-    fetchCategories();
+    const fetchCategories = async (fromRealtime = false) => {
+      const { data } = await supabase
+        .from(CONSULTING_CATEGORIES_TABLE)
+        .select("*")
+        .order("display_order");
+      const rows = data as ConsultingCategory[] | null;
+
+      if (rows && rows.length > 0) {
+        applyCategories(rows);
+      } else if (!fromRealtime && !categoriesSeededRef.current) {
+        // 최초 마운트 + DB 미초기화 → 기본값을 DB에 씨딩하여 수정·삭제 가능하게 함
+        categoriesSeededRef.current = true;
+        const { error } = await supabase
+          .from(CONSULTING_CATEGORIES_TABLE)
+          .insert(DEFAULT_CONSULTING_CATEGORIES);
+        if (!error) applyCategories(DEFAULT_CONSULTING_CATEGORIES);
+      } else {
+        // Realtime 호출 시 DB가 비었으면 전부 삭제된 상태로 표시 (재씨딩 금지)
+        applyCategories([]);
+      }
+    };
+
+    fetchCategories(false);
 
     const channel = supabase
       .channel("consulting_categories_admin")
-      .on("postgres_changes", { event: "*", schema: "public", table: CONSULTING_CATEGORIES_TABLE }, fetchCategories)
+      .on("postgres_changes", { event: "*", schema: "public", table: CONSULTING_CATEGORIES_TABLE },
+        () => fetchCategories(true))
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
@@ -162,27 +200,15 @@ export function AdminConsultingManagement() {
   };
 
   const fetchReservations = async () => {
-    const [{ data }, { data: profiles, error: profileError }] = await Promise.all([
-      supabase
-      .from("consulting_reservations")
-        .select("*, consulting_slots(slot_date, slot_time, location, consultants(name, category))")
-        .order("created_at", { ascending: false }),
-      supabase.functions.invoke("decrypt-profiles"),
-    ]);
-
-    if (profileError) {
-      console.error("예약자 프로필 복호화 오류:", profileError.message);
+    const { data, error } = await supabase.functions.invoke("consulting-admin-reservations");
+    if (error) {
+      console.error("컨설팅 예약 조회 오류:", error.message);
+      return;
     }
 
-    const profileById = new Map(
-      ((profiles as DecryptedProfile[] | null) ?? []).map(profile => [profile.id, profile])
-    );
-
-    if (data) {
-      setReservations(data.map(reservation => ({
-        ...reservation,
-        profile: profileById.get(reservation.user_id) ?? null,
-      })));
+    setReservations((data?.reservations ?? []) as ConsultingReservationRow[]);
+    if ((data?.deleted ?? 0) > 0) {
+      if (selectedConsultant) fetchSlots(selectedConsultant);
     }
   };
 
@@ -262,6 +288,14 @@ export function AdminConsultingManagement() {
     const slot_date = composeIsoDate(y, m, d);
     const location = composeStructuredLocation(slotForm.locationName, slotForm.locationAddress);
     if (!slotForm.consultant_id || !slot_date || !slotForm.slot_time) return alert("전문가, 날짜, 시간을 모두 입력해주세요.");
+    const duplicateSlotExists = slots.some(slot =>
+      slot.consultant_id === slotForm.consultant_id
+      && slot.slot_date === slot_date
+      && slot.slot_time === slotForm.slot_time
+    );
+    if (duplicateSlotExists) {
+      return alert("같은 전문가의 동일한 날짜·시간 슬롯이 이미 존재합니다.");
+    }
     setLoading(true);
     const { error } = await supabase.from("consulting_slots").insert({
       consultant_id: slotForm.consultant_id,
@@ -271,7 +305,10 @@ export function AdminConsultingManagement() {
       location: location || null,
     });
     if (error) alert("슬롯 생성 실패: " + error.message);
-    else { fetchSlots(slotForm.consultant_id); setSelectedConsultant(slotForm.consultant_id); }
+    else {
+      setSelectedConsultant(slotForm.consultant_id);
+      await fetchSlots(slotForm.consultant_id);
+    }
     setLoading(false);
   };
 
@@ -541,7 +578,15 @@ export function AdminConsultingManagement() {
             <button onClick={handleCreateSlot} disabled={loading} style={{ padding: "10px", borderRadius: 10, border: "none", background: primaryBg, color: "var(--color-on-primary)", fontWeight: 750, cursor: "pointer", boxShadow: "none" }}>슬롯 추가</button>
           </div>
 
-          {slots.map(s => (
+          {!selectedConsultant ? (
+            <div style={{ background: card, border: `1px dashed ${labelBorder}`, borderRadius: 14, padding: "28px 20px", textAlign: "center", color: textMuted }}>
+              전문가를 선택하면 슬롯 목록이 표시됩니다.
+            </div>
+          ) : slots.length === 0 ? (
+            <div style={{ background: card, border: `1px dashed ${labelBorder}`, borderRadius: 14, padding: "28px 20px", textAlign: "center", color: textMuted }}>
+              등록된 슬롯이 없습니다.
+            </div>
+          ) : slots.map(s => (
             <div key={s.id} style={{ background: card, border: `1px solid ${border}`, borderRadius: 14, padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <span style={{ fontWeight: 700, color: textMain }}>{s.slot_date} {s.slot_time.slice(0, 5)}</span>
@@ -557,7 +602,8 @@ export function AdminConsultingManagement() {
                 )}
               </div>
             </div>
-          ))}
+          ))
+          }
         </div>
       )}
 
@@ -595,8 +641,7 @@ export function AdminConsultingManagement() {
                   if (!label) { alert("카테고리 이름을 입력해주세요."); return; }
                   const { error } = await supabase
                     .from(CONSULTING_CATEGORIES_TABLE)
-                    .update({ label })
-                    .eq("id", cat.id);
+                    .upsert({ id: cat.id, label, display_order: cat.display_order });
                   if (error) alert("카테고리 수정 실패: " + error.message);
                 }}
                 style={{ padding: "10px 16px", borderRadius: 10, border: `1px solid ${labelBorder}`, background: selectedBg, color: textMain, fontWeight: 800, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}

@@ -1,3 +1,58 @@
+## 2026-05-15 QA 카탈로그 선택형 정리
+
+- `CODEX_QA.md`에 번호 기반 QA 카탈로그를 추가해 `썸네일 에디터 및 동적 폼 시각적 무결성 검증 (Visual & UI)`를 1번 항목으로 고정했다.
+- QA 진행 중 중간 텍스트 보고를 생략하고, 종료 후 `RESULT.md` 기준 최종 리포트만 전달하는 규칙을 문서화했다.
+- 검증: `npm run validate` ✅
+
+## 2026-05-15 관리자 콘텐츠 작성 UI 시각적 무결성 QA
+
+- visible 인앱 브라우저로 `게시물 작성`/`게시물 관리` 흐름을 검증했고, 카테고리 전환과 `AdvancedThumbnailEditor` 모달 자체는 안정적이었다.
+- 긴 뉴스레터 편집 화면의 하단에서는 고정 플로팅 네비가 본문과 이미지를 일부 가리는 시각적 간섭을 확인했다.
+- 검증: 브라우저 QA 실행만 수행, 코드 변경 없음으로 `npm run validate` 생략 기록.
+
+## 2026-05-15 관리자 콘텐츠 작성 UI 시각적 무결성 QA 재정리
+
+- 방금 수행한 관리자 콘텐츠 작성 시각 QA를 `썸네일 에디터 및 동적 폼 시각적 무결성 검증 (Visual & UI)`로 QA 카탈로그 1번 항목에 고정할 수 있도록 문서화하는 작업을 준비했다.
+- QA 중간 텍스트 보고를 생략하고 종료 후 최종 리포트만 전달하는 운영 규칙을 `CODEX_QA.md`에 추가했다.
+
+## 2026-05-15 관리자 로그인/MFA QA 실행
+
+- visible 인앱 브라우저에서 `qa@test.com` 로그인 입력 반영, OTP 챌린지, `Secret_Key` 기반 TOTP 인증, `/admin` 진입, `/mypage`의 관리자 MFA 활성 상태를 확인했다.
+- 로그인 폼 입력 fallback은 이번 실행에서 필요하지 않았고, OTP 제출 후 짧은 처리 뒤 `/admin`으로 정상 리다이렉트됐다.
+- 검증: 브라우저 QA 실행만 수행, 코드 변경 없음으로 `npm run validate` 생략 기록.
+
+## 2026-05-15 QA 시 인앱 브라우저 자동 노출 규칙 문서화
+
+- `qa` 요청 시에는 별도 요청이 없어도 인앱 브라우저를 visible 상태로 직접 띄우는 규칙을 `AGENTS.md`, `CODEX_QA.md`, `docs/AGENT_RULES.md`에 반영했다.
+- 일반 탐색/비QA 작업에는 영향을 주지 않고, 사용자가 백그라운드 점검만 원할 때는 예외로 숨김 검증을 허용하도록 범위를 제한했다.
+- 검증: `npm run validate` ✅
+
+## 2026-05-15 관리자 로그인 자동화 문서 보강
+
+- `CODEX_QA.md`에 관리자 로그인 자동화 우회 절차를 추가해 로그인 폼 입력 반영 여부를 OTP 단계보다 먼저 확인하도록 정리했다.
+- OTP 자동 입력이 인증 앱 화면 판독이 아니라 `Secret_Key` 기반 실시간 TOTP 계산이라는 점과, MFA 재등록 시 시크릿 최신화 필요성을 문서화했다.
+- 검증: 문서 반영 수동 확인 완료, 당시 `npm run validate`는 문서 변경만 있어 생략 기록.
+
+## 2026-05-15 관리자 MFA 분실 복구 + 권한 강등 시 MFA 자동 초기화
+
+- `admin → user/participant`로 권한을 내리면 대상 사용자의 MFA factor가 서버(Auth)에서 자동 삭제되도록 정리했다.
+- 같은 계정을 다시 관리자로 승격하면 예전 OTP를 재사용하지 않고, 항상 새 MFA 등록부터 시작하도록 맞췄다.
+- 다른 관리자가 회원관리 화면에서 대상 관리자의 MFA를 강제로 초기화할 수 있는 복구 경로를 추가했다.
+- 검증: `npm run validate` ✅, Edge Function 배포(`update-user-role`, `reset-mfa`) 완료 ✅
+
+## 2026-05-15 관리자 MFA 중복 factor 복구 + 로그인 플로우 정상화
+
+- `listFactors().all` 기준으로 `verified`/`unverified` TOTP factor를 구분하는 공통 헬퍼를 추가했다.
+- `MyPage`를 미설정/미완료/완료 3상태로 분리해 pending factor가 남아 있으면 OTP 마무리 또는 초기화 후 재설정으로 유도했다.
+- `LoginPage` OTP 검증은 `challengeAndVerify()` + 세션 토큰 재반영으로 정리했다.
+- 검증: `npm run validate` ✅, 인앱 브라우저에서 `qa@test.com`의 pending MFA 복구 UI 노출 확인 ✅
+
+## 2026-05-15 아키텍처 맵 색상 반영 누락 후속 수정
+
+- 개인용 Electron 아키텍처 맵에서 노드 카드와 클러스터 박스가 클러스터별 고유 색으로 구분되도록 명시 팔레트(`blue/green/purple/red/yellow`) 기반 SVG fill 로직으로 교체했다.
+- `LiveArchitectureMap.tsx`의 노드 카드/클러스터 박스/상단 accent bar가 CSS 변수 `color-mix(...)` 조합에 의존하지 않도록 수정했다.
+- 검증: `npm run validate` ✅, `npm run map:build` ✅, `npm run app:pack` ✅
+
 # RESULT: 웹사이트 통합 테스트 및 디버그
 
 ## 실행일

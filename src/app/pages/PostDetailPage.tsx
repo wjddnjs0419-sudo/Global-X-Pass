@@ -45,6 +45,15 @@ import {
 } from "../../utils/postThumbnail";
 import { AdvancedThumbnailEditor } from "../components/admin/AdvancedThumbnailEditor";
 import { getBackLinkStyle } from "../components/contentListStyles";
+import {
+  composeLocalDateTimeIso,
+  getDayOptions,
+  getHourOptions,
+  getMinuteOptions,
+  getMonthOptions,
+  getYearOptions,
+  parseDateTimeParts,
+} from "../../utils/scheduleFields";
 
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
@@ -132,6 +141,11 @@ export function PostDetailPage() {
   const { presets: tagPresets, addTag, hideTag } = useBoardTagPresets(postCategory);
   const [editEventStatus, setEditEventStatus] = useState("접수예정");
   const [editEventDate, setEditEventDate] = useState("");
+  const [editDeadlineY, setEditDeadlineY] = useState("");
+  const [editDeadlineM, setEditDeadlineM] = useState("");
+  const [editDeadlineD, setEditDeadlineD] = useState("");
+  const [editDeadlineH, setEditDeadlineH] = useState("");
+  const [editDeadlineMinute, setEditDeadlineMinute] = useState("00");
   const [editLocation, setEditLocation] = useState("");
   const [editCapacity, setEditCapacity] = useState("");
   const [editFiles, setEditFiles] = useState<File[]>([]);
@@ -149,6 +163,14 @@ export function PostDetailPage() {
   const card = "var(--color-surface-card)";
   const canRenderAdminControls = !adminLoading && isAdmin && !mfaRequired && mfaEnrolled;
   const editFieldStyle = { padding: "12px 16px", borderRadius: 10, background: "var(--color-field-bg)", border: `1px solid ${border}`, color: textMain, outline: "none", fontSize: 14 };
+  const deadlineYears = useMemo(() => {
+    const years = getYearOptions();
+    return editDeadlineY && !years.includes(editDeadlineY) ? [editDeadlineY, ...years] : years;
+  }, [editDeadlineY]);
+  const deadlineMonths = useMemo(() => getMonthOptions(), []);
+  const deadlineDays = useMemo(() => getDayOptions(editDeadlineY, editDeadlineM), [editDeadlineM, editDeadlineY]);
+  const deadlineHours = useMemo(() => getHourOptions(), []);
+  const deadlineMinutes = useMemo(() => getMinuteOptions(), []);
 
   const applyPostData = (data: Post, viewDelta = 0) => {
     setPost({ ...data, views: (data.views || 0) + viewDelta } as Post);
@@ -160,6 +182,12 @@ export function PostDetailPage() {
     setExistingImages(data.image_url ? data.image_url.split(",") : []);
     setEditEventStatus(data.event_status || "접수예정");
     setEditEventDate(data.event_date || "");
+    const deadlineParts = parseDateTimeParts(data.application_deadline);
+    setEditDeadlineY(deadlineParts.year);
+    setEditDeadlineM(deadlineParts.month);
+    setEditDeadlineD(deadlineParts.day);
+    setEditDeadlineH(deadlineParts.hour);
+    setEditDeadlineMinute(deadlineParts.minute);
     setEditLocation(data.location || "");
     setEditCapacity(data.capacity != null ? String(data.capacity) : "");
   };
@@ -397,6 +425,7 @@ export function PostDetailPage() {
             ...(isEvent ? {
               event_status: editEventStatus,
               event_date: editEventDate || null,
+              application_deadline: composeLocalDateTimeIso(editDeadlineY, editDeadlineM, editDeadlineD, editDeadlineH, editDeadlineMinute),
               location: editLocation || null,
               capacity: editCapacity ? Number(editCapacity) : null,
             } : {}),
@@ -701,6 +730,37 @@ export function PostDetailPage() {
                     <label style={{ fontSize: 12, fontWeight: 600, color: textMuted }}>정원 (명)</label>
                     <input type="number" min={0} style={editFieldStyle} placeholder="200" value={editCapacity} onChange={e => setEditCapacity(e.target.value)} />
                   </div>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: textMuted }}>신청 마감일시 (선택)</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-5" style={{ gap: 8 }}>
+                    <select style={editFieldStyle} value={editDeadlineY} onChange={e => { const y = e.target.value; setEditDeadlineY(y); if (Number(editDeadlineD) > getDayOptions(y, editDeadlineM).length) setEditDeadlineD(""); }}>
+                      <option value="">연도</option>
+                      {deadlineYears.map(year => <option key={year} value={year}>{year}</option>)}
+                    </select>
+                    <select style={editFieldStyle} value={editDeadlineM} onChange={e => { const m = e.target.value; setEditDeadlineM(m); if (Number(editDeadlineD) > getDayOptions(editDeadlineY, m).length) setEditDeadlineD(""); }}>
+                      <option value="">월</option>
+                      {deadlineMonths.map(month => <option key={month} value={month}>{month}</option>)}
+                    </select>
+                    <select style={editFieldStyle} value={editDeadlineD} onChange={e => setEditDeadlineD(e.target.value)}>
+                      <option value="">일</option>
+                      {deadlineDays.map(day => <option key={day} value={day}>{day}</option>)}
+                    </select>
+                    <select style={editFieldStyle} value={editDeadlineH} onChange={e => setEditDeadlineH(e.target.value)}>
+                      <option value="">시</option>
+                      {deadlineHours.map(hour => <option key={hour} value={hour}>{hour}시</option>)}
+                    </select>
+                    <select style={editFieldStyle} value={editDeadlineMinute} onChange={e => setEditDeadlineMinute(e.target.value)}>
+                      {deadlineMinutes.map(minute => <option key={minute} value={minute}>{minute}분</option>)}
+                    </select>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setEditDeadlineY(""); setEditDeadlineM(""); setEditDeadlineD(""); setEditDeadlineH(""); setEditDeadlineMinute("00"); }}
+                    style={{ alignSelf: "flex-start", border: "none", background: "transparent", color: textMuted, fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0 }}
+                  >
+                    마감일시 비우기
+                  </button>
                 </div>
               </div>
             )}

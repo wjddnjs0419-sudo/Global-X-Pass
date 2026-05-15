@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { PageShell } from "../components/PageShell";
 import { useTheme } from "../ThemeContext";
 import { getFilterTabStyle, getMutedLabelStyle } from "../components/contentListStyles";
@@ -31,10 +31,18 @@ const ALL: Result[] = [
 const FILTERS = ["전체", "공지", "행사", "미디어", "자료", "블로그", "FAQ", "아카이브"];
 const POPULAR = ["창구 프로그램", "데모데이", "IR 템플릿", "동남아", "Google Play"];
 
+// 개발자 전용 숨김 진입점: 이 검색어로 검색 시 디자인 시스템 페이지로 이동 (관리자만 접근 가능)
+const DESIGN_SYSTEM_QUERY = "elwkdlstltmxpa";
+
 export function SearchPage() {
   const { isDark } = useTheme();
+  const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("전체");
+
+  const handleSearch = () => {
+    if (query.trim().toLowerCase() === DESIGN_SYSTEM_QUERY) navigate("/design-system");
+  };
 
 
   const results = useMemo(() => {
@@ -74,6 +82,7 @@ export function SearchPage() {
           </button>
         )}
         <button
+          onClick={handleSearch}
           className="px-[22px] py-3 rounded-xl border-none text-white text-[14px] font-bold cursor-pointer font-['Pretendard',sans-serif]"
           style={{ background: "var(--color-accent-blue)" }}
         >

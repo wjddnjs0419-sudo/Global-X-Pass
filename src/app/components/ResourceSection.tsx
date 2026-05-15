@@ -10,7 +10,7 @@ import { Skeleton } from "./ui/skeleton";
 interface ResourceSectionProps { isDark?: boolean; }
 
 export function ResourceSection({ isDark = false }: ResourceSectionProps) {
-  const th = getSectionTheme(isDark);
+  const th = getSectionTheme();
   const navigate = useNavigate();
   const [resources, setResources] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);

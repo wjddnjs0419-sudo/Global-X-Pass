@@ -23,17 +23,18 @@ export function useBoardTagPresets(boardId: string) {
     const refresh = async () => {
       const { data } = await supabase
         .from("board_tag_presets")
-        .select("tag")
+        .select("tag, is_hidden")
         .eq("board_id", boardId)
-        .eq("is_hidden", false)
         .order("sort_order", { ascending: true })
         .order("created_at", { ascending: true });
 
       if (!mounted) return;
-      if (data && data.length > 0) {
-        setPresets(data.map((r) => r.tag));
-      } else {
+      if (!data || data.length === 0) {
+        // DB에 한 번도 커스터마이징된 적 없는 게시판 → 기본 프리셋 사용
         setPresets(getDefaultPresets(boardId));
+      } else {
+        // 커스터마이징된 게시판 → 숨김 제외한 목록만 표시 (전부 숨기면 빈 배열)
+        setPresets(data.filter((r) => !r.is_hidden).map((r) => r.tag));
       }
     };
 
@@ -57,6 +58,7 @@ export function useBoardTagPresets(boardId: string) {
   const addTag = async (tag: string) => {
     const trimmed = tag.trim();
     if (!trimmed || !boardId) return;
+    setPresets((prev) => prev.includes(trimmed) ? prev : [...prev, trimmed]);
     await supabase
       .from("board_tag_presets")
       .upsert({ board_id: boardId, tag: trimmed, is_hidden: false }, { onConflict: "board_id,tag" });
@@ -64,6 +66,7 @@ export function useBoardTagPresets(boardId: string) {
 
   const hideTag = async (tag: string) => {
     if (!boardId) return;
+    setPresets((prev) => prev.filter((t) => t !== tag));
     await supabase
       .from("board_tag_presets")
       .upsert({ board_id: boardId, tag, is_hidden: true }, { onConflict: "board_id,tag" });
