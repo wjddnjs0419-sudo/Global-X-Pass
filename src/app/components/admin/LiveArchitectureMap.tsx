@@ -16,6 +16,9 @@ declare global {
       readQaRuns: () => Promise<QaRunsResult>;
       triggerQaRun: (suite: QaSuiteId) => Promise<QaTriggerResult>;
       runVisibleQa: (suite: QaSuiteId) => Promise<QaVisibleResult>;
+      getQaCredentialsStatus: () => Promise<{ ok: boolean; connected: boolean }>;
+      saveQaCredentials: (credentials: QaCredentialsInput) => Promise<{ ok: boolean; connected: boolean; error?: string }>;
+      clearQaCredentials: () => Promise<{ ok: boolean; connected: boolean }>;
       getGithubTokenStatus: () => Promise<{ ok: boolean; connected: boolean }>;
       saveGithubToken: (token: string) => Promise<{ ok: boolean; connected: boolean; error?: string; statusCode?: number | null }>;
       clearGithubToken: () => Promise<{ ok: boolean; connected: boolean }>;
@@ -140,6 +143,12 @@ type QaTriggerResult =
 type QaVisibleResult =
   | { ok: true; suite: QaSuiteId; mode: "local-visible"; startedAt: string }
   | { ok: false; error: string; statusCode?: number | null };
+
+type QaCredentialsInput = {
+  email: string;
+  password: string;
+  mfaSecret: string;
+};
 
 type BlogImportRun = {
   id: string;
@@ -546,6 +555,10 @@ export function LiveArchitectureMap() {
   const [visibleQaLoading, setVisibleQaLoading] = useState(false);
   const [visibleQaMessage, setVisibleQaMessage] = useState<string | null>(null);
   const [visibleQaError, setVisibleQaError] = useState<string | null>(null);
+  const [qaCredentialsConnected, setQaCredentialsConnected] = useState(false);
+  const [qaCredentialsInput, setQaCredentialsInput] = useState<QaCredentialsInput>({ email: "", password: "", mfaSecret: "" });
+  const [qaCredentialsSaving, setQaCredentialsSaving] = useState(false);
+  const [qaCredentialsError, setQaCredentialsError] = useState<string | null>(null);
   const [githubTokenConnected, setGithubTokenConnected] = useState(false);
   const [githubTokenInput, setGithubTokenInput] = useState("");
   const [githubTokenSaving, setGithubTokenSaving] = useState(false);
@@ -651,6 +664,39 @@ export function LiveArchitectureMap() {
     setQaRuns([]);
   };
 
+  const saveQaCredentials = async () => {
+    if (!window.electronAPI?.saveQaCredentials) return;
+    const email = qaCredentialsInput.email.trim();
+    const password = qaCredentialsInput.password;
+    const mfaSecret = qaCredentialsInput.mfaSecret.trim();
+    if (!email || !password || !mfaSecret) {
+      setQaCredentialsError("이메일, 비밀번호, MFA secret을 모두 입력해 주세요.");
+      return;
+    }
+
+    setQaCredentialsSaving(true);
+    setQaCredentialsError(null);
+    const result = await window.electronAPI.saveQaCredentials({ email, password, mfaSecret });
+    setQaCredentialsSaving(false);
+
+    if (result.ok !== true) {
+      setQaCredentialsConnected(false);
+      setQaCredentialsError(result.error ?? "QA 계정 저장에 실패했습니다.");
+      return;
+    }
+
+    setQaCredentialsConnected(true);
+    setQaCredentialsInput({ email: "", password: "", mfaSecret: "" });
+  };
+
+  const clearQaCredentials = async () => {
+    if (!window.electronAPI?.clearQaCredentials) return;
+    await window.electronAPI.clearQaCredentials();
+    setQaCredentialsConnected(false);
+    setQaCredentialsInput({ email: "", password: "", mfaSecret: "" });
+    setQaCredentialsError(null);
+  };
+
   const triggerQaRun = async (suite: QaSuiteId) => {
     if (!window.electronAPI?.triggerQaRun) {
       setQaTriggerError("아키텍처 앱에서만 QA 실행을 요청할 수 있습니다.");
@@ -752,6 +798,13 @@ export function LiveArchitectureMap() {
     if (!window.electronAPI?.getGithubTokenStatus) return;
     void window.electronAPI.getGithubTokenStatus().then((result) => {
       if (result.ok) setGithubTokenConnected(result.connected);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!window.electronAPI?.getQaCredentialsStatus) return;
+    void window.electronAPI.getQaCredentialsStatus().then((result) => {
+      if (result.ok) setQaCredentialsConnected(result.connected);
     });
   }, []);
 
@@ -1616,10 +1669,17 @@ export function LiveArchitectureMap() {
               visibleQaMessage={visibleQaMessage}
               visibleQaError={visibleQaError}
               qaTokenConnected={githubTokenConnected}
+              qaCredentialsConnected={qaCredentialsConnected}
+              qaCredentialsInput={qaCredentialsInput}
+              qaCredentialsSaving={qaCredentialsSaving}
+              qaCredentialsError={qaCredentialsError}
               syncLoading={blogSyncLoading}
               syncResult={blogSyncResult}
               syncError={blogSyncError}
               onQaSuiteChange={setSelectedQaSuite}
+              onQaCredentialsInputChange={(patch) => setQaCredentialsInput((current) => ({ ...current, ...patch }))}
+              onSaveQaCredentials={() => { void saveQaCredentials(); }}
+              onClearQaCredentials={() => { void clearQaCredentials(); }}
               onTriggerQaRun={() => { void triggerQaRun(selectedQaSuite); }}
               onRunVisibleQa={() => { void runVisibleQa(selectedQaSuite); }}
               onTriggerBlogSync={() => { void triggerBlogSync(); }}
@@ -2139,10 +2199,17 @@ function OperationsSidebar({
   visibleQaMessage,
   visibleQaError,
   qaTokenConnected,
+  qaCredentialsConnected,
+  qaCredentialsInput,
+  qaCredentialsSaving,
+  qaCredentialsError,
   syncLoading,
   syncResult,
   syncError,
   onQaSuiteChange,
+  onQaCredentialsInputChange,
+  onSaveQaCredentials,
+  onClearQaCredentials,
   onTriggerQaRun,
   onRunVisibleQa,
   onTriggerBlogSync,
@@ -2155,10 +2222,17 @@ function OperationsSidebar({
   visibleQaMessage: string | null;
   visibleQaError: string | null;
   qaTokenConnected: boolean;
+  qaCredentialsConnected: boolean;
+  qaCredentialsInput: QaCredentialsInput;
+  qaCredentialsSaving: boolean;
+  qaCredentialsError: string | null;
   syncLoading: boolean;
   syncResult: BlogSyncResult | null;
   syncError: string | null;
   onQaSuiteChange: (suite: QaSuiteId) => void;
+  onQaCredentialsInputChange: (patch: Partial<QaCredentialsInput>) => void;
+  onSaveQaCredentials: () => void;
+  onClearQaCredentials: () => void;
   onTriggerQaRun: () => void;
   onRunVisibleQa: () => void;
   onTriggerBlogSync: () => void;
@@ -2215,6 +2289,54 @@ function OperationsSidebar({
             ? "앱에 저장된 GitHub token으로 바로 실행할 수 있습니다."
             : "앱 저장 token이 없으면 fallback env(GXP_GITHUB_TOKEN / GITHUB_TOKEN / GH_TOKEN)에 의존합니다."}
         </div>
+        <div style={{ border: `1px solid ${qaCredentialsConnected ? "#1f4a2a" : "#2a2a2a"}`, background: qaCredentialsConnected ? "#0f1f14" : "#111", borderRadius: 8, padding: 10, marginBottom: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 8 }}>
+            <span style={{ color: qaCredentialsConnected ? "#34a853" : "#8a8a8a", fontSize: 11, fontWeight: 900 }}>
+              Visible QA 계정 {qaCredentialsConnected ? "저장됨" : "미저장"}
+            </span>
+            {qaCredentialsConnected && (
+              <button type="button" onClick={onClearQaCredentials} style={compactDangerButtonStyle}>
+                삭제
+              </button>
+            )}
+          </div>
+          <div style={{ color: "#8a8a8a", fontSize: 10, lineHeight: 1.5, marginBottom: 8 }}>
+            저장하면 로컬 Visible 실행 때 터미널에 직접 입력하지 않아도 됩니다. 값은 이 Mac의 앱 userData에만 저장됩니다.
+          </div>
+          {!qaCredentialsConnected && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 6 }}>
+              <input
+                type="email"
+                value={qaCredentialsInput.email}
+                onChange={(event) => onQaCredentialsInputChange({ email: event.currentTarget.value })}
+                placeholder="QA admin email"
+                style={compactInputStyle}
+              />
+              <input
+                type="password"
+                value={qaCredentialsInput.password}
+                onChange={(event) => onQaCredentialsInputChange({ password: event.currentTarget.value })}
+                placeholder="QA admin password"
+                style={compactInputStyle}
+              />
+              <input
+                type="password"
+                value={qaCredentialsInput.mfaSecret}
+                onChange={(event) => onQaCredentialsInputChange({ mfaSecret: event.currentTarget.value })}
+                placeholder="QA MFA secret"
+                style={compactInputStyle}
+              />
+              <button type="button" onClick={onSaveQaCredentials} disabled={qaCredentialsSaving} style={{ ...compactButtonStyle, justifyContent: "center" }}>
+                {qaCredentialsSaving ? "저장중" : "Visible QA 계정 저장"}
+              </button>
+            </div>
+          )}
+          {qaCredentialsError && (
+            <div style={{ color: "#ffb4b4", fontSize: 10, lineHeight: 1.5, marginTop: 7 }}>
+              {qaCredentialsError}
+            </div>
+          )}
+        </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 8 }}>
           <button
             type="button"
@@ -2256,7 +2378,7 @@ function OperationsSidebar({
           </button>
         </div>
         <div style={{ color: "#8a8a8a", fontSize: 10, lineHeight: 1.5, marginTop: 9 }}>
-          로컬 Visible 실행은 iTerm/Terminal을 열고 Chromium을 실제 화면에 띄웁니다. `.env.qa` 또는 shell env에 `QA_ADMIN_EMAIL`, `QA_ADMIN_PASSWORD`, `QA_ADMIN_MFA_SECRET`가 필요합니다.
+          로컬 Visible 실행은 iTerm/Terminal을 열고 Chromium을 실제 화면에 띄웁니다. 저장된 QA 계정, `.env.qa`, shell env 순서로 credentials를 사용합니다.
         </div>
         {qaTriggerError && (
           <div style={{ color: "#ffb4b4", borderLeft: "3px solid #ea4335", background: "#1a1010", padding: "8px 10px", fontSize: 11, lineHeight: 1.6, marginTop: 12 }}>
@@ -2745,6 +2867,17 @@ const compactDangerButtonStyle: CSSProperties = {
   color: "#ffb4b4",
   border: "1px solid #3a2020",
   background: "#1a1010",
+};
+
+const compactInputStyle: CSSProperties = {
+  minWidth: 0,
+  border: "1px solid #2a2a2a",
+  background: "#1c1c1c",
+  color: "#e8e8e8",
+  borderRadius: 6,
+  padding: "8px 9px",
+  fontSize: 11,
+  outline: "none",
 };
 
 const linkButtonStyle: CSSProperties = {

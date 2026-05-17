@@ -27,6 +27,7 @@ const GITHUB_REPO = "Global-X-Pass";
 const QA_WORKFLOW_FILE = "qa-dispatch.yml";
 const QA_WORKFLOW_REF = "main";
 const GITHUB_TOKEN_FILE = "github-token.txt";
+const QA_CREDENTIALS_FILE = "qa-credentials.env";
 const QA_TEST_SUITES = new Set(["smoke", "admin-auth", "admin-post-cud", "admin-program-mgmt", "all"]);
 const QA_VISIBLE_SPECS_BY_SUITE = {
   smoke: ["tests/qa/production-smoke.spec.ts", "tests/qa/admin-complex.spec.ts"],
@@ -38,6 +39,10 @@ const QA_VISIBLE_SPECS_BY_SUITE = {
 
 function getGithubTokenPath() {
   return path.join(app.getPath("userData"), GITHUB_TOKEN_FILE);
+}
+
+function getQaCredentialsPath() {
+  return path.join(app.getPath("userData"), QA_CREDENTIALS_FILE);
 }
 
 function readStoredGithubToken() {
@@ -59,6 +64,42 @@ function writeStoredGithubToken(token) {
 function clearStoredGithubToken() {
   try {
     fs.rmSync(getGithubTokenPath(), { force: true });
+  } catch {}
+}
+
+function escapeEnvValue(value) {
+  return String(value ?? "").replace(/'/g, "'\\''");
+}
+
+function hasStoredQaCredentials() {
+  return fs.existsSync(getQaCredentialsPath());
+}
+
+function writeStoredQaCredentials(credentials) {
+  const email = String(credentials?.email || "").trim();
+  const password = String(credentials?.password || "");
+  const mfaSecret = String(credentials?.mfaSecret || "").trim();
+  if (!email || !password || !mfaSecret) {
+    throw new Error("QA email, password, and MFA secret are required");
+  }
+
+  const credentialsPath = getQaCredentialsPath();
+  fs.mkdirSync(path.dirname(credentialsPath), { recursive: true });
+  fs.writeFileSync(
+    credentialsPath,
+    [
+      `QA_ADMIN_EMAIL='${escapeEnvValue(email)}'`,
+      `QA_ADMIN_PASSWORD='${escapeEnvValue(password)}'`,
+      `QA_ADMIN_MFA_SECRET='${escapeEnvValue(mfaSecret)}'`,
+      "",
+    ].join("\n"),
+    { mode: 0o600 },
+  );
+}
+
+function clearStoredQaCredentials() {
+  try {
+    fs.rmSync(getQaCredentialsPath(), { force: true });
   } catch {}
 }
 
@@ -221,6 +262,7 @@ function buildVisibleQaCommand(suiteInput) {
   const specs = QA_VISIBLE_SPECS_BY_SUITE[suite] ?? [];
   const specArgs = specs.map(shellQuote).join(" ");
   const testCommand = `npx playwright test${specArgs ? ` ${specArgs}` : ""} --headed --project=chromium`;
+  const qaCredentialsPath = getQaCredentialsPath();
 
   return [
     "run_visible_qa() {",
@@ -228,6 +270,10 @@ function buildVisibleQaCommand(suiteInput) {
     "  if [ -f .env.qa ]; then",
     "    printf 'Loading .env.qa for QA credentials...\\n';",
     "    set -a; source .env.qa; set +a;",
+    "  fi;",
+    `  if [ -f ${shellQuote(qaCredentialsPath)} ]; then`,
+    "    printf 'Loading saved app QA credentials...\\n';",
+    `    set -a; source ${shellQuote(qaCredentialsPath)}; set +a;`,
     "  fi;",
     "  missing=0;",
     "  for name in QA_ADMIN_EMAIL QA_ADMIN_PASSWORD QA_ADMIN_MFA_SECRET; do",
@@ -451,6 +497,28 @@ function createWindow() {
     }
   });
 
+  ipcMain.handle("qa-credentials:get-status", () => {
+    return { ok: true, connected: hasStoredQaCredentials() };
+  });
+
+  ipcMain.handle("qa-credentials:save", (_event, credentials) => {
+    try {
+      writeStoredQaCredentials(credentials);
+      return { ok: true, connected: true };
+    } catch (err) {
+      return {
+        ok: false,
+        connected: false,
+        error: String(err?.message ?? err),
+      };
+    }
+  });
+
+  ipcMain.handle("qa-credentials:clear", () => {
+    clearStoredQaCredentials();
+    return { ok: true, connected: false };
+  });
+
   ipcMain.handle("github-token:get-status", () => {
     return { ok: true, connected: Boolean(readStoredGithubToken()) };
   });
@@ -495,6 +563,9 @@ function createWindow() {
     ipcMain.removeHandler("qa:read-runs");
     ipcMain.removeHandler("qa:trigger-run");
     ipcMain.removeHandler("qa:run-visible");
+    ipcMain.removeHandler("qa-credentials:get-status");
+    ipcMain.removeHandler("qa-credentials:save");
+    ipcMain.removeHandler("qa-credentials:clear");
     ipcMain.removeHandler("github-token:get-status");
     ipcMain.removeHandler("github-token:save");
     ipcMain.removeHandler("github-token:clear");

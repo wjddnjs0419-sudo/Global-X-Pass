@@ -1,3 +1,27 @@
+# RESULT: 로컬 Visible QA 계정 앱 저장 지원 (2026-05-17)
+
+## 현재 상태
+아키텍처 앱 `Ops` 탭에서 `Visible QA 계정`을 저장하면 이후 `로컬 Visible 실행` 시 터미널에 이메일/비밀번호/MFA secret을 직접 입력하지 않아도 된다. 저장값은 GitHub token과 같은 앱 로컬 userData 영역에만 보관되며, 터미널 명령에는 secret 원문을 노출하지 않고 저장된 env 파일을 source한다.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `electron/main.cjs` | `qa-credentials:get-status/save/clear` IPC 추가, `qa-credentials.env` 저장/삭제, Visible QA 실행 시 저장 credentials 자동 source |
+| `electron/preload.cjs` | renderer bridge에 QA credentials IPC 추가 |
+| `src/app/components/admin/LiveArchitectureMap.tsx` | Ops 탭에 `Visible QA 계정` 저장/삭제 UI 추가. 저장 후에는 입력칸을 비우고 저장 여부만 표시 |
+| `CODEX_QA.md`, `PLAN.md`, `RESULT.md` | 앱 저장 방식과 fallback 우선순위 문서화 |
+
+## 동작 우선순위
+Visible QA는 저장된 앱 credentials를 우선 사용하고, 없으면 `.env.qa`, shell env, 터미널 prompt 순서로 fallback한다.
+
+## 검증 결과
+- `node --check electron/main.cjs && node --check electron/preload.cjs` ✅
+- `npm run validate` ✅
+- `npm run map:build` ✅
+- `npm run app:pack` ✅
+
+---
+
 # RESULT: 로컬 Visible QA env 안내 및 zsh 종료 코드 오류 수정 (2026-05-17)
 
 ## 현재 상태
