@@ -64,7 +64,7 @@ QA를 시작할 때는 아래 번호 또는 항목명을 골라 진행한다. �
    - 선택값: `smoke`, `admin-auth`, `admin-post-cud`, `admin-program-mgmt`, `all`
    - 핵심: 운영자가 필요한 suite만 직접 실행한다. cron 기반 자동 실행은 사용하지 않는다.
    - 실행 모드: `GitHub 실행`은 Actions에서 백그라운드로 수행하고, `로컬 Visible 실행`은 현재 Mac의 iTerm/Terminal에서 `--headed` Playwright를 실행해 Chromium 진행 화면을 직접 보여준다.
-   - 로컬 Visible 준비: 저장소 루트에서 `cp .env.qa.example .env.qa` 후 `QA_ADMIN_EMAIL`, `QA_ADMIN_PASSWORD`, `QA_ADMIN_MFA_SECRET`를 채우거나 shell env로 export한다. 앱은 이 비밀값을 저장하지 않으며, GitHub Secrets 값은 보안상 로컬로 다시 읽어올 수 없다.
+   - 로컬 Visible 준비: 저장소 루트에서 `cp .env.qa.example .env.qa` 후 `QA_ADMIN_EMAIL`, `QA_ADMIN_PASSWORD`, `QA_ADMIN_MFA_SECRET`를 채우거나 shell env로 export한다. 둘 다 없으면 열린 터미널에서 이번 실행용 값을 직접 입력한다. 앱은 이 비밀값을 저장하지 않으며, GitHub Secrets 값은 보안상 로컬로 다시 읽어올 수 없다.
    - 데이터 안전: CUD suite는 `QA_E2E_<runId>_...` prefix 데이터만 만들고 정리해야 한다.
 
 ## 4. Execution Rule (실행 규칙)
