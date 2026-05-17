@@ -1,3 +1,208 @@
+# RESULT: QA 자동화 고도화 및 On-Demand 실행 환경 구축 (2026-05-17)
+
+## 현재 상태
+cron 기반 daily QA를 제거하고, 아키텍처 앱 `Ops` 탭에서 원하는 QA suite를 직접 선택 실행하는 On-Demand QA 구조로 전환했다. GitHub Actions workflow는 `qa-dispatch.yml`로 바뀌었고, `workflow_dispatch.test_suite`는 `smoke`, `admin-auth`, `admin-post-cud`, `admin-program-mgmt`, `all` 허용값만 받는다.
+
+Playwright 테스트는 공통 인증 유틸을 사용하도록 분리했고, 기존 MFA TOTP 값 로그 출력은 제거했다. 관리자 CUD 테스트는 `QA_E2E_<runId>_...` prefix를 사용하며, 생성한 테스트 데이터만 정리하는 경로를 포함한다.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `.github/workflows/qa-dispatch.yml` | 신규 On-Demand QA workflow. `test_suite` choice input으로 suite별 Playwright spec 실행 |
+| `.github/workflows/daily-qa.yml` | cron 기반 daily workflow 제거 |
+| `tests/qa/utils/auth.ts` | 관리자 로그인/MFA/로그아웃 공통 유틸, `QA_E2E` title helper 추가 |
+| `tests/qa/admin-auth.spec.ts` | 관리자 로그인, MFA, 로그아웃, 권한 가드 suite |
+| `tests/qa/admin-complex.spec.ts` | 경량 smoke/visual suite로 축소 |
+| `tests/qa/admin-post-cud.spec.ts` | 공지/뉴스/행사/미디어 게시물 생성/수정/삭제 suite |
+| `tests/qa/admin-program-mgmt.spec.ts` | 컨설팅/Founders Club 관리 CUD 기본 suite |
+| `electron/main.cjs`, `electron/preload.cjs` | `qa-dispatch.yml` dispatch, suite allowlist, suite metadata 반환 |
+| `src/app/components/admin/LiveArchitectureMap.tsx` | Ops 탭 suite 선택 UI, trigger payload, Alerts/Incident Feed suite 표시 |
+| `CODEX_QA.md`, `docs/AGENT_RULES.md`, `PLAN.md` | On-Demand QA 운영 규칙과 검증 결과 반영 |
+
+## 검증 결과
+- `npm run validate` ✅
+- `npm run map:build` ✅
+- `npm run app:pack` ✅
+- `npx playwright test tests/qa/production-smoke.spec.ts` ✅
+- `QA_ADMIN_EMAIL=qa@example.com QA_ADMIN_PASSWORD=password QA_ADMIN_MFA_SECRET=... npx playwright test --list` ✅
+
+## 비고
+- 로컬 셸에 실제 `QA_ADMIN_*` 값이 없어 관리자 인증/CUD suite의 실주행은 수행하지 않았다. GitHub Secrets 또는 로컬 환경 변수 연결 후 아키텍처 앱 `Ops` 탭에서 suite별 실행이 필요하다.
+
+---
+
+# RESULT: 아키텍처 맵 앱 고도화 1차 — Incident Feed + 구조 Diff (2026-05-17)
+
+## 현재 상태
+아키텍처 맵 앱의 기본 Map 사이드바에 통합 `Incident Feed`를 추가했다. 이제 열린 `error_issues`, 실패/진행 중인 QA workflow run, 실패/대기/진행 중인 블로그 동기화 run을 한 피드에서 볼 수 있고, 항목별로 관련 노드 또는 GitHub workflow/run 링크로 바로 이동할 수 있다.
+
+구조 새로고침(`map:refresh`) 전후 또는 로컬에 저장된 직전 스냅샷 대비 `architectureMap.json` 변화도 표시한다. 노드/간선 추가·삭제, DEAD 코드 증감, cluster별 노드 수 변화를 Map 사이드바에서 바로 확인할 수 있다.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `src/app/components/admin/LiveArchitectureMap.tsx` | Incident Feed 데이터 정규화, 구조 diff 상태/스냅샷 저장, Map 사이드바 통합, `MapDiffSummary` 추가 |
+| `src/app/components/admin/architecture/IncidentFeed.tsx` | error issue/QA/blog sync를 공통 카드로 보여주는 신규 컴포넌트 |
+| `src/app/components/admin/architecture/mapDiff.ts` | `ArchitectureMap` 스냅샷 비교 헬퍼. 노드/간선/DEAD/cluster 변화량 계산 |
+| `PLAN.md` | 승인 계획을 `[Done]`으로 축약하고 완료 항목 10개 유지 규칙에 맞춰 오래된 완료 항목 2개 정리 |
+
+## 검증 결과
+- `npm run validate` ✅
+- `npm run map:build` ✅
+- `npm run app:pack` ✅
+
+---
+
+# RESULT: QA 자동화 고도화 및 On-Demand 실행 환경 구축 계획 수립 (2026-05-17)
+
+## 현재 상태
+기존 QA 시스템의 허점(단일 블록화, 공통 로직 부재, 표면적 검증)을 분석하고, 이를 개선하기 위한 **원자적(Atomic) 테스트 분리** 및 **아키텍처 앱 연동 On-Demand 실행** 전략을 수립하여 `PLAN.md`에 반영했다. 사용자의 요청에 따라 이번 세션에서는 직접적인 코드 수정 없이 **연구 및 계획 수립**만 수행했다.
+
+## 수립된 계획 요약
+1. **인증 로직 분리**: `tests/qa/utils/auth.ts`를 신설하여 MFA 포함 로그인/로그아웃 로직을 공통화.
+2. **Atomic CUD 테스트**: `admin-post-cud.spec.ts`, `admin-program-mgmt.spec.ts`를 신규 작성하여 실제 데이터 생성~삭제 풀 사이클 검증.
+3. **On-Demand 실행 환경**: GitHub Actions의 `cron`을 제거하고 `workflow_dispatch` 파라미터를 추가하여, 아키텍처 앱 `Ops` 탭 UI에서 원하는 테스트만 골라 실행할 수 있도록 연동.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `PLAN.md` | QA 고도화 및 On-Demand 실행 환경 구축 계획 추가 |
+
+## 검증 결과
+- `PLAN.md` 업데이트 완료 ✅
+- 직접적인 소스 코드 수정 없음 ✅
+
+---
+
+# RESULT: Realtime CHANNEL_ERROR 수정 + 에러 source 정확도 개선 (2026-05-17)
+
+## 현재 상태
+Supabase Realtime 구독 실패(CHANNEL_ERROR/TIMED_OUT) 시 자동 재연결 로직을 추가했고, `LiveArchitectureMap`에서 발생하는 에러 source를 `"admin-page"`에서 `"architecture-map"`으로 정정했다. Electron 앱 재빌드 완료.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `src/app/components/admin/LiveArchitectureMap.tsx` | issuesChannel/logsChannel 모두 CHANNEL_ERROR·TIMED_OUT 시 exponential backoff(2→4→8→16→32초) 최대 5회 재연결. 5회 소진 후에만 로그 기록. logsChannel에 누락된 에러 핸들러 추가. 6곳의 source `"admin-page"` → `"architecture-map"` 변경. |
+| `src/lib/errorLogger.ts` | `NodeId` 타입에 `"architecture-map"` 추가. `FILENAME_TO_NODE`에 `LiveArchitectureMap` → `"architecture-map"` 매핑 추가. |
+
+## 검증 결과
+- `npm run validate` ✅
+- `npm run app:pack` ✅
+
+---
+
+# RESULT: 아키텍처 맵 DEAD 판정 정밀화 + 안전한 미사용 파일 정리 (2026-05-15)
+
+## 현재 상태
+아키텍처 맵의 `DEAD 코드` 판정이 단순 top-level import 기준에서 벗어나 nested dynamic import, Supabase Edge Function 문자열 호출, 아키텍처 앱 별도 entry를 반영한다. 재생성 결과 기존 DEAD 63개가 41개로 줄었고, 실제 미사용으로 확인된 레거시 컴포넌트 4개만 삭제했다. 삭제 후 최종 맵은 162 nodes / 468 edges / DEAD 37개다.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `scripts/generate-architecture-map.mjs` | AST 순회를 재귀 방식으로 바꿔 `React.lazy(() => import(...))` 같은 nested dynamic import를 탐지한다. `supabase.functions.invoke("...")` 호출을 해당 `supabase/functions/<name>/index.ts` 노드와 `api` edge로 연결하고, `src/architecture/main.tsx`를 별도 entry로 보호한다. |
+| `src/generated/architectureMap.json` | 새 생성기 기준으로 맵 데이터를 재생성했다. |
+| `src/app/components/FoundersClubCalendarWidget.tsx` | 현재 import/entry 없음, 과거 홈에서 제거된 레거시 컴포넌트라 삭제했다. |
+| `src/app/components/NoticeSection.tsx` | 현재 홈은 `NoticeResourceSection`을 사용하므로 삭제했다. |
+| `src/app/components/ResourceSection.tsx` | 현재 홈은 `NoticeResourceSection`을 사용하므로 삭제했다. |
+| `src/app/components/figma/ImageWithFallback.tsx` | 현재 import가 없는 Figma 잔여 컴포넌트라 삭제했다. |
+| `docs/AGENT_RULES.md`, `docs/AGENT_ANTI_PATTERNS.md`, `.gemini_prompts/maker_feature.md` | `DEAD 코드`는 삭제 승인 신호가 아니라 정적 힌트라는 운영 규칙을 추가했다. |
+
+## 남긴 항목
+- `AdminFlowMap.tsx`: 현재 import는 없지만 문서상 private architecture-map surface로 언급되어 있어 이번 정리에서는 보존했다.
+- 미사용 shadcn UI primitive: 디자인 시스템 예비 부품일 수 있어 일괄 삭제하지 않았다.
+- `encrypt-profile`, `reset-user-mfa`: 현재 직접 호출 흔적은 약하지만 Edge Function은 배포/외부 호출 영향이 있어 별도 확인 대상으로 남겼다.
+
+## 검증 결과
+- `node scripts/generate-architecture-map.mjs` ✅
+- `npm run validate` ✅
+- `npm run map:build` ✅
+- `npm run app:pack` ✅
+
+---
+
+# RESULT: 아키텍처 앱 Alerts/Ops 재구성 + QA 수동 실행 추가 (2026-05-15)
+
+## 현재 상태
+아키텍처 앱에서 `QA Alerts`를 `Alerts`로 확장하고, `QA`와 `블로그 동기화` 소식을 각각 메일형 인박스로 분리해 볼 수 있게 했다. `Ops` 탭에는 `QA 실행`과 `블로그 동기화 실행`을 함께 배치했다.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `src/app/components/admin/LiveArchitectureMap.tsx` | 탭 구조를 `Map / Alerts / Ops`로 재구성했다. `Alerts` 안에 `QA`와 `블로그 동기화` 인박스를 분리했고, 둘 다 read/unread, 선택, 숨김(삭제) UX를 지원한다. 블로그 쪽은 `blog_import_runs`의 `status`, `discovered_count`, `inserted_count`, `updated_count`, `skipped_count`, `failed_count`, `error`를 사용해 메일형 요약 카드를 만든다. `Ops`에는 `QA 실행`과 `블로그 동기화 실행` 버튼을 함께 배치했다. |
+| `electron/main.cjs` | GitHub Actions `daily-qa.yml`에 `workflow_dispatch` POST를 보내는 `qa:trigger-run` IPC를 추가하고, 기존 GitHub token/fallback env 경로를 재사용하도록 했다. |
+| `electron/preload.cjs` | renderer bridge에 `triggerQaRun()` 추가 |
+| `docs/AGENT_RULES.md` | 아키텍처 앱의 `Alerts`/`Ops` 역할 분리와 QA 수동 실행 workflow 정책 추가 |
+| `docs/AGENT_ANTI_PATTERNS.md` | Electron IPC 결과 union narrowing을 명시 비교로 처리하라는 재발 방지 항목 추가 |
+| `PLAN.md` | 승인 계획 완료 반영 및 완료 항목 개수 정리 |
+
+## 동작 정책
+- `Alerts`는 결과/상태를 보는 곳이고, `Ops`는 수동 작업을 실행하는 곳이다.
+- QA Alerts는 GitHub Actions 원본 run을 삭제하지 않고 앱 로컬 read/hidden 상태만 관리한다.
+- 블로그 Alerts도 `blog_import_runs` 원본 기록을 삭제하지 않고 앱 로컬 read/hidden 상태만 관리한다.
+- QA 수동 실행은 GitHub `daily-qa.yml`을 `main` ref로 dispatch 한다.
+- 블로그 수동 실행은 계속 `sync-naver-blog` Edge Function만 호출하며, admin+AAL2 검증과 `blog_import_runs` 기록, `GITHUB_PAT` 기반 workflow_dispatch/fallback 정책을 유지한다.
+
+## 검증 결과
+- `npm run validate` ✅
+- `npm run map:build` ✅
+- `npm run app:pack` ✅
+- UI smoke: 별도 클릭 검증은 생략. 대신 architecture 번들 빌드와 패키징 앱 생성까지 확인했다.
+
+---
+
+# RESULT: 아키텍처 앱 수동 블로그 동기화 버튼 추가 (2026-05-15)
+
+## 현재 상태
+아키텍처 앱에서 수동으로 Naver 블로그 동기화 작업을 큐잉하고 GitHub Actions dispatch까지 요청할 수 있게 했다.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `src/app/components/admin/LiveArchitectureMap.tsx` | 오른쪽 패널에 `Ops` 탭 추가. `블로그 동기화 실행` 버튼이 `sync-naver-blog` Edge Function을 호출하고, run id/status/source/생성 시각 및 GitHub Actions dispatch 결과를 표시한다. |
+| `docs/AGENT_RULES.md` | 아키텍처 앱 수동 블로그 동기화는 GitHub Actions API 직접 호출이 아니라 Edge Function 경로를 사용한다는 운영 규칙 추가 |
+| `docs/AGENT_ANTI_PATTERNS.md` | telemetry source에는 `NodeId` union에 등록된 값만 사용한다는 재발 방지 항목 추가 |
+| `.gemini_prompts/maker_feature.md` | 기능 구현 메이커 지침에 아키텍처 앱 운영 버튼 경계 추가 |
+| `PLAN.md` | 승인 계획을 완료 항목으로 축약하고 오래된 완료 항목 2개 정리 |
+
+## 동작 정책
+- 버튼은 `supabase.functions.invoke("sync-naver-blog", { body: { triggerSource: "manual" } })`만 호출한다.
+- admin+AAL2 권한 검증, `blog_import_runs` 실행 기록, `GITHUB_PAT` 기반 workflow_dispatch/fallback 정책은 기존 관리자 화면과 동일하게 보존된다.
+- GitHub Actions 원본 기록은 삭제하거나 수정하지 않는다.
+
+## 검증 결과
+- `npm run validate` ✅
+- `npm run map:build` ✅
+- `npm run app:pack` ✅
+- UI smoke: 별도 브라우저 클릭 검증은 생략. Electron 패키징 산출물 생성으로 앱 번들 포함 여부를 확인했다.
+
+---
+
+# RESULT: 아키텍처 앱 QA 알림 탭 추가 (2026-05-15)
+
+## 현재 상태
+아키텍처 앱에서 GitHub Actions `Daily Production QA` 실행 결과를 이메일형 인박스로 확인할 수 있게 했다.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `electron/main.cjs` | GitHub Actions workflow runs/jobs API를 읽는 `qa:read-runs` IPC 추가. 실패 run은 실패 job/step 요약까지 가져온다. 앱 내 토큰 저장/상태/해제 IPC도 추가했다. |
+| `electron/preload.cjs` | `readQaRuns()`, `getGithubTokenStatus()`, `saveGithubToken()`, `clearGithubToken()` bridge 추가 |
+| `src/app/components/admin/LiveArchitectureMap.tsx` | 오른쪽 패널에 `Map`/`QA Alerts` 탭 추가. QA 인박스는 GitHub 토큰 연결 UI, read/unread, 개별 선택, 전체 선택, 읽음 처리, 선택 삭제, 전체 삭제, GitHub 실행 링크 열기를 지원한다. |
+| `PLAN.md` | 완료 항목 반영 |
+
+## 동작 정책
+- 삭제는 앱 인박스에서만 숨김 처리한다.
+- GitHub Actions 원본 실행 기록은 삭제하지 않는다.
+- 비공개 저장소 API 접근용 GitHub 토큰은 앱 안에서 입력해 연결할 수 있으며, Electron `userData` 경로에 로컬 저장된다.
+- 환경 변수 `GXP_GITHUB_TOKEN`, `GITHUB_TOKEN`, `GH_TOKEN`도 fallback으로 계속 지원한다.
+
+## 검증 결과
+- `npm run validate` ✅
+- `npm run map:build` ✅
+- `npm run app:pack` ✅
+
+---
+
 # RESULT: 자동 QA 자격 증명 env/secrets 분리 (2026-05-15)
 
 ## 현재 상태

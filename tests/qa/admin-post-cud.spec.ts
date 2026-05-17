@@ -1,0 +1,87 @@
+import { expect, test, type Page } from '@playwright/test';
+import { confirmAdminModal, makeQaTitle, openAdminTab, robustLogin } from './utils/auth';
+
+const postCases = [
+  { category: 'notice', title: makeQaTitle('notice') },
+  { category: 'news', title: makeQaTitle('news') },
+  { category: 'events', title: makeQaTitle('events') },
+  { category: 'media', title: makeQaTitle('media') },
+];
+
+async function fillQuill(page: Page, content: string) {
+  const editor = page.locator('.ql-editor, [contenteditable="true"]').first();
+  await editor.click();
+  await editor.fill(content);
+}
+
+async function createPost(page: Page, category: string, title: string) {
+  await openAdminTab(page, /게시물 작성/);
+  await page.locator('form select').first().selectOption(category);
+  await page.locator('input[placeholder="제목을 입력하세요"]').fill(title);
+
+  if (category === 'media') {
+    await page.getByRole('button', { name: /영상/ }).first().click();
+    await page.locator('input[placeholder*="YouTube"], input[placeholder*="URL"]').first().fill('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+  }
+
+  if (category === 'events') {
+    await page.locator('input[placeholder*="행사"], input[placeholder*="일시"]').first().fill('2026.05.17 QA');
+  }
+
+  await fillQuill(page, `${title} content`);
+  await page.getByRole('button', { name: '게시물 등록하기' }).click();
+  await confirmAdminModal(page);
+  await expect(page.locator('text=게시물 관리')).toBeVisible({ timeout: 20000 });
+}
+
+async function deletePost(page: Page, title: string) {
+  await openAdminTab(page, /게시물 관리/);
+  const search = page.locator('input[placeholder*="검색"], input[type="search"]').first();
+  if (await search.isVisible().catch(() => false)) {
+    await search.fill(title);
+  }
+  const row = page.locator('div').filter({ hasText: title }).first();
+  await expect(row).toBeVisible({ timeout: 15000 });
+  await row.getByRole('button', { name: '삭제' }).click();
+  await confirmAdminModal(page);
+  await expect(page.locator(`text=${title}`)).toHaveCount(0, { timeout: 20000 });
+}
+
+async function updatePostTitle(page: Page, title: string, updatedTitle: string) {
+  await openAdminTab(page, /게시물 관리/);
+  const search = page.locator('input[placeholder*="검색"], input[type="search"]').first();
+  if (await search.isVisible().catch(() => false)) {
+    await search.fill(title);
+  }
+  const row = page.locator('div').filter({ hasText: title }).first();
+  await expect(row).toBeVisible({ timeout: 15000 });
+  await row.getByRole('button', { name: '수정' }).click();
+  await page.locator('input[placeholder="제목을 입력하세요"]').fill(updatedTitle);
+  await page.getByRole('button', { name: '변경사항 저장' }).click();
+  await confirmAdminModal(page);
+  await expect(page.locator(`text=${updatedTitle}`).first()).toBeVisible({ timeout: 20000 });
+}
+
+test.describe('Admin Post CUD QA', () => {
+  test.afterEach(async ({ page }) => {
+    for (const item of postCases) {
+      await deletePost(page, `${item.title}_updated`).catch(() => undefined);
+      await deletePost(page, item.title).catch(() => undefined);
+    }
+  });
+
+  test('공지/뉴스/행사/미디어 게시물을 생성하고 정리합니다', async ({ page }) => {
+    await robustLogin(page);
+
+    for (const item of postCases) {
+      await createPost(page, item.category, item.title);
+      await updatePostTitle(page, item.title, `${item.title}_updated`);
+      await openAdminTab(page, /게시물 관리/);
+      const search = page.locator('input[placeholder*="검색"], input[type="search"]').first();
+      if (await search.isVisible().catch(() => false)) {
+        await search.fill(`${item.title}_updated`);
+      }
+      await expect(page.locator(`text=${item.title}_updated`).first()).toBeVisible({ timeout: 15000 });
+    }
+  });
+});

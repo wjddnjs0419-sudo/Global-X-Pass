@@ -1,6 +1,7 @@
 const { app, BrowserWindow, shell, ipcMain } = require("electron");
 const path = require("node:path");
 const os = require("node:os");
+const https = require("node:https");
 const { execFile, spawn } = require("node:child_process");
 
 const fs = require("node:fs");
@@ -20,6 +21,178 @@ function resolveProjectRoot() {
 }
 
 let projectRoot = isDev ? path.resolve(__dirname, "..") : null;
+
+const GITHUB_OWNER = "wjddnjs0419-sudo";
+const GITHUB_REPO = "Global-X-Pass";
+const QA_WORKFLOW_FILE = "qa-dispatch.yml";
+const QA_WORKFLOW_REF = "main";
+const GITHUB_TOKEN_FILE = "github-token.txt";
+const QA_TEST_SUITES = new Set(["smoke", "admin-auth", "admin-post-cud", "admin-program-mgmt", "all"]);
+
+function getGithubTokenPath() {
+  return path.join(app.getPath("userData"), GITHUB_TOKEN_FILE);
+}
+
+function readStoredGithubToken() {
+  try {
+    return fs.readFileSync(getGithubTokenPath(), "utf8").trim();
+  } catch {
+    return "";
+  }
+}
+
+function writeStoredGithubToken(token) {
+  const clean = String(token || "").trim();
+  if (!clean) throw new Error("GitHub token is empty");
+  const tokenPath = getGithubTokenPath();
+  fs.mkdirSync(path.dirname(tokenPath), { recursive: true });
+  fs.writeFileSync(tokenPath, clean, { mode: 0o600 });
+}
+
+function clearStoredGithubToken() {
+  try {
+    fs.rmSync(getGithubTokenPath(), { force: true });
+  } catch {}
+}
+
+function githubRequest(apiPath, options = {}) {
+  const method = options.method || "GET";
+  const body = options.body ?? null;
+  const token = readStoredGithubToken() || process.env.GXP_GITHUB_TOKEN || process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+  const headers = {
+    "Accept": "application/vnd.github+json",
+    "User-Agent": "global-x-pass-architecture-app",
+    "X-GitHub-Api-Version": "2022-11-28",
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  if (body) headers["Content-Type"] = "application/json";
+
+  return new Promise((resolve, reject) => {
+    const req = https.request({
+      hostname: "api.github.com",
+      path: apiPath,
+      method,
+      headers,
+    }, (res) => {
+      let body = "";
+      res.setEncoding("utf8");
+      res.on("data", (chunk) => { body += chunk; });
+      res.on("end", () => {
+        let json = null;
+        try {
+          json = body ? JSON.parse(body) : null;
+        } catch {
+          json = null;
+        }
+
+        if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+          resolve(json);
+          return;
+        }
+
+        const message = json?.message || `GitHub API ${res.statusCode}`;
+        const error = new Error(message);
+        error.statusCode = res.statusCode;
+        reject(error);
+      });
+    });
+    req.on("error", reject);
+    if (body) req.write(JSON.stringify(body));
+    req.end();
+  });
+}
+
+function normalizeFailedStep(job) {
+  const steps = Array.isArray(job?.steps) ? job.steps : [];
+  const failedStep = steps.find((step) => ["failure", "timed_out", "cancelled", "action_required"].includes(step?.conclusion));
+  if (!failedStep) return null;
+  return {
+    job: job.name || "unknown job",
+    step: failedStep.name || "unknown step",
+    conclusion: failedStep.conclusion || "failure",
+  };
+}
+
+function normalizeQaSuite(input) {
+  const suite = String(input || "smoke").trim();
+  if (!QA_TEST_SUITES.has(suite)) {
+    const error = new Error(`Unsupported QA suite: ${suite}`);
+    error.statusCode = 400;
+    throw error;
+  }
+  return suite;
+}
+
+function extractQaSuite(run) {
+  const title = `${run.display_title || ""} ${run.name || ""}`;
+  const match = title.match(/(?:On-Demand QA\s*\/\s*)?(smoke|admin-auth|admin-post-cud|admin-program-mgmt|all)/);
+  return match?.[1] || null;
+}
+
+async function readQaWorkflowRuns() {
+  const runsPath = `/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions/workflows/${QA_WORKFLOW_FILE}/runs?per_page=20&branch=main`;
+  const runsJson = await githubRequest(runsPath);
+  const runs = Array.isArray(runsJson?.workflow_runs) ? runsJson.workflow_runs : [];
+
+  const normalized = await Promise.all(runs.map(async (run) => {
+    let failedStep = null;
+    if (run.conclusion && run.conclusion !== "success" && run.jobs_url) {
+      try {
+        const jobsUrl = new URL(run.jobs_url);
+        const jobsJson = await githubRequest(`${jobsUrl.pathname}${jobsUrl.search || ""}`);
+        const jobs = Array.isArray(jobsJson?.jobs) ? jobsJson.jobs : [];
+        failedStep = jobs.map(normalizeFailedStep).find(Boolean) ?? null;
+      } catch (error) {
+        failedStep = { job: "GitHub Actions", step: String(error?.message ?? error), conclusion: "unknown" };
+      }
+    }
+
+    return {
+      id: String(run.id),
+      runNumber: run.run_number,
+      runAttempt: run.run_attempt,
+      name: run.name || "On-Demand QA",
+      displayTitle: run.display_title || run.name || "On-Demand QA",
+      event: run.event || "unknown",
+      status: run.status || "unknown",
+      conclusion: run.conclusion || null,
+      branch: run.head_branch || "main",
+      actor: run.actor?.login || null,
+      createdAt: run.created_at,
+      updatedAt: run.updated_at,
+      htmlUrl: run.html_url,
+      suite: extractQaSuite(run),
+      failedStep,
+    };
+  }));
+
+  return {
+    ok: true,
+    repo: `${GITHUB_OWNER}/${GITHUB_REPO}`,
+    workflow: QA_WORKFLOW_FILE,
+    runs: normalized,
+    fetchedAt: new Date().toISOString(),
+  };
+}
+
+async function triggerQaWorkflowRun(suiteInput) {
+  const suite = normalizeQaSuite(suiteInput);
+  await githubRequest(
+    `/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions/workflows/${QA_WORKFLOW_FILE}/dispatches`,
+    {
+      method: "POST",
+      body: { ref: QA_WORKFLOW_REF, inputs: { test_suite: suite } },
+    },
+  );
+
+  return {
+    ok: true,
+    workflow: QA_WORKFLOW_FILE,
+    branch: QA_WORKFLOW_REF,
+    suite,
+    triggeredAt: new Date().toISOString(),
+  };
+}
 
 function escapeAppleScriptString(str) {
   return str.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
@@ -169,6 +342,57 @@ function createWindow() {
     });
   });
 
+  ipcMain.handle("qa:read-runs", async () => {
+    try {
+      return await readQaWorkflowRuns();
+    } catch (err) {
+      return {
+        ok: false,
+        error: String(err?.message ?? err),
+        statusCode: err?.statusCode ?? null,
+        needsToken: err?.statusCode === 401 || err?.statusCode === 403 || err?.statusCode === 404,
+      };
+    }
+  });
+
+  ipcMain.handle("qa:trigger-run", async (_event, suite) => {
+    try {
+      return await triggerQaWorkflowRun(suite);
+    } catch (err) {
+      return {
+        ok: false,
+        error: String(err?.message ?? err),
+        statusCode: err?.statusCode ?? null,
+        needsToken: err?.statusCode === 401 || err?.statusCode === 403 || err?.statusCode === 404,
+      };
+    }
+  });
+
+  ipcMain.handle("github-token:get-status", () => {
+    return { ok: true, connected: Boolean(readStoredGithubToken()) };
+  });
+
+  ipcMain.handle("github-token:save", async (_event, token) => {
+    try {
+      writeStoredGithubToken(token);
+      await readQaWorkflowRuns();
+      return { ok: true, connected: true };
+    } catch (err) {
+      clearStoredGithubToken();
+      return {
+        ok: false,
+        connected: false,
+        error: String(err?.message ?? err),
+        statusCode: err?.statusCode ?? null,
+      };
+    }
+  });
+
+  ipcMain.handle("github-token:clear", () => {
+    clearStoredGithubToken();
+    return { ok: true, connected: false };
+  });
+
   win.webContents.on("did-fail-load", (_event, errorCode, errorDescription, validatedURL) => {
     const error = new Error(`${errorDescription} (${errorCode})\n${validatedURL}`);
     console.error("[architecture-app] failed to load", error);
@@ -185,6 +409,11 @@ function createWindow() {
     ipcMain.removeHandler("open:terminal");
     ipcMain.removeHandler("map:read-data");
     ipcMain.removeHandler("map:refresh");
+    ipcMain.removeHandler("qa:read-runs");
+    ipcMain.removeHandler("qa:trigger-run");
+    ipcMain.removeHandler("github-token:get-status");
+    ipcMain.removeHandler("github-token:save");
+    ipcMain.removeHandler("github-token:clear");
   });
 
   if (isDev) {

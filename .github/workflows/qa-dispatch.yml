@@ -1,0 +1,74 @@
+name: On-Demand QA
+
+run-name: On-Demand QA / ${{ inputs.test_suite }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_suite:
+        description: QA suite to run
+        type: choice
+        required: true
+        default: smoke
+        options:
+          - smoke
+          - admin-auth
+          - admin-post-cud
+          - admin-program-mgmt
+          - all
+
+jobs:
+  test:
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-node@v4
+      with:
+        node-version: lts/*
+        cache: npm
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Install Playwright Browsers
+      run: npx playwright install --with-deps chromium
+
+    - name: Run selected Playwright QA suite
+      env:
+        QA_ADMIN_EMAIL: ${{ secrets.QA_ADMIN_EMAIL }}
+        QA_ADMIN_PASSWORD: ${{ secrets.QA_ADMIN_PASSWORD }}
+        QA_ADMIN_MFA_SECRET: ${{ secrets.QA_ADMIN_MFA_SECRET }}
+        QA_USER_EMAIL: ${{ secrets.QA_USER_EMAIL }}
+        QA_USER_PASSWORD: ${{ secrets.QA_USER_PASSWORD }}
+        TEST_SUITE: ${{ inputs.test_suite }}
+      run: |
+        case "$TEST_SUITE" in
+          smoke)
+            npx playwright test tests/qa/production-smoke.spec.ts tests/qa/admin-complex.spec.ts
+            ;;
+          admin-auth)
+            npx playwright test tests/qa/admin-auth.spec.ts
+            ;;
+          admin-post-cud)
+            npx playwright test tests/qa/admin-post-cud.spec.ts
+            ;;
+          admin-program-mgmt)
+            npx playwright test tests/qa/admin-program-mgmt.spec.ts
+            ;;
+          all)
+            npx playwright test
+            ;;
+          *)
+            echo "Unsupported TEST_SUITE: $TEST_SUITE" >&2
+            exit 64
+            ;;
+        esac
+
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: playwright-report-${{ inputs.test_suite }}
+        path: playwright-report/
+        retention-days: 30

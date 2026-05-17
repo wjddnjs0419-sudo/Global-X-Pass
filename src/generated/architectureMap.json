@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-15T08:34:53.535Z",
+  "generatedAt": "2026-05-17T07:56:48.508Z",
   "roots": [
     "src",
     "supabase/functions"
@@ -926,11 +926,11 @@
       "cluster": "admin",
       "label": "LiveArchitectureMap.tsx",
       "sub": "src/app/components/admin/LiveArchitectureMap.tsx",
-      "path": "src/app/components/admin/LiveArchitectureMap.tsx:330",
+      "path": "src/app/components/admin/LiveArchitectureMap.tsx:512",
       "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
       "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
       "notes": [
-        "line:330, first exported symbol or module entry",
+        "line:512, first exported symbol or module entry",
         "cluster:admin"
       ],
       "tag": [
@@ -967,6 +967,46 @@
       "label": "adminConstants.ts",
       "sub": "src/app/components/admin/adminConstants.ts",
       "path": "src/app/components/admin/adminConstants.ts:1",
+      "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
+      "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
+      "notes": [
+        "line:1, first exported symbol or module entry",
+        "cluster:admin"
+      ],
+      "tag": [
+        "overview",
+        "all",
+        "admin"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
+      "id": "src-app-components-admin-architecture-incidentfeed",
+      "cluster": "admin",
+      "label": "IncidentFeed.tsx",
+      "sub": "src/app/components/admin/architecture/IncidentFeed.tsx",
+      "path": "src/app/components/admin/architecture/IncidentFeed.tsx:2",
+      "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
+      "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
+      "notes": [
+        "line:2, first exported symbol or module entry",
+        "cluster:admin"
+      ],
+      "tag": [
+        "overview",
+        "all",
+        "admin"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
+      "id": "src-app-components-admin-architecture-mapdiff",
+      "cluster": "admin",
+      "label": "mapDiff.ts",
+      "sub": "src/app/components/admin/architecture/mapDiff.ts",
+      "path": "src/app/components/admin/architecture/mapDiff.ts:1",
       "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
       "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
       "notes": [
@@ -4902,6 +4942,28 @@
       "tag": [
         "all",
         "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-livearchitecturemap",
+      "to": "src-app-components-admin-architecture-incidentfeed",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-livearchitecturemap",
+      "to": "src-app-components-admin-architecture-mapdiff",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
       ]
     },
     {

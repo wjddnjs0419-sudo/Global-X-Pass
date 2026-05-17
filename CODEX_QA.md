@@ -59,6 +59,12 @@ QA를 시작할 때는 아래 번호 또는 항목명을 골라 진행한다. �
    - 핵심: 행사 신청 폼 진입, 동적 폼 렌더링 무결성, 실시간 잔여석 UI를 점검한다.
    - 보고: 신청 폼과 잔여석 표시에 시각적 깨짐이 없는지 본다.
 
+4. **On-Demand QA Suite 실행**
+   - 대상: 아키텍처 앱 `Ops` 탭 또는 GitHub Actions `qa-dispatch.yml`
+   - 선택값: `smoke`, `admin-auth`, `admin-post-cud`, `admin-program-mgmt`, `all`
+   - 핵심: 운영자가 필요한 suite만 직접 실행한다. cron 기반 자동 실행은 사용하지 않는다.
+   - 데이터 안전: CUD suite는 `QA_E2E_<runId>_...` prefix 데이터만 만들고 정리해야 한다.
+
 ## 4. Execution Rule (실행 규칙)
 명령이 떨어지면 먼저 QA 카탈로그에서 선택한 항목을 기준으로 진행한다. 항목명이 명시되지 않으면 가장 최근에 합의된 QA 항목을 따른다.
 

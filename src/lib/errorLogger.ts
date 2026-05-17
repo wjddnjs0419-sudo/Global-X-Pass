@@ -17,6 +17,7 @@ export type NodeId =
   | "use-admin" | "use-tracker" | "use-idle"
   | "supabase-client" | "types" | "event-utils" | "html-security"
   | "admin-events-mgmt" | "admin-consulting-mgmt" | "admin-founders-mgmt"
+  | "architecture-map"
   // edge functions
   | "ef-admin-auth" | "ef-signup" | "ef-encrypt"
   | "ef-decrypt" | "ef-decrypt-own" | "ef-delete"
@@ -178,6 +179,7 @@ const FILENAME_TO_NODE: Array<[RegExp, NodeId]> = [
   [/AdminEventManagement\./, "admin-events-mgmt"],
   [/AdminConsultingManagement\./, "admin-consulting-mgmt"],
   [/AdminFoundersClubManagement\./, "admin-founders-mgmt"],
+  [/LiveArchitectureMap\./,        "architecture-map"],
   [/RootLayout\./,           "root-layout"],
   [/AuthRoute\./,            "auth-route"],
   [/AdminRoute\./,           "admin-route"],
