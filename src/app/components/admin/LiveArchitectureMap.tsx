@@ -15,6 +15,7 @@ declare global {
       refreshMap: () => Promise<{ ok: boolean; output?: string; code?: number }>;
       readQaRuns: () => Promise<QaRunsResult>;
       triggerQaRun: (suite: QaSuiteId) => Promise<QaTriggerResult>;
+      runVisibleQa: (suite: QaSuiteId) => Promise<QaVisibleResult>;
       getGithubTokenStatus: () => Promise<{ ok: boolean; connected: boolean }>;
       saveGithubToken: (token: string) => Promise<{ ok: boolean; connected: boolean; error?: string; statusCode?: number | null }>;
       clearGithubToken: () => Promise<{ ok: boolean; connected: boolean }>;
@@ -135,6 +136,10 @@ type QaRunsResult =
 type QaTriggerResult =
   | { ok: true; workflow: string; branch: string; suite: QaSuiteId; triggeredAt: string }
   | { ok: false; error: string; statusCode?: number | null; needsToken?: boolean };
+
+type QaVisibleResult =
+  | { ok: true; suite: QaSuiteId; mode: "local-visible"; startedAt: string }
+  | { ok: false; error: string; statusCode?: number | null };
 
 type BlogImportRun = {
   id: string;
@@ -538,6 +543,9 @@ export function LiveArchitectureMap() {
   const [qaTriggerLoading, setQaTriggerLoading] = useState(false);
   const [qaTriggerMessage, setQaTriggerMessage] = useState<string | null>(null);
   const [qaTriggerError, setQaTriggerError] = useState<string | null>(null);
+  const [visibleQaLoading, setVisibleQaLoading] = useState(false);
+  const [visibleQaMessage, setVisibleQaMessage] = useState<string | null>(null);
+  const [visibleQaError, setVisibleQaError] = useState<string | null>(null);
   const [githubTokenConnected, setGithubTokenConnected] = useState(false);
   const [githubTokenInput, setGithubTokenInput] = useState("");
   const [githubTokenSaving, setGithubTokenSaving] = useState(false);
@@ -668,6 +676,28 @@ export function LiveArchitectureMap() {
     const suiteLabel = QA_SUITES.find((item) => item.id === result.suite)?.label ?? result.suite;
     setQaTriggerMessage(`${suiteLabel} QA를 main 브랜치 기준으로 실행 요청했습니다. ${formatTime(result.triggeredAt)}에 dispatch 완료.`);
     await loadQaRuns();
+  };
+
+  const runVisibleQa = async (suite: QaSuiteId) => {
+    if (!window.electronAPI?.runVisibleQa) {
+      setVisibleQaError("아키텍처 앱에서만 로컬 Visible QA를 실행할 수 있습니다.");
+      return;
+    }
+
+    setVisibleQaLoading(true);
+    setVisibleQaError(null);
+    setVisibleQaMessage(null);
+
+    const result = await window.electronAPI.runVisibleQa(suite);
+    setVisibleQaLoading(false);
+
+    if (result.ok !== true) {
+      setVisibleQaError(result.error);
+      return;
+    }
+
+    const suiteLabel = QA_SUITES.find((item) => item.id === result.suite)?.label ?? result.suite;
+    setVisibleQaMessage(`${suiteLabel} Visible QA 터미널을 열었습니다. 브라우저가 뜨면 진행 화면을 직접 확인할 수 있습니다.`);
   };
 
   const triggerBlogSync = async () => {
@@ -1582,12 +1612,16 @@ export function LiveArchitectureMap() {
               qaTriggerLoading={qaTriggerLoading}
               qaTriggerMessage={qaTriggerMessage}
               qaTriggerError={qaTriggerError}
+              visibleQaLoading={visibleQaLoading}
+              visibleQaMessage={visibleQaMessage}
+              visibleQaError={visibleQaError}
               qaTokenConnected={githubTokenConnected}
               syncLoading={blogSyncLoading}
               syncResult={blogSyncResult}
               syncError={blogSyncError}
               onQaSuiteChange={setSelectedQaSuite}
               onTriggerQaRun={() => { void triggerQaRun(selectedQaSuite); }}
+              onRunVisibleQa={() => { void runVisibleQa(selectedQaSuite); }}
               onTriggerBlogSync={() => { void triggerBlogSync(); }}
             />
           ) : selectedNode ? (
@@ -2101,24 +2135,32 @@ function OperationsSidebar({
   qaTriggerLoading,
   qaTriggerMessage,
   qaTriggerError,
+  visibleQaLoading,
+  visibleQaMessage,
+  visibleQaError,
   qaTokenConnected,
   syncLoading,
   syncResult,
   syncError,
   onQaSuiteChange,
   onTriggerQaRun,
+  onRunVisibleQa,
   onTriggerBlogSync,
 }: {
   selectedQaSuite: QaSuiteId;
   qaTriggerLoading: boolean;
   qaTriggerMessage: string | null;
   qaTriggerError: string | null;
+  visibleQaLoading: boolean;
+  visibleQaMessage: string | null;
+  visibleQaError: string | null;
   qaTokenConnected: boolean;
   syncLoading: boolean;
   syncResult: BlogSyncResult | null;
   syncError: string | null;
   onQaSuiteChange: (suite: QaSuiteId) => void;
   onTriggerQaRun: () => void;
+  onRunVisibleQa: () => void;
   onTriggerBlogSync: () => void;
 }) {
   const run = syncResult?.run;
@@ -2173,25 +2215,49 @@ function OperationsSidebar({
             ? "앱에 저장된 GitHub token으로 바로 실행할 수 있습니다."
             : "앱 저장 token이 없으면 fallback env(GXP_GITHUB_TOKEN / GITHUB_TOKEN / GH_TOKEN)에 의존합니다."}
         </div>
-        <button
-          type="button"
-          data-monitor-action="trigger-manual-qa-run"
-          onClick={onTriggerQaRun}
-          disabled={qaTriggerLoading}
-          style={{
-            ...compactButtonStyle,
-            width: "100%",
-            justifyContent: "center",
-            border: "1px solid #4ea1ff",
-            background: qaTriggerLoading ? "#1c1c1c" : "#102033",
-            color: "#d8ebff",
-            cursor: qaTriggerLoading ? "wait" : "pointer",
-            padding: "9px 10px",
-          }}
-        >
-          <PlayCircle size={14} aria-hidden />
-          {qaTriggerLoading ? "QA 실행 요청 중..." : `${QA_SUITES.find((item) => item.id === selectedQaSuite)?.label ?? selectedQaSuite} 실행`}
-        </button>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 8 }}>
+          <button
+            type="button"
+            data-monitor-action="trigger-manual-qa-run"
+            onClick={onTriggerQaRun}
+            disabled={qaTriggerLoading}
+            style={{
+              ...compactButtonStyle,
+              width: "100%",
+              justifyContent: "center",
+              border: "1px solid #4ea1ff",
+              background: qaTriggerLoading ? "#1c1c1c" : "#102033",
+              color: "#d8ebff",
+              cursor: qaTriggerLoading ? "wait" : "pointer",
+              padding: "9px 10px",
+            }}
+          >
+            <PlayCircle size={14} aria-hidden />
+            {qaTriggerLoading ? "GitHub 실행 요청 중..." : `${QA_SUITES.find((item) => item.id === selectedQaSuite)?.label ?? selectedQaSuite} GitHub 실행`}
+          </button>
+          <button
+            type="button"
+            data-monitor-action="run-visible-qa"
+            onClick={onRunVisibleQa}
+            disabled={visibleQaLoading}
+            style={{
+              ...compactButtonStyle,
+              width: "100%",
+              justifyContent: "center",
+              border: "1px solid #34a853",
+              background: visibleQaLoading ? "#1c1c1c" : "#0f2a15",
+              color: "#d8ffe1",
+              cursor: visibleQaLoading ? "wait" : "pointer",
+              padding: "9px 10px",
+            }}
+          >
+            <ExternalLink size={14} aria-hidden />
+            {visibleQaLoading ? "Visible QA 준비 중..." : `${QA_SUITES.find((item) => item.id === selectedQaSuite)?.label ?? selectedQaSuite} 로컬 Visible 실행`}
+          </button>
+        </div>
+        <div style={{ color: "#8a8a8a", fontSize: 10, lineHeight: 1.5, marginTop: 9 }}>
+          로컬 Visible 실행은 iTerm/Terminal을 열고 Chromium을 실제 화면에 띄웁니다. `.env.qa` 또는 shell env에 `QA_ADMIN_EMAIL`, `QA_ADMIN_PASSWORD`, `QA_ADMIN_MFA_SECRET`가 필요합니다.
+        </div>
         {qaTriggerError && (
           <div style={{ color: "#ffb4b4", borderLeft: "3px solid #ea4335", background: "#1a1010", padding: "8px 10px", fontSize: 11, lineHeight: 1.6, marginTop: 12 }}>
             요청 실패: {qaTriggerError}
@@ -2200,6 +2266,16 @@ function OperationsSidebar({
         {qaTriggerMessage && (
           <div style={{ color: "#d8ebff", borderLeft: "3px solid #4ea1ff", background: "#102033", padding: "8px 10px", fontSize: 11, lineHeight: 1.6, marginTop: 12 }}>
             {qaTriggerMessage}
+          </div>
+        )}
+        {visibleQaError && (
+          <div style={{ color: "#ffb4b4", borderLeft: "3px solid #ea4335", background: "#1a1010", padding: "8px 10px", fontSize: 11, lineHeight: 1.6, marginTop: 12 }}>
+            Visible 실행 실패: {visibleQaError}
+          </div>
+        )}
+        {visibleQaMessage && (
+          <div style={{ color: "#d8ffe1", borderLeft: "3px solid #34a853", background: "#0f2a15", padding: "8px 10px", fontSize: 11, lineHeight: 1.6, marginTop: 12 }}>
+            {visibleQaMessage}
           </div>
         )}
         <div style={{ marginTop: 10 }}>

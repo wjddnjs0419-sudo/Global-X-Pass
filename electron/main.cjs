@@ -28,6 +28,13 @@ const QA_WORKFLOW_FILE = "qa-dispatch.yml";
 const QA_WORKFLOW_REF = "main";
 const GITHUB_TOKEN_FILE = "github-token.txt";
 const QA_TEST_SUITES = new Set(["smoke", "admin-auth", "admin-post-cud", "admin-program-mgmt", "all"]);
+const QA_VISIBLE_SPECS_BY_SUITE = {
+  smoke: ["tests/qa/production-smoke.spec.ts", "tests/qa/admin-complex.spec.ts"],
+  "admin-auth": ["tests/qa/admin-auth.spec.ts"],
+  "admin-post-cud": ["tests/qa/admin-post-cud.spec.ts"],
+  "admin-program-mgmt": ["tests/qa/admin-program-mgmt.spec.ts"],
+  all: [],
+};
 
 function getGithubTokenPath() {
   return path.join(app.getPath("userData"), GITHUB_TOKEN_FILE);
@@ -205,6 +212,45 @@ function buildShellCommand(command) {
     : `cd '${escapedRoot}'`;
 }
 
+function shellQuote(value) {
+  return `'${String(value).replace(/'/g, "'\\''")}'`;
+}
+
+function buildVisibleQaCommand(suiteInput) {
+  const suite = normalizeQaSuite(suiteInput);
+  const specs = QA_VISIBLE_SPECS_BY_SUITE[suite] ?? [];
+  const specArgs = specs.map(shellQuote).join(" ");
+  const testCommand = `npx playwright test${specArgs ? ` ${specArgs}` : ""} --headed --project=chromium`;
+
+  return [
+    "run_visible_qa() {",
+    `  printf '\\n▶ Local Visible QA: ${suite}\\n';`,
+    "  if [ -f .env.qa ]; then",
+    "    printf 'Loading .env.qa for QA credentials...\\n';",
+    "    set -a; source .env.qa; set +a;",
+    "  fi;",
+    "  missing=0;",
+    "  for name in QA_ADMIN_EMAIL QA_ADMIN_PASSWORD QA_ADMIN_MFA_SECRET; do",
+    "    if [ -z \"${(P)name}\" ]; then",
+    "      printf 'Missing required env: %s\\n' \"$name\";",
+    "      missing=1;",
+    "    fi;",
+    "  done;",
+    "  if [ \"$missing\" -eq 1 ]; then",
+    "    printf '\\nCreate .env.qa or export QA_ADMIN_EMAIL, QA_ADMIN_PASSWORD, QA_ADMIN_MFA_SECRET, then run again.\\n';",
+    "    return 64;",
+    "  fi;",
+    `  printf "Running: ${testCommand.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}\\n\\n";`,
+    `  ${testCommand};`,
+    "};",
+    "run_visible_qa;",
+    "status=$?;",
+    "printf '\\nLocal Visible QA exited with code %s\\n' \"$status\";",
+    "printf 'Press Enter to close this terminal...';",
+    "read _;",
+  ].join(" ");
+}
+
 function runAppleScript(script) {
   return new Promise((resolve, reject) => {
     execFile("osascript", ["-e", script], (err) => {
@@ -242,6 +288,17 @@ async function openNativeTerminal(command) {
       return;
     } catch {}
   }
+}
+
+async function runVisibleQaSuite(suiteInput) {
+  const suite = normalizeQaSuite(suiteInput);
+  await openNativeTerminal(buildVisibleQaCommand(suite));
+  return {
+    ok: true,
+    suite,
+    mode: "local-visible",
+    startedAt: new Date().toISOString(),
+  };
 }
 
 function renderLoadError(win, error) {
@@ -368,6 +425,18 @@ function createWindow() {
     }
   });
 
+  ipcMain.handle("qa:run-visible", async (_event, suite) => {
+    try {
+      return await runVisibleQaSuite(suite);
+    } catch (err) {
+      return {
+        ok: false,
+        error: String(err?.message ?? err),
+        statusCode: err?.statusCode ?? null,
+      };
+    }
+  });
+
   ipcMain.handle("github-token:get-status", () => {
     return { ok: true, connected: Boolean(readStoredGithubToken()) };
   });
@@ -411,6 +480,7 @@ function createWindow() {
     ipcMain.removeHandler("map:refresh");
     ipcMain.removeHandler("qa:read-runs");
     ipcMain.removeHandler("qa:trigger-run");
+    ipcMain.removeHandler("qa:run-visible");
     ipcMain.removeHandler("github-token:get-status");
     ipcMain.removeHandler("github-token:save");
     ipcMain.removeHandler("github-token:clear");

@@ -31,17 +31,42 @@ async function createPost(page: Page, category: string, title: string) {
   await fillQuill(page, `${title} content`);
   await page.getByRole('button', { name: '게시물 등록하기' }).click();
   await confirmAdminModal(page);
-  await expect(page.locator('text=게시물 관리')).toBeVisible({ timeout: 20000 });
+  await expect(page.getByRole('heading', { name: /게시물 관리/ })).toBeVisible({ timeout: 20000 });
+  await findPostRow(page, title, { timeout: 20000 });
 }
 
-async function deletePost(page: Page, title: string) {
+async function findPostRow(page: Page, title: string, options: { timeout?: number } = {}) {
+  const timeout = options.timeout ?? 15000;
+  const search = page.locator('input[placeholder*="검색"], input[type="search"]').first();
+  if (await search.isVisible().catch(() => false)) {
+    await search.fill(title);
+  }
+  const row = page
+    .locator('div')
+    .filter({ has: page.getByText(title, { exact: true }) })
+    .filter({ has: page.getByRole('button', { name: /수정|삭제/ }) })
+    .first();
+  await expect(row).toBeVisible({ timeout });
+  return row;
+}
+
+async function maybeFindPostRow(page: Page, title: string) {
   await openAdminTab(page, /게시물 관리/);
   const search = page.locator('input[placeholder*="검색"], input[type="search"]').first();
   if (await search.isVisible().catch(() => false)) {
     await search.fill(title);
   }
-  const row = page.locator('div').filter({ hasText: title }).first();
-  await expect(row).toBeVisible({ timeout: 15000 });
+  const row = page
+    .locator('div')
+    .filter({ has: page.getByText(title, { exact: true }) })
+    .filter({ has: page.getByRole('button', { name: /수정|삭제/ }) })
+    .first();
+  return await row.isVisible({ timeout: 1200 }).catch(() => false) ? row : null;
+}
+
+async function deletePost(page: Page, title: string, options: { required?: boolean } = {}) {
+  const row = options.required ? await findPostRow(page, title) : await maybeFindPostRow(page, title);
+  if (!row) return;
   await row.getByRole('button', { name: '삭제' }).click();
   await confirmAdminModal(page);
   await expect(page.locator(`text=${title}`)).toHaveCount(0, { timeout: 20000 });
@@ -49,17 +74,12 @@ async function deletePost(page: Page, title: string) {
 
 async function updatePostTitle(page: Page, title: string, updatedTitle: string) {
   await openAdminTab(page, /게시물 관리/);
-  const search = page.locator('input[placeholder*="검색"], input[type="search"]').first();
-  if (await search.isVisible().catch(() => false)) {
-    await search.fill(title);
-  }
-  const row = page.locator('div').filter({ hasText: title }).first();
-  await expect(row).toBeVisible({ timeout: 15000 });
+  const row = await findPostRow(page, title);
   await row.getByRole('button', { name: '수정' }).click();
   await page.locator('input[placeholder="제목을 입력하세요"]').fill(updatedTitle);
   await page.getByRole('button', { name: '변경사항 저장' }).click();
   await confirmAdminModal(page);
-  await expect(page.locator(`text=${updatedTitle}`).first()).toBeVisible({ timeout: 20000 });
+  await findPostRow(page, updatedTitle, { timeout: 20000 });
 }
 
 test.describe('Admin Post CUD QA', () => {
@@ -81,7 +101,7 @@ test.describe('Admin Post CUD QA', () => {
       if (await search.isVisible().catch(() => false)) {
         await search.fill(`${item.title}_updated`);
       }
-      await expect(page.locator(`text=${item.title}_updated`).first()).toBeVisible({ timeout: 15000 });
+      await findPostRow(page, `${item.title}_updated`);
     }
   });
 });

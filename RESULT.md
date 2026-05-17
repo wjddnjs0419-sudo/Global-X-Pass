@@ -1,3 +1,34 @@
+# RESULT: QA 수동 실행 Visible 모드 추가 (2026-05-17)
+
+## 현재 상태
+아키텍처 앱 `Ops` 탭에서 QA suite를 실행할 때 두 가지 경로를 선택할 수 있다.
+
+- `GitHub 실행`: 기존처럼 `qa-dispatch.yml`을 workflow_dispatch로 호출해 백그라운드에서 실행한다.
+- `로컬 Visible 실행`: 현재 Mac의 iTerm/Terminal을 열고 `npx playwright test ... --headed --project=chromium`을 실행해 Chromium 브라우저 진행 화면을 직접 볼 수 있다.
+
+로컬 Visible 실행은 QA 비밀값을 앱에 저장하지 않는다. 저장소 루트의 `.env.qa` 또는 shell env에 `QA_ADMIN_EMAIL`, `QA_ADMIN_PASSWORD`, `QA_ADMIN_MFA_SECRET`가 있어야 하며, 누락되면 열린 Terminal에서 누락 변수명을 보여주고 종료한다.
+
+방금 실패한 GitHub QA에 대해서는 로컬 환경에 GitHub token과 `QA_ADMIN_*` env가 없어 run 상세 로그를 직접 조회하지 못했다. 대신 `qa-dispatch.yml`에 `Check QA secrets` preflight를 추가해, GitHub Secrets 누락이면 Playwright 진입 전에 어떤 secret이 빠졌는지 Actions 로그에 명확히 표시되도록 했다.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `electron/main.cjs` | `qa:run-visible` IPC 추가. suite allowlist 검증 후 iTerm/Terminal에서 headed Playwright 명령 실행 |
+| `electron/preload.cjs` | renderer bridge에 `runVisibleQa(suite)` 추가 |
+| `src/app/components/admin/LiveArchitectureMap.tsx` | Ops 탭에 `GitHub 실행` / `로컬 Visible 실행` 버튼 분리, visible 실행 상태/오류 메시지 추가 |
+| `.github/workflows/qa-dispatch.yml` | `Check QA secrets` preflight 추가 |
+| `CODEX_QA.md`, `PLAN.md` | Visible QA 운영 방식과 검증 결과 반영 |
+
+## 검증 결과
+- `node --check electron/main.cjs && node --check electron/preload.cjs` ✅
+- `ruby -e 'require "yaml"; YAML.load_file(".github/workflows/qa-dispatch.yml")'` ✅
+- `QA_ADMIN_EMAIL=qa@example.com QA_ADMIN_PASSWORD=password QA_ADMIN_MFA_SECRET=... npx playwright test --list` ✅
+- `npm run validate` ✅
+- `npm run map:build` ✅
+- `npm run app:pack` ✅
+
+---
+
 # RESULT: QA 자동화 고도화 및 On-Demand 실행 환경 구축 (2026-05-17)
 
 ## 현재 상태

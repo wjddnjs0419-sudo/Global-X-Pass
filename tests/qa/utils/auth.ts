@@ -87,5 +87,7 @@ export async function openAdminTab(page: Page, label: RegExp | string) {
 }
 
 export async function confirmAdminModal(page: Page) {
-  await page.getByRole('button', { name: '확인' }).click();
+  const confirmButton = page.getByRole('button', { name: '확인' });
+  await confirmButton.click();
+  await expect(confirmButton).toBeHidden({ timeout: 20000 });
 }

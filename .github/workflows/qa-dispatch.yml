@@ -35,6 +35,23 @@ jobs:
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps chromium
 
+    - name: Check QA secrets
+      env:
+        QA_ADMIN_EMAIL: ${{ secrets.QA_ADMIN_EMAIL }}
+        QA_ADMIN_PASSWORD: ${{ secrets.QA_ADMIN_PASSWORD }}
+        QA_ADMIN_MFA_SECRET: ${{ secrets.QA_ADMIN_MFA_SECRET }}
+      run: |
+        missing=0
+        for name in QA_ADMIN_EMAIL QA_ADMIN_PASSWORD QA_ADMIN_MFA_SECRET; do
+          if [ -z "${!name}" ]; then
+            echo "::error title=Missing QA secret::$name is required for admin QA suites"
+            missing=1
+          fi
+        done
+        if [ "$missing" -eq 1 ]; then
+          exit 64
+        fi
+
     - name: Run selected Playwright QA suite
       env:
         QA_ADMIN_EMAIL: ${{ secrets.QA_ADMIN_EMAIL }}
