@@ -1,3 +1,26 @@
+# RESULT: On-Demand QA 실패 로그 기반 반복 안정화 (2026-05-17)
+
+## 현재 상태
+사용자가 실행한 On-Demand QA 실패 3건을 GitHub Actions 아티팩트 기준으로 추적해, 실패한 suite를 하나씩 수정→실행→재수정 루프로 안정화했다. 최종적으로 개별 `admin-post-cud`, `admin-program-mgmt`가 통과했고, 전체 `all` suite도 통과했다.
+
+## 반영 내용
+| 파일 | 내용 |
+|---|---|
+| `tests/qa/utils/auth.ts` | 확인 모달 클릭 후 모달이 사라질 때까지 대기해 저장/삭제 완료 전 다음 단계로 넘어가지 않도록 보강 |
+| `tests/qa/admin-post-cud.spec.ts` | 게시물 생성 후 실제 row 출현까지 대기, 행사 날짜 입력은 실제 UI에 있을 때만 optional 처리, 검색/수정/삭제 row locator를 제목 기준 ancestor로 좁힘 |
+| `tests/qa/admin-program-mgmt.spec.ts` | `전문가 등록` 중복 텍스트 strict 오류 제거, 컨설턴트 필수 필드 입력 추가, 카드 내부 삭제 버튼 locator 보강, Founder's Club 설명 필드를 실제 input placeholder에 맞춤 |
+
+## GitHub Actions 결과
+- `admin-post-cud` run #6 (`25985775845`) ✅
+- `admin-program-mgmt` run #8 (`25985853314`) ✅
+- `all` run #9 (`25985892912`) ✅
+
+## 검증 결과
+- `QA_ADMIN_EMAIL=qa@example.com QA_ADMIN_PASSWORD=password QA_ADMIN_MFA_SECRET=... npx playwright test --list` ✅
+- `npm run validate` ✅
+
+---
+
 # RESULT: QA 수동 실행 Visible 모드 추가 (2026-05-17)
 
 ## 현재 상태
