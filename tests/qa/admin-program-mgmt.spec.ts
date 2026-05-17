@@ -47,7 +47,7 @@ test.describe('Admin Program Management QA', () => {
     await openAdminTab(page, /Founder's Club|파운더스/);
     await expect(page.getByText('새 세션 등록')).toBeVisible();
     await page.locator('input').first().fill(foundersTheme);
-    await page.locator('textarea').first().fill('QA founders session');
+    await page.locator('input[placeholder^="설명"]').fill('QA founders session');
     await chooseFirstSelectOption(page, 0);
     await chooseFirstSelectOption(page, 1);
     await chooseFirstSelectOption(page, 2);
