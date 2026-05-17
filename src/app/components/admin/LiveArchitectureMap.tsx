@@ -743,7 +743,7 @@ export function LiveArchitectureMap() {
     }
 
     const suiteLabel = QA_SUITES.find((item) => item.id === result.suite)?.label ?? result.suite;
-    setVisibleQaMessage(`${suiteLabel} Visible QA 터미널을 열었습니다. 브라우저가 뜨면 진행 화면을 직접 확인할 수 있습니다.`);
+    setVisibleQaMessage(`${suiteLabel} 로컬 화면 QA 터미널을 열었습니다. 이 실행은 GitHub Actions runner가 아니라 현재 Mac에서 도는 디버그용 실행입니다.`);
   };
 
   const triggerBlogSync = async () => {
@@ -2355,7 +2355,7 @@ function OperationsSidebar({
             }}
           >
             <PlayCircle size={14} aria-hidden />
-            {qaTriggerLoading ? "GitHub 실행 요청 중..." : `${QA_SUITES.find((item) => item.id === selectedQaSuite)?.label ?? selectedQaSuite} GitHub 실행`}
+            {qaTriggerLoading ? "GitHub 실행 요청 중..." : `${QA_SUITES.find((item) => item.id === selectedQaSuite)?.label ?? selectedQaSuite} GitHub 실행 기록`}
           </button>
           <button
             type="button"
@@ -2374,11 +2374,11 @@ function OperationsSidebar({
             }}
           >
             <ExternalLink size={14} aria-hidden />
-            {visibleQaLoading ? "Visible QA 준비 중..." : `${QA_SUITES.find((item) => item.id === selectedQaSuite)?.label ?? selectedQaSuite} 로컬 Visible 실행`}
+            {visibleQaLoading ? "로컬 화면 QA 준비 중..." : `${QA_SUITES.find((item) => item.id === selectedQaSuite)?.label ?? selectedQaSuite} 로컬 화면 실행`}
           </button>
         </div>
         <div style={{ color: "#8a8a8a", fontSize: 10, lineHeight: 1.5, marginTop: 9 }}>
-          로컬 Visible 실행은 iTerm/Terminal을 열고 Chromium을 실제 화면에 띄웁니다. 저장된 QA 계정, `.env.qa`, shell env 순서로 credentials를 사용합니다.
+          `GitHub 실행 기록`은 실제 CI runner에서 돈 video/trace/screenshot 아티팩트를 남깁니다. `로컬 화면 실행`은 현재 Mac에서 Chromium을 띄우는 디버그용 실행입니다.
         </div>
         {qaTriggerError && (
           <div style={{ color: "#ffb4b4", borderLeft: "3px solid #ea4335", background: "#1a1010", padding: "8px 10px", fontSize: 11, lineHeight: 1.6, marginTop: 12 }}>

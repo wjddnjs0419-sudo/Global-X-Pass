@@ -59,6 +59,7 @@ jobs:
         QA_ADMIN_MFA_SECRET: ${{ secrets.QA_ADMIN_MFA_SECRET }}
         QA_USER_EMAIL: ${{ secrets.QA_USER_EMAIL }}
         QA_USER_PASSWORD: ${{ secrets.QA_USER_PASSWORD }}
+        PW_QA_RECORD_REPLAY: "1"
         TEST_SUITE: ${{ inputs.test_suite }}
       run: |
         case "$TEST_SUITE" in
@@ -88,4 +89,11 @@ jobs:
       with:
         name: playwright-report-${{ inputs.test_suite }}
         path: playwright-report/
+        retention-days: 30
+
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: playwright-raw-artifacts-${{ inputs.test_suite }}
+        path: test-results/
         retention-days: 30

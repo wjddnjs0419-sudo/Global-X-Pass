@@ -1,3 +1,25 @@
+# RESULT: GitHub Actions QA 실제 실행 기록(video/trace/screenshot) 추가 (2026-05-17)
+
+## 현재 상태
+`로컬 화면 실행`은 현재 Mac에서 브라우저를 띄우는 디버그용 실행이고, `GitHub 실행 기록`은 실제 GitHub Actions runner에서 돈 QA의 화면 기록을 남기는 실행으로 역할을 분리했다. GitHub-hosted runner는 GUI 실시간 스트리밍을 기본 제공하지 않으므로, 실제 CI 화면 확인은 Playwright video/trace/screenshot 아티팩트 리플레이 기준으로 수행한다.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `.github/workflows/qa-dispatch.yml` | GitHub QA 실행 시 `PW_QA_RECORD_REPLAY=1`을 주입하고 `playwright-report/`, `test-results/`를 각각 아티팩트로 업로드 |
+| `playwright.config.ts` | `PW_QA_RECORD_REPLAY=1`일 때 trace/video/screenshot을 항상 기록 |
+| `src/app/components/admin/LiveArchitectureMap.tsx` | 버튼/안내 문구를 `GitHub 실행 기록`과 `로컬 화면 실행`으로 분리해 실제 의미가 드러나도록 수정 |
+| `CODEX_QA.md`, `PLAN.md`, `RESULT.md` | CI 실시간 관람 불가와 리플레이 아티팩트 기준 운영 방식 문서화 |
+
+## 검증 결과
+- `ruby -e 'require "yaml"; YAML.load_file(".github/workflows/qa-dispatch.yml")'` ✅
+- `PW_QA_RECORD_REPLAY=1 npx playwright test --list` ✅
+- `npm run validate` ✅
+- `npm run map:build` ✅
+- `npm run app:pack` ✅
+
+---
+
 # RESULT: 게시물 CUD QA timeout/잔여 데이터 정리 안정화 (2026-05-17)
 
 ## 현재 상태

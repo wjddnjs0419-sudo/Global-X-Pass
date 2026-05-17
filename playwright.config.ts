@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const recordCiReplay = process.env.PW_QA_RECORD_REPLAY === '1';
+
 export default defineConfig({
   testDir: './tests/qa',
   fullyParallel: false,
@@ -8,8 +10,9 @@ export default defineConfig({
   timeout: 60000,
   use: {
     baseURL: 'https://google-play-changgoo-program.netlify.app',
-    trace: 'on-first-retry',
-    screenshot: 'only-on-failure',
+    trace: recordCiReplay ? 'on' : 'on-first-retry',
+    screenshot: recordCiReplay ? 'on' : 'only-on-failure',
+    video: recordCiReplay ? 'on' : 'retain-on-failure',
     actionTimeout: 15000,
     navigationTimeout: 30000,
   },
