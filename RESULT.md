@@ -1,3 +1,31 @@
+# RESULT: 로컬 Visible QA env 안내 및 zsh 종료 코드 오류 수정 (2026-05-17)
+
+## 현재 상태
+로컬 Visible QA는 GitHub Actions Secrets를 역조회하지 않고 현재 Mac의 `.env.qa` 또는 shell env만 읽는다. 따라서 `QA_ADMIN_EMAIL`, `QA_ADMIN_PASSWORD`, `QA_ADMIN_MFA_SECRET`가 없으면 실행을 중단하는 것이 정상이며, 이번 수정으로 터미널 안내가 더 명확해졌다.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `electron/main.cjs` | zsh readonly 변수 `status` 대신 `qa_exit_code` 사용, env 간접 참조를 zsh 전용 문법에서 POSIX-compatible `eval` 방식으로 변경, GitHub Secrets 역조회 불가 안내 추가 |
+| `.env.qa.example` | 로컬 Visible QA용 샘플 env 파일 추가 |
+| `.gitignore` | 실제 비밀값 파일 `.env.qa` ignore 추가 |
+| `CODEX_QA.md`, `PLAN.md` | `.env.qa.example` 복사 방식과 로컬/CI credentials 경계 문서화 |
+
+## 사용 방법
+```bash
+cp .env.qa.example .env.qa
+```
+
+그 다음 `.env.qa`에 실제 QA 관리자 계정, 비밀번호, MFA secret을 채우고 아키텍처 앱 `Ops` 탭에서 `로컬 Visible 실행`을 다시 누르면 된다.
+
+## 검증 결과
+- `node --check electron/main.cjs && node --check electron/preload.cjs` ✅
+- `npm run validate` ✅
+- `npm run map:build` ✅
+- `npm run app:pack` ✅
+
+---
+
 # RESULT: On-Demand QA 실패 로그 기반 반복 안정화 (2026-05-17)
 
 ## 현재 상태

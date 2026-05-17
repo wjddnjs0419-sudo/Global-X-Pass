@@ -1,6 +1,7 @@
 node_modules
 dist
 .env
+.env.qa
 .DS_Store
 *.local
 homepage_system_reference.md
