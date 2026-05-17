@@ -13,14 +13,14 @@ async function chooseFirstSelectOption(page: Page, selectIndex: number) {
 }
 
 async function deleteVisibleItem(page: Page, title: string) {
-  const item = page
-    .locator('div')
-    .filter({ has: page.getByText(title, { exact: true }) })
-    .filter({ has: page.getByRole('button', { name: '삭제' }) })
-    .first();
-  if (!await item.isVisible({ timeout: 1200 }).catch(() => false)) return;
+  const titleNode = page.getByText(title, { exact: true }).first();
+  if (!await titleNode.isVisible({ timeout: 1200 }).catch(() => false)) return;
+
+  const item = titleNode.locator('xpath=ancestor::div[.//button[normalize-space(.)="삭제"]][1]');
+  const deleteButton = item.getByRole('button', { name: '삭제' }).last();
   page.once('dialog', (dialog) => dialog.accept());
-  await item.getByRole('button', { name: '삭제' }).click();
+  await deleteButton.click();
+  await expect(titleNode).toBeHidden({ timeout: 15000 }).catch(() => undefined);
 }
 
 test.describe('Admin Program Management QA', () => {

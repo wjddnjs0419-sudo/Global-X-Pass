@@ -25,7 +25,10 @@ async function createPost(page: Page, category: string, title: string) {
   }
 
   if (category === 'events') {
-    await page.locator('input[placeholder*="행사"], input[placeholder*="일시"]').first().fill('2026.05.17 QA');
+    const eventDateInput = page.locator('input[placeholder*="행사"], input[placeholder*="일시"]').first();
+    if (await eventDateInput.isVisible({ timeout: 1000 }).catch(() => false)) {
+      await eventDateInput.fill('2026.05.17 QA');
+    }
   }
 
   await fillQuill(page, `${title} content`);
@@ -41,11 +44,9 @@ async function findPostRow(page: Page, title: string, options: { timeout?: numbe
   if (await search.isVisible().catch(() => false)) {
     await search.fill(title);
   }
-  const row = page
-    .locator('div')
-    .filter({ has: page.getByText(title, { exact: true }) })
-    .filter({ has: page.getByRole('button', { name: /수정|삭제/ }) })
-    .first();
+  const titleNode = page.getByText(title, { exact: true }).first();
+  await expect(titleNode).toBeVisible({ timeout });
+  const row = titleNode.locator('xpath=ancestor::div[.//button[normalize-space(.)="수정"] and .//button[normalize-space(.)="삭제"]][1]');
   await expect(row).toBeVisible({ timeout });
   return row;
 }
@@ -56,11 +57,9 @@ async function maybeFindPostRow(page: Page, title: string) {
   if (await search.isVisible().catch(() => false)) {
     await search.fill(title);
   }
-  const row = page
-    .locator('div')
-    .filter({ has: page.getByText(title, { exact: true }) })
-    .filter({ has: page.getByRole('button', { name: /수정|삭제/ }) })
-    .first();
+  const titleNode = page.getByText(title, { exact: true }).first();
+  if (!await titleNode.isVisible({ timeout: 1200 }).catch(() => false)) return null;
+  const row = titleNode.locator('xpath=ancestor::div[.//button[normalize-space(.)="수정"] and .//button[normalize-space(.)="삭제"]][1]');
   return await row.isVisible({ timeout: 1200 }).catch(() => false) ? row : null;
 }
 
