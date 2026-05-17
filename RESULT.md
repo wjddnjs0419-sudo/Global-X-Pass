@@ -1,3 +1,22 @@
+# RESULT: 게시물 CUD QA timeout/잔여 데이터 정리 안정화 (2026-05-17)
+
+## 현재 상태
+`admin-post-cud`가 local/headed 실행에서 60초 timeout으로 중단되면 마지막 일괄 cleanup까지 안정적으로 도달하지 못해 `QA_E2E_...` 게시물이 남을 수 있었다. 이제 각 게시물 케이스가 생성 직후 수정/검증/삭제까지 끝낸 뒤 다음 케이스로 넘어가며, 시작/종료 시 `QA_E2E_` prefix 잔여 게시물을 추가로 정리한다.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `tests/qa/admin-post-cud.spec.ts` | 테스트 timeout을 180초로 확장, 케이스별 원자 CUD 흐름 도입, 실패/종료 cleanup에 `QA_E2E_` prefix sweeping 추가, optional cleanup 탐색 timeout 보강 |
+| `PLAN.md`, `RESULT.md` | 실제 실행 결과와 잔여 데이터 확인 기록 |
+
+## 검증 결과
+- `QA_ADMIN_EMAIL=... QA_ADMIN_PASSWORD=... QA_ADMIN_MFA_SECRET=... npx playwright test --list tests/qa/admin-post-cud.spec.ts` ✅
+- `npm run validate` ✅
+- 저장된 앱 QA credentials 기반 실제 `npx playwright test tests/qa/admin-post-cud.spec.ts --project=chromium` ✅ (`1 passed`, 35.2s)
+- 관리자 게시물 관리에서 `QA_E2E_` 검색 결과 0개 확인 ✅
+
+---
+
 # RESULT: 로컬 Visible QA 계정 앱 저장 지원 (2026-05-17)
 
 ## 현재 상태

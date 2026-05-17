@@ -58,9 +58,9 @@ async function maybeFindPostRow(page: Page, title: string) {
     await search.fill(title);
   }
   const titleNode = page.getByText(title, { exact: true }).first();
-  if (!await titleNode.isVisible({ timeout: 1200 }).catch(() => false)) return null;
+  if (!await titleNode.isVisible({ timeout: 5000 }).catch(() => false)) return null;
   const row = titleNode.locator('xpath=ancestor::div[.//button[normalize-space(.)="수정"] and .//button[normalize-space(.)="삭제"]][1]');
-  return await row.isVisible({ timeout: 1200 }).catch(() => false) ? row : null;
+  return await row.isVisible({ timeout: 5000 }).catch(() => false) ? row : null;
 }
 
 async function deletePost(page: Page, title: string, options: { required?: boolean } = {}) {
@@ -81,26 +81,63 @@ async function updatePostTitle(page: Page, title: string, updatedTitle: string) 
   await findPostRow(page, updatedTitle, { timeout: 20000 });
 }
 
-test.describe('Admin Post CUD QA', () => {
-  test.afterEach(async ({ page }) => {
-    for (const item of postCases) {
-      await deletePost(page, `${item.title}_updated`).catch(() => undefined);
+async function deleteFirstQaE2ePost(page: Page) {
+  const titleNode = page.locator('strong').filter({ hasText: /^QA_E2E_/ }).first();
+  if (!await titleNode.isVisible({ timeout: 1500 }).catch(() => false)) return false;
+
+  const title = (await titleNode.innerText()).trim();
+  const row = titleNode.locator('xpath=ancestor::div[.//button[normalize-space(.)="삭제"]][1]');
+  await row.getByRole('button', { name: '삭제' }).click();
+  await confirmAdminModal(page);
+  await expect(page.getByText(title, { exact: true })).toHaveCount(0, { timeout: 20000 });
+  return true;
+}
+
+async function cleanupQaE2ePosts(page: Page) {
+  await openAdminTab(page, /게시물 관리/);
+  const search = page.locator('input[placeholder*="검색"], input[type="search"]').first();
+  if (await search.isVisible().catch(() => false)) {
+    await search.fill('QA_E2E_');
+  }
+
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    if (!await deleteFirstQaE2ePost(page)) break;
+  }
+}
+
+async function runPostCase(page: Page, item: { category: string; title: string }) {
+  const updatedTitle = `${item.title}_updated`;
+  let completedCleanup = false;
+
+  try {
+    await createPost(page, item.category, item.title);
+    await updatePostTitle(page, item.title, updatedTitle);
+    await openAdminTab(page, /게시물 관리/);
+    await findPostRow(page, updatedTitle);
+    await deletePost(page, updatedTitle, { required: true });
+    await deletePost(page, item.title);
+    completedCleanup = true;
+  } finally {
+    if (!completedCleanup) {
+      await deletePost(page, updatedTitle).catch(() => undefined);
       await deletePost(page, item.title).catch(() => undefined);
     }
+  }
+}
+
+test.describe('Admin Post CUD QA', () => {
+  test.setTimeout(180000);
+
+  test.afterEach(async ({ page }) => {
+    await cleanupQaE2ePosts(page).catch(() => undefined);
   });
 
   test('공지/뉴스/행사/미디어 게시물을 생성하고 정리합니다', async ({ page }) => {
     await robustLogin(page);
+    await cleanupQaE2ePosts(page);
 
     for (const item of postCases) {
-      await createPost(page, item.category, item.title);
-      await updatePostTitle(page, item.title, `${item.title}_updated`);
-      await openAdminTab(page, /게시물 관리/);
-      const search = page.locator('input[placeholder*="검색"], input[type="search"]').first();
-      if (await search.isVisible().catch(() => false)) {
-        await search.fill(`${item.title}_updated`);
-      }
-      await findPostRow(page, `${item.title}_updated`);
+      await runPostCase(page, item);
     }
   });
 });
