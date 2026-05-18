@@ -131,7 +131,7 @@ export function AdminConsultingManagement() {
   useEffect(() => { 
     const init = async () => {
       setLoading(true);
-      await Promise.all([fetchConsultants(), fetchReservations()]);
+      await fetchConsultants();
       setLoading(false);
     };
     init();
@@ -143,6 +143,11 @@ export function AdminConsultingManagement() {
       fetchSlots(selectedConsultant).finally(() => setLoading(false));
     }
   }, [selectedConsultant]);
+
+  useEffect(() => {
+    if (subTab !== "reservations") return;
+    void fetchReservations();
+  }, [subTab]);
 
   useEffect(() => {
     const applyCategories = (resolved: ConsultingCategory[]) => {

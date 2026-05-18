@@ -1,3 +1,22 @@
+# RESULT: AdminConsultingManagement 예약 조회 lazy fetch 전환 (2026-05-18)
+
+## 현재 상태
+최신 `user-flows` 재실패의 직접 원인은 `user-consulting-booking` 본문이 아니라 관리자 `컨설팅 관리` 페이지였다. setup/cleanup 과정에서 `/admin`의 `컨설팅 관리` 탭이 mount되자마자 `consulting-admin-reservations` Edge Function을 호출했고, 이 요청이 실패하면서 `console.error("컨설팅 예약 조회 오류: ...")`가 QA watchdog에 잡혀 suite가 실패했다. 이제 초기 마운트에서는 컨설턴트 목록만 읽고, 예약 목록은 실제로 `reservations` 탭에 들어갈 때만 lazy fetch한다.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `src/app/components/admin/AdminConsultingManagement.tsx` | 초기 `Promise.all([fetchConsultants(), fetchReservations()])`를 제거하고 `fetchConsultants()`만 실행하도록 조정, `subTab === "reservations"`일 때만 `fetchReservations()`를 호출하는 `useEffect` 추가 |
+| `PLAN.md`, `RESULT.md` | 승인 계획 압축 및 최신 실패 원인/수정 결과 기록 |
+
+## 검증 결과
+- `npm run validate` ✅
+
+## 비고
+- 이번 수정은 예약 승인/거절 후의 `fetchReservations()` 재호출 흐름은 유지한다. 즉 예약 탭 기능은 그대로 두고, 비예약 탭 진입 시에만 불필요한 Edge Function 호출을 막는 방향으로 최소 수정했다.
+
+---
+
 # RESULT: QA `user-consulting-booking` 재진입 대기 안정화 (2026-05-18)
 
 ## 현재 상태
