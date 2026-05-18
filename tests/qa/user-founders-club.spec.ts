@@ -91,7 +91,7 @@ async function deleteFoundersArtifacts(page: Page) {
 test.describe('User Founders Club QA', () => {
   test.setTimeout(180000);
 
-  test('일반 유저가 Founders Club 신청 후 재신청 불가 상태와 비로그인 접근 차단을 확인합니다', async ({ page }) => {
+  test('일반 유저가 Founders Club 신청 후 재신청 불가 상태와 비로그인 접근 차단을 확인합니다', async ({ page, browser }) => {
     const assertNoRuntimeFailures = installQaFailureWatchdog(page, 'user founders club');
 
     try {
@@ -118,16 +118,15 @@ test.describe('User Founders Club QA', () => {
       await logoutIfNeeded(page);
       await robustLogin(page);
       await closeFoundersSession(page);
-      await page.context().clearCookies();
-      await page.goto('/');
-      await page.evaluate(() => {
-        window.localStorage.clear();
-        window.sessionStorage.clear();
-      });
-
-      await page.goto('/founders-club');
-      await page.waitForURL((url) => url.pathname === '/login', { timeout: 20000 });
-      await expect(page.locator('input[type="email"]').first()).toBeVisible({ timeout: 15000 });
+      const guestContext = await browser.newContext();
+      const guestPage = await guestContext.newPage();
+      try {
+        await guestPage.goto('/founders-club');
+        await guestPage.waitForURL((url) => url.pathname === '/login', { timeout: 20000 });
+        await expect(guestPage.locator('input[type="email"]').first()).toBeVisible({ timeout: 15000 });
+      } finally {
+        await guestContext.close();
+      }
 
       await assertNoRuntimeFailures();
     } finally {
