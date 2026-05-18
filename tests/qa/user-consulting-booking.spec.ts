@@ -25,6 +25,39 @@ function getFutureSlotParts(daysAhead = 10) {
   };
 }
 
+function getConsultingCard(page: Page, title: string) {
+  const titleNode = findByQaTitle(page, title);
+  return {
+    titleNode,
+    card: titleNode.locator('xpath=ancestor::div[.//button[normalize-space(.)="예약 신청"]][1]'),
+  };
+}
+
+async function openConsultingBookingModal(page: Page, title: string, slotTimeLabel?: string) {
+  const { titleNode, card } = getConsultingCard(page, title);
+  await expect(titleNode).toBeVisible({ timeout: 20000 });
+  await expect(card).toBeVisible({ timeout: 20000 });
+  await card.getByRole('button', { name: '예약 신청' }).click();
+
+  const modalHeading = page.getByText('예약 가능한 시간 선택', { exact: true });
+  const emptyState = page.getByText('현재 예약 가능한 슬롯이 없습니다.', { exact: true });
+
+  await expect(modalHeading).toBeVisible({ timeout: 20000 });
+  if (slotTimeLabel) {
+    const slotButton = page.getByRole('button', { name: new RegExp(slotTimeLabel) });
+    await expect.poll(
+      async () => ({
+        hasSlot: await slotButton.count(),
+        hasEmptyState: await emptyState.count(),
+      }),
+      { timeout: 20000, intervals: [250, 500, 1000] },
+    ).toEqual({ hasSlot: 1, hasEmptyState: 0 });
+    return;
+  }
+
+  await expect(emptyState).toBeVisible({ timeout: 20000 });
+}
+
 async function selectFirstNonEmptyOption(select: Locator) {
   const value = await select.locator('option').evaluateAll((options) => {
     const option = options.find((item) => Boolean((item as HTMLOptionElement).value));
@@ -127,10 +160,7 @@ test.describe('User Consulting Booking QA', () => {
       await robustUserLogin(page);
 
       await page.goto('/consulting');
-      const titleNode = findByQaTitle(page, consultantName);
-      await expect(titleNode).toBeVisible({ timeout: 20000 });
-      const card = titleNode.locator('xpath=ancestor::div[.//button[normalize-space(.)="예약 신청"]][1]');
-      await card.getByRole('button', { name: '예약 신청' }).click();
+      await openConsultingBookingModal(page, consultantName, slot.timeLabel);
       await page.getByRole('button', { name: new RegExp(slot.timeLabel) }).click();
       await page.locator('textarea[placeholder*="상담 받고 싶은 내용"]').fill('QA consulting reservation validation');
       await page.getByRole('button', { name: '컨설팅 신청하기' }).click();
@@ -142,9 +172,7 @@ test.describe('User Consulting Booking QA', () => {
       await expect(findByQaTitle(page, consultantName)).toBeVisible({ timeout: 20000 });
 
       await page.goto('/consulting');
-      const reopenedCard = findByQaTitle(page, consultantName).locator('xpath=ancestor::div[.//button[normalize-space(.)="예약 신청"]][1]');
-      await reopenedCard.getByRole('button', { name: '예약 신청' }).click();
-      await expect(page.getByText('현재 예약 가능한 슬롯이 없습니다.', { exact: true })).toBeVisible({ timeout: 20000 });
+      await openConsultingBookingModal(page, consultantName);
 
       await assertNoRuntimeFailures();
     } finally {

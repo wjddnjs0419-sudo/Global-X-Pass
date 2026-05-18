@@ -141,11 +141,11 @@ jobs:
       with:
         name: playwright-report-${{ inputs.test_suite }}
         path: playwright-report/
-        retention-days: 30
+        retention-days: 3
 
     - uses: actions/upload-artifact@v4
       if: always()
       with:
         name: playwright-raw-artifacts-${{ inputs.test_suite }}
         path: test-results/
-        retention-days: 30
+        retention-days: 3

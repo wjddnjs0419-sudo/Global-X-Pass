@@ -1,3 +1,88 @@
+# RESULT: QA `user-consulting-booking` 재진입 대기 안정화 (2026-05-18)
+
+## 현재 상태
+`user-consulting-booking`이 두 번째 `/consulting` 진입 직후 카드와 모달이 다시 렌더링되기 전에 `예약 신청` 버튼을 눌러 flaky하게 깨질 수 있던 구간을 보강했다. 이제 카드 루트와 모달 상태를 명시적으로 기다린 뒤 상호작용하므로, 첫 진입에서는 슬롯 버튼이 실제로 나타났는지 확인하고, 재진입에서는 `현재 예약 가능한 슬롯이 없습니다.` empty-state가 그려질 때까지 기다린다.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `tests/qa/user-consulting-booking.spec.ts` | `getConsultingCard()`/`openConsultingBookingModal()` helper 추가, `/consulting` 재진입 후 카드 visible 대기와 모달 슬롯/empty-state 대기 보강 |
+| `PLAN.md`, `RESULT.md` | 승인 계획 압축 및 최신 세션 결과 기록 |
+
+## 검증 결과
+- `npx playwright test --list tests/qa/user-consulting-booking.spec.ts` ✅
+- `npm run validate` ✅
+
+## 비고
+- 실제 end-to-end 재확인은 `QA_ADMIN_*`, `QA_USER_*`가 연결된 환경에서 `npx playwright test tests/qa/user-consulting-booking.spec.ts --project=chromium` 또는 `user-flows` 재실행으로 확인하면 된다. 현재 로컬 세션에는 QA 자격 증명이 없어 구조/빌드 검증까지만 수행했다.
+
+---
+
+# RESULT: QA GitHub Actions 아티팩트 보관 기간 3일로 축소 (2026-05-18)
+
+## 현재 상태
+On-Demand QA workflow가 업로드하는 GitHub Actions 아티팩트의 보관 기간을 `30일`에서 `3일`로 줄였다. 이제 `playwright-report-*`, `playwright-raw-artifacts-*`는 사후 디버깅에는 충분히 짧게 유지되면서도 Actions artifact storage 누적은 더 빠르게 줄어든다.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `.github/workflows/qa-dispatch.yml` | 두 `actions/upload-artifact@v4` 단계의 `retention-days`를 `3`으로 조정 |
+| `CODEX_QA.md` | GitHub 실행 기록 아티팩트의 현재 보관 기간이 3일임을 문서에 반영 |
+| `PLAN.md`, `RESULT.md` | 승인 계획 압축 및 최신 세션 결과 기록 |
+
+## 검증 결과
+- `ruby -e 'require "yaml"; YAML.load_file(".github/workflows/qa-dispatch.yml")'` ✅
+- `npm run validate` ✅
+
+## 비고
+- 기존에 이미 업로드된 아티팩트의 보관 기간이 소급 변경되지는 않는다. 새 정책은 이번 수정 이후 생성되는 QA 아티팩트부터 적용된다.
+
+---
+
+# RESULT: Founders Club user QA 회귀 안정화 (2026-05-18)
+
+## 현재 상태
+`user-founders-club` suite가 실제 앱 동작에 맞게 안정화됐다. 이제 일반 유저 신청 후 재신청 불가 상태를 제목 기준의 정확한 카드 scope로 검증하고, 세션 마감 이후 비로그인 사용자는 별도 익명 브라우저 컨텍스트에서 `/founders-club` 접근 시 `/login`으로 리다이렉트되는 것을 확인한다. 반복 실패를 만들던 false positive는 공통 watchdog 정리로 제거했고, GitHub Actions `user-founders-club` run `#29`가 최종 성공했다.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `tests/qa/user-founders-club.spec.ts` | 공개 카드 locator를 제목 기준 helper로 고정, 상태 pill assertion strict-safe화, 비로그인 접근 차단은 새 익명 브라우저 컨텍스트에서 검증하도록 변경 |
+| `tests/qa/utils/auth.ts` | watchdog가 검사 시점 이후 cleanup 노이즈를 수집하지 않도록 listener 해제를 추가하고, `ERR_ABORTED`/`Failed to fetch` 계열 false positive를 무시하도록 보강 |
+| `PLAN.md`, `RESULT.md` | 이번 회귀 수정과 최종 성공 run 기록 반영 |
+
+## 검증 결과
+- `npx playwright test --list tests/qa/user-founders-club.spec.ts` ✅
+- `npm run validate` ✅
+- GitHub Actions `user-founders-club` run `#29` ✅
+  - [run #29](https://github.com/wjddnjs0419-sudo/Global-X-Pass/actions/runs/26011051995)
+
+## 비고
+- `/founders-club`는 실제로 [AuthRoute](/Users/jeongwonkim/Desktop/Global%20X%20Pass/src/app/routes.tsx:53) 뒤에 있으므로, 기존 “공개 마감 표시” 기대값은 제품 동작과 맞지 않았다. 이번 수정으로 suite 기대값을 현재 라우팅 규칙에 맞췄다.
+
+---
+
+# RESULT: QA 일반 유저 로그인 판정 및 Founders cleanup 보강 (2026-05-18)
+
+## 현재 상태
+일반 유저 로그인 성공 시 뜨는 환영 alert를 QA helper가 실패로 잘못 해석하던 문제를 바로잡았다. 이제 `robustUserLogin()`을 공유하는 `user-event-application`, `user-consulting-booking`, `user-founders-club`, `admin-auth-negative`가 성공 alert 때문에 즉시 cleanup으로 빠지지 않는다. Founders cleanup도 세션 삭제를 최종 원복 경로로 고정해, 중간 실패가 나도 테스트가 만든 세션이 남을 가능성을 낮췄다.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `tests/qa/utils/auth.ts` | 로그인 outcome 판정에서 성공 alert와 실패 alert를 분리하고, 일반 유저 성공 alert는 정상 흐름으로 통과시키도록 수정 |
+| `tests/qa/user-founders-club.spec.ts` | cleanup이 신청 삭제를 반복 시도한 뒤 세션 삭제를 반드시 다시 잡아 수행하도록 보강 |
+| `docs/AGENT_ANTI_PATTERNS.md`, `PLAN.md`, `RESULT.md` | 이번 회귀와 수정 내용을 문서화 |
+
+## 검증 결과
+- `npx playwright test --list tests/qa/user-founders-club.spec.ts` ✅
+- `npm run validate` ✅
+
+## 비고
+- 실제 end-to-end 재확인은 `QA_ADMIN_*`, `QA_USER_*`가 연결된 환경에서 `user-founders-club` 또는 `user-flows`를 다시 실행하면 된다. 이번 수정은 공통 helper 수준이라 다른 일반 유저 로그인 기반 suite에도 함께 적용된다.
+
+---
+
 # RESULT: GitHub QA 강도 상향 2차 (2026-05-18)
 
 ## 현재 상태
