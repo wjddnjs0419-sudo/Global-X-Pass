@@ -10,9 +10,10 @@ GitHub Actions `all` run #38은 11개 중 9개가 통과했고, `admin-post-cud`
 | `tests/qa/user-consulting-booking.spec.ts` | 공개 컨설팅 카드 확인 전에 짧은 reload retry를 넣어 운영 DB/화면 반영 지연을 흡수 |
 | `PLAN.md`, `RESULT.md` | `all` run #38 실패 원인과 1차 보강 내용 기록 |
 
-## 검증 예정
-- `npm run validate`
-- GitHub Actions `all` 재실행
+## 검증 결과
+- `npm run validate` ✅
+- GitHub Actions `all` run #39 ✅
+  - https://github.com/wjddnjs0419-sudo/Global-X-Pass/actions/runs/26014499944
 
 ---
 
