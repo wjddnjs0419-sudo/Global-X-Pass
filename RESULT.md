@@ -1,3 +1,404 @@
+# RESULT: QA `user-consulting-booking` 재진입 대기 안정화 (2026-05-18)
+
+## 현재 상태
+`user-consulting-booking`이 두 번째 `/consulting` 진입 직후 카드와 모달이 다시 렌더링되기 전에 `예약 신청` 버튼을 눌러 flaky하게 깨질 수 있던 구간을 보강했다. 이제 카드 루트와 모달 상태를 명시적으로 기다린 뒤 상호작용하므로, 첫 진입에서는 슬롯 버튼이 실제로 나타났는지 확인하고, 재진입에서는 `현재 예약 가능한 슬롯이 없습니다.` empty-state가 그려질 때까지 기다린다.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `tests/qa/user-consulting-booking.spec.ts` | `getConsultingCard()`/`openConsultingBookingModal()` helper 추가, `/consulting` 재진입 후 카드 visible 대기와 모달 슬롯/empty-state 대기 보강 |
+| `PLAN.md`, `RESULT.md` | 승인 계획 압축 및 최신 세션 결과 기록 |
+
+## 검증 결과
+- `npx playwright test --list tests/qa/user-consulting-booking.spec.ts` ✅
+- `npm run validate` ✅
+
+## 비고
+- 실제 end-to-end 재확인은 `QA_ADMIN_*`, `QA_USER_*`가 연결된 환경에서 `npx playwright test tests/qa/user-consulting-booking.spec.ts --project=chromium` 또는 `user-flows` 재실행으로 확인하면 된다. 현재 로컬 세션에는 QA 자격 증명이 없어 구조/빌드 검증까지만 수행했다.
+
+---
+
+# RESULT: QA GitHub Actions 아티팩트 보관 기간 3일로 축소 (2026-05-18)
+
+## 현재 상태
+On-Demand QA workflow가 업로드하는 GitHub Actions 아티팩트의 보관 기간을 `30일`에서 `3일`로 줄였다. 이제 `playwright-report-*`, `playwright-raw-artifacts-*`는 사후 디버깅에는 충분히 짧게 유지되면서도 Actions artifact storage 누적은 더 빠르게 줄어든다.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `.github/workflows/qa-dispatch.yml` | 두 `actions/upload-artifact@v4` 단계의 `retention-days`를 `3`으로 조정 |
+| `CODEX_QA.md` | GitHub 실행 기록 아티팩트의 현재 보관 기간이 3일임을 문서에 반영 |
+| `PLAN.md`, `RESULT.md` | 승인 계획 압축 및 최신 세션 결과 기록 |
+
+## 검증 결과
+- `ruby -e 'require "yaml"; YAML.load_file(".github/workflows/qa-dispatch.yml")'` ✅
+- `npm run validate` ✅
+
+## 비고
+- 기존에 이미 업로드된 아티팩트의 보관 기간이 소급 변경되지는 않는다. 새 정책은 이번 수정 이후 생성되는 QA 아티팩트부터 적용된다.
+
+---
+
+# RESULT: Founders Club user QA 회귀 안정화 (2026-05-18)
+
+## 현재 상태
+`user-founders-club` suite가 실제 앱 동작에 맞게 안정화됐다. 이제 일반 유저 신청 후 재신청 불가 상태를 제목 기준의 정확한 카드 scope로 검증하고, 세션 마감 이후 비로그인 사용자는 별도 익명 브라우저 컨텍스트에서 `/founders-club` 접근 시 `/login`으로 리다이렉트되는 것을 확인한다. 반복 실패를 만들던 false positive는 공통 watchdog 정리로 제거했고, GitHub Actions `user-founders-club` run `#29`가 최종 성공했다.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `tests/qa/user-founders-club.spec.ts` | 공개 카드 locator를 제목 기준 helper로 고정, 상태 pill assertion strict-safe화, 비로그인 접근 차단은 새 익명 브라우저 컨텍스트에서 검증하도록 변경 |
+| `tests/qa/utils/auth.ts` | watchdog가 검사 시점 이후 cleanup 노이즈를 수집하지 않도록 listener 해제를 추가하고, `ERR_ABORTED`/`Failed to fetch` 계열 false positive를 무시하도록 보강 |
+| `PLAN.md`, `RESULT.md` | 이번 회귀 수정과 최종 성공 run 기록 반영 |
+
+## 검증 결과
+- `npx playwright test --list tests/qa/user-founders-club.spec.ts` ✅
+- `npm run validate` ✅
+- GitHub Actions `user-founders-club` run `#29` ✅
+  - [run #29](https://github.com/wjddnjs0419-sudo/Global-X-Pass/actions/runs/26011051995)
+
+## 비고
+- `/founders-club`는 실제로 [AuthRoute](/Users/jeongwonkim/Desktop/Global%20X%20Pass/src/app/routes.tsx:53) 뒤에 있으므로, 기존 “공개 마감 표시” 기대값은 제품 동작과 맞지 않았다. 이번 수정으로 suite 기대값을 현재 라우팅 규칙에 맞췄다.
+
+---
+
+# RESULT: QA 일반 유저 로그인 판정 및 Founders cleanup 보강 (2026-05-18)
+
+## 현재 상태
+일반 유저 로그인 성공 시 뜨는 환영 alert를 QA helper가 실패로 잘못 해석하던 문제를 바로잡았다. 이제 `robustUserLogin()`을 공유하는 `user-event-application`, `user-consulting-booking`, `user-founders-club`, `admin-auth-negative`가 성공 alert 때문에 즉시 cleanup으로 빠지지 않는다. Founders cleanup도 세션 삭제를 최종 원복 경로로 고정해, 중간 실패가 나도 테스트가 만든 세션이 남을 가능성을 낮췄다.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `tests/qa/utils/auth.ts` | 로그인 outcome 판정에서 성공 alert와 실패 alert를 분리하고, 일반 유저 성공 alert는 정상 흐름으로 통과시키도록 수정 |
+| `tests/qa/user-founders-club.spec.ts` | cleanup이 신청 삭제를 반복 시도한 뒤 세션 삭제를 반드시 다시 잡아 수행하도록 보강 |
+| `docs/AGENT_ANTI_PATTERNS.md`, `PLAN.md`, `RESULT.md` | 이번 회귀와 수정 내용을 문서화 |
+
+## 검증 결과
+- `npx playwright test --list tests/qa/user-founders-club.spec.ts` ✅
+- `npm run validate` ✅
+
+## 비고
+- 실제 end-to-end 재확인은 `QA_ADMIN_*`, `QA_USER_*`가 연결된 환경에서 `user-founders-club` 또는 `user-flows`를 다시 실행하면 된다. 이번 수정은 공통 helper 수준이라 다른 일반 유저 로그인 기반 suite에도 함께 적용된다.
+
+---
+
+# RESULT: GitHub QA 강도 상향 2차 (2026-05-18)
+
+## 현재 상태
+On-Demand QA가 관리자 중심 smoke/CUD를 넘어 실제 일반 유저 행동 플로우까지 다루게 됐다. 이제 행사 신청, 컨설팅 예약, Founder's Club 신청, 관리자 인증 negative case를 각각 독립 suite로 실행할 수 있고, GitHub workflow / Electron Visible QA / Ops UI / QA 문서가 같은 suite 집합을 공유한다.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `tests/qa/utils/auth.ts` | `robustUserLogin()`, `logoutIfNeeded()`, `beginAdminOtpChallenge()`, `submitOtpCode()`, `getAdminCredentials()`, `getUserCredentials()`, `findByQaTitle()` 추가 |
+| `tests/qa/user-event-application.spec.ts` | 관리자 행사 fixture 생성 → 일반 유저 신청 → 재진입 시 기존 신청 상태 확인 → 사용자 취소 + 관리자 게시물 cleanup 흐름 추가 |
+| `tests/qa/user-consulting-booking.spec.ts` | 관리자 컨설턴트/슬롯 생성 → 일반 유저 예약 → MyPage 노출 확인 → 재오픈 시 슬롯 비노출 확인 → 사용자 취소 + 관리자 cleanup 흐름 추가 |
+| `tests/qa/user-founders-club.spec.ts` | 관리자 세션 생성 → 일반 유저 신청 → 재신청 불가 상태 확인 → 관리자 마감 전환 후 공개 `모집 마감` 확인 → 신청/세션 cleanup 추가 |
+| `tests/qa/admin-auth-negative.spec.ts` | 잘못된 관리자 비밀번호, 잘못된 OTP, 비관리자 `/admin` 접근 차단 검증 추가 |
+| `.github/workflows/qa-dispatch.yml` | 신규 suite choice, `QA_USER_*` 조건부 preflight, suite별 실행 case 확장 |
+| `electron/main.cjs` | 신규 suite allowlist / visible spec 매핑 / run title 파싱 확장, user-flow suite용 `QA_USER_*` prompt 추가 |
+| `src/app/components/admin/LiveArchitectureMap.tsx` | Ops QA suite 타입/목록/설명 확장 |
+| `CODEX_QA.md`, `.env.qa.example` | 신규 suite 의미, 실행 비용, user credentials 준비 경로 문서화 |
+| `PLAN.md`, `RESULT.md` | 승인 계획 압축 및 최신 세션 결과 반영 |
+
+## 검증 결과
+- `npx playwright test --list` ✅
+- `npx playwright test tests/qa/production-smoke.spec.ts --project=chromium` ✅
+- `npm run validate` ✅
+- `npm run map:build` ✅
+- `npm run app:pack` ✅
+
+## 비고
+- 새 authenticated suite(`admin-auth-negative`, `user-*`)는 이번 세션에서 구조 등록과 빌드 검증까지 확인했다. 실제 end-to-end 실행은 로컬/CI QA credentials(`QA_ADMIN_*`, `QA_USER_*`)가 연결된 환경에서 이어서 돌리면 된다.
+
+---
+
+# RESULT: GitHub QA workflow 속도 최적화 (2026-05-18)
+
+## 현재 상태
+GitHub-hosted runner가 매번 Chromium을 처음부터 다시 받는 병목을 줄이기 위해 Playwright browser cache를 workflow에 붙였다. 이제 `~/.cache/ms-playwright`를 `actions/cache`로 복원하고, hit/miss가 로그에 바로 보인다.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `.github/workflows/qa-dispatch.yml` | Playwright browser cache restore, cache status log step, suite 확장과 user secret preflight 동시 반영 |
+| `CODEX_QA.md` | 첫 실행/동일 revision 재실행의 속도 차이와 suite별 실행 비용 문서화 |
+| `RESULT.md`, `PLAN.md` | 최신 구현/검증 결과 기록 |
+
+## 검증 결과
+- `ruby -e 'require "yaml"; YAML.load_file(".github/workflows/qa-dispatch.yml")'` ✅
+- `npm run validate` ✅
+
+---
+
+# RESULT: GitHub QA 강도 상향 1차 (2026-05-18)
+
+## 현재 상태
+기존 QA가 렌더링 확인 위주로 통과할 수 있던 지점을 줄였다. 이제 smoke는 헤더 메뉴 구조를 실제로 열어 `/notice` 이동을 확인하고, 모든 QA suite에 공통 런타임 감시를 붙여 `pageerror`, `console.error`, 주요 request 실패, 5xx 응답을 잡는다. 게시물/프로그램 CUD는 관리자 목록 확인에서 끝나지 않고 공개 페이지 반영까지 확인한다.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `tests/qa/utils/auth.ts` | `installQaFailureWatchdog()` 추가. 로그인 env는 `robustLogin()` 내부에서만 읽도록 조정해 smoke가 관리자 secret에 불필요하게 묶이지 않게 함 |
+| `tests/qa/production-smoke.spec.ts` | 조건부 통과 제거, 헤더 `News` 드롭다운의 공지 링크 이동 검증, 로그인 버튼 검증, 런타임 감시 추가 |
+| `tests/qa/admin-auth.spec.ts`, `tests/qa/admin-complex.spec.ts` | 관리자 인증/스모크 suite에 런타임 감시 추가 |
+| `tests/qa/admin-post-cud.spec.ts` | 공지/뉴스/행사/미디어 생성·수정 후 공개 페이지 반영 확인. 행사 상태/일시/장소/정원 필드를 실제 공개 카드에서 검증 |
+| `tests/qa/admin-program-mgmt.spec.ts` | 컨설턴트 수정 + 공개 `/consulting` 반영 확인, Founder's Club 상태 변경 + 공개 `/founders-club` 반영 확인 |
+| `CODEX_QA.md`, `PLAN.md`, `RESULT.md` | 1차 강화 결과와 2차 사용자 행동 플로우 확장 계획 기록 |
+
+## 검증 결과
+- `npx playwright test --list` ✅
+- `npx playwright test tests/qa/production-smoke.spec.ts --project=chromium` ✅
+- `npm run validate` ✅
+
+## 다음 단계
+2차는 일반 사용자 행동 플로우를 분리한다. 후보는 행사 신청, 컨설팅 예약, Founder's Club 신청, 관리자 인증 negative case다.
+
+---
+
+# RESULT: GitHub QA 기본 아티팩트 경량화 (2026-05-18)
+
+## 현재 상태
+`GitHub 실행 기록`은 실시간 QA 화면이 아니라 CI runner에서 돈 실행의 사후 디버깅 기록이다. 그래서 기본 보관 아티팩트를 `trace + 실패 screenshot` 중심으로 줄이고, `video`는 기본 비활성으로 전환했다. 필요하면 추후 `PW_QA_RECORD_VIDEO=1`로만 opt-in 활성화할 수 있다.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `playwright.config.ts` | `PW_QA_RECORD_REPLAY=1`일 때 `trace`는 유지하고 `screenshot`은 실패 시에만 남기며, `video`는 `PW_QA_RECORD_VIDEO=1`일 때만 기록하도록 조정 |
+| `src/app/components/admin/LiveArchitectureMap.tsx` | GitHub QA 안내 문구를 `trace + 실패 screenshot` 기준으로 수정 |
+| `CODEX_QA.md` | GitHub/로컬 QA 실행 모드 설명을 실제 기본 동작과 일치하게 갱신 |
+| `PLAN.md`, `RESULT.md` | 승인 계획 및 최신 세션 결과 반영 |
+
+## 검증 결과
+- `npm run validate` ✅
+- `QA_ADMIN_EMAIL=qa@example.com QA_ADMIN_PASSWORD=password QA_ADMIN_MFA_SECRET=BASE32SECRET QA_USER_EMAIL=user@example.com QA_USER_PASSWORD=password npx playwright test --list` ✅
+
+---
+
+# RESULT: GitHub Actions QA 실제 실행 기록(video/trace/screenshot) 추가 (2026-05-17)
+
+## 현재 상태
+`로컬 화면 실행`은 현재 Mac에서 브라우저를 띄우는 디버그용 실행이고, `GitHub 실행 기록`은 실제 GitHub Actions runner에서 돈 QA의 화면 기록을 남기는 실행으로 역할을 분리했다. GitHub-hosted runner는 GUI 실시간 스트리밍을 기본 제공하지 않으므로, 실제 CI 화면 확인은 Playwright video/trace/screenshot 아티팩트 리플레이 기준으로 수행한다.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `.github/workflows/qa-dispatch.yml` | GitHub QA 실행 시 `PW_QA_RECORD_REPLAY=1`을 주입하고 `playwright-report/`, `test-results/`를 각각 아티팩트로 업로드 |
+| `playwright.config.ts` | `PW_QA_RECORD_REPLAY=1`일 때 trace/video/screenshot을 항상 기록 |
+| `src/app/components/admin/LiveArchitectureMap.tsx` | 버튼/안내 문구를 `GitHub 실행 기록`과 `로컬 화면 실행`으로 분리해 실제 의미가 드러나도록 수정 |
+| `CODEX_QA.md`, `PLAN.md`, `RESULT.md` | CI 실시간 관람 불가와 리플레이 아티팩트 기준 운영 방식 문서화 |
+
+## 검증 결과
+- `ruby -e 'require "yaml"; YAML.load_file(".github/workflows/qa-dispatch.yml")'` ✅
+- `PW_QA_RECORD_REPLAY=1 npx playwright test --list` ✅
+- `npm run validate` ✅
+- `npm run map:build` ✅
+- `npm run app:pack` ✅
+
+---
+
+# RESULT: 게시물 CUD QA timeout/잔여 데이터 정리 안정화 (2026-05-17)
+
+## 현재 상태
+`admin-post-cud`가 local/headed 실행에서 60초 timeout으로 중단되면 마지막 일괄 cleanup까지 안정적으로 도달하지 못해 `QA_E2E_...` 게시물이 남을 수 있었다. 이제 각 게시물 케이스가 생성 직후 수정/검증/삭제까지 끝낸 뒤 다음 케이스로 넘어가며, 시작/종료 시 `QA_E2E_` prefix 잔여 게시물을 추가로 정리한다.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `tests/qa/admin-post-cud.spec.ts` | 테스트 timeout을 180초로 확장, 케이스별 원자 CUD 흐름 도입, 실패/종료 cleanup에 `QA_E2E_` prefix sweeping 추가, optional cleanup 탐색 timeout 보강 |
+| `PLAN.md`, `RESULT.md` | 실제 실행 결과와 잔여 데이터 확인 기록 |
+
+## 검증 결과
+- `QA_ADMIN_EMAIL=... QA_ADMIN_PASSWORD=... QA_ADMIN_MFA_SECRET=... npx playwright test --list tests/qa/admin-post-cud.spec.ts` ✅
+- `npm run validate` ✅
+- 저장된 앱 QA credentials 기반 실제 `npx playwright test tests/qa/admin-post-cud.spec.ts --project=chromium` ✅ (`1 passed`, 35.2s)
+- 관리자 게시물 관리에서 `QA_E2E_` 검색 결과 0개 확인 ✅
+
+---
+
+# RESULT: 로컬 Visible QA 계정 앱 저장 지원 (2026-05-17)
+
+## 현재 상태
+아키텍처 앱 `Ops` 탭에서 `Visible QA 계정`을 저장하면 이후 `로컬 Visible 실행` 시 터미널에 이메일/비밀번호/MFA secret을 직접 입력하지 않아도 된다. 저장값은 GitHub token과 같은 앱 로컬 userData 영역에만 보관되며, 터미널 명령에는 secret 원문을 노출하지 않고 저장된 env 파일을 source한다.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `electron/main.cjs` | `qa-credentials:get-status/save/clear` IPC 추가, `qa-credentials.env` 저장/삭제, Visible QA 실행 시 저장 credentials 자동 source |
+| `electron/preload.cjs` | renderer bridge에 QA credentials IPC 추가 |
+| `src/app/components/admin/LiveArchitectureMap.tsx` | Ops 탭에 `Visible QA 계정` 저장/삭제 UI 추가. 저장 후에는 입력칸을 비우고 저장 여부만 표시 |
+| `CODEX_QA.md`, `PLAN.md`, `RESULT.md` | 앱 저장 방식과 fallback 우선순위 문서화 |
+
+## 동작 우선순위
+Visible QA는 저장된 앱 credentials를 우선 사용하고, 없으면 `.env.qa`, shell env, 터미널 prompt 순서로 fallback한다.
+
+## 검증 결과
+- `node --check electron/main.cjs && node --check electron/preload.cjs` ✅
+- `npm run validate` ✅
+- `npm run map:build` ✅
+- `npm run app:pack` ✅
+
+---
+
+# RESULT: 로컬 Visible QA env 안내 및 zsh 종료 코드 오류 수정 (2026-05-17)
+
+## 현재 상태
+로컬 Visible QA는 GitHub Actions Secrets를 역조회하지 않고 현재 Mac의 `.env.qa` 또는 shell env만 읽는다. `.env.qa`/shell env가 없으면 열린 터미널에서 이번 실행용 `QA_ADMIN_EMAIL`, `QA_ADMIN_PASSWORD`, `QA_ADMIN_MFA_SECRET`를 직접 입력받아 실행한다.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `electron/main.cjs` | zsh readonly 변수 `status` 대신 `qa_exit_code` 사용, env 간접 참조를 zsh 전용 문법에서 POSIX-compatible `eval` 방식으로 변경, GitHub Secrets 역조회 불가 안내 및 터미널 credentials prompt 추가 |
+| `.env.qa.example` | 로컬 Visible QA용 샘플 env 파일 추가 |
+| `.gitignore` | 실제 비밀값 파일 `.env.qa` ignore 추가 |
+| `CODEX_QA.md`, `PLAN.md` | `.env.qa.example` 복사 방식과 로컬/CI credentials 경계 문서화 |
+
+## 사용 방법
+```bash
+cp .env.qa.example .env.qa
+```
+
+그 다음 `.env.qa`에 실제 QA 관리자 계정, 비밀번호, MFA secret을 채우고 아키텍처 앱 `Ops` 탭에서 `로컬 Visible 실행`을 다시 누르면 된다. `.env.qa`를 만들지 않아도 터미널 prompt에 직접 입력해 1회 실행할 수 있다.
+
+## 검증 결과
+- `node --check electron/main.cjs && node --check electron/preload.cjs` ✅
+- `npm run validate` ✅
+- `npm run map:build` ✅
+- `npm run app:pack` ✅
+
+---
+
+# RESULT: On-Demand QA 실패 로그 기반 반복 안정화 (2026-05-17)
+
+## 현재 상태
+사용자가 실행한 On-Demand QA 실패 3건을 GitHub Actions 아티팩트 기준으로 추적해, 실패한 suite를 하나씩 수정→실행→재수정 루프로 안정화했다. 최종적으로 개별 `admin-post-cud`, `admin-program-mgmt`가 통과했고, 전체 `all` suite도 통과했다.
+
+## 반영 내용
+| 파일 | 내용 |
+|---|---|
+| `tests/qa/utils/auth.ts` | 확인 모달 클릭 후 모달이 사라질 때까지 대기해 저장/삭제 완료 전 다음 단계로 넘어가지 않도록 보강 |
+| `tests/qa/admin-post-cud.spec.ts` | 게시물 생성 후 실제 row 출현까지 대기, 행사 날짜 입력은 실제 UI에 있을 때만 optional 처리, 검색/수정/삭제 row locator를 제목 기준 ancestor로 좁힘 |
+| `tests/qa/admin-program-mgmt.spec.ts` | `전문가 등록` 중복 텍스트 strict 오류 제거, 컨설턴트 필수 필드 입력 추가, 카드 내부 삭제 버튼 locator 보강, Founder's Club 설명 필드를 실제 input placeholder에 맞춤 |
+
+## GitHub Actions 결과
+- `admin-post-cud` run #6 (`25985775845`) ✅
+- `admin-program-mgmt` run #8 (`25985853314`) ✅
+- `all` run #9 (`25985892912`) ✅
+
+## 검증 결과
+- `QA_ADMIN_EMAIL=qa@example.com QA_ADMIN_PASSWORD=password QA_ADMIN_MFA_SECRET=... npx playwright test --list` ✅
+- `npm run validate` ✅
+
+---
+
+# RESULT: QA 수동 실행 Visible 모드 추가 (2026-05-17)
+
+## 현재 상태
+아키텍처 앱 `Ops` 탭에서 QA suite를 실행할 때 두 가지 경로를 선택할 수 있다.
+
+- `GitHub 실행`: 기존처럼 `qa-dispatch.yml`을 workflow_dispatch로 호출해 백그라운드에서 실행한다.
+- `로컬 Visible 실행`: 현재 Mac의 iTerm/Terminal을 열고 `npx playwright test ... --headed --project=chromium`을 실행해 Chromium 브라우저 진행 화면을 직접 볼 수 있다.
+
+로컬 Visible 실행은 QA 비밀값을 앱에 저장하지 않는다. 저장소 루트의 `.env.qa` 또는 shell env에 `QA_ADMIN_EMAIL`, `QA_ADMIN_PASSWORD`, `QA_ADMIN_MFA_SECRET`가 있어야 하며, 누락되면 열린 Terminal에서 누락 변수명을 보여주고 종료한다.
+
+방금 실패한 GitHub QA에 대해서는 로컬 환경에 GitHub token과 `QA_ADMIN_*` env가 없어 run 상세 로그를 직접 조회하지 못했다. 대신 `qa-dispatch.yml`에 `Check QA secrets` preflight를 추가해, GitHub Secrets 누락이면 Playwright 진입 전에 어떤 secret이 빠졌는지 Actions 로그에 명확히 표시되도록 했다.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `electron/main.cjs` | `qa:run-visible` IPC 추가. suite allowlist 검증 후 iTerm/Terminal에서 headed Playwright 명령 실행 |
+| `electron/preload.cjs` | renderer bridge에 `runVisibleQa(suite)` 추가 |
+| `src/app/components/admin/LiveArchitectureMap.tsx` | Ops 탭에 `GitHub 실행` / `로컬 Visible 실행` 버튼 분리, visible 실행 상태/오류 메시지 추가 |
+| `.github/workflows/qa-dispatch.yml` | `Check QA secrets` preflight 추가 |
+| `CODEX_QA.md`, `PLAN.md` | Visible QA 운영 방식과 검증 결과 반영 |
+
+## 검증 결과
+- `node --check electron/main.cjs && node --check electron/preload.cjs` ✅
+- `ruby -e 'require "yaml"; YAML.load_file(".github/workflows/qa-dispatch.yml")'` ✅
+- `QA_ADMIN_EMAIL=qa@example.com QA_ADMIN_PASSWORD=password QA_ADMIN_MFA_SECRET=... npx playwright test --list` ✅
+- `npm run validate` ✅
+- `npm run map:build` ✅
+- `npm run app:pack` ✅
+
+---
+
+# RESULT: QA 자동화 고도화 및 On-Demand 실행 환경 구축 (2026-05-17)
+
+## 현재 상태
+cron 기반 daily QA를 제거하고, 아키텍처 앱 `Ops` 탭에서 원하는 QA suite를 직접 선택 실행하는 On-Demand QA 구조로 전환했다. GitHub Actions workflow는 `qa-dispatch.yml`로 바뀌었고, `workflow_dispatch.test_suite`는 `smoke`, `admin-auth`, `admin-post-cud`, `admin-program-mgmt`, `all` 허용값만 받는다.
+
+Playwright 테스트는 공통 인증 유틸을 사용하도록 분리했고, 기존 MFA TOTP 값 로그 출력은 제거했다. 관리자 CUD 테스트는 `QA_E2E_<runId>_...` prefix를 사용하며, 생성한 테스트 데이터만 정리하는 경로를 포함한다.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `.github/workflows/qa-dispatch.yml` | 신규 On-Demand QA workflow. `test_suite` choice input으로 suite별 Playwright spec 실행 |
+| `.github/workflows/daily-qa.yml` | cron 기반 daily workflow 제거 |
+| `tests/qa/utils/auth.ts` | 관리자 로그인/MFA/로그아웃 공통 유틸, `QA_E2E` title helper 추가 |
+| `tests/qa/admin-auth.spec.ts` | 관리자 로그인, MFA, 로그아웃, 권한 가드 suite |
+| `tests/qa/admin-complex.spec.ts` | 경량 smoke/visual suite로 축소 |
+| `tests/qa/admin-post-cud.spec.ts` | 공지/뉴스/행사/미디어 게시물 생성/수정/삭제 suite |
+| `tests/qa/admin-program-mgmt.spec.ts` | 컨설팅/Founders Club 관리 CUD 기본 suite |
+| `electron/main.cjs`, `electron/preload.cjs` | `qa-dispatch.yml` dispatch, suite allowlist, suite metadata 반환 |
+| `src/app/components/admin/LiveArchitectureMap.tsx` | Ops 탭 suite 선택 UI, trigger payload, Alerts/Incident Feed suite 표시 |
+| `CODEX_QA.md`, `docs/AGENT_RULES.md`, `PLAN.md` | On-Demand QA 운영 규칙과 검증 결과 반영 |
+
+## 검증 결과
+- `npm run validate` ✅
+- `npm run map:build` ✅
+- `npm run app:pack` ✅
+- `npx playwright test tests/qa/production-smoke.spec.ts` ✅
+- `QA_ADMIN_EMAIL=qa@example.com QA_ADMIN_PASSWORD=password QA_ADMIN_MFA_SECRET=... npx playwright test --list` ✅
+
+## 비고
+- 로컬 셸에 실제 `QA_ADMIN_*` 값이 없어 관리자 인증/CUD suite의 실주행은 수행하지 않았다. GitHub Secrets 또는 로컬 환경 변수 연결 후 아키텍처 앱 `Ops` 탭에서 suite별 실행이 필요하다.
+
+---
+
+# RESULT: 아키텍처 맵 앱 고도화 1차 — Incident Feed + 구조 Diff (2026-05-17)
+
+## 현재 상태
+아키텍처 맵 앱의 기본 Map 사이드바에 통합 `Incident Feed`를 추가했다. 이제 열린 `error_issues`, 실패/진행 중인 QA workflow run, 실패/대기/진행 중인 블로그 동기화 run을 한 피드에서 볼 수 있고, 항목별로 관련 노드 또는 GitHub workflow/run 링크로 바로 이동할 수 있다.
+
+구조 새로고침(`map:refresh`) 전후 또는 로컬에 저장된 직전 스냅샷 대비 `architectureMap.json` 변화도 표시한다. 노드/간선 추가·삭제, DEAD 코드 증감, cluster별 노드 수 변화를 Map 사이드바에서 바로 확인할 수 있다.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `src/app/components/admin/LiveArchitectureMap.tsx` | Incident Feed 데이터 정규화, 구조 diff 상태/스냅샷 저장, Map 사이드바 통합, `MapDiffSummary` 추가 |
+| `src/app/components/admin/architecture/IncidentFeed.tsx` | error issue/QA/blog sync를 공통 카드로 보여주는 신규 컴포넌트 |
+| `src/app/components/admin/architecture/mapDiff.ts` | `ArchitectureMap` 스냅샷 비교 헬퍼. 노드/간선/DEAD/cluster 변화량 계산 |
+| `PLAN.md` | 승인 계획을 `[Done]`으로 축약하고 완료 항목 10개 유지 규칙에 맞춰 오래된 완료 항목 2개 정리 |
+
+## 검증 결과
+- `npm run validate` ✅
+- `npm run map:build` ✅
+- `npm run app:pack` ✅
+
+---
+
+# RESULT: QA 자동화 고도화 및 On-Demand 실행 환경 구축 계획 수립 (2026-05-17)
+
+## 현재 상태
+기존 QA 시스템의 허점(단일 블록화, 공통 로직 부재, 표면적 검증)을 분석하고, 이를 개선하기 위한 **원자적(Atomic) 테스트 분리** 및 **아키텍처 앱 연동 On-Demand 실행** 전략을 수립하여 `PLAN.md`에 반영했다. 사용자의 요청에 따라 이번 세션에서는 직접적인 코드 수정 없이 **연구 및 계획 수립**만 수행했다.
+
+## 수립된 계획 요약
+1. **인증 로직 분리**: `tests/qa/utils/auth.ts`를 신설하여 MFA 포함 로그인/로그아웃 로직을 공통화.
+2. **Atomic CUD 테스트**: `admin-post-cud.spec.ts`, `admin-program-mgmt.spec.ts`를 신규 작성하여 실제 데이터 생성~삭제 풀 사이클 검증.
+3. **On-Demand 실행 환경**: GitHub Actions의 `cron`을 제거하고 `workflow_dispatch` 파라미터를 추가하여, 아키텍처 앱 `Ops` 탭 UI에서 원하는 테스트만 골라 실행할 수 있도록 연동.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `PLAN.md` | QA 고도화 및 On-Demand 실행 환경 구축 계획 추가 |
+
+## 검증 결과
+- `PLAN.md` 업데이트 완료 ✅
+- 직접적인 소스 코드 수정 없음 ✅
+
+---
+
 # RESULT: Realtime CHANNEL_ERROR 수정 + 에러 source 정확도 개선 (2026-05-17)
 
 ## 현재 상태
