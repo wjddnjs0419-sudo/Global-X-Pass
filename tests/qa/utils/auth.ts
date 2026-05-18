@@ -62,6 +62,62 @@ async function submitPrimaryLogin(page: Page) {
   console.log('[QA] Login submitted.');
 }
 
+async function waitForLoginOutcome(
+  page: Page,
+  options: { actor: string; allowOtp?: boolean; timeout?: number },
+) {
+  const timeout = options.timeout ?? 20000;
+  const otpHeading = page.getByText('2단계 인증').first();
+  let alertMessage: string | null = null;
+  const successAlerts = new Set(['환영합니다! 로그인이 완료되었습니다.']);
+
+  const dialogHandler = async (dialog: { message(): string; accept(): Promise<void> }) => {
+    alertMessage = dialog.message();
+    await dialog.accept();
+  };
+
+  page.on('dialog', dialogHandler);
+
+  try {
+    await expect
+      .poll(
+        async () => {
+          if (options.allowOtp && await otpHeading.isVisible().catch(() => false)) return 'otp';
+
+          if (alertMessage) {
+            return successAlerts.has(alertMessage)
+              ? `success-dialog:${alertMessage}`
+              : `error-dialog:${alertMessage}`;
+          }
+
+          const pathname = new URL(page.url()).pathname;
+          if (pathname !== '/login') return `url:${pathname}`;
+
+          return 'pending';
+        },
+        { timeout, intervals: [250, 500, 1000] },
+      )
+      .not.toBe('pending');
+  } finally {
+    page.off('dialog', dialogHandler);
+  }
+
+  if (alertMessage && !successAlerts.has(alertMessage)) {
+    throw new Error(`[QA] ${options.actor} login failed: ${alertMessage}`);
+  }
+
+  if (options.allowOtp && await otpHeading.isVisible().catch(() => false)) {
+    return 'otp' as const;
+  }
+
+  const pathname = new URL(page.url()).pathname;
+  if (pathname !== '/login') {
+    return 'navigated' as const;
+  }
+
+  throw new Error(`[QA] ${options.actor} login outcome was not recognized.`);
+}
+
 export async function beginAdminOtpChallenge(
   page: Page,
   overrides: Partial<Pick<AdminCredentials, 'email' | 'password'>> = {},
@@ -72,7 +128,10 @@ export async function beginAdminOtpChallenge(
 
   await fillLoginForm(page, email, password);
   await submitPrimaryLogin(page);
-  await page.locator('text=2단계 인증').waitFor({ timeout: 15000 });
+  const outcome = await waitForLoginOutcome(page, { actor: 'Admin', allowOtp: true });
+  if (outcome !== 'otp') {
+    throw new Error(`[QA] Admin login expected OTP challenge but navigated to ${new URL(page.url()).pathname}.`);
+  }
 
   return {
     email,
@@ -115,7 +174,7 @@ export async function robustUserLogin(page: Page) {
   const credentials = getUserCredentials();
   await fillLoginForm(page, credentials.email, credentials.password);
   await submitPrimaryLogin(page);
-  await page.waitForURL((url) => url.pathname !== '/login', { timeout: 20000 });
+  await waitForLoginOutcome(page, { actor: 'User' });
   console.log('[QA] User login completed.');
 }
 
@@ -215,29 +274,39 @@ function formatResponseFailure(response: Response) {
 export function installQaFailureWatchdog(page: Page, label: string) {
   const failures: string[] = [];
 
-  page.on('pageerror', (error) => {
+  const handlePageError = (error: Error) => {
     failures.push(`pageerror: ${error.message}`);
-  });
+  };
 
-  page.on('console', (message) => {
+  const handleConsole = (message: ConsoleMessage) => {
     if (message.type() === 'error' && !isIgnoredConsoleError(message)) {
       failures.push(`console.error: ${message.text()}`);
     }
-  });
+  };
 
-  page.on('requestfailed', (request) => {
+  const handleRequestFailed = (request: Request) => {
     if (isMonitoredRequest(request)) {
       failures.push(`requestfailed: ${formatRequestFailure(request)}`);
     }
-  });
+  };
 
-  page.on('response', (response) => {
+  const handleResponse = (response: Response) => {
     if (response.status() >= 500 && isMonitoredRequest(response.request())) {
       failures.push(`response ${formatResponseFailure(response)}`);
     }
-  });
+  };
+
+  page.on('pageerror', handlePageError);
+  page.on('console', handleConsole);
+  page.on('requestfailed', handleRequestFailed);
+  page.on('response', handleResponse);
 
   return async () => {
+    page.off('pageerror', handlePageError);
+    page.off('console', handleConsole);
+    page.off('requestfailed', handleRequestFailed);
+    page.off('response', handleResponse);
+
     if (failures.length > 0) {
       throw new Error(`[QA] ${label} runtime failures:\n${failures.map((failure) => `- ${failure}`).join('\n')}`);
     }
