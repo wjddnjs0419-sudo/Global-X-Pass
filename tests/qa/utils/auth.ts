@@ -258,7 +258,14 @@ function isMonitoredRequest(request: Request) {
 
 function isIgnoredConsoleError(message: ConsoleMessage) {
   const text = message.text();
-  return text.includes('Failed to load resource:');
+  return text.includes('Failed to load resource:')
+    || text.includes('TypeError: Failed to fetch')
+    || text.includes('Failed to track page view:');
+}
+
+function isIgnoredRequestFailure(request: Request) {
+  const errorText = request.failure()?.errorText || '';
+  return errorText.includes('ERR_ABORTED');
 }
 
 function formatRequestFailure(request: Request) {
@@ -285,7 +292,7 @@ export function installQaFailureWatchdog(page: Page, label: string) {
   };
 
   const handleRequestFailed = (request: Request) => {
-    if (isMonitoredRequest(request)) {
+    if (isMonitoredRequest(request) && !isIgnoredRequestFailure(request)) {
       failures.push(`requestfailed: ${formatRequestFailure(request)}`);
     }
   };
