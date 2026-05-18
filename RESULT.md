@@ -1,3 +1,21 @@
+# RESULT: GitHub QA `all` 1차 실패 보강 (2026-05-18)
+
+## 현재 상태
+GitHub Actions `all` run #38은 11개 중 9개가 통과했고, `admin-post-cud`와 `user-consulting-booking` 두 곳만 남았다. `admin-post-cud`는 공개 페이지 검증 후 다시 `/admin`으로 돌아갈 때 사이드바가 보이지 않아 실패했고, `user-consulting-booking`은 단독 run #37은 성공했지만 `all` 안에서는 공개 `/consulting` 목록에서 방금 만든 QA 전문가 카드가 아직 보이지 않았다.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `tests/qa/utils/auth.ts` | `openAdminTab()`에서 사이드바 버튼이 보이지 않으면 현재 세션을 정리하고 관리자 재로그인 후 `/admin`을 다시 여는 복구 경로 추가 |
+| `tests/qa/user-consulting-booking.spec.ts` | 공개 컨설팅 카드 확인 전에 짧은 reload retry를 넣어 운영 DB/화면 반영 지연을 흡수 |
+| `PLAN.md`, `RESULT.md` | `all` run #38 실패 원인과 1차 보강 내용 기록 |
+
+## 검증 예정
+- `npm run validate`
+- GitHub Actions `all` 재실행
+
+---
+
 # RESULT: `user-consulting-booking` watchdog 범위 축소 (2026-05-18)
 
 ## 현재 상태

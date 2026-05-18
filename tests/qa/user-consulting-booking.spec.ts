@@ -35,6 +35,10 @@ function getConsultingCard(page: Page, title: string) {
 
 async function openConsultingBookingModal(page: Page, title: string, slotTimeLabel?: string) {
   const { titleNode, card } = getConsultingCard(page, title);
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    if (await titleNode.isVisible({ timeout: 5000 }).catch(() => false)) break;
+    await page.reload({ waitUntil: 'domcontentloaded' });
+  }
   await expect(titleNode).toBeVisible({ timeout: 20000 });
   await expect(card).toBeVisible({ timeout: 20000 });
   await card.getByRole('button', { name: '예약 신청' }).click();

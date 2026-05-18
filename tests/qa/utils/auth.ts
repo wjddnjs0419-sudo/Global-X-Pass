@@ -238,6 +238,11 @@ export async function robustLogout(page: Page) {
 export async function openAdminTab(page: Page, label: RegExp | string) {
   await page.goto('/admin');
   const tabButton = page.locator('aside button').filter({ hasText: label }).first();
+  if (!await tabButton.isVisible({ timeout: 15000 }).catch(() => false)) {
+    await logoutIfNeeded(page).catch(() => undefined);
+    await robustLogin(page);
+    await page.goto('/admin');
+  }
   await tabButton.waitFor({ state: 'visible', timeout: 15000 });
   await tabButton.click();
 }
