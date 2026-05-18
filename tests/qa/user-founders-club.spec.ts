@@ -91,7 +91,7 @@ async function deleteFoundersArtifacts(page: Page) {
 test.describe('User Founders Club QA', () => {
   test.setTimeout(180000);
 
-  test('일반 유저가 Founders Club 신청 후 재신청 불가 상태와 공개 마감 표시를 확인합니다', async ({ page }) => {
+  test('일반 유저가 Founders Club 신청 후 재신청 불가 상태와 비로그인 접근 차단을 확인합니다', async ({ page }) => {
     const assertNoRuntimeFailures = installQaFailureWatchdog(page, 'user founders club');
 
     try {
@@ -121,8 +121,8 @@ test.describe('User Founders Club QA', () => {
       await logoutIfNeeded(page);
 
       await page.goto('/founders-club');
-      const publicCard = getPublicFoundersCard(page, sessionTheme);
-      await expect(publicCard.getByText('모집 마감', { exact: true })).toBeVisible({ timeout: 20000 });
+      await page.waitForURL((url) => url.pathname === '/login', { timeout: 20000 });
+      await expect(page.locator('input[type="email"]').first()).toBeVisible({ timeout: 15000 });
 
       await assertNoRuntimeFailures();
     } finally {
