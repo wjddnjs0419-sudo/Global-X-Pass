@@ -6,6 +6,7 @@ import {
   makeQaTitle,
   openAdminTab,
   robustLogin,
+  robustLogout,
   robustUserLogin,
 } from './utils/auth';
 
@@ -118,7 +119,8 @@ test.describe('User Founders Club QA', () => {
       await logoutIfNeeded(page);
       await robustLogin(page);
       await closeFoundersSession(page);
-      await logoutIfNeeded(page);
+      await page.goto('/');
+      await robustLogout(page);
 
       await page.goto('/founders-club');
       await page.waitForURL((url) => url.pathname === '/login', { timeout: 20000 });
