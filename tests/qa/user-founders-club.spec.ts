@@ -11,6 +11,12 @@ import {
 
 const sessionTheme = makeQaTitle('user-founders');
 
+function getPublicFoundersCard(page: Page, title: string) {
+  return page
+    .getByRole('heading', { name: title, exact: true })
+    .locator('xpath=ancestor::div[3]');
+}
+
 function getFutureSessionParts(daysAhead = 12) {
   const date = new Date();
   date.setDate(date.getDate() + daysAhead);
@@ -55,22 +61,30 @@ async function closeFoundersSession(page: Page) {
 
 async function deleteFoundersArtifacts(page: Page) {
   await openAdminTab(page, /Founder's Club|파운더스/);
-
-  const row = findByQaTitle(page, sessionTheme).locator('xpath=ancestor::div[.//button[normalize-space(.)="신청 보기"]][1]');
-  if (await row.isVisible({ timeout: 5000 }).catch(() => false)) {
-    await row.getByRole('button', { name: '신청 보기' }).click();
-    const deleteApplicationButton = page.getByRole('button', { name: '삭제' }).first();
-    if (await deleteApplicationButton.isVisible({ timeout: 2000 }).catch(() => false)) {
-      page.once('dialog', (dialog) => dialog.accept());
-      await deleteApplicationButton.click();
-    }
-  }
-
   await page.getByRole('button', { name: '세션 관리' }).click();
   const sessionRow = findByQaTitle(page, sessionTheme).locator('xpath=ancestor::div[.//button[normalize-space(.)="삭제"]][1]');
   if (!await sessionRow.isVisible({ timeout: 5000 }).catch(() => false)) return;
+
+  const applicationsButton = sessionRow.getByRole('button', { name: '신청 보기' });
+  if (await applicationsButton.isVisible({ timeout: 2000 }).catch(() => false)) {
+    await applicationsButton.click();
+
+    while (true) {
+      const deleteApplicationButton = page.getByRole('button', { name: '삭제' }).first();
+      if (!await deleteApplicationButton.isVisible({ timeout: 1000 }).catch(() => false)) break;
+      page.once('dialog', (dialog) => dialog.accept());
+      await deleteApplicationButton.click();
+      await page.waitForTimeout(300);
+    }
+
+    await page.getByRole('button', { name: '세션 관리' }).click();
+  }
+
   page.once('dialog', (dialog) => dialog.accept());
-  await sessionRow.getByRole('button', { name: '삭제' }).click();
+  await findByQaTitle(page, sessionTheme)
+    .locator('xpath=ancestor::div[.//button[normalize-space(.)="삭제"]][1]')
+    .getByRole('button', { name: '삭제' })
+    .click();
   await expect(findByQaTitle(page, sessionTheme)).toHaveCount(0, { timeout: 20000 });
 }
 
@@ -89,17 +103,17 @@ test.describe('User Founders Club QA', () => {
       await robustUserLogin(page);
 
       await page.goto('/founders-club');
-      const titleNode = findByQaTitle(page, sessionTheme);
-      await expect(titleNode).toBeVisible({ timeout: 20000 });
-      const card = titleNode.locator('xpath=ancestor::div[.//button[contains(normalize-space(.), "지금 신청")]][1]');
-      await card.getByRole('button', { name: /지금 신청/ }).click();
+      const card = getPublicFoundersCard(page, sessionTheme);
+      await expect(card).toBeVisible({ timeout: 20000 });
+      await card.getByRole('button', { name: /^지금 신청/ }).click();
       await page.locator('textarea[placeholder*="참여 동기"]').fill('QA founders application message');
       await page.getByRole('button', { name: '신청하기 (선착순)' }).click();
 
       await expect(page.getByText('신청 완료!', { exact: true })).toBeVisible({ timeout: 20000 });
       await page.getByRole('button', { name: '닫기' }).click();
-      await expect(page.getByText('신청 완료 — 검토 중', { exact: true })).toBeVisible({ timeout: 20000 });
-      await expect(card.getByRole('button', { name: /지금 신청/ })).toHaveCount(0);
+      const updatedCard = getPublicFoundersCard(page, sessionTheme);
+      await expect(updatedCard.getByText('신청 완료 — 검토 중', { exact: true })).toBeVisible({ timeout: 20000 });
+      await expect(updatedCard.getByRole('button', { name: /^지금 신청/ })).toHaveCount(0);
 
       await logoutIfNeeded(page);
       await robustLogin(page);
@@ -107,7 +121,7 @@ test.describe('User Founders Club QA', () => {
       await logoutIfNeeded(page);
 
       await page.goto('/founders-club');
-      const publicCard = findByQaTitle(page, sessionTheme).locator('xpath=ancestor::div[.//h3[normalize-space(.)]][1]');
+      const publicCard = getPublicFoundersCard(page, sessionTheme);
       await expect(publicCard.getByText('모집 마감', { exact: true })).toBeVisible({ timeout: 20000 });
 
       await assertNoRuntimeFailures();
