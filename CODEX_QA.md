@@ -61,10 +61,13 @@ QA를 시작할 때는 아래 번호 또는 항목명을 골라 진행한다. �
 
 4. **On-Demand QA Suite 실행**
    - 대상: 아키텍처 앱 `Ops` 탭 또는 GitHub Actions `qa-dispatch.yml`
-   - 선택값: `smoke`, `admin-auth`, `admin-post-cud`, `admin-program-mgmt`, `all`
+   - 선택값: `smoke`, `admin-auth`, `auth-negative`, `admin-post-cud`, `admin-program-mgmt`, `user-event-application`, `user-consulting-booking`, `user-founders-club`, `user-flows`, `all`
    - 핵심: 운영자가 필요한 suite만 직접 실행한다. cron 기반 자동 실행은 사용하지 않는다.
-   - 실행 모드: `GitHub 실행 기록`은 Actions에서 실제 CI runner 기준으로 수행하고, 매번 Playwright `video`, `trace`, `screenshot` 아티팩트를 남겨 실행 후 리플레이/확인한다. `로컬 화면 실행`은 현재 Mac의 iTerm/Terminal에서 `--headed` Playwright를 실행해 Chromium 진행 화면을 직접 보여주는 디버그용 실행이다.
-   - 로컬 Visible 준비: 아키텍처 앱 `Ops` 탭의 `Visible QA 계정` 영역에 `QA_ADMIN_EMAIL`, `QA_ADMIN_PASSWORD`, `QA_ADMIN_MFA_SECRET`를 저장하면 이후 실행부터 터미널 입력 없이 자동 주입된다. 대안으로 저장소 루트에서 `cp .env.qa.example .env.qa` 후 값을 채우거나 shell env로 export할 수 있다. 아무 값도 없으면 열린 터미널에서 이번 실행용 값을 직접 입력한다. GitHub Secrets 값은 보안상 로컬로 다시 읽어올 수 없다.
+   - 실행 모드: `GitHub 실행 기록`은 Actions에서 실제 CI runner 기준으로 수행하고, 기본적으로 Playwright `trace`와 실패 시 `screenshot` 아티팩트를 남겨 실행 후 확인한다. `video`는 기본 비활성이며 필요 시에만 별도 opt-in으로 켠다. `로컬 화면 실행`은 현재 Mac의 iTerm/Terminal에서 `--headed` Playwright를 실행해 Chromium 진행 화면을 직접 보여주는 디버그용 실행이다.
+   - 커버리지 의미: `smoke`는 홈/헤더 드롭다운/로그인 진입과 관리자 작성 폼 전환을 빠르게 확인한다. `admin-auth`는 정상 관리자 로그인/MFA/로그아웃을 본다. `auth-negative`는 잘못된 비밀번호/OTP와 비관리자 `/admin` 접근 차단을 본다. `admin-post-cud`는 관리자 게시물 CUD와 공개 게시판 반영을 함께 확인한다. `admin-program-mgmt`는 컨설팅/Founder's Club 관리 CUD와 공개 페이지 반영을 함께 확인한다. `user-event-application`, `user-consulting-booking`, `user-founders-club`는 일반 유저 신청/예약 플로우를 각각 독립 검증한다. `user-flows`는 세 일반 유저 suite 묶음 실행이다. 릴리스 전 넓은 회귀 확인은 `all` 기준으로 판단한다.
+   - 런타임 감시: QA suite는 `pageerror`, `console.error`, 주요 `document/script/xhr/fetch` request 실패와 5xx 응답을 감시해 화면 shell만 뜨는 false positive를 줄인다. 이미지 등 주변 리소스 실패는 기본 실패 조건에서 제외한다.
+   - 로컬 Visible 준비: 아키텍처 앱 `Ops` 탭의 `Visible QA 계정` 영역에 `QA_ADMIN_EMAIL`, `QA_ADMIN_PASSWORD`, `QA_ADMIN_MFA_SECRET`를 저장하면 관리자 계정은 이후 실행부터 자동 주입된다. 일반 유저 플로우 suite는 추가로 `QA_USER_EMAIL`, `QA_USER_PASSWORD`가 필요하므로 `.env.qa` 또는 shell env에 함께 넣거나 터미널 prompt에서 이번 실행용 값을 직접 입력한다. GitHub Secrets 값은 보안상 로컬로 다시 읽어올 수 없다.
+   - 실행 비용: `smoke`, `admin-auth`, `auth-negative`는 상대적으로 가볍고, `admin-post-cud`, `admin-program-mgmt`는 관리자 CUD 데이터 정리가 포함되어 중간 비용이다. `user-*` suite는 관리자 준비 + 일반 유저 행동 + cleanup까지 포함하므로 가장 무겁다. 첫 GitHub 실행은 Playwright browser cache가 비어 있어 느릴 수 있고, 이후 동일 revision에서는 빨라질 수 있다.
    - 데이터 안전: CUD suite는 `QA_E2E_<runId>_...` prefix 데이터만 만들고 정리해야 한다.
 
 ## 4. Execution Rule (실행 규칙)

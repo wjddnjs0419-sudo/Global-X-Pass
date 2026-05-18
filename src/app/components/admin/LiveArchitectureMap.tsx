@@ -106,7 +106,17 @@ type ArchitectureMap = {
 };
 
 type QaRunConclusion = "success" | "failure" | "cancelled" | "skipped" | "timed_out" | "action_required" | null;
-type QaSuiteId = "smoke" | "admin-auth" | "admin-post-cud" | "admin-program-mgmt" | "all";
+type QaSuiteId =
+  | "smoke"
+  | "admin-auth"
+  | "auth-negative"
+  | "admin-post-cud"
+  | "admin-program-mgmt"
+  | "user-event-application"
+  | "user-consulting-booking"
+  | "user-founders-club"
+  | "user-flows"
+  | "all";
 
 type QaFailedStep = {
   job: string;
@@ -224,8 +234,13 @@ const FILTERS: Array<{ id: FilterId; label: string }> = [
 const QA_SUITES: Array<{ id: QaSuiteId; label: string; description: string }> = [
   { id: "smoke", label: "Smoke", description: "핵심 화면과 작성 폼 렌더링을 빠르게 확인" },
   { id: "admin-auth", label: "Admin Auth", description: "로그인, MFA, 로그아웃, 권한 가드 검증" },
+  { id: "auth-negative", label: "Auth Negative", description: "잘못된 비밀번호/OTP와 비관리자 어드민 접근 차단 검증" },
   { id: "admin-post-cud", label: "Post CUD", description: "공지/뉴스/행사/미디어 게시물 CUD 검증" },
   { id: "admin-program-mgmt", label: "Program Mgmt", description: "컨설팅/Founders Club 관리 흐름 검증" },
+  { id: "user-event-application", label: "User Event", description: "일반 유저 행사 신청과 재진입 상태 검증" },
+  { id: "user-consulting-booking", label: "User Consulting", description: "일반 유저 컨설팅 예약과 슬롯 소진 검증" },
+  { id: "user-founders-club", label: "User Founders", description: "일반 유저 Founders Club 신청과 공개 마감 표시 검증" },
+  { id: "user-flows", label: "User Flows", description: "일반 유저 신청/예약 핵심 플로우 묶음 실행" },
   { id: "all", label: "All", description: "모든 On-Demand QA suite 실행" },
 ];
 
@@ -2378,7 +2393,7 @@ function OperationsSidebar({
           </button>
         </div>
         <div style={{ color: "#8a8a8a", fontSize: 10, lineHeight: 1.5, marginTop: 9 }}>
-          `GitHub 실행 기록`은 실제 CI runner에서 돈 video/trace/screenshot 아티팩트를 남깁니다. `로컬 화면 실행`은 현재 Mac에서 Chromium을 띄우는 디버그용 실행입니다.
+          `GitHub 실행 기록`은 실제 CI runner에서 돈 trace와 실패 screenshot 아티팩트를 남깁니다. `로컬 화면 실행`은 현재 Mac에서 Chromium을 띄우는 디버그용 실행입니다.
         </div>
         {qaTriggerError && (
           <div style={{ color: "#ffb4b4", borderLeft: "3px solid #ea4335", background: "#1a1010", padding: "8px 10px", fontSize: 11, lineHeight: 1.6, marginTop: 12 }}>

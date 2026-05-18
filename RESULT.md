@@ -1,3 +1,96 @@
+# RESULT: GitHub QA 강도 상향 2차 (2026-05-18)
+
+## 현재 상태
+On-Demand QA가 관리자 중심 smoke/CUD를 넘어 실제 일반 유저 행동 플로우까지 다루게 됐다. 이제 행사 신청, 컨설팅 예약, Founder's Club 신청, 관리자 인증 negative case를 각각 독립 suite로 실행할 수 있고, GitHub workflow / Electron Visible QA / Ops UI / QA 문서가 같은 suite 집합을 공유한다.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `tests/qa/utils/auth.ts` | `robustUserLogin()`, `logoutIfNeeded()`, `beginAdminOtpChallenge()`, `submitOtpCode()`, `getAdminCredentials()`, `getUserCredentials()`, `findByQaTitle()` 추가 |
+| `tests/qa/user-event-application.spec.ts` | 관리자 행사 fixture 생성 → 일반 유저 신청 → 재진입 시 기존 신청 상태 확인 → 사용자 취소 + 관리자 게시물 cleanup 흐름 추가 |
+| `tests/qa/user-consulting-booking.spec.ts` | 관리자 컨설턴트/슬롯 생성 → 일반 유저 예약 → MyPage 노출 확인 → 재오픈 시 슬롯 비노출 확인 → 사용자 취소 + 관리자 cleanup 흐름 추가 |
+| `tests/qa/user-founders-club.spec.ts` | 관리자 세션 생성 → 일반 유저 신청 → 재신청 불가 상태 확인 → 관리자 마감 전환 후 공개 `모집 마감` 확인 → 신청/세션 cleanup 추가 |
+| `tests/qa/admin-auth-negative.spec.ts` | 잘못된 관리자 비밀번호, 잘못된 OTP, 비관리자 `/admin` 접근 차단 검증 추가 |
+| `.github/workflows/qa-dispatch.yml` | 신규 suite choice, `QA_USER_*` 조건부 preflight, suite별 실행 case 확장 |
+| `electron/main.cjs` | 신규 suite allowlist / visible spec 매핑 / run title 파싱 확장, user-flow suite용 `QA_USER_*` prompt 추가 |
+| `src/app/components/admin/LiveArchitectureMap.tsx` | Ops QA suite 타입/목록/설명 확장 |
+| `CODEX_QA.md`, `.env.qa.example` | 신규 suite 의미, 실행 비용, user credentials 준비 경로 문서화 |
+| `PLAN.md`, `RESULT.md` | 승인 계획 압축 및 최신 세션 결과 반영 |
+
+## 검증 결과
+- `npx playwright test --list` ✅
+- `npx playwright test tests/qa/production-smoke.spec.ts --project=chromium` ✅
+- `npm run validate` ✅
+- `npm run map:build` ✅
+- `npm run app:pack` ✅
+
+## 비고
+- 새 authenticated suite(`admin-auth-negative`, `user-*`)는 이번 세션에서 구조 등록과 빌드 검증까지 확인했다. 실제 end-to-end 실행은 로컬/CI QA credentials(`QA_ADMIN_*`, `QA_USER_*`)가 연결된 환경에서 이어서 돌리면 된다.
+
+---
+
+# RESULT: GitHub QA workflow 속도 최적화 (2026-05-18)
+
+## 현재 상태
+GitHub-hosted runner가 매번 Chromium을 처음부터 다시 받는 병목을 줄이기 위해 Playwright browser cache를 workflow에 붙였다. 이제 `~/.cache/ms-playwright`를 `actions/cache`로 복원하고, hit/miss가 로그에 바로 보인다.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `.github/workflows/qa-dispatch.yml` | Playwright browser cache restore, cache status log step, suite 확장과 user secret preflight 동시 반영 |
+| `CODEX_QA.md` | 첫 실행/동일 revision 재실행의 속도 차이와 suite별 실행 비용 문서화 |
+| `RESULT.md`, `PLAN.md` | 최신 구현/검증 결과 기록 |
+
+## 검증 결과
+- `ruby -e 'require "yaml"; YAML.load_file(".github/workflows/qa-dispatch.yml")'` ✅
+- `npm run validate` ✅
+
+---
+
+# RESULT: GitHub QA 강도 상향 1차 (2026-05-18)
+
+## 현재 상태
+기존 QA가 렌더링 확인 위주로 통과할 수 있던 지점을 줄였다. 이제 smoke는 헤더 메뉴 구조를 실제로 열어 `/notice` 이동을 확인하고, 모든 QA suite에 공통 런타임 감시를 붙여 `pageerror`, `console.error`, 주요 request 실패, 5xx 응답을 잡는다. 게시물/프로그램 CUD는 관리자 목록 확인에서 끝나지 않고 공개 페이지 반영까지 확인한다.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `tests/qa/utils/auth.ts` | `installQaFailureWatchdog()` 추가. 로그인 env는 `robustLogin()` 내부에서만 읽도록 조정해 smoke가 관리자 secret에 불필요하게 묶이지 않게 함 |
+| `tests/qa/production-smoke.spec.ts` | 조건부 통과 제거, 헤더 `News` 드롭다운의 공지 링크 이동 검증, 로그인 버튼 검증, 런타임 감시 추가 |
+| `tests/qa/admin-auth.spec.ts`, `tests/qa/admin-complex.spec.ts` | 관리자 인증/스모크 suite에 런타임 감시 추가 |
+| `tests/qa/admin-post-cud.spec.ts` | 공지/뉴스/행사/미디어 생성·수정 후 공개 페이지 반영 확인. 행사 상태/일시/장소/정원 필드를 실제 공개 카드에서 검증 |
+| `tests/qa/admin-program-mgmt.spec.ts` | 컨설턴트 수정 + 공개 `/consulting` 반영 확인, Founder's Club 상태 변경 + 공개 `/founders-club` 반영 확인 |
+| `CODEX_QA.md`, `PLAN.md`, `RESULT.md` | 1차 강화 결과와 2차 사용자 행동 플로우 확장 계획 기록 |
+
+## 검증 결과
+- `npx playwright test --list` ✅
+- `npx playwright test tests/qa/production-smoke.spec.ts --project=chromium` ✅
+- `npm run validate` ✅
+
+## 다음 단계
+2차는 일반 사용자 행동 플로우를 분리한다. 후보는 행사 신청, 컨설팅 예약, Founder's Club 신청, 관리자 인증 negative case다.
+
+---
+
+# RESULT: GitHub QA 기본 아티팩트 경량화 (2026-05-18)
+
+## 현재 상태
+`GitHub 실행 기록`은 실시간 QA 화면이 아니라 CI runner에서 돈 실행의 사후 디버깅 기록이다. 그래서 기본 보관 아티팩트를 `trace + 실패 screenshot` 중심으로 줄이고, `video`는 기본 비활성으로 전환했다. 필요하면 추후 `PW_QA_RECORD_VIDEO=1`로만 opt-in 활성화할 수 있다.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `playwright.config.ts` | `PW_QA_RECORD_REPLAY=1`일 때 `trace`는 유지하고 `screenshot`은 실패 시에만 남기며, `video`는 `PW_QA_RECORD_VIDEO=1`일 때만 기록하도록 조정 |
+| `src/app/components/admin/LiveArchitectureMap.tsx` | GitHub QA 안내 문구를 `trace + 실패 screenshot` 기준으로 수정 |
+| `CODEX_QA.md` | GitHub/로컬 QA 실행 모드 설명을 실제 기본 동작과 일치하게 갱신 |
+| `PLAN.md`, `RESULT.md` | 승인 계획 및 최신 세션 결과 반영 |
+
+## 검증 결과
+- `npm run validate` ✅
+- `QA_ADMIN_EMAIL=qa@example.com QA_ADMIN_PASSWORD=password QA_ADMIN_MFA_SECRET=BASE32SECRET QA_USER_EMAIL=user@example.com QA_USER_PASSWORD=password npx playwright test --list` ✅
+
+---
+
 # RESULT: GitHub Actions QA 실제 실행 기록(video/trace/screenshot) 추가 (2026-05-17)
 
 ## 현재 상태

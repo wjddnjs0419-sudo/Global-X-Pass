@@ -13,8 +13,13 @@ on:
         options:
           - smoke
           - admin-auth
+          - auth-negative
           - admin-post-cud
           - admin-program-mgmt
+          - user-event-application
+          - user-consulting-booking
+          - user-founders-club
+          - user-flows
           - all
 
 jobs:
@@ -29,6 +34,21 @@ jobs:
         node-version: lts/*
         cache: npm
 
+    - name: Restore Playwright browser cache
+      id: playwright-cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ms-playwright
+        key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+
+    - name: Report Playwright cache status
+      run: |
+        if [ "${{ steps.playwright-cache.outputs.cache-hit }}" = "true" ]; then
+          echo "Playwright browser cache hit."
+        else
+          echo "Playwright browser cache miss."
+        fi
+
     - name: Install dependencies
       run: npm ci
 
@@ -40,6 +60,9 @@ jobs:
         QA_ADMIN_EMAIL: ${{ secrets.QA_ADMIN_EMAIL }}
         QA_ADMIN_PASSWORD: ${{ secrets.QA_ADMIN_PASSWORD }}
         QA_ADMIN_MFA_SECRET: ${{ secrets.QA_ADMIN_MFA_SECRET }}
+        QA_USER_EMAIL: ${{ secrets.QA_USER_EMAIL }}
+        QA_USER_PASSWORD: ${{ secrets.QA_USER_PASSWORD }}
+        TEST_SUITE: ${{ inputs.test_suite }}
       run: |
         missing=0
         for name in QA_ADMIN_EMAIL QA_ADMIN_PASSWORD QA_ADMIN_MFA_SECRET; do
@@ -48,6 +71,20 @@ jobs:
             missing=1
           fi
         done
+        needs_user=0
+        case "$TEST_SUITE" in
+          auth-negative|user-event-application|user-consulting-booking|user-founders-club|user-flows|all)
+            needs_user=1
+            ;;
+        esac
+        if [ "$needs_user" -eq 1 ]; then
+          for name in QA_USER_EMAIL QA_USER_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error title=Missing QA secret::$name is required for user QA suites"
+              missing=1
+            fi
+          done
+        fi
         if [ "$missing" -eq 1 ]; then
           exit 64
         fi
@@ -69,11 +106,26 @@ jobs:
           admin-auth)
             npx playwright test tests/qa/admin-auth.spec.ts
             ;;
+          auth-negative)
+            npx playwright test tests/qa/admin-auth-negative.spec.ts
+            ;;
           admin-post-cud)
             npx playwright test tests/qa/admin-post-cud.spec.ts
             ;;
           admin-program-mgmt)
             npx playwright test tests/qa/admin-program-mgmt.spec.ts
+            ;;
+          user-event-application)
+            npx playwright test tests/qa/user-event-application.spec.ts
+            ;;
+          user-consulting-booking)
+            npx playwright test tests/qa/user-consulting-booking.spec.ts
+            ;;
+          user-founders-club)
+            npx playwright test tests/qa/user-founders-club.spec.ts
+            ;;
+          user-flows)
+            npx playwright test tests/qa/user-event-application.spec.ts tests/qa/user-consulting-booking.spec.ts tests/qa/user-founders-club.spec.ts
             ;;
           all)
             npx playwright test

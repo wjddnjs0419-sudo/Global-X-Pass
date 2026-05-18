@@ -28,12 +28,40 @@ const QA_WORKFLOW_FILE = "qa-dispatch.yml";
 const QA_WORKFLOW_REF = "main";
 const GITHUB_TOKEN_FILE = "github-token.txt";
 const QA_CREDENTIALS_FILE = "qa-credentials.env";
-const QA_TEST_SUITES = new Set(["smoke", "admin-auth", "admin-post-cud", "admin-program-mgmt", "all"]);
+const QA_TEST_SUITES = new Set([
+  "smoke",
+  "admin-auth",
+  "auth-negative",
+  "admin-post-cud",
+  "admin-program-mgmt",
+  "user-event-application",
+  "user-consulting-booking",
+  "user-founders-club",
+  "user-flows",
+  "all",
+]);
+const QA_SUITES_REQUIRING_USER = new Set([
+  "auth-negative",
+  "user-event-application",
+  "user-consulting-booking",
+  "user-founders-club",
+  "user-flows",
+  "all",
+]);
 const QA_VISIBLE_SPECS_BY_SUITE = {
   smoke: ["tests/qa/production-smoke.spec.ts", "tests/qa/admin-complex.spec.ts"],
   "admin-auth": ["tests/qa/admin-auth.spec.ts"],
+  "auth-negative": ["tests/qa/admin-auth-negative.spec.ts"],
   "admin-post-cud": ["tests/qa/admin-post-cud.spec.ts"],
   "admin-program-mgmt": ["tests/qa/admin-program-mgmt.spec.ts"],
+  "user-event-application": ["tests/qa/user-event-application.spec.ts"],
+  "user-consulting-booking": ["tests/qa/user-consulting-booking.spec.ts"],
+  "user-founders-club": ["tests/qa/user-founders-club.spec.ts"],
+  "user-flows": [
+    "tests/qa/user-event-application.spec.ts",
+    "tests/qa/user-consulting-booking.spec.ts",
+    "tests/qa/user-founders-club.spec.ts",
+  ],
   all: [],
 };
 
@@ -173,7 +201,7 @@ function normalizeQaSuite(input) {
 
 function extractQaSuite(run) {
   const title = `${run.display_title || ""} ${run.name || ""}`;
-  const match = title.match(/(?:On-Demand QA\s*\/\s*)?(smoke|admin-auth|admin-post-cud|admin-program-mgmt|all)/);
+  const match = title.match(/(?:On-Demand QA\s*\/\s*)?(smoke|admin-auth|auth-negative|admin-post-cud|admin-program-mgmt|user-event-application|user-consulting-booking|user-founders-club|user-flows|all)/);
   return match?.[1] || null;
 }
 
@@ -260,6 +288,7 @@ function shellQuote(value) {
 function buildVisibleQaCommand(suiteInput) {
   const suite = normalizeQaSuite(suiteInput);
   const specs = QA_VISIBLE_SPECS_BY_SUITE[suite] ?? [];
+  const requiresUserCredentials = QA_SUITES_REQUIRING_USER.has(suite);
   const specArgs = specs.map(shellQuote).join(" ");
   const testCommand = `npx playwright test${specArgs ? ` ${specArgs}` : ""} --headed --project=chromium`;
   const qaCredentialsPath = getQaCredentialsPath();
@@ -295,11 +324,26 @@ function buildVisibleQaCommand(suiteInput) {
     "      eval \"value=\\${$name:-}\";",
     "      if [ -z \"$value\" ]; then missing=1; fi;",
     "    done;",
+    requiresUserCredentials
+      ? "    for name in QA_USER_EMAIL QA_USER_PASSWORD; do eval \"value=\\${$name:-}\"; if [ -z \"$value\" ]; then missing=1; fi; done;"
+      : "",
     "    if [ \"$missing\" -eq 1 ]; then",
     "      printf '\\nLocal Visible QA aborted because required credentials were not provided.\\n';",
     "      return 64;",
     "    fi;",
     "  fi;",
+    requiresUserCredentials ? "  for name in QA_USER_EMAIL QA_USER_PASSWORD; do eval \"value=\\${$name:-}\"; if [ -z \"$value\" ]; then missing=1; fi; done;" : "",
+    requiresUserCredentials ? "  if [ \"$missing\" -eq 1 ]; then" : "",
+    requiresUserCredentials ? "    printf '\\nThis suite also needs QA_USER_EMAIL and QA_USER_PASSWORD.\\n';" : "",
+    requiresUserCredentials ? "    if [ -z \"${QA_USER_EMAIL:-}\" ]; then printf 'QA user email: '; IFS= read -r QA_USER_EMAIL; export QA_USER_EMAIL; fi;" : "",
+    requiresUserCredentials ? "    if [ -z \"${QA_USER_PASSWORD:-}\" ]; then printf 'QA user password: '; stty -echo; IFS= read -r QA_USER_PASSWORD; stty echo; printf '\\n'; export QA_USER_PASSWORD; fi;" : "",
+    requiresUserCredentials ? "    missing=0;" : "",
+    requiresUserCredentials ? "    for name in QA_USER_EMAIL QA_USER_PASSWORD; do eval \"value=\\${$name:-}\"; if [ -z \"$value\" ]; then missing=1; fi; done;" : "",
+    requiresUserCredentials ? "    if [ \"$missing\" -eq 1 ]; then" : "",
+    requiresUserCredentials ? "      printf '\\nLocal Visible QA aborted because QA user credentials were not provided.\\n';" : "",
+    requiresUserCredentials ? "      return 64;" : "",
+    requiresUserCredentials ? "    fi;" : "",
+    requiresUserCredentials ? "  fi;" : "",
     `  printf "Running: ${testCommand.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}\\n\\n";`,
     `  ${testCommand};`,
     "};",
