@@ -56,7 +56,7 @@ async function closeFoundersSession(page: Page) {
   const row = findByQaTitle(page, sessionTheme).locator('xpath=ancestor::div[.//button[normalize-space(.)="신청 보기"]][1]');
   await expect(row).toBeVisible({ timeout: 15000 });
   await row.locator('select').first().selectOption('closed');
-  await expect(row.getByText('마감', { exact: true })).toBeVisible({ timeout: 15000 });
+  await expect(row.locator('span').filter({ hasText: /^마감$/ }).first()).toBeVisible({ timeout: 15000 });
 }
 
 async function deleteFoundersArtifacts(page: Page) {
