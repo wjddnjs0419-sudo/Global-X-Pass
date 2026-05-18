@@ -148,7 +148,7 @@ test.describe('User Consulting Booking QA', () => {
   test.setTimeout(180000);
 
   test('일반 유저가 컨설팅을 예약하고 같은 슬롯이 다시 노출되지 않는지 확인합니다', async ({ page }) => {
-    const assertNoRuntimeFailures = installQaFailureWatchdog(page, 'user consulting booking');
+    let assertNoRuntimeFailures: (() => Promise<void>) | null = null;
     const slot = getFutureSlotParts();
 
     try {
@@ -158,6 +158,8 @@ test.describe('User Consulting Booking QA', () => {
 
       await logoutIfNeeded(page);
       await robustUserLogin(page);
+
+      assertNoRuntimeFailures = installQaFailureWatchdog(page, 'user consulting booking');
 
       await page.goto('/consulting');
       await openConsultingBookingModal(page, consultantName, slot.timeLabel);
@@ -175,7 +177,9 @@ test.describe('User Consulting Booking QA', () => {
       await openConsultingBookingModal(page, consultantName);
 
       await assertNoRuntimeFailures();
+      assertNoRuntimeFailures = null;
     } finally {
+      await assertNoRuntimeFailures?.().catch(() => undefined);
       await cancelConsultingReservation(page).catch(() => undefined);
       await logoutIfNeeded(page).catch(() => undefined);
       await robustLogin(page).catch(() => undefined);

@@ -2,6 +2,7 @@
 
 완료된 계획은 `RESULT.md`에 세부 구현 내용과 검증 결과가 기록되어 있으므로, 이 파일에는 활성/예정 작업만 유지합니다. 완료 항목은 `[Done]` 한 줄로 축약하고, 10개를 넘으면 가장 오래된 완료 항목부터 삭제합니다.
 ## Pending Approval
+- [Done] `user-consulting-booking` watchdog 범위 축소 (2026-05-18) — GitHub QA가 운영 Netlify URL을 대상으로 실행되어 `main` 앱 수정이 배포되기 전에는 예전 관리자 번들의 `consulting-admin-reservations` console.error를 계속 볼 수 있었다. 테스트의 runtime watchdog 설치 시점을 관리자 fixture 준비 이후, 일반 유저 로그인 완료 직후로 옮겨 실제 `/consulting` 사용자 예약 흐름만 감시하도록 조정했다. `npm run validate` 후 `user-flows` 재실행으로 확인한다.
 - [Done] AdminConsultingManagement 예약 조회 lazy fetch 전환 (2026-05-18) — `AdminConsultingManagement` 초기 마운트에서 `fetchReservations()`를 제거하고 `subTab === "reservations"`일 때만 예약 목록을 lazy fetch하도록 바꿨다. 이로써 `user-consulting-booking` setup/cleanup 중 `/admin`의 `컨설팅 관리` 탭이 mount될 때 `consulting-admin-reservations` Edge Function을 불필요하게 호출해 watchdog를 깨던 문제를 차단했다. `npm run validate` ✅
 - [Done] QA `user-consulting-booking` 재진입 대기 안정화 (2026-05-18) — `user-consulting-booking`에 `getConsultingCard()`/`openConsultingBookingModal()` helper를 추가해 `/consulting` 재진입 뒤 제목/카드 재렌더링을 기다린 후 모달을 열도록 했다. 첫 진입은 슬롯 버튼 렌더링을, 재진입은 empty-state 문구 렌더링을 각각 명시적으로 대기해 예약 후 같은 슬롯이 다시 노출되지 않는지 보는 구간의 flake를 줄였다. `npx playwright test --list tests/qa/user-consulting-booking.spec.ts` ✅, `npm run validate` ✅
 - [Done] QA GitHub Actions 아티팩트 보관 기간 3일로 축소 (2026-05-18) — `qa-dispatch.yml`의 `playwright-report-*`, `playwright-raw-artifacts-*` 업로드 `retention-days`를 `30 -> 3`으로 줄였다. `CODEX_QA.md`에 새 보관 기간을 반영했고, workflow YAML 로드 확인과 `npm run validate`로 검증한다.

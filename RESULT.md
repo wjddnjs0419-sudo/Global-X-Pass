@@ -1,3 +1,23 @@
+# RESULT: `user-consulting-booking` watchdog 범위 축소 (2026-05-18)
+
+## 현재 상태
+`main`에는 관리자 컨설팅 페이지 lazy fetch 수정이 반영됐지만, GitHub QA는 체크아웃한 앱을 실행하지 않고 운영 Netlify URL(`https://google-play-changgoo-program.netlify.app`)을 대상으로 테스트한다. 운영 배포 번들이 아직 예전이면 Actions는 계속 예전 관리자 페이지의 `consulting-admin-reservations` console error를 볼 수 있다. 그래서 `user-consulting-booking`의 runtime watchdog를 관리자 fixture 준비 단계가 아니라 일반 유저 로그인 이후 실제 `/consulting` 예약 흐름부터 설치하도록 좁혔다.
+
+## 변경 파일
+| 파일 | 내용 |
+|---|---|
+| `tests/qa/user-consulting-booking.spec.ts` | `installQaFailureWatchdog()` 설치 시점을 테스트 시작에서 일반 유저 로그인 완료 직후로 이동, 성공 시 listener를 정상 해제하고 실패 시 finally에서 best-effort로 해제 |
+| `PLAN.md`, `RESULT.md` | 최신 원인과 조치 기록 |
+
+## 검증 예정
+- `npm run validate`
+- GitHub Actions `user-flows` 재실행
+
+## 비고
+- 앱 쪽 lazy fetch 수정은 여전히 유지한다. Netlify 배포가 최신화되면 관리자 페이지 자체의 불필요한 Edge Function 호출도 사라진다. 이번 테스트 수정은 그 배포 지연과 무관하게 user-flow suite가 자기 책임 범위만 감시하게 만드는 보강이다.
+
+---
+
 # RESULT: AdminConsultingManagement 예약 조회 lazy fetch 전환 (2026-05-18)
 
 ## 현재 상태
