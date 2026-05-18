@@ -13,6 +13,8 @@
 - `npm run validate` ✅
 - GitHub Actions `user-flows` run #36 ✅
   - https://github.com/wjddnjs0419-sudo/Global-X-Pass/actions/runs/26013944531
+- GitHub Actions `user-consulting-booking` run #37 ✅
+  - https://github.com/wjddnjs0419-sudo/Global-X-Pass/actions/runs/26014087354
 
 ## 비고
 - 앱 쪽 lazy fetch 수정은 여전히 유지한다. Netlify 배포가 최신화되면 관리자 페이지 자체의 불필요한 Edge Function 호출도 사라진다. 이번 테스트 수정은 그 배포 지연과 무관하게 user-flow suite가 자기 책임 범위만 감시하게 만드는 보강이다.
