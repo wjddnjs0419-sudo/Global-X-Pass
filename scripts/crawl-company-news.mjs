@@ -4,8 +4,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
-import { fetchHtml as fetchPageHtml } from "./utils/articleExtractor.mjs";
-import { decodeHtmlEntities, extractMetaContent, stripHtml } from "./utils/naverHtmlParser.mjs";
+import { stripHtml } from "./utils/naverHtmlParser.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -58,7 +57,6 @@ const NAVER_CLIENT_SECRET = process.env.NAVER_CLIENT_SECRET;
 const BATCH_SIZE = Number.parseInt(getArgValue("--batch-size") ?? "25", 10);
 const RESULTS_PER_COMPANY = Number.parseInt(getArgValue("--results-per-company") ?? "5", 10);
 const REQUEST_DELAY_MS = Number.parseInt(getArgValue("--delay-ms") ?? "300", 10);
-const WITH_THUMBNAILS = hasFlag("--with-thumbnails") || process.env.NEWS_CRAWL_WITH_THUMBNAILS === "true";
 const DRY_RUN = hasFlag("--dry-run");
 const MAX_COMPANY_KEYWORDS = Number.parseInt(getArgValue("--max-keywords") ?? "6", 10);
 const MAX_STORED_ARTICLES = Number.parseInt(
@@ -193,115 +191,6 @@ async function fetchNaverNews(keyword, display) {
   return Array.isArray(response.items) ? response.items : [];
 }
 
-function extractMetaNameContent(html, name) {
-  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const match = html.match(new RegExp(`<meta\\s+name="${escaped}"\\s+content="([^"]*)"`, "i"));
-  return decodeHtmlEntities(match?.[1] ?? "");
-}
-
-function resolveAbsoluteUrl(rawUrl, baseUrl) {
-  const value = (rawUrl ?? "").trim();
-  if (!value) return "";
-
-  try {
-    return new URL(value, baseUrl).href;
-  } catch {
-    return value;
-  }
-}
-
-async function extractPageMeta(pageUrl) {
-  try {
-    const html = await fetchPageHtml(pageUrl);
-    const imageUrl = resolveAbsoluteUrl(
-      extractMetaContent(html, "og:image") ||
-      extractMetaNameContent(html, "twitter:image") ||
-      extractMetaNameContent(html, "twitter:image:src"),
-      pageUrl,
-    );
-    const siteName = normalizeText(
-      extractMetaContent(html, "og:site_name") ||
-      extractMetaNameContent(html, "application-name"),
-    );
-
-    return {
-      imageUrl: imageUrl || "",
-      siteName: siteName || "",
-    };
-  } catch (error) {
-    console.error(`[news-crawl] page meta failed: ${pageUrl} (${error.message})`);
-    return {
-      imageUrl: "",
-      siteName: "",
-    };
-  }
-}
-
-function getImageExtension(url, contentType) {
-  const type = (contentType ?? "").split(";")[0].trim().toLowerCase();
-  const byType = {
-    "image/jpeg": "jpg",
-    "image/png": "png",
-    "image/gif": "gif",
-    "image/webp": "webp",
-  };
-
-  if (byType[type]) return byType[type];
-
-  const ext = url.split("?")[0].split(".").pop()?.toLowerCase();
-  if (["jpg", "jpeg", "png", "gif", "webp"].includes(ext ?? "")) {
-    return ext === "jpeg" ? "jpg" : ext;
-  }
-
-  return "jpg";
-}
-
-async function mirrorImageToSupabase(imageUrl) {
-  if (!imageUrl || !imageUrl.startsWith("http")) return imageUrl;
-  if (SUPABASE_URL && imageUrl.startsWith(SUPABASE_URL)) return imageUrl;
-
-  try {
-    const response = await fetch(imageUrl, {
-      headers: {
-        "user-agent": "Mozilla/5.0 (compatible; GlobalXPassNewsCrawler/1.0)",
-        referer: "https://openapi.naver.com/",
-      },
-    });
-
-    if (!response.ok) {
-      console.error(`[news-crawl] thumbnail fetch failed: HTTP ${response.status} (${imageUrl.slice(0, 120)})`);
-      return imageUrl;
-    }
-
-    const contentType = response.headers.get("content-type") ?? "";
-    if (!contentType.startsWith("image/")) {
-      console.error(`[news-crawl] thumbnail skipped: non-image content-type ${contentType}`);
-      return imageUrl;
-    }
-
-    const buffer = Buffer.from(await response.arrayBuffer());
-    const hash = hashUrl(imageUrl).slice(0, 40);
-    const ext = getImageExtension(imageUrl, contentType);
-    const path = `company-news/${hash}.${ext}`;
-
-    const { error } = await supabase.storage.from("images").upload(path, buffer, {
-      contentType: contentType.split(";")[0].trim(),
-      upsert: true,
-    });
-
-    if (error) {
-      console.error(`[news-crawl] thumbnail upload failed: ${error.message}`);
-      return imageUrl;
-    }
-
-    const { data: { publicUrl } } = supabase.storage.from("images").getPublicUrl(path);
-    return publicUrl;
-  } catch (error) {
-    console.error(`[news-crawl] thumbnail mirror failed: ${error.message}`);
-    return imageUrl;
-  }
-}
-
 function buildCandidate(company, item) {
   const title = normalizeText(item.title);
   const description = normalizeText(item.description) || null;
@@ -321,7 +210,6 @@ function buildCandidate(company, item) {
     link: link || canonicalUrl,
     originallink: originallink || null,
     source: resolveHost(originallink) || resolveHost(link),
-    thumbnail_url: null,
     published_at: publishedAt.toISOString(),
     status: "pending",
     url_hash: hashUrl(canonicalUrl),
@@ -446,18 +334,6 @@ async function processCompany(company, options) {
   const existingHashes = await loadExistingHashes(discovered.map((row) => row.url_hash));
   const freshRows = discovered.filter((row) => !existingHashes.has(row.url_hash));
 
-  if (options.withThumbnails) {
-    for (const row of freshRows) {
-      if (!row.originallink) continue;
-      const pageMeta = await extractPageMeta(row.originallink);
-      if (pageMeta.siteName) row.source = pageMeta.siteName;
-      if (pageMeta.imageUrl) {
-        row.thumbnail_url = await mirrorImageToSupabase(pageMeta.imageUrl);
-      }
-      await sleep(Math.max(100, Math.min(options.delayMs, 700)));
-    }
-  }
-
   let inserted = 0;
   if (!options.dryRun && freshRows.length > 0) {
     inserted = await insertArticles(freshRows);
@@ -470,7 +346,7 @@ async function processCompany(company, options) {
 
   console.log(
     `[news-crawl]   discovered=${discovered.length} new=${freshRows.length} inserted=${inserted} ` +
-    `existing=${discovered.length - freshRows.length} thumbnail=${options.withThumbnails ? "on" : "off"}`,
+    `existing=${discovered.length - freshRows.length}`,
   );
 
   return {
@@ -518,15 +394,14 @@ async function main() {
     batchSize: BATCH_SIZE,
     resultsPerCompany: RESULTS_PER_COMPANY,
     delayMs: REQUEST_DELAY_MS,
-    withThumbnails: WITH_THUMBNAILS,
     dryRun: DRY_RUN,
     maxStoredArticles: MAX_STORED_ARTICLES,
   };
 
   console.log(
     `[news-crawl] start batchSize=${options.batchSize} resultsPerCompany=${options.resultsPerCompany} ` +
-    `delayMs=${options.delayMs} thumbnails=${options.withThumbnails ? "on" : "off"} ` +
-    `maxStoredArticles=${options.maxStoredArticles} dryRun=${options.dryRun ? "yes" : "no"}`,
+    `delayMs=${options.delayMs} maxStoredArticles=${options.maxStoredArticles} ` +
+    `dryRun=${options.dryRun ? "yes" : "no"}`,
   );
 
   const companies = await loadCompanies(options.batchSize);

@@ -4,7 +4,7 @@
 
 ## Pending Approval
 
-- [Done] 회사 뉴스 운영 관리 기능 추가 (2026-05-22) — `articles` 최신 300개 유지, 수집 기본값 `results_per_company=5`, GitHub Actions 수동 입력 보강, 관리자 `기업 뉴스 관리` lazy 탭 추가(즉시 수집/필터/검색/승인/거절/삭제/페이지네이션), `trigger-company-news-crawl` Edge Function 배포, retention 인덱스/GRANT 마이그레이션 원격 반영. `npm run validate` ✅, 뉴스 dry-run ✅, `supabase db push` ✅, function deploy ✅
+- [Done] 회사 뉴스 운영 관리 기능 추가 (2026-05-22) — `articles` 최신 300개 유지, 수집 기본값 `results_per_company=5`, GitHub Actions 수동 입력 보강, 관리자 `기업 뉴스 관리` lazy 탭 추가(즉시 수집/필터/검색/승인/거절/삭제/페이지네이션), 뉴스 썸네일 수집/표시/컬럼 제거, `trigger-company-news-crawl` Edge Function 배포, retention 인덱스/GRANT 마이그레이션 원격 반영. `npm run validate` ✅, 뉴스 dry-run ✅, `supabase db push` ✅, function deploy ✅
 
 - [Done] 스타트업 참여기업 뉴스 자동 수집 시스템 추가 (2026-05-22) — `companies`의 기업명/`search_keywords`를 기준으로 네이버 뉴스 검색 API를 호출해 `articles` 테이블에 기사 메타데이터만 저장하는 배치 수집 파이프라인 구현. `articles` 마이그레이션(기업 키워드/`last_crawled_at`, `thumbnail_url`, `url_hash` unique, 조회 인덱스, RLS, `updated_at` 트리거), `scripts/crawl-company-news.mjs`(배치 크기, `last_crawled_at` 오름차순, 기업별 `try/catch`, 중복 방지, HTML 엔티티/태그 정리, optional thumbnail mirroring), `.github/workflows/company-news-crawl.yml`(6시간마다 실행, `workflow_dispatch` 지원), `src/app/pages/CompanyNewsPage.tsx` + 라우트/메뉴 노출, `src/lib/types.ts`/`package.json` 보강. `npm run validate` ✅
 

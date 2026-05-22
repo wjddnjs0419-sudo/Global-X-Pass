@@ -18,7 +18,7 @@ export function CompanyNewsPage() {
     const fetchArticles = async () => {
       const { data, error: fetchError } = await supabase
         .from("articles")
-        .select("id, company_id, title, description, link, originallink, source, thumbnail_url, published_at, status, url_hash, created_at, updated_at")
+        .select("id, company_id, title, description, link, originallink, source, published_at, status, url_hash, created_at, updated_at")
         .eq("status", "approved")
         .order("published_at", { ascending: false });
 
@@ -68,37 +68,13 @@ export function CompanyNewsPage() {
                     href={href}
                     target="_blank"
                     rel="noreferrer"
-                    className="rounded-[20px] overflow-hidden flex flex-col sm:flex-row no-underline transition-all duration-200 ease-out hover:-translate-y-0.5"
+                    className="rounded-[20px] overflow-hidden block no-underline transition-all duration-200 ease-out hover:-translate-y-0.5"
                     style={{
                       background: "var(--color-surface-card)",
                       border: "1px solid var(--color-border-soft)",
                     }}
                   >
-                    <div
-                      className="w-full h-[180px] sm:w-[200px] sm:h-auto sm:self-stretch shrink-0 flex items-center justify-center"
-                      style={{ background: "var(--color-bg-overlay)", overflow: "hidden" }}
-                    >
-                      {article.thumbnail_url ? (
-                        <img
-                          src={article.thumbnail_url}
-                          alt=""
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "cover",
-                            display: "block",
-                          }}
-                        />
-                      ) : (
-                        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="3" y="3" width="18" height="18" rx="2" />
-                          <circle cx="8.5" cy="8.5" r="1.5" />
-                          <polyline points="21 15 16 10 5 21" />
-                        </svg>
-                      )}
-                    </div>
-
-                    <div className="flex-1 min-w-0 p-4 sm:p-5 flex flex-col gap-2">
+                    <div className="min-w-0 p-4 sm:p-5 flex flex-col gap-2">
                       <div className="flex items-start gap-2 flex-wrap">
                         {article.source && (
                           <span

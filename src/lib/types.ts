@@ -21,7 +21,6 @@ export interface Article {
   link: string;
   originallink: string | null;
   source: string | null;
-  thumbnail_url: string | null;
   published_at: string;
   status: "pending" | "approved" | "rejected";
   url_hash: string;

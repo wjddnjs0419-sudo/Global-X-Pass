@@ -75,7 +75,6 @@ export default function AdminCompanyNewsManagement() {
     resultsPerCompany: 5,
     delayMs: 300,
     maxStoredArticles: 300,
-    withThumbnails: false,
   });
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(totalCount / PAGE_SIZE)), [totalCount]);
@@ -90,7 +89,7 @@ export default function AdminCompanyNewsManagement() {
 
     let query = supabase
       .from("articles")
-      .select("id, company_id, title, description, link, originallink, source, thumbnail_url, published_at, status, url_hash, created_at, updated_at, companies(name, slug)", { count: "exact" })
+      .select("id, company_id, title, description, link, originallink, source, published_at, status, url_hash, created_at, updated_at, companies(name, slug)", { count: "exact" })
       .order("published_at", { ascending: false })
       .order("created_at", { ascending: false })
       .range(from, to);
@@ -274,14 +273,6 @@ export default function AdminCompanyNewsManagement() {
             onChange={(e) => setCrawlOptions((prev) => ({ ...prev, maxStoredArticles: Number(e.target.value) }))}
             style={inputStyle}
           />
-        </label>
-        <label style={{ display: "flex", alignItems: "center", gap: 8, alignSelf: "end", minHeight: 36, fontSize: 13, fontWeight: 700, color: textMuted }}>
-          <input
-            type="checkbox"
-            checked={crawlOptions.withThumbnails}
-            onChange={(e) => setCrawlOptions((prev) => ({ ...prev, withThumbnails: e.target.checked }))}
-          />
-          썸네일 수집
         </label>
       </div>
 

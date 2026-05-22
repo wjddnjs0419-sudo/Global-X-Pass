@@ -21,10 +21,6 @@ on:
         description: "Maximum total articles to keep after each crawl"
         required: false
         default: "300"
-      with_thumbnails:
-        description: "Fetch og:image from original articles and mirror to Supabase Storage"
-        required: false
-        default: "false"
 
 concurrency:
   group: company-news-crawl
@@ -46,7 +42,6 @@ jobs:
       RESULTS_PER_COMPANY: ${{ github.event.inputs.results_per_company }}
       DELAY_MS: ${{ github.event.inputs.delay_ms }}
       MAX_STORED_ARTICLES: ${{ github.event.inputs.max_stored_articles }}
-      WITH_THUMBNAILS: ${{ github.event.inputs.with_thumbnails }}
 
     steps:
       - name: Checkout
@@ -69,9 +64,5 @@ jobs:
             --delay-ms "${DELAY_MS:-300}"
             --max-stored-articles "${MAX_STORED_ARTICLES:-300}"
           )
-
-          if [ "${WITH_THUMBNAILS:-false}" = "true" ]; then
-            ARGS+=(--with-thumbnails)
-          fi
 
           node scripts/crawl-company-news.mjs "${ARGS[@]}"

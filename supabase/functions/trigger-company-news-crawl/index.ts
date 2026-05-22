@@ -11,7 +11,6 @@ type CrawlRequestBody = {
   resultsPerCompany?: number;
   delayMs?: number;
   maxStoredArticles?: number;
-  withThumbnails?: boolean;
 };
 
 function jsonResponse(
@@ -88,14 +87,12 @@ Deno.serve(async (req: Request) => {
     const resultsPerCompany = clampInteger(body.resultsPerCompany, 5, 1, 20);
     const delayMs = clampInteger(body.delayMs, 300, 100, 2000);
     const maxStoredArticles = clampInteger(body.maxStoredArticles, 300, 50, 1000);
-    const withThumbnails = Boolean(body.withThumbnails);
 
     const inputs = {
       batch_size: String(batchSize),
       results_per_company: String(resultsPerCompany),
       delay_ms: String(delayMs),
       max_stored_articles: String(maxStoredArticles),
-      with_thumbnails: withThumbnails ? "true" : "false",
     };
 
     const { dispatched, error } = await dispatchGitHubWorkflow(inputs);
