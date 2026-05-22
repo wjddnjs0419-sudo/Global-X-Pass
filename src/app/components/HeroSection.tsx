@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router";
+import { WINDOW_PROGRAM_INFO, type WindowProgramDescriptionSegment } from "../content/windowProgramInfo";
 import { useLanguage } from "../LanguageContext";
 
 function StarField() {
@@ -155,6 +156,22 @@ const nodeData = [
   },
 ];
 
+function WindowProgramHeroDescription({ segments }: { segments: WindowProgramDescriptionSegment[] }) {
+  return (
+    <>
+      {segments.map((segment, index) =>
+        segment.emphasis ? (
+          <strong key={`${segment.text}-${index}`} className="text-white">
+            {segment.text}
+          </strong>
+        ) : (
+          segment.text
+        ),
+      )}
+    </>
+  );
+}
+
 export function HeroSection() {
   const navigate = useNavigate();
   const { lang } = useLanguage();
@@ -236,18 +253,7 @@ export function HeroSection() {
 
   const activeNodeData = nodeData.find((n) => n.id === activeNode) ?? null;
 
-  const INFO_CONTENT = {
-    label: { ko: "PROGRAM INFO", en: "PROGRAM INFO" },
-    title: { ko: "구글 창구 프로그램", en: "Google ChangGoo Program" },
-    desc: {
-      ko: (<>넥스트챌린지와 구글플레이, 중소벤처기업부, 창업진흥원이 공동 운영하는{" "}<strong className="text-white">대한민국 대표 앱·게임 스타트업 액셀러레이팅 프로그램</strong>입니다. 잠재력 있는 기업을 발굴하여 글로벌 성공 스토리를 함께 만들어가는데 기여하겠습니다.</>),
-      en: (<>It is <strong className="text-white">Korea's representative app/game startup accelerating program</strong> co-operated by Next Challenge, Google Play, the Ministry of SMEs and Startups, and KISED. We will contribute to creating global success stories together by discovering companies with potential.</>),
-    },
-    hint: {
-      ko: "중앙 코어를 클릭해 프로그램 정보 보기",
-      en: "Click the central core to view program info",
-    },
-  };
+  const infoLang = lang as "ko" | "en";
 
   return (
     <>
@@ -335,19 +341,24 @@ export function HeroSection() {
 
         <div onClick={(e) => e.stopPropagation()} className={`absolute transition-all duration-[1200ms] ease-[cubic-bezier(0.19,1,0.22,1)] z-20 ${expanded ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'} max-lg:left-1/2 max-lg:-translate-x-1/2 max-lg:text-center max-md:w-[90%] md:max-lg:w-[70%] ${expanded ? 'max-lg:bottom-[36px]' : 'max-lg:-bottom-[300px]'} lg:top-1/2 lg:-translate-y-1/2 lg:w-[400px] lg:text-left ${expanded ? 'lg:right-[8%]' : 'lg:-right-[520px]'}`}>
           <div className="text-[#4285F4] font-extrabold tracking-[2px] mb-[12px]" style={{ fontSize: `${Math.max(11, 13 * scale)}px` }}>
-            {INFO_CONTENT.label[lang as "ko" | "en"]}
+            {WINDOW_PROGRAM_INFO.label[infoLang]}
           </div>
           <h2 className="text-white font-extrabold m-0 mb-[20px] tracking-[-1.5px] leading-[1.2]" style={{ fontSize: `${Math.max(24, 42 * scale)}px` }}>
-            {INFO_CONTENT.title[lang as "ko" | "en"]}
+            {WINDOW_PROGRAM_INFO.title[infoLang].map((line, index) => (
+              <span key={line}>
+                {line}
+                {index < WINDOW_PROGRAM_INFO.title[infoLang].length - 1 && <br />}
+              </span>
+            ))}
           </h2>
           <p className="text-[rgba(255,255,255,0.8)] leading-[1.8] break-keep m-0" style={{ fontSize: `${Math.max(14, 17 * scale)}px` }}>
-            {INFO_CONTENT.desc[lang as "ko" | "en"]}
+            <WindowProgramHeroDescription segments={WINDOW_PROGRAM_INFO.description[infoLang]} />
           </p>
         </div>
 
         {!expanded && (
           <div className="absolute left-1/2 -translate-x-1/2 text-[rgba(255,255,255,0.35)] tracking-[0.05em] whitespace-nowrap z-[5] font-medium max-md:bottom-[28px] md:bottom-[40px]" style={{ fontSize: `${Math.max(11, 13 * scale)}px` }}>
-            {INFO_CONTENT.hint[lang as "ko" | "en"]}
+            {WINDOW_PROGRAM_INFO.hint[infoLang]}
           </div>
         )}
       </div>

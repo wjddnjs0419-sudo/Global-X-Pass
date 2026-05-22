@@ -79,20 +79,30 @@ export function RootLayout() {
 
   const isAdminPage = location.pathname.startsWith("/admin");
   const isDesignSystem = location.pathname === "/design-system";
+  const isMfaSetupPage = location.pathname === "/mypage";
+  const adminMfaEnrollmentLocked = !adminLoading && isAdmin && !mfaEnrolled;
+
+  useEffect(() => {
+    if (!adminMfaEnrollmentLocked || isMfaSetupPage) return;
+    sessionStorage.setItem("mfa_setup_required", "true");
+    navigate("/mypage", { replace: true });
+  }, [adminMfaEnrollmentLocked, isMfaSetupPage, navigate]);
 
   return (
     <div style={{ width: "100%", minHeight: "100dvh", background: "var(--color-bg-surface)", display: "flex", flexDirection: "column", transition: "background 0.4s ease" }}>
-      {!isDesignSystem && !isAdminPage && <HeaderSection isDark={isDark} />}
+      {!isDesignSystem && !isAdminPage && !adminMfaEnrollmentLocked && <HeaderSection isDark={isDark} />}
 
       <main style={{ flex: 1, display: "flex", flexDirection: "column" }}>
         <ErrorBoundary>
-          {isDesignSystem
+          {adminMfaEnrollmentLocked && !isMfaSetupPage
+            ? null
+            : isDesignSystem
             ? (!adminLoading && isAdmin && !mfaRequired && mfaEnrolled ? <DesignSystemPage isDark={isDark} /> : (!adminLoading ? <Navigate to="/" replace /> : null))
             : <Outlet />}
         </ErrorBoundary>
       </main>
 
-      {!isDesignSystem && <FooterSection isDark={isDark} />}
+      {!isDesignSystem && !adminMfaEnrollmentLocked && <FooterSection isDark={isDark} />}
 
       {warningVisible && (
         <div style={{

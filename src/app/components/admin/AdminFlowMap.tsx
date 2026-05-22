@@ -225,7 +225,7 @@ export function AdminFlowMap() {
               {conn}
               <Step type="sys" actor="시스템" desc="중복 예약 차단" sub="슬롯당 1건만 허용 (DB UNIQUE 제약)" />
               {conn}
-              <Step type="admin" actor="어드민" desc="예약 확정 또는 거절" />
+              <Step type="sys" actor="시스템" desc="선착순 자동 확정" sub="confirmed 상태로 즉시 저장" />
               {conn}
               <Step type="ok" actor="완료" desc='슬롯 상태 → "예약됨" 전환' />
             </div>
@@ -241,11 +241,11 @@ export function AdminFlowMap() {
               {conn}
               <Step type="sys" actor="시스템" desc="중복 신청 차단" sub="동일 사용자 · 동일 세션 재신청 불가" />
               {conn}
-              <Step type="admin" actor="어드민" desc="신청자 수락 또는 거절" />
+              <Step type="sys" actor="시스템" desc="선착순 자동 확정" sub="accepted 상태로 즉시 저장" />
               {conn}
-              <Step type="sys" actor="시스템" desc="수락 인원 = 정원 도달 시 자동 마감" sub='status → "closed" 전환' />
+              <Step type="sys" actor="시스템" desc="확정 인원 = 정원 도달 시 자동 마감" sub='status → "closed" 전환' />
               {conn}
-              <Step type="ok" actor="완료" desc="수락된 참여자 목록 확정" />
+              <Step type="ok" actor="완료" desc="확정 참여자 목록 관리" />
             </div>
           </Card>
 
@@ -259,11 +259,11 @@ export function AdminFlowMap() {
               {conn}
               <Step type="sys" actor="시스템" desc="중복 신청 차단" sub="(post_id, user_id) UNIQUE 제약" />
               {conn}
-              <Step type="admin" actor="어드민" desc="행사 관리 탭에서 승인/거절 처리" sub="대기 신청 목록에서 상태 변경" />
+              <Step type="sys" actor="시스템" desc="선착순 자동 확정" sub="accepted 상태로 즉시 저장" />
               {conn}
-              <Step type="sys" actor="시스템" desc="승인 인원 기준 잔여석 자동 계산" sub="capacity - accepted_count → slots_remaining" />
+              <Step type="sys" actor="시스템" desc="확정 인원 기준 잔여석 자동 계산" sub="capacity - accepted_count → slots_remaining" />
               {conn}
-              <Step type="ok" actor="완료" desc="MyPage에서 신청 상태 확인" sub="필요 시 사용자 취소 및 관리자 상태 보정 가능" />
+              <Step type="ok" actor="완료" desc="MyPage에서 확정 상태 확인" sub="필요 시 사용자/관리자 취소 가능" />
             </div>
           </Card>
         </div>
@@ -278,8 +278,8 @@ export function AdminFlowMap() {
               { title: "회원 관리",        desc: "역할 변경\n(비밀번호 재확인 필요)\n본인 계정 수정 불가" },
               { title: "게시물 작성",      desc: "공지 · 행사 등\n이미지 업로드\n한/영 입력" },
               { title: "게시물 관리",      desc: "수정 · 삭제\n카테고리 · 상태\n변경" },
-              { title: "컨설팅 관리",      desc: "전문가 등록\n슬롯 추가\n예약 승인" },
-              { title: "Founder's Club",  desc: "세션 개설\n신청자\n수락 / 거절" },
+              { title: "컨설팅 관리",      desc: "전문가 등록\n슬롯 추가\n예약 관리" },
+              { title: "Founder's Club",  desc: "세션 개설\n참여자\n취소 관리" },
             ].map(t => (
               <div key={t.title} style={{ border: `1px solid ${border}`, borderRadius: 10, padding: "16px 10px", textAlign: "center" }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: textMain, marginBottom: 8 }}>{t.title}</div>

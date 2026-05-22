@@ -1,41 +1,40 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { ExternalLink } from "lucide-react";
-import { useTheme } from "../../ThemeContext";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { supabase } from "../../../lib/supabaseClient";
 import type { EventApplication, Post } from "../../../lib/types";
 import { EVENT_APPLICATION_STATUS, mergeEventFormConfig } from "../../../utils/eventApplication";
+import { AppPagination } from "../AppPagination";
 
-type SubTab = "overview" | "pending" | "history";
-type HistoryStatusFilter = "all" | "accepted" | "rejected" | "cancelled";
+type SubTab = "overview" | "participants" | "history";
+type HistoryStatusFilter = "all" | "rejected" | "cancelled";
 
 const PAGE_SIZE = 10;
 
 export function AdminEventManagement() {
-  const { isDark } = useTheme();
   const [subTab, setSubTab] = useState<SubTab>("overview");
   const [events, setEvents] = useState<Post[]>([]);
   const [applications, setApplications] = useState<EventApplication[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string>("all");
   const [historyStatusFilter, setHistoryStatusFilter] = useState<HistoryStatusFilter>("all");
-  const [pendingPage, setPendingPage] = useState(1);
+  const [participantPage, setParticipantPage] = useState(1);
   const [historyPage, setHistoryPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-  const card = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
-  const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
-  const textMain = isDark ? "rgba(255,255,255,0.92)" : "rgba(10,16,32,0.88)";
-  const textMuted = isDark ? "rgba(255,255,255,0.45)" : "rgba(10,16,32,0.45)";
-  const inputBg = isDark ? "rgba(255,255,255,0.04)" : "#fff";
-  const skColor = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)";
-  const labelBg = isDark ? "rgba(255,255,255,0.045)" : "rgba(15,23,42,0.035)";
-  const labelBorder = isDark ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.09)";
-  const selectedBg = isDark ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.07)";
-  const deleteBg = isDark ? "rgba(234,67,53,0.08)" : "rgba(234,67,53,0.06)";
-  const deleteBorder = isDark ? "rgba(234,67,53,0.28)" : "rgba(234,67,53,0.22)";
+  const card        = "var(--color-surface-card)";
+  const border      = "var(--color-border-soft)";
+  const textMain    = "var(--color-text-primary)";
+  const textMuted   = "var(--color-text-muted)";
+  const inputBg     = "var(--color-field-bg)";
+  const skColor     = "var(--color-skeleton-bg)";
+  const labelBg     = "var(--color-surface-subtle)";
+  const labelBorder = "var(--color-border-subtle)";
+  const selectedBg  = "var(--color-surface-selected)";
+  const deleteBg    = "var(--color-danger-soft-bg)";
+  const deleteBorder = "var(--color-danger-soft-border)";
 
   const eventById = useMemo(() => new Map(events.map(event => [event.id, event])), [events]);
 
@@ -44,14 +43,14 @@ export function AdminEventManagement() {
     [applications, selectedEventId]
   );
 
-  const pendingApplications = useMemo(
-    () => eventFilteredApplications.filter(application => application.status === "pending"),
+  const participantApplications = useMemo(
+    () => eventFilteredApplications.filter(application => application.status === "accepted"),
     [eventFilteredApplications]
   );
 
   const historyApplications = useMemo(
     () => eventFilteredApplications.filter(application =>
-      (application.status === "accepted" || application.status === "rejected" || application.status === "cancelled") &&
+      (application.status === "rejected" || application.status === "cancelled") &&
       (historyStatusFilter === "all" || application.status === historyStatusFilter)
     ),
     [eventFilteredApplications, historyStatusFilter]
@@ -84,7 +83,7 @@ export function AdminEventManagement() {
   }, []);
 
   useEffect(() => {
-    setPendingPage(1);
+    setParticipantPage(1);
     setHistoryPage(1);
   }, [selectedEventId, subTab]);
 
@@ -99,7 +98,7 @@ export function AdminEventManagement() {
       .update({ status })
       .eq("id", application.id);
     if (error) {
-      alert(error.message.includes("event capacity reached") ? "정원이 마감되어 더 이상 승인할 수 없습니다." : "처리 실패: " + error.message);
+      alert(error.message.includes("event capacity reached") ? "정원이 마감되어 더 이상 확정할 수 없습니다." : "처리 실패: " + error.message);
     } else {
       await fetchData();
     }
@@ -117,7 +116,7 @@ export function AdminEventManagement() {
     };
   };
 
-  const pendingPageData = getPageItems(pendingApplications, pendingPage);
+  const participantPageData = getPageItems(participantApplications, participantPage);
   const historyPageData = getPageItems(historyApplications, historyPage);
 
   const tabStyle = (active: boolean) => ({
@@ -140,37 +139,15 @@ export function AdminEventManagement() {
     fontWeight: 700,
   };
 
-  const renderPagination = (
-    totalItems: number,
-    currentPage: number,
-    totalPages: number,
-    setPage: (nextPage: number) => void
-  ) => {
-    if (totalItems <= PAGE_SIZE) return null;
-
-    return (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 10, marginTop: 4 }}>
-        <Button type="button" variant="outline" size="sm" disabled={currentPage <= 1} onClick={() => setPage(currentPage - 1)}>
-          이전
-        </Button>
-        <span style={{ color: textMuted, fontSize: 13, fontWeight: 700 }}>
-          {currentPage} / {totalPages}
-        </span>
-        <Button type="button" variant="outline" size="sm" disabled={currentPage >= totalPages} onClick={() => setPage(currentPage + 1)}>
-          다음
-        </Button>
-      </div>
-    );
-  };
 
   const renderStatusButton = (application: EventApplication, status: EventApplication["status"]) => {
     if (application.status === status) return null;
 
     const actionCfg = {
-      accepted: { label: "승인", bg: selectedBg, border: labelBorder, color: textMain },
+      accepted: { label: "확정", bg: selectedBg, border: labelBorder, color: textMain },
       rejected: { label: "거절", bg: deleteBg, border: deleteBorder, color: "var(--color-brand-red)" },
       cancelled: { label: "취소", bg: labelBg, border: labelBorder, color: textMuted },
-      pending: { label: "대기로", bg: labelBg, border: labelBorder, color: textMuted },
+      pending: { label: "대기", bg: labelBg, border: labelBorder, color: textMuted },
     }[status] ?? { label: status, bg: labelBg, border: labelBorder, color: textMuted };
 
     return (
@@ -316,7 +293,7 @@ export function AdminEventManagement() {
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         {([
           ["overview", "행사 현황"],
-          ["pending", `신청 승인 ${pendingApplications.length ? `(${pendingApplications.length})` : ""}`],
+          ["participants", `참가자 관리 ${participantApplications.length ? `(${participantApplications.length})` : ""}`],
           ["history", "처리 내역"],
         ] as [SubTab, string][]).map(([tab, label]) => (
           <button key={tab} type="button" onClick={() => setSubTab(tab)} style={tabStyle(subTab === tab)}>
@@ -334,7 +311,6 @@ export function AdminEventManagement() {
           {subTab === "history" && (
             <select value={historyStatusFilter} onChange={e => setHistoryStatusFilter(e.target.value as HistoryStatusFilter)} style={selectStyle}>
               <option value="all">전체 상태</option>
-              <option value="accepted">승인</option>
               <option value="rejected">거절</option>
               <option value="cancelled">취소</option>
             </select>
@@ -352,7 +328,7 @@ export function AdminEventManagement() {
                 <strong style={{ color: textMain, fontSize: 14, lineHeight: 1.4 }}>{event.title}</strong>
                 <span style={{ color: textMuted, fontSize: 12 }}>{event.event_date || "일시 미정"}</span>
                 <span style={{ alignSelf: "flex-start", color: textMuted, background: labelBg, border: `1px solid ${labelBorder}`, borderRadius: 8, padding: "4px 8px", fontSize: 12, fontWeight: 800 }}>
-                  승인 {counts.accepted}명{remaining != null ? ` · 잔여 ${remaining}석` : ""}
+                  확정 {counts.accepted}명{remaining != null ? ` · 잔여 ${remaining}석` : ""}
                 </span>
               </Link>
             );
@@ -360,14 +336,14 @@ export function AdminEventManagement() {
         </div>
       )}
 
-      {subTab === "pending" && (
+      {subTab === "participants" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          {pendingApplications.length === 0 ? (
-            <div style={{ padding: 60, textAlign: "center", color: textMuted, background: card, border: `1px solid ${border}`, borderRadius: 18 }}>승인 대기 중인 신청이 없습니다.</div>
+          {participantApplications.length === 0 ? (
+            <div style={{ padding: 60, textAlign: "center", color: textMuted, background: card, border: `1px solid ${border}`, borderRadius: 18 }}>확정된 참가자가 없습니다.</div>
           ) : (
             <>
-              {pendingPageData.pageItems.map(application => renderApplicationCard(application, ["accepted", "rejected", "cancelled"]))}
-              {renderPagination(pendingApplications.length, pendingPageData.currentPage, pendingPageData.totalPages, setPendingPage)}
+              {participantPageData.pageItems.map(application => renderApplicationCard(application, ["cancelled"]))}
+              <AppPagination currentPage={participantPageData.currentPage} totalPages={participantPageData.totalPages} onPageChange={setParticipantPage} />
             </>
           )}
         </div>
@@ -379,8 +355,8 @@ export function AdminEventManagement() {
             <div style={{ padding: 60, textAlign: "center", color: textMuted, background: card, border: `1px solid ${border}`, borderRadius: 18 }}>처리된 신청 내역이 없습니다.</div>
           ) : (
             <>
-              {historyPageData.pageItems.map(application => renderApplicationCard(application, ["pending", "accepted", "rejected", "cancelled"]))}
-              {renderPagination(historyApplications.length, historyPageData.currentPage, historyPageData.totalPages, setHistoryPage)}
+              {historyPageData.pageItems.map(application => renderApplicationCard(application, []))}
+              <AppPagination currentPage={historyPageData.currentPage} totalPages={historyPageData.totalPages} onPageChange={setHistoryPage} />
             </>
           )}
         </div>

@@ -18,12 +18,15 @@
     "blog:import:dry-run": "node scripts/import-blog-posts.mjs --dry-run",
     "blog:sync": "node scripts/import-blog-posts.mjs --write --mirror-images --update-existing",
     "blog:worker": "node scripts/import-blog-posts.mjs --process-queue --write --mirror-images",
+    "blog:analyze-style": "node scripts/analyze-blog-style.mjs",
+    "blog:ai-generate": "node scripts/generate-ai-post.mjs",
     "check:frontend-secrets": "node scripts/check-frontend-secrets.mjs",
     "validate": "tsc --noEmit && eslint src/ --max-warnings=0 && vite build && npm run check:frontend-secrets"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
     "@emotion/styled": "11.14.1",
+    "@google/generative-ai": "^0.24.1",
     "@mui/icons-material": "7.3.5",
     "@mui/material": "7.3.5",
     "@popperjs/core": "2.11.8",

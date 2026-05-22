@@ -124,11 +124,13 @@ test.describe('User Event Application QA', () => {
       await page.locator('input[type="checkbox"]').last().check();
       await page.getByRole('button', { name: '신청 제출' }).click();
 
-      await expect(page.getByText('신청이 접수되었습니다.', { exact: true })).toBeVisible({ timeout: 20000 });
+      await expect(page.getByText('행사 참가가 확정되었습니다.', { exact: true })).toBeVisible({ timeout: 20000 });
+      await expect(page.getByRole('button', { name: '신청 취소' })).toBeVisible();
       await expect(page.getByRole('link', { name: '내 신청 내역 보기' })).toBeVisible();
 
       await page.goto(applicationUrl);
-      await expect(page.getByText('검토중', { exact: true })).toBeVisible({ timeout: 20000 });
+      await expect(page.getByText('행사 참가가 확정되었습니다.', { exact: true })).toBeVisible({ timeout: 20000 });
+      await expect(page.getByRole('button', { name: '신청 취소' })).toBeVisible();
       await expect(page.getByRole('link', { name: '내 신청 내역 보기' })).toBeVisible();
       await expect(page.getByRole('button', { name: '신청 제출' })).toHaveCount(0);
 

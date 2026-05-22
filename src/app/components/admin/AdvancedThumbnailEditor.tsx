@@ -29,7 +29,7 @@ interface SourceImage {
   id: string;
   url: string;
   label: string;
-  source: "content" | "attachment" | "upload" | "applied";
+  source: "content" | "attachment" | "external" | "upload" | "applied";
   objectUrl?: string;
 }
 
@@ -70,6 +70,7 @@ const RESIZE_HANDLES: ResizeHandle[] = [
 const SOURCE_LABEL: Record<SourceImage["source"], string> = {
   content: "본문",
   attachment: "첨부",
+  external: "외부",
   upload: "업로드",
   applied: "적용됨",
 };
@@ -198,7 +199,11 @@ export function AdvancedThumbnailEditor({
       ? "행사 아카이브 카드 비율 16:10"
       : aspect === "7/1"
         ? "행사 신청 배너 비율 7:1"
-        : "정사각형 비율 1:1";
+        : aspect === "16/9"
+          ? "미디어 와이드 비율 16:9"
+          : aspect === "540/675"
+            ? "미디어 표지 비율 540:675"
+            : "정사각형 비율 1:1";
 
   useEffect(() => () => {
     if (uploadedSource?.objectUrl) URL.revokeObjectURL(uploadedSource.objectUrl);

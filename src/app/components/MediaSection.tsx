@@ -8,7 +8,7 @@ import {
   isPortraitMediaCategory,
   isWideMediaCategory,
 } from "../constants/mediaCategories";
-import { getMediaPostThumbnailUrl } from "../../utils/mediaPost";
+import { getThumbnailImageStyle, resolvePostThumbnail } from "../../utils/postThumbnail";
 import { getSectionTheme } from "../utils/sectionTheme";
 import {
   HOME_SECTION_BODY_STYLE,
@@ -424,8 +424,7 @@ function MediaContentCard({
   subtleText: string;
   titleColor: string;
 }) {
-  const thumbnailUrl = getMediaPostThumbnailUrl(post);
-  const isWide = isWideMediaCategory(post.tags);
+  const thumbnail = resolvePostThumbnail(post);
 
   return (
     <Link
@@ -464,15 +463,12 @@ function MediaContentCard({
           overflow: "hidden",
         }}
       >
-        {thumbnailUrl ? (
+        {thumbnail.url ? (
           <img
-            src={thumbnailUrl}
+            src={thumbnail.url}
             alt=""
             style={{
-              display: "block",
-              width: "100%",
-              height: "100%",
-              objectFit: isWide ? "cover" : "contain",
+              ...getThumbnailImageStyle(thumbnail.crop),
               background: isDark ? "rgba(255,255,255,0.02)" : "#ffffff",
             }}
           />

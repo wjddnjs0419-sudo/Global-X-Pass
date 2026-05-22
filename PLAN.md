@@ -1,21 +1,24 @@
 # PLAN.md
 
 완료된 계획은 `RESULT.md`에 세부 구현 내용과 검증 결과가 기록되어 있으므로, 이 파일에는 활성/예정 작업만 유지합니다. 완료 항목은 `[Done]` 한 줄로 축약하고, 10개를 넘으면 가장 오래된 완료 항목부터 삭제합니다.
+
 ## Pending Approval
-- [Done] GitHub QA `all` 1차 실패 보강 (2026-05-18) — `all` run #38에서 남은 실패는 `admin-post-cud`의 `/admin` 재진입 사이드바 대기 실패와 `user-consulting-booking`의 공개 컨설팅 카드 노출 대기 실패였다. 공통 `openAdminTab()`에 관리자 세션 복구 재로그인 경로를 추가하고, 컨설팅 공개 카드 조회 전 reload retry를 넣어 전체 suite 순차 실행에서 생기는 세션/공개 DB 반영 지연을 흡수했다. `npm run validate` ✅, GitHub Actions `all` run #39 ✅
-- [Done] `user-consulting-booking` watchdog 범위 축소 (2026-05-18) — GitHub QA가 운영 Netlify URL을 대상으로 실행되어 `main` 앱 수정이 배포되기 전에는 예전 관리자 번들의 `consulting-admin-reservations` console.error를 계속 볼 수 있었다. 테스트의 runtime watchdog 설치 시점을 관리자 fixture 준비 이후, 일반 유저 로그인 완료 직후로 옮겨 실제 `/consulting` 사용자 예약 흐름만 감시하도록 조정했다. `npm run validate` ✅, GitHub Actions `user-flows` run #36 ✅, `user-consulting-booking` run #37 ✅
-- [Done] AdminConsultingManagement 예약 조회 lazy fetch 전환 (2026-05-18) — `AdminConsultingManagement` 초기 마운트에서 `fetchReservations()`를 제거하고 `subTab === "reservations"`일 때만 예약 목록을 lazy fetch하도록 바꿨다. 이로써 `user-consulting-booking` setup/cleanup 중 `/admin`의 `컨설팅 관리` 탭이 mount될 때 `consulting-admin-reservations` Edge Function을 불필요하게 호출해 watchdog를 깨던 문제를 차단했다. `npm run validate` ✅
-- [Done] QA `user-consulting-booking` 재진입 대기 안정화 (2026-05-18) — `user-consulting-booking`에 `getConsultingCard()`/`openConsultingBookingModal()` helper를 추가해 `/consulting` 재진입 뒤 제목/카드 재렌더링을 기다린 후 모달을 열도록 했다. 첫 진입은 슬롯 버튼 렌더링을, 재진입은 empty-state 문구 렌더링을 각각 명시적으로 대기해 예약 후 같은 슬롯이 다시 노출되지 않는지 보는 구간의 flake를 줄였다. `npx playwright test --list tests/qa/user-consulting-booking.spec.ts` ✅, `npm run validate` ✅
-- [Done] QA GitHub Actions 아티팩트 보관 기간 3일로 축소 (2026-05-18) — `qa-dispatch.yml`의 `playwright-report-*`, `playwright-raw-artifacts-*` 업로드 `retention-days`를 `30 -> 3`으로 줄였다. `CODEX_QA.md`에 새 보관 기간을 반영했고, workflow YAML 로드 확인과 `npm run validate`로 검증한다.
-- [Done] Founders Club user QA 회귀 안정화 (2026-05-18) — `user-founders-club`의 카드 locator를 제목 기준 카드 루트 helper로 좁히고, 관리자 상태 pill assertion을 strict-safe하게 수정했다. 라우트가 실제로 `AuthRoute` 뒤에 있다는 점에 맞춰 “공개 마감 표시” 대신 익명 브라우저 컨텍스트에서 `/founders-club -> /login` 접근 차단을 검증하도록 expectation을 조정했다. 공통 `installQaFailureWatchdog()`는 검사 시점에 listener를 해제하고 `ERR_ABORTED`/`Failed to fetch` 계열 false positive를 무시하도록 보강했다. `npx playwright test --list tests/qa/user-founders-club.spec.ts` ✅, `npm run validate` ✅, GitHub Actions `user-founders-club` run #29 ✅
-- [Done] QA 일반 유저 로그인 판정 및 Founders cleanup 보강 (2026-05-18) — `waitForLoginOutcome()`이 성공 alert(`환영합니다! 로그인이 완료되었습니다.`)를 실패로 오인하지 않도록 성공/실패 dialog를 분리 판정하게 수정했다. `user-founders-club` cleanup은 신청 삭제를 반복 시도한 뒤 세션 삭제를 최종 원복 경로로 강제해 중간 실패 후에도 잔여 세션이 남지 않도록 보강했다. `npx playwright test --list tests/qa/user-founders-club.spec.ts` ✅, `npm run validate` ✅
-- [Done] GitHub QA 강도 상향 2차 (2026-05-18) — `robustUserLogin()`/`logoutIfNeeded()`/`beginAdminOtpChallenge()`/`submitOtpCode()`/`findByQaTitle()`를 공통 유틸에 추가하고, `user-event-application`, `user-consulting-booking`, `user-founders-club`, `admin-auth-negative` suite를 새로 만들었다. `qa-dispatch.yml`, Electron allowlist, 아키텍처 앱 Ops 목록, QA 문서까지 새 suite와 `QA_USER_*` 조건부 secret 검사에 맞춰 확장했다. `npx playwright test --list` ✅, `npx playwright test tests/qa/production-smoke.spec.ts --project=chromium` ✅, `npm run validate` ✅, `npm run map:build` ✅, `npm run app:pack` ✅
-- [Done] GitHub QA workflow 속도 최적화 (2026-05-18) — `actions/cache`로 `~/.cache/ms-playwright`를 복원하고 cache hit/miss를 로그에 노출해 Chromium 재다운로드 병목을 줄였다. 새 user-flow suite와 함께 돌아가도록 workflow choice/input, preflight, 문서도 정리했다. `ruby -e 'require "yaml"; YAML.load_file(".github/workflows/qa-dispatch.yml")'` ✅, `npm run validate` ✅
-- [Done] GitHub QA 강도 상향 1차 (2026-05-18) — `smoke`의 조건부 통과를 제거하고 헤더 드롭다운 내 실제 공지 링크를 검증하도록 보강했다. 공통 `installQaFailureWatchdog()`으로 `pageerror`, `console.error`, 주요 request 실패와 5xx 응답을 감시한다. 게시물 CUD는 공개 `/notice`, `/news`, `/events`, `/media` 반영까지 확인하고, `events` 필수 메타를 실제 카드에서 검증한다. 프로그램 관리는 컨설턴트 update + 공개 `/consulting` 반영, Founder's Club 상태 update + 공개 `/founders-club` 반영까지 확장했다. `npx playwright test --list` ✅, `npx playwright test tests/qa/production-smoke.spec.ts --project=chromium` ✅, `npm run validate` ✅
-- [Done] GitHub QA 기본 아티팩트 경량화 (2026-05-18) — `GitHub 실행 기록`이 실시간 화면이 아니라 사후 디버깅 아티팩트라는 점에 맞춰 기본 보관 정책을 `trace + 실패 screenshot` 중심으로 경량화했다. `playwright.config.ts`에서 `PW_QA_RECORD_VIDEO=1`일 때만 `video`를 남기도록 opt-in 경로를 열어두고, 아키텍처 앱/QA 문서 문구도 실제 동작과 맞췄다. `npm run validate` ✅, placeholder env 기반 `npx playwright test --list` ✅
-- [Done] GitHub Actions QA 실제 실행 기록(video/trace/screenshot) 추가 (2026-05-17) — `로컬 Visible`이 GitHub runner 화면이 아니라는 혼동을 줄이기 위해 명칭을 `로컬 화면 실행`으로 정리하고, `GitHub 실행 기록`은 실제 CI runner에서 돈 Playwright `video`, `trace`, `screenshot`을 항상 아티팩트로 남기도록 했다. GitHub-hosted runner의 GUI 실시간 스트리밍은 기본 제공되지 않으므로, 운영 확인은 CI 리플레이 아티팩트 기준으로 본다. workflow YAML ✅, `npx playwright test --list` ✅, `npm run validate` ✅, `npm run map:build` ✅, `npm run app:pack` ✅
-- [Done] 게시물 CUD QA timeout/잔여 데이터 정리 안정화 (2026-05-17) — `admin-post-cud`를 headed/local 실행 기준으로 180초 timeout으로 늘리고, 4개 게시물을 마지막에 몰아 삭제하던 구조를 각 케이스별 `생성→수정→검증→삭제` 원자 흐름으로 변경했다. 시작/종료 시 `QA_E2E_` prefix 잔여 게시물을 훑어 삭제하는 cleanup 루프를 추가해 이전 실패 run의 찌꺼기도 정리한다. 실제 `admin-post-cud` 실행 ✅, `QA_E2E_` 잔여 게시물 0개 확인 ✅, `npm run validate` ✅
-- [Done] 로컬 Visible QA 계정 앱 저장 지원 (2026-05-17) — GitHub token 저장 UX와 같은 방식으로 아키텍처 앱 `Ops` 탭에 `Visible QA 계정` 저장/삭제 UI를 추가했다. Electron은 `qa-credentials.env`를 앱 userData에 `0600` 권한으로 저장하고, Visible QA 터미널 실행 시 저장 credentials를 자동 source해 이메일/비밀번호/MFA 입력 없이 Playwright를 실행한다. 저장값이 없으면 기존 `.env.qa`/shell env/터미널 prompt fallback을 유지한다. `node --check` ✅, `npm run validate` ✅, `npm run map:build` ✅, `npm run app:pack` ✅
-## Long-Term Backlog
-- [Backlog] 토큰화 통합 작업 — 4차수로 진행 예정:
-  - 차수1: `AdminPage.tsx`(1개) · `AdminFlowMap.tsx` · `AdminSidebar.tsx` — 기존 토큰 1:1 치환, QA 불필요
+
+- [Done] Supabase 2개 프로젝트 데이터 혼재 원인 확인 및 Date-planner 분리 (2026-05-22) — `Global X Pass`는 `yzbjvkifwinumytehxgf` 유지, `Codex_sample(Date-planner)` `.env`/CLI link를 `wqjguifsmtblgrhdfnji`로 전환. Date-planner 스키마를 새 프로젝트에 적용하고 테이블/row count 확인. `npm run validate` ✅ (`Codex_sample`, `Global X Pass`)
+
+- [Done] 미디어 페이지 썸네일 머신 통합 (2026-05-21) — `postThumbnail.ts`가 미디어 게시물도 대표 썸네일 단일 진입점으로 처리하도록 확장. 미디어 비율(`16/9`, `540/675`)과 외부 미디어 후보를 추가하고, `/media` 및 홈 미디어 섹션은 `resolvePostThumbnail()` + `getThumbnailImageStyle()` 사용. 관리자 작성/수정의 수동 썸네일 허용 범위에 `media` 포함. `npm run validate` ✅
+
+- [Done] 창구 프로그램 페이지 소개 영역 재구성 (2026-05-21) — 타임라인 상단 중복 제목/짧은 설명 제거, `창구 로고` 상단 + Hero 프로그램 설명 중앙 정렬 intro 추가. 설명 데이터는 `windowProgramInfo`로 분리해 Hero와 페이지가 import 공유. `npm run validate` ✅, Playwright 데스크톱/모바일 확인 ✅
+
+- [Done] 창구 프로그램 페이지 배경/여백 통합 및 타임라인 공통화 (2026-05-21) — `WindowProgramTimeline`/데이터 모듈 분리, 홈 `AboutSection`과 창구 전용 섹션이 import 공유. 창구 페이지는 기존 `PageShell` 제목/설명 배너를 유지하되 본문 maxWidth/padding 제거로 배너·타임라인·푸터 0px 맞닿음. `npm run validate` ✅, Playwright 데스크톱/모바일 확인 ✅
+
+- [Done] HeroSection 프로그램 정보 타이틀 줄바꿈 문구 수정 (2026-05-21) — `INFO_CONTENT.title` 한/영 모두 React `<br />`로 `Around X` 다음 줄에 `창구 프로그램`/`ChangGoo Program` 표시. `npm run validate` ✅, Playwright `<br>` 렌더 확인 ✅
+
+- [Done] `Around X > 창구 프로그램` 단순 랜딩 페이지 추가 (2026-05-21) — `/around-x/window-program` 공개 라우트 생성, `PageShell` 상단 소개 배너와 기존 `AboutSection` 재사용. `npm run validate` ✅, Playwright 데스크톱/모바일 렌더·overflow 확인 ✅
+
+- [Done] `Around X` 메인 메뉴 및 하위 메뉴 추가 (2026-05-21) — 네비게이션 설정을 `src/app/navigation/mainMenu.ts`로 분리하고, 헤더는 `Support` 우측/사이드 메뉴는 `Programs` 하단에 `Around X`와 `창구 프로그램`·`르노`·`핀칸티에리` 링크를 추가. `npm run validate` ✅, Playwright 렌더 확인 ✅
+
+- [Done] 참여 기업 연도 배지/모달 중복 표시 후속 정리 (2026-05-21) — 카드의 연도 배지는 `2026`으로 단순화하고, 상세 모달 헤더의 중복 연도 배지는 제거해 `참여 정보` 섹션만 연도 문구를 담당하게 함. `npm run validate` ✅, `/companies` 브라우저 확인 ✅
+- [Done] 참여 기업 행사 참여 년도 표시 추가 및 전체 기업 2026년 주입 (2026-05-21) — `companies.participation_year` 컬럼/체크/GRANT 추가, 기존 원격 100개 기업 전체 2026 백필, 관리자 폼·CSV·목록과 공개 카드·상세 모달 반영. `npm run validate` ✅, `/companies` 브라우저 확인 ✅
+
+- [Done] 아키텍처 맵 `LiveArchitectureMap.tsx` 과밀화 해소 리팩터링 (2026-05-21) — 타입/상수/storage/mapUtils/styles/인박스/Ops/사이드바를 `admin/architecture/` 모듈로 분리하고 리뷰 보강(QA polling, Blog pipeline, clipboard guard, ignore 정리) 반영. `npm run validate` ✅, `npm run map:build` ✅

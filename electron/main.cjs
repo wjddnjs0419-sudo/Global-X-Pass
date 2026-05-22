@@ -2,6 +2,7 @@ const { app, BrowserWindow, shell, ipcMain } = require("electron");
 const path = require("node:path");
 const os = require("node:os");
 const https = require("node:https");
+const { pathToFileURL } = require("node:url");
 const { execFile, spawn } = require("node:child_process");
 
 const fs = require("node:fs");
@@ -64,6 +65,7 @@ const QA_VISIBLE_SPECS_BY_SUITE = {
   ],
   all: [],
 };
+const MAX_BLOG_ARTICLE_CHARS = 3000;
 
 function getGithubTokenPath() {
   return path.join(app.getPath("userData"), GITHUB_TOKEN_FILE);
@@ -129,6 +131,150 @@ function clearStoredQaCredentials() {
   try {
     fs.rmSync(getQaCredentialsPath(), { force: true });
   } catch {}
+}
+
+function resolveProjectPath(filePath) {
+  const targetPath = String(filePath || "").trim();
+  if (!targetPath) return "";
+  return path.isAbsolute(targetPath) ? targetPath : path.resolve(projectRoot, targetPath);
+}
+
+function importProjectModule(relativePath) {
+  const modulePath = path.join(projectRoot, ...String(relativePath).split("/"));
+  return import(pathToFileURL(modulePath).href);
+}
+
+function deriveGuidePath(profilePath) {
+  const ext = path.extname(profilePath);
+  const dir = path.dirname(profilePath);
+  const base = path.basename(profilePath, ext || undefined);
+  const guideBase = base.endsWith("-profile")
+    ? `${base.slice(0, -"profile".length)}guide`
+    : `${base}-guide`;
+  return path.join(dir, `${guideBase}.md`);
+}
+
+async function loadBlogAiModules() {
+  const [aiStyleAnalyzer, articleExtractor, blogStyleProfile] = await Promise.all([
+    importProjectModule("scripts/utils/aiStyleAnalyzer.mjs"),
+    importProjectModule("scripts/utils/articleExtractor.mjs"),
+    importProjectModule("scripts/utils/blogStyleProfile.mjs"),
+  ]);
+
+  return { aiStyleAnalyzer, articleExtractor, blogStyleProfile };
+}
+
+async function resolveBlogArticleText(inputMode, articleUrl, articleText, fetchArticleText) {
+  if (inputMode === "url") {
+    const normalizedUrl = String(articleUrl || "").trim();
+    if (!normalizedUrl) {
+      throw new Error("기사 URL을 입력해 주세요.");
+    }
+    const extractedText = await fetchArticleText(normalizedUrl, { maxChars: MAX_BLOG_ARTICLE_CHARS });
+    return { articleText: extractedText, articleUrl: normalizedUrl };
+  }
+
+  const normalizedText = String(articleText || "").trim().slice(0, MAX_BLOG_ARTICLE_CHARS);
+  if (!normalizedText) {
+    throw new Error("기사 본문을 입력해 주세요.");
+  }
+  return { articleText: normalizedText, articleUrl: null };
+}
+
+async function analyzeBlogStyleProfile({ sampleCount, profilePath } = {}) {
+  const { aiStyleAnalyzer, blogStyleProfile } = await loadBlogAiModules();
+  const parsedSampleCount = Number.parseInt(String(sampleCount ?? "27"), 10);
+  const boundedSampleCount = Math.min(30, Math.max(1, Number.isFinite(parsedSampleCount) ? parsedSampleCount : 27));
+  const requestedProfilePath = String(profilePath || "").trim();
+  const targetProfilePath = requestedProfilePath
+    ? resolveProjectPath(requestedProfilePath)
+    : blogStyleProfile.DEFAULT_STYLE_PROFILE_PATH;
+  const targetGuidePath = requestedProfilePath
+    ? deriveGuidePath(targetProfilePath)
+    : blogStyleProfile.DEFAULT_STYLE_GUIDE_PATH;
+
+  const { profile, sampleCount: actualSampleCount } = await aiStyleAnalyzer.analyzeStyleProfile(
+    boundedSampleCount,
+  );
+  const written = blogStyleProfile.writeStyleProfile({
+    profile,
+    profilePath: targetProfilePath,
+    guidePath: targetGuidePath,
+  });
+
+  return {
+    ok: true,
+    sampleCount: actualSampleCount,
+    profilePath: written.profilePath,
+    guidePath: written.guidePath,
+  };
+}
+
+async function generateBlogDraft({
+  inputMode,
+  articleUrl,
+  articleText,
+  profilePath,
+} = {}) {
+  const { aiStyleAnalyzer, articleExtractor, blogStyleProfile } = await loadBlogAiModules();
+  const requestedProfilePath = String(profilePath || "").trim();
+  const resolvedProfilePath = requestedProfilePath
+    ? resolveProjectPath(requestedProfilePath)
+    : blogStyleProfile.DEFAULT_STYLE_PROFILE_PATH;
+  const resolvedInput = await resolveBlogArticleText(
+    inputMode,
+    articleUrl,
+    articleText,
+    articleExtractor.fetchArticleText,
+  );
+  const draft = await aiStyleAnalyzer.generatePost(resolvedInput.articleText, {
+    profilePath: resolvedProfilePath,
+  });
+
+  return {
+    ok: true,
+    profilePath: resolvedProfilePath,
+    inputMode: inputMode === "url" ? "url" : "text",
+    articleUrl: resolvedInput.articleUrl,
+    articleText: resolvedInput.articleText,
+    articleTextLength: resolvedInput.articleText.length,
+    draft,
+  };
+}
+
+async function reviseBlogDraft({
+  articleText,
+  draft,
+  instruction,
+  profilePath,
+} = {}) {
+  const { aiStyleAnalyzer, blogStyleProfile } = await loadBlogAiModules();
+  const requestedProfilePath = String(profilePath || "").trim();
+  const resolvedProfilePath = requestedProfilePath
+    ? resolveProjectPath(requestedProfilePath)
+    : blogStyleProfile.DEFAULT_STYLE_PROFILE_PATH;
+  const normalizedArticleText = String(articleText || "").trim().slice(0, MAX_BLOG_ARTICLE_CHARS);
+  if (!normalizedArticleText) {
+    throw new Error("수정할 원본 기사 본문이 없습니다. 먼저 초안을 생성해 주세요.");
+  }
+  if (!draft || !Array.isArray(draft.titles) || typeof draft.content !== "string" || typeof draft.tags !== "string") {
+    throw new Error("수정할 현재 초안 형식이 올바르지 않습니다.");
+  }
+
+  const revisedDraft = await aiStyleAnalyzer.revisePost(
+    normalizedArticleText,
+    draft,
+    instruction,
+    { profilePath: resolvedProfilePath },
+  );
+
+  return {
+    ok: true,
+    profilePath: resolvedProfilePath,
+    articleText: normalizedArticleText,
+    articleTextLength: normalizedArticleText.length,
+    draft: revisedDraft,
+  };
 }
 
 function githubRequest(apiPath, options = {}) {
@@ -503,6 +649,39 @@ function createWindow() {
     });
   });
 
+  ipcMain.handle("blog-ai:analyze-style", async (_event, payload) => {
+    try {
+      return await analyzeBlogStyleProfile(payload);
+    } catch (err) {
+      return {
+        ok: false,
+        error: String(err?.message ?? err),
+      };
+    }
+  });
+
+  ipcMain.handle("blog-ai:generate", async (_event, payload) => {
+    try {
+      return await generateBlogDraft(payload);
+    } catch (err) {
+      return {
+        ok: false,
+        error: String(err?.message ?? err),
+      };
+    }
+  });
+
+  ipcMain.handle("blog-ai:revise", async (_event, payload) => {
+    try {
+      return await reviseBlogDraft(payload);
+    } catch (err) {
+      return {
+        ok: false,
+        error: String(err?.message ?? err),
+      };
+    }
+  });
+
   ipcMain.handle("qa:read-runs", async () => {
     try {
       return await readQaWorkflowRuns();
@@ -604,6 +783,9 @@ function createWindow() {
     ipcMain.removeHandler("open:terminal");
     ipcMain.removeHandler("map:read-data");
     ipcMain.removeHandler("map:refresh");
+    ipcMain.removeHandler("blog-ai:analyze-style");
+    ipcMain.removeHandler("blog-ai:generate");
+    ipcMain.removeHandler("blog-ai:revise");
     ipcMain.removeHandler("qa:read-runs");
     ipcMain.removeHandler("qa:trigger-run");
     ipcMain.removeHandler("qa:run-visible");

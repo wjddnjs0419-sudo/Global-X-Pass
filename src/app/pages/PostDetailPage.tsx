@@ -771,7 +771,7 @@ export function PostDetailPage() {
 
             {supportsManualThumbnailEdit && post && (
               <AdvancedThumbnailEditor
-                aspect={getPostThumbnailAspect(post.category)}
+                aspect={getPostThumbnailAspect(post.category, post.tags)}
                 candidates={editThumbnailCandidates}
                 value={editThumbnailUrl}
                 onChange={(url) => {

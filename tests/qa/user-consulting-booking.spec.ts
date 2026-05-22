@@ -169,10 +169,11 @@ test.describe('User Consulting Booking QA', () => {
       await openConsultingBookingModal(page, consultantName, slot.timeLabel);
       await page.getByRole('button', { name: new RegExp(slot.timeLabel) }).click();
       await page.locator('textarea[placeholder*="상담 받고 싶은 내용"]').fill('QA consulting reservation validation');
-      await page.getByRole('button', { name: '컨설팅 신청하기' }).click();
+      await page.getByRole('button', { name: '컨설팅 예약 확정하기' }).click();
 
-      await expect(page.getByText('신청 완료!', { exact: true })).toBeVisible({ timeout: 20000 });
-      await page.getByRole('button', { name: '닫기' }).click();
+      await expect(page.getByText('컨설팅 예약이 확정되었습니다.', { exact: true })).toBeVisible({ timeout: 20000 });
+      await expect(page.getByRole('button', { name: '예약 취소' })).toBeVisible();
+      await expect(page.getByRole('link', { name: '내 신청 내역 보기' })).toBeVisible();
 
       await page.goto('/mypage');
       await expect(findByQaTitle(page, consultantName)).toBeVisible({ timeout: 20000 });

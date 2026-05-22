@@ -6,50 +6,7 @@ import { useLanguage } from "../LanguageContext";
 import { useTheme } from "../ThemeContext";
 import { useAdmin } from "../../hooks/useAdmin";
 import { LAYERS } from "../../lib/layers";
-
-type MenuKey = "resources" | "programs" | "news" | "support";
-
-const MENUS: {
-  key: MenuKey;
-  label: string;
-  items: { label: { ko: string; en: string }; path: string }[];
-}[] = [
-  {
-    key: "resources",
-    label: "Resources",
-    items: [
-      { label: { ko: "자료실", en: "Resources" }, path: "/resources" },
-      { label: { ko: "미디어", en: "Media" }, path: "/media" },
-      { label: { ko: "블로그", en: "Blog" }, path: "/blog" },
-      { label: { ko: "사업비 자료실", en: "Expense Center" }, path: "/expenses" },
-    ],
-  },
-  {
-    key: "programs",
-    label: "Programs",
-    items: [
-      { label: { ko: "행사", en: "Events" }, path: "/events" },
-      { label: { ko: "행사 아카이브", en: "Event Archive" }, path: "/events/archive" },
-      { label: { ko: "1:1 컨설팅", en: "Consulting" }, path: "/consulting" },
-      { label: { ko: "Founder's Club", en: "Founder's Club" }, path: "/founders-club" },
-    ],
-  },
-  {
-    key: "news",
-    label: "News",
-    items: [
-      { label: { ko: "공지사항", en: "Notice" }, path: "/notice" },
-      { label: { ko: "뉴스", en: "News" }, path: "/news" },
-    ],
-  },
-  {
-    key: "support",
-    label: "Support",
-    items: [
-      { label: { ko: "자주 묻는 질문", en: "FAQ" }, path: "/faq" },
-    ],
-  },
-];
+import { DESKTOP_MAIN_MENUS, SIDEBAR_MAIN_MENUS, type MenuKey } from "../navigation/mainMenu";
 
 interface HeaderSectionProps {
   isDark?: boolean;
@@ -201,7 +158,7 @@ export function HeaderSection({ isDark = false }: HeaderSectionProps) {
             </button>
 
             <nav className="header-left-nav hidden min-w-0 items-center gap-[4px] xl:flex">
-              {MENUS.map((m) => (
+              {DESKTOP_MAIN_MENUS.map((m) => (
                 <div
                   key={m.key}
                   className="relative"
@@ -362,7 +319,7 @@ export function HeaderSection({ isDark = false }: HeaderSectionProps) {
           </button>
         </div>
         <nav className="flex-1 overflow-y-auto px-[16px] py-[20px]">
-          {MENUS.map((m) => (
+          {SIDEBAR_MAIN_MENUS.map((m) => (
             <div key={m.key} className="mb-[18px]">
               <div className="px-[12px] py-[6px] text-[12px] font-black tracking-[0.10em] uppercase" style={{ color: sidebarSection }}>
                 {m.label}

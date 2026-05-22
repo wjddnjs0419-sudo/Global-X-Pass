@@ -34,6 +34,7 @@ import {
 } from "../../constants/mediaCategories";
 import { useMediaCategories } from "../../../hooks/useMediaCategories";
 import {
+  getPostThumbnailCandidates,
   getPostThumbnailAspect,
   getThumbnailCandidates,
   getThumbnailSavePayload,
@@ -132,17 +133,27 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
   const deleteBorder = "var(--color-danger-soft-border)";
 
   const inputStyle = { padding: "12px 16px", borderRadius: 10, background: inputBg, border: `1px solid ${border}`, color: textMain, outline: "none", boxSizing: "border-box" as const };
-  const supportsManualThumbnail = category === "news" || category === "events-archive";
-  const thumbnailAspect = getPostThumbnailAspect(category);
+  const supportsManualThumbnail = category === "news" || category === "events-archive" || category === "media";
+  const thumbnailAspect = getPostThumbnailAspect(category, eventMeta.tags);
   const thumbnailCandidates = useMemo(() => {
     if (!supportsManualThumbnail) return [];
-    const base = getThumbnailCandidates(content, existingImages.join(","));
+    const candidateContent = category === "media" && isWideMediaCategory(eventMeta.tags)
+      ? serializeMediaMeta(content, { externalUrl: normalizeMediaExternalUrl(mediaMeta.externalUrl) })
+      : content;
+    const base = category === "media"
+      ? getPostThumbnailCandidates({
+        category,
+        content: candidateContent,
+        image_url: existingImages.join(","),
+        tags: eventMeta.tags,
+      })
+      : getThumbnailCandidates(content, existingImages.join(","));
     const existingUrls = new Set(base.map(c => c.url));
     const fileCandidates = fileObjectUrls
       .map((url, i) => ({ url, label: `새 첨부 이미지 ${i + 1}`, source: "attachment" as const }))
       .filter(c => !existingUrls.has(c.url));
     return [...base, ...fileCandidates];
-  }, [content, existingImages, supportsManualThumbnail, fileObjectUrls]);
+  }, [category, content, eventMeta.tags, existingImages, supportsManualThumbnail, fileObjectUrls, mediaMeta.externalUrl]);
   const deadlineYears = useMemo(() => {
     const years = getYearOptions();
     return eventMeta.application_deadline_y && !years.includes(eventMeta.application_deadline_y)
@@ -372,7 +383,7 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
       }
 
       const finalImageUrl = imageUrls.length > 0 ? imageUrls.join(',') : null;
-      const supportsFinalThumbnail = category === "news" || category === "events-archive";
+      const supportsFinalThumbnail = category === "news" || category === "events-archive" || category === "media";
       let pendingThumbResolved: string | null = thumbnailUrl;
       if (pendingThumbnailFile) {
         const uploadedUrl = await uploadFile(pendingThumbnailFile);

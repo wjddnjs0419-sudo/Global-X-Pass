@@ -20,8 +20,8 @@ export const DEFAULT_EVENT_FORM_CONFIG: Required<EventFormConfig> = {
   ],
   speakerQuestionLabel: "강연자에게 미리 전달하고 싶은 질문이 있으신가요?",
   privacyConsentLabel: "본 신청은 행사 운영 및 안내 목적에 한하여 활용되며, 행사 종료 후 파기됩니다. 이에 동의합니다.",
-  completionTitle: "신청이 접수되었습니다.",
-  completionMessage: "참가 링크는 사전접수 마감 후 공유드리겠습니다.",
+  completionTitle: "행사 참가가 확정되었습니다.",
+  completionMessage: "행사 안내는 등록된 이메일로 공유드리겠습니다.",
   customQuestions: [],
 };
 
@@ -35,19 +35,37 @@ export const normalizeEventCustomQuestions = (questions?: EventCustomQuestion[] 
     }))
     .filter(question => question.label.trim().length > 0);
 
-export const mergeEventFormConfig = (config?: EventFormConfig | null): Required<EventFormConfig> => ({
-  ...DEFAULT_EVENT_FORM_CONFIG,
-  ...(config ?? {}),
-  interestOptions:
-    config?.interestOptions && config.interestOptions.length > 0
-      ? config.interestOptions
-      : DEFAULT_EVENT_FORM_CONFIG.interestOptions,
-  customQuestions: normalizeEventCustomQuestions(config?.customQuestions),
-});
+const normalizeCompletionTitle = (title: string) =>
+  ["신청이 접수되었습니다.", "참가가 확정되었습니다."].includes(title.trim())
+    ? DEFAULT_EVENT_FORM_CONFIG.completionTitle
+    : title;
+
+const normalizeCompletionMessage = (message: string) =>
+  message.includes("등록된 연락처")
+    ? DEFAULT_EVENT_FORM_CONFIG.completionMessage
+    : message;
+
+export const mergeEventFormConfig = (config?: EventFormConfig | null): Required<EventFormConfig> => {
+  const merged = {
+    ...DEFAULT_EVENT_FORM_CONFIG,
+    ...(config ?? {}),
+    interestOptions:
+      config?.interestOptions && config.interestOptions.length > 0
+        ? config.interestOptions
+        : DEFAULT_EVENT_FORM_CONFIG.interestOptions,
+    customQuestions: normalizeEventCustomQuestions(config?.customQuestions),
+  };
+
+  return {
+    ...merged,
+    completionTitle: normalizeCompletionTitle(merged.completionTitle),
+    completionMessage: normalizeCompletionMessage(merged.completionMessage),
+  };
+};
 
 export const EVENT_APPLICATION_STATUS = {
-  pending: { label: "검토중", color: "var(--color-brand-yellow)" },
-  accepted: { label: "승인", color: "var(--color-accent-green)" },
+  pending: { label: "대기", color: "var(--color-brand-yellow)" },
+  accepted: { label: "확정", color: "var(--color-accent-green)" },
   rejected: { label: "거절", color: "var(--color-brand-red)" },
   cancelled: { label: "취소", color: "var(--color-neutral)" },
 } as const;

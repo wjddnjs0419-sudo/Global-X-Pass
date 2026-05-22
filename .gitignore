@@ -1,5 +1,12 @@
 node_modules
 dist
+dist-architecture
+build
+release
+playwright-report
+test-results
+.qa-debug-runs
+/architecture-*.js
 .env
 .env.qa
 .DS_Store

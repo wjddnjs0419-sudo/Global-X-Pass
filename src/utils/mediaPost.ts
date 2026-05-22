@@ -1,6 +1,3 @@
-import { isImage } from "./file";
-import { isWideMediaCategory } from "../app/constants/mediaCategories";
-
 export type MediaMeta = { externalUrl: string };
 
 export const EMPTY_MEDIA_META: MediaMeta = { externalUrl: "" };
@@ -75,15 +72,4 @@ export function getYouTubeVideoId(value?: string | null) {
 export function getExternalMediaThumbnailUrl(value?: string | null) {
   const videoId = getYouTubeVideoId(normalizeMediaExternalUrl(value));
   return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
-}
-
-export function getMediaPostThumbnailUrl(post: { image_url?: string | null; content?: string | null; tags?: string | null }) {
-  const meta = parseMediaMeta(post.content || "");
-  const externalThumbnail = isWideMediaCategory(post.tags)
-    ? getExternalMediaThumbnailUrl(meta.externalUrl || "")
-    : null;
-  const attachmentImages = post.image_url?.split(",").filter(isImage) || [];
-  const bodyImage = (post.content?.match(/<img[^>]+src="([^">]+)"/) || [])[1];
-
-  return externalThumbnail ?? attachmentImages[0] ?? bodyImage;
 }

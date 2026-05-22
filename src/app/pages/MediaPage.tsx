@@ -4,9 +4,9 @@ import { PageShell } from "../components/PageShell";
 import { useTheme } from "../ThemeContext";
 import { supabase } from "../../lib/supabaseClient";
 import { LoadingSpinner, ErrorMessage } from "../components/LoadingSpinner";
-import { getMediaPostThumbnailUrl } from "../../utils/mediaPost";
 import type { Post } from "../../lib/types";
 import { getFilterTabStyle } from "../components/contentListStyles";
+import { getThumbnailImageStyle, resolvePostThumbnail } from "../../utils/postThumbnail";
 import {
   getMediaCategoryAspectRatio,
   getMediaCategoryLabel,
@@ -20,10 +20,6 @@ import { useMediaCategories } from "../../hooks/useMediaCategories";
 const MAX_ALL_WIDE_ITEMS = 4;
 
 type MediaPost = Post;
-
-function getPostImage(post: MediaPost) {
-  return getMediaPostThumbnailUrl(post);
-}
 
 export function MediaPage() {
   const { isDark } = useTheme();
@@ -160,7 +156,7 @@ function MediaGrid({
   return (
     <div className="grid grid-cols-2 min-[720px]:grid-cols-3 lg:grid-cols-4 gap-x-7 gap-y-14">
       {posts.map((post) => {
-        const thumbnailUrl = getPostImage(post);
+        const thumbnail = resolvePostThumbnail(post);
         const isPlayable = isWideMediaCategory(post.tags);
         const isPortrait = isPortraitMediaCategory(post.tags);
 
@@ -208,8 +204,8 @@ function MediaGrid({
                 boxShadow: "var(--shadow-media-cover)",
               }}
             >
-              {thumbnailUrl ? (
-                <img src={thumbnailUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+              {thumbnail.url ? (
+                <img src={thumbnail.url} alt="" style={getThumbnailImageStyle(thumbnail.crop)} />
               ) : (
                 <div style={{ width: "54%", height: "66%", border: "1px solid var(--color-glass-border)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-text-muted)" }}>
                   <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">

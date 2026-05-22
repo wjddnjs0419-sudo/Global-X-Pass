@@ -12,7 +12,7 @@ import {
   getTenMinuteOptions,
   getYearOptions,
 } from "../../../utils/scheduleFields";
-import { Check, Trash2, X } from "lucide-react";
+import { Trash2, X } from "lucide-react";
 import { getStatusPillStyle } from "../contentListStyles";
 import type { FoundersClubSession } from "../../../lib/types";
 
@@ -173,22 +173,22 @@ export function AdminFoundersClubManagement() {
   };
 
   const handleDeleteSession = async (id: string) => {
-    if (!window.confirm("이 세션을 삭제하면 모든 신청이 함께 삭제됩니다.")) return;
+    if (!window.confirm("이 세션을 삭제하면 모든 참여 내역이 함께 삭제됩니다.")) return;
     await supabase.from("founders_club_sessions").delete().eq("id", id);
     fetchSessions();
     if (selectedSession?.id === id) setSelectedSession(null);
   };
 
-  const handleUpdateApplication = async (id: string, status: "accepted" | "rejected") => {
+  const handleUpdateApplication = async (id: string, status: "cancelled") => {
     setLoading(true);
     const { error } = await supabase.from("founders_club_applications").update({ status }).eq("id", id);
-    if (error) alert(error.message.includes("founders club capacity reached") ? "정원이 마감되어 더 이상 승인할 수 없습니다." : "처리 실패: " + error.message);
+    if (error) alert("처리 실패: " + error.message);
     else if (selectedSession) { fetchApplications(selectedSession.id); fetchSessions(); }
     setLoading(false);
   };
 
   const handleDeleteApplication = async (id: string) => {
-    if (!window.confirm("이 신청 내역을 삭제하시겠습니까? 삭제 후에는 복구할 수 없습니다.")) return;
+    if (!window.confirm("이 참여 내역을 삭제하시겠습니까? 삭제 후에는 복구할 수 없습니다.")) return;
     setLoading(true);
     const { error } = await supabase.from("founders_club_applications").delete().eq("id", id);
     if (error) alert("삭제 실패: " + error.message);
@@ -204,7 +204,7 @@ export function AdminFoundersClubManagement() {
 
   const appStatusCfg: Record<string, { label: string; color: string }> = {
     pending:  { label: "대기",   color: "var(--color-brand-yellow)" },
-    accepted: { label: "승인",   color: "var(--color-accent-green)" },
+    accepted: { label: "확정",   color: "var(--color-accent-green)" },
     rejected: { label: "거절",   color: "var(--color-brand-red)" },
     cancelled: { label: "취소", color: "var(--color-neutral)" },
   };
@@ -237,7 +237,7 @@ export function AdminFoundersClubManagement() {
       <div style={{ display: "flex", gap: "8px" }}>
         {(["sessions", "applications"] as SubTab[]).map(t => (
           <button key={t} onClick={() => setSubTab(t)} style={{ padding: "10px 20px", borderRadius: 12, border: `1px solid ${subTab === t ? labelBorder : border}`, background: subTab === t ? selectedBg : "transparent", color: subTab === t ? textMain : textMuted, fontWeight: 750, cursor: "pointer" } as any}>
-            {{ sessions: "세션 관리", applications: "신청 관리" }[t]}
+            {{ sessions: "세션 관리", applications: "참여자 관리" }[t]}
           </button>
         ))}
       </div>
@@ -251,7 +251,7 @@ export function AdminFoundersClubManagement() {
             <input style={inputStyle} placeholder="설명 (선택)" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
             <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 10 }}>
               <input style={inputStyle} placeholder="장소 이름 (예: NCF 라운지)" value={form.locationName} onChange={e => setForm(f => ({ ...f, locationName: e.target.value }))} />
-              <input style={inputStyle} placeholder="주소 또는 링크 (예: 낙성대역 14길 8)" value={form.locationAddress} onChange={e => setForm(f => ({ ...f, locationAddress: e.target.value }))} />
+              <input style={inputStyle} placeholder="주소 또는 링크" value={form.locationAddress} onChange={e => setForm(f => ({ ...f, locationAddress: e.target.value }))} />
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -379,7 +379,7 @@ export function AdminFoundersClubManagement() {
                   <Badge status={s.status} cfg={statusCfg} />
                 </div>
                 <div style={{ fontSize: 13, color: textMuted }}>
-                  정원 {s.max_participants}명 · 수락 {getSessionCounts(s.id).accepted_count}명 · 신청 {getSessionCounts(s.id).total_count}건{s.session_date && ` · ${s.session_date} ${s.session_time?.slice(0, 5) ?? ""}`}
+                  정원 {s.max_participants}명 · 확정 {getSessionCounts(s.id).accepted_count}명 · 전체 {getSessionCounts(s.id).total_count}건{s.session_date && ` · ${s.session_date} ${s.session_time?.slice(0, 5) ?? ""}`}
                 </div>
                 <div style={{ fontSize: 12, color: textMuted, marginTop: 4 }}>
                   대기 {getSessionCounts(s.id).pending_count}건 · 취소 {getSessionCounts(s.id).cancelled_count}건 · 거절 {getSessionCounts(s.id).rejected_count}건
@@ -396,7 +396,7 @@ export function AdminFoundersClubManagement() {
                   <option value="closed">마감</option>
                   <option value="completed">완료</option>
                 </select>
-                <button onClick={() => { setSelectedSession(s); setSubTab("applications"); }} style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${labelBorder}`, background: selectedBg, color: textMain, fontWeight: 750, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap", flexShrink: 0 }}>신청 보기</button>
+                <button onClick={() => { setSelectedSession(s); setSubTab("applications"); }} style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${labelBorder}`, background: selectedBg, color: textMain, fontWeight: 750, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap", flexShrink: 0 }}>참여자 보기</button>
                 <button onClick={() => handleDeleteSession(s.id)} style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${deleteBorder}`, background: deleteBg, color: "var(--color-brand-red)", fontWeight: 700, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap", flexShrink: 0 }}>삭제</button>
               </div>
             </div>
@@ -410,7 +410,7 @@ export function AdminFoundersClubManagement() {
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {sessions.map(s => (
               <button key={s.id} onClick={() => setSelectedSession(s)} style={{ padding: "8px 16px", borderRadius: 10, border: `1px solid ${selectedSession?.id === s.id ? labelBorder : border}`, background: selectedSession?.id === s.id ? selectedBg : "transparent", color: selectedSession?.id === s.id ? textMain : textMuted, fontWeight: selectedSession?.id === s.id ? 750 : 600, cursor: "pointer", fontSize: 13 }}>
-                {s.theme} · 신청 {getSessionCounts(s.id).total_count}
+                {s.theme} · 전체 {getSessionCounts(s.id).total_count}
               </button>
             ))}
           </div>
@@ -422,7 +422,7 @@ export function AdminFoundersClubManagement() {
               {[
                 { label: "전체", value: `${selectedCounts.total_count}건` },
                 { label: "대기", value: `${selectedCounts.pending_count}건` },
-                { label: "승인", value: `${selectedCounts.accepted_count}건` },
+                { label: "확정", value: `${selectedCounts.accepted_count}건` },
                 { label: "거절", value: `${selectedCounts.rejected_count}건` },
                 { label: "취소", value: `${selectedCounts.cancelled_count}건` },
               ].map(item => (
@@ -434,7 +434,7 @@ export function AdminFoundersClubManagement() {
           )}
 
           {!selectedSession ? null : applications.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "60px", color: textMuted }}>신청이 없습니다.</div>
+            <div style={{ textAlign: "center", padding: "60px", color: textMuted }}>참여 내역이 없습니다.</div>
           ) : applications.map(a => (
             <div key={a.id} style={{ background: card, border: `1px solid ${border}`, borderRadius: 16, padding: "18px 22px" }}>
               <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -451,15 +451,10 @@ export function AdminFoundersClubManagement() {
                 <div style={{ fontSize: 12, color: textMuted, marginTop: 4 }}>{new Date(a.created_at).toLocaleString()}</div>
                 </div>
                 <div className="flex flex-wrap gap-2 md:min-w-[180px] md:justify-end">
-                  {a.status === "pending" && (
-                    <>
-                    <button type="button" disabled={loading} onClick={() => handleUpdateApplication(a.id, "accepted")} style={{ minWidth: 82, height: 32, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "0 12px", borderRadius: 10, border: `1px solid ${labelBorder}`, background: selectedBg, color: textMain, fontSize: 13, fontWeight: 800, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.55 : 1 }}>
-                      <Check size={14} />승인
+                  {(a.status === "pending" || a.status === "accepted") && (
+                    <button type="button" disabled={loading} onClick={() => handleUpdateApplication(a.id, "cancelled")} style={{ minWidth: 82, height: 32, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "0 12px", borderRadius: 10, border: `1px solid ${deleteBorder}`, background: deleteBg, color: "var(--color-brand-red)", fontSize: 13, fontWeight: 800, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.55 : 1 }}>
+                      <X size={14} />취소
                     </button>
-                    <button type="button" disabled={loading} onClick={() => handleUpdateApplication(a.id, "rejected")} style={{ minWidth: 82, height: 32, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "0 12px", borderRadius: 10, border: `1px solid ${deleteBorder}`, background: deleteBg, color: "var(--color-brand-red)", fontSize: 13, fontWeight: 800, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.55 : 1 }}>
-                      <X size={14} />거절
-                    </button>
-                    </>
                   )}
                   <button type="button" disabled={loading} onClick={() => handleDeleteApplication(a.id)} style={{ minWidth: 82, height: 32, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "0 12px", borderRadius: 10, border: `1px solid ${deleteBorder}`, background: deleteBg, color: "var(--color-brand-red)", fontSize: 13, fontWeight: 800, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.55 : 1 }}>
                     <Trash2 size={14} />삭제

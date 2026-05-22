@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-17T07:56:48.508Z",
+  "generatedAt": "2026-05-22T01:22:50.393Z",
   "roots": [
     "src",
     "supabase/functions"
@@ -211,11 +211,11 @@
       "cluster": "components",
       "label": "AboutSection.tsx",
       "sub": "src/app/components/AboutSection.tsx",
-      "path": "src/app/components/AboutSection.tsx:64",
+      "path": "src/app/components/AboutSection.tsx:5",
       "role": "UI를 구성하는 재사용 컴포넌트입니다.",
       "plain": "src/app/components/AboutSection.tsx 파일이 앱의 한 부분을 담당합니다.",
       "notes": [
-        "line:64, first exported symbol or module entry",
+        "line:5, first exported symbol or module entry",
         "cluster:components"
       ],
       "tag": [
@@ -242,6 +242,25 @@
         "all",
         "auth",
         "admin"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
+      "id": "src-app-components-apppagination",
+      "cluster": "components",
+      "label": "AppPagination.tsx",
+      "sub": "src/app/components/AppPagination.tsx",
+      "path": "src/app/components/AppPagination.tsx:8",
+      "role": "UI를 구성하는 재사용 컴포넌트입니다.",
+      "plain": "src/app/components/AppPagination.tsx 파일이 앱의 한 부분을 담당합니다.",
+      "notes": [
+        "line:8, first exported symbol or module entry",
+        "cluster:components"
+      ],
+      "tag": [
+        "overview",
+        "all"
       ],
       "critical": false,
       "dead": false
@@ -290,11 +309,11 @@
       "cluster": "components",
       "label": "ConsultingBookingModal.tsx",
       "sub": "src/app/components/ConsultingBookingModal.tsx",
-      "path": "src/app/components/ConsultingBookingModal.tsx:11",
+      "path": "src/app/components/ConsultingBookingModal.tsx:13",
       "role": "UI를 구성하는 재사용 컴포넌트입니다.",
       "plain": "src/app/components/ConsultingBookingModal.tsx 파일이 앱의 한 부분을 담당합니다.",
       "notes": [
-        "line:11, first exported symbol or module entry",
+        "line:13, first exported symbol or module entry",
         "cluster:components"
       ],
       "tag": [
@@ -406,11 +425,11 @@
       "cluster": "components",
       "label": "HeaderSection.tsx",
       "sub": "src/app/components/HeaderSection.tsx",
-      "path": "src/app/components/HeaderSection.tsx:56",
+      "path": "src/app/components/HeaderSection.tsx:13",
       "role": "UI를 구성하는 재사용 컴포넌트입니다.",
       "plain": "src/app/components/HeaderSection.tsx 파일이 앱의 한 부분을 담당합니다.",
       "notes": [
-        "line:56, first exported symbol or module entry",
+        "line:13, first exported symbol or module entry",
         "cluster:components"
       ],
       "tag": [
@@ -425,11 +444,11 @@
       "cluster": "components",
       "label": "HeroSection.tsx",
       "sub": "src/app/components/HeroSection.tsx",
-      "path": "src/app/components/HeroSection.tsx:156",
+      "path": "src/app/components/HeroSection.tsx:173",
       "role": "UI를 구성하는 재사용 컴포넌트입니다.",
       "plain": "src/app/components/HeroSection.tsx 파일이 앱의 한 부분을 담당합니다.",
       "notes": [
-        "line:156, first exported symbol or module entry",
+        "line:173, first exported symbol or module entry",
         "cluster:components"
       ],
       "tag": [
@@ -542,11 +561,30 @@
       "cluster": "components",
       "label": "PageShell.tsx",
       "sub": "src/app/components/PageShell.tsx",
-      "path": "src/app/components/PageShell.tsx:8",
+      "path": "src/app/components/PageShell.tsx:10",
       "role": "UI를 구성하는 재사용 컴포넌트입니다.",
       "plain": "src/app/components/PageShell.tsx 파일이 앱의 한 부분을 담당합니다.",
       "notes": [
-        "line:8, first exported symbol or module entry",
+        "line:10, first exported symbol or module entry",
+        "cluster:components"
+      ],
+      "tag": [
+        "overview",
+        "all"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
+      "id": "src-app-components-programconfirmationcard",
+      "cluster": "components",
+      "label": "ProgramConfirmationCard.tsx",
+      "sub": "src/app/components/ProgramConfirmationCard.tsx",
+      "path": "src/app/components/ProgramConfirmationCard.tsx:24",
+      "role": "UI를 구성하는 재사용 컴포넌트입니다.",
+      "plain": "src/app/components/ProgramConfirmationCard.tsx 파일이 앱의 한 부분을 담당합니다.",
+      "notes": [
+        "line:24, first exported symbol or module entry",
         "cluster:components"
       ],
       "tag": [
@@ -615,6 +653,44 @@
       "dead": false
     },
     {
+      "id": "src-app-components-searchinput",
+      "cluster": "components",
+      "label": "SearchInput.tsx",
+      "sub": "src/app/components/SearchInput.tsx",
+      "path": "src/app/components/SearchInput.tsx:12",
+      "role": "UI를 구성하는 재사용 컴포넌트입니다.",
+      "plain": "src/app/components/SearchInput.tsx 파일이 앱의 한 부분을 담당합니다.",
+      "notes": [
+        "line:12, first exported symbol or module entry",
+        "cluster:components"
+      ],
+      "tag": [
+        "overview",
+        "all"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
+      "id": "src-app-components-windowprogramtimelinesection",
+      "cluster": "components",
+      "label": "WindowProgramTimelineSection.tsx",
+      "sub": "src/app/components/WindowProgramTimelineSection.tsx",
+      "path": "src/app/components/WindowProgramTimelineSection.tsx:6",
+      "role": "UI를 구성하는 재사용 컴포넌트입니다.",
+      "plain": "src/app/components/WindowProgramTimelineSection.tsx 파일이 앱의 한 부분을 담당합니다.",
+      "notes": [
+        "line:6, first exported symbol or module entry",
+        "cluster:components"
+      ],
+      "tag": [
+        "overview",
+        "all"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
       "id": "src-app-components-admin-adminblogqueuemanagement",
       "cluster": "admin",
       "label": "AdminBlogQueueManagement.tsx",
@@ -654,6 +730,26 @@
       ],
       "critical": false,
       "dead": false
+    },
+    {
+      "id": "src-app-components-admin-admincompaniesmanagement",
+      "cluster": "admin",
+      "label": "AdminCompaniesManagement.tsx",
+      "sub": "DEAD, zero importers",
+      "path": "src/app/components/admin/AdminCompaniesManagement.tsx:98",
+      "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
+      "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
+      "notes": [
+        "line:98, first exported symbol or module entry",
+        "cluster:admin"
+      ],
+      "tag": [
+        "overview",
+        "all",
+        "admin"
+      ],
+      "critical": false,
+      "dead": true
     },
     {
       "id": "admin-consulting-mgmt",
@@ -783,11 +879,11 @@
       "cluster": "admin",
       "label": "AdminPostCreate.tsx",
       "sub": "DEAD, zero importers",
-      "path": "src/app/components/admin/AdminPostCreate.tsx:86",
+      "path": "src/app/components/admin/AdminPostCreate.tsx:87",
       "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
       "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
       "notes": [
-        "line:86, first exported symbol or module entry",
+        "line:87, first exported symbol or module entry",
         "cluster:admin"
       ],
       "tag": [
@@ -906,11 +1002,11 @@
       "cluster": "admin",
       "label": "AdvancedThumbnailEditor.tsx",
       "sub": "src/app/components/admin/AdvancedThumbnailEditor.tsx",
-      "path": "src/app/components/admin/AdvancedThumbnailEditor.tsx:137",
+      "path": "src/app/components/admin/AdvancedThumbnailEditor.tsx:138",
       "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
       "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
       "notes": [
-        "line:137, first exported symbol or module entry",
+        "line:138, first exported symbol or module entry",
         "cluster:admin"
       ],
       "tag": [
@@ -926,11 +1022,11 @@
       "cluster": "admin",
       "label": "LiveArchitectureMap.tsx",
       "sub": "src/app/components/admin/LiveArchitectureMap.tsx",
-      "path": "src/app/components/admin/LiveArchitectureMap.tsx:512",
+      "path": "src/app/components/admin/LiveArchitectureMap.tsx:37",
       "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
       "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
       "notes": [
-        "line:512, first exported symbol or module entry",
+        "line:37, first exported symbol or module entry",
         "cluster:admin"
       ],
       "tag": [
@@ -982,15 +1078,55 @@
       "dead": false
     },
     {
-      "id": "src-app-components-admin-architecture-incidentfeed",
+      "id": "src-app-components-admin-architecture-architectureinboxpanel",
       "cluster": "admin",
-      "label": "IncidentFeed.tsx",
-      "sub": "src/app/components/admin/architecture/IncidentFeed.tsx",
-      "path": "src/app/components/admin/architecture/IncidentFeed.tsx:2",
+      "label": "ArchitectureInboxPanel.tsx",
+      "sub": "src/app/components/admin/architecture/ArchitectureInboxPanel.tsx",
+      "path": "src/app/components/admin/architecture/ArchitectureInboxPanel.tsx:19",
       "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
       "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
       "notes": [
-        "line:2, first exported symbol or module entry",
+        "line:19, first exported symbol or module entry",
+        "cluster:admin"
+      ],
+      "tag": [
+        "overview",
+        "all",
+        "admin"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
+      "id": "src-app-components-admin-architecture-architecturesidebars",
+      "cluster": "admin",
+      "label": "ArchitectureSidebars.tsx",
+      "sub": "src/app/components/admin/architecture/ArchitectureSidebars.tsx",
+      "path": "src/app/components/admin/architecture/ArchitectureSidebars.tsx:55",
+      "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
+      "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
+      "notes": [
+        "line:55, first exported symbol or module entry",
+        "cluster:admin"
+      ],
+      "tag": [
+        "overview",
+        "all",
+        "admin"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
+      "id": "src-app-components-admin-architecture-constants",
+      "cluster": "admin",
+      "label": "constants.ts",
+      "sub": "src/app/components/admin/architecture/constants.ts",
+      "path": "src/app/components/admin/architecture/constants.ts:1",
+      "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
+      "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
+      "notes": [
+        "line:1, first exported symbol or module entry",
         "cluster:admin"
       ],
       "tag": [
@@ -1007,6 +1143,106 @@
       "label": "mapDiff.ts",
       "sub": "src/app/components/admin/architecture/mapDiff.ts",
       "path": "src/app/components/admin/architecture/mapDiff.ts:1",
+      "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
+      "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
+      "notes": [
+        "line:1, first exported symbol or module entry",
+        "cluster:admin"
+      ],
+      "tag": [
+        "overview",
+        "all",
+        "admin"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
+      "id": "src-app-components-admin-architecture-maputils",
+      "cluster": "admin",
+      "label": "mapUtils.ts",
+      "sub": "src/app/components/admin/architecture/mapUtils.ts",
+      "path": "src/app/components/admin/architecture/mapUtils.ts:2",
+      "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
+      "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
+      "notes": [
+        "line:2, first exported symbol or module entry",
+        "cluster:admin"
+      ],
+      "tag": [
+        "overview",
+        "all",
+        "admin"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
+      "id": "src-app-components-admin-architecture-opspipeline",
+      "cluster": "admin",
+      "label": "opsPipeline.tsx",
+      "sub": "src/app/components/admin/architecture/opsPipeline.tsx",
+      "path": "src/app/components/admin/architecture/opsPipeline.tsx:370",
+      "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
+      "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
+      "notes": [
+        "line:370, first exported symbol or module entry",
+        "cluster:admin"
+      ],
+      "tag": [
+        "overview",
+        "all",
+        "admin"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
+      "id": "src-app-components-admin-architecture-storage",
+      "cluster": "admin",
+      "label": "storage.ts",
+      "sub": "src/app/components/admin/architecture/storage.ts",
+      "path": "src/app/components/admin/architecture/storage.ts:2",
+      "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
+      "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
+      "notes": [
+        "line:2, first exported symbol or module entry",
+        "cluster:admin"
+      ],
+      "tag": [
+        "overview",
+        "all",
+        "admin"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
+      "id": "src-app-components-admin-architecture-styles",
+      "cluster": "admin",
+      "label": "styles.ts",
+      "sub": "src/app/components/admin/architecture/styles.ts",
+      "path": "src/app/components/admin/architecture/styles.ts:1",
+      "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
+      "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
+      "notes": [
+        "line:1, first exported symbol or module entry",
+        "cluster:admin"
+      ],
+      "tag": [
+        "overview",
+        "all",
+        "admin"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
+      "id": "src-app-components-admin-architecture-types",
+      "cluster": "admin",
+      "label": "types.ts",
+      "sub": "src/app/components/admin/architecture/types.ts",
+      "path": "src/app/components/admin/architecture/types.ts:1",
       "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
       "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
       "notes": [
@@ -1991,6 +2227,63 @@
       "dead": false
     },
     {
+      "id": "src-app-components-window-program-windowprogramintro",
+      "cluster": "components",
+      "label": "WindowProgramIntro.tsx",
+      "sub": "src/app/components/window-program/WindowProgramIntro.tsx",
+      "path": "src/app/components/window-program/WindowProgramIntro.tsx:29",
+      "role": "UI를 구성하는 재사용 컴포넌트입니다.",
+      "plain": "src/app/components/window-program/WindowProgramIntro.tsx 파일이 앱의 한 부분을 담당합니다.",
+      "notes": [
+        "line:29, first exported symbol or module entry",
+        "cluster:components"
+      ],
+      "tag": [
+        "overview",
+        "all"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
+      "id": "src-app-components-window-program-windowprogramtimeline",
+      "cluster": "components",
+      "label": "WindowProgramTimeline.tsx",
+      "sub": "src/app/components/window-program/WindowProgramTimeline.tsx",
+      "path": "src/app/components/window-program/WindowProgramTimeline.tsx:184",
+      "role": "UI를 구성하는 재사용 컴포넌트입니다.",
+      "plain": "src/app/components/window-program/WindowProgramTimeline.tsx 파일이 앱의 한 부분을 담당합니다.",
+      "notes": [
+        "line:184, first exported symbol or module entry",
+        "cluster:components"
+      ],
+      "tag": [
+        "overview",
+        "all"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
+      "id": "src-app-components-window-program-timelinedata",
+      "cluster": "components",
+      "label": "timelineData.ts",
+      "sub": "src/app/components/window-program/timelineData.ts",
+      "path": "src/app/components/window-program/timelineData.ts:1",
+      "role": "UI를 구성하는 재사용 컴포넌트입니다.",
+      "plain": "src/app/components/window-program/timelineData.ts 파일이 앱의 한 부분을 담당합니다.",
+      "notes": [
+        "line:1, first exported symbol or module entry",
+        "cluster:components"
+      ],
+      "tag": [
+        "overview",
+        "all"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
       "id": "src-app-constants-consultingcategories",
       "cluster": "data",
       "label": "consultingCategories.ts",
@@ -2050,6 +2343,44 @@
       "dead": false
     },
     {
+      "id": "src-app-content-windowprograminfo",
+      "cluster": "data",
+      "label": "windowProgramInfo.ts",
+      "sub": "src/app/content/windowProgramInfo.ts",
+      "path": "src/app/content/windowProgramInfo.ts:1",
+      "role": "UI를 구성하는 재사용 컴포넌트입니다.",
+      "plain": "src/app/content/windowProgramInfo.ts 파일이 앱의 한 부분을 담당합니다.",
+      "notes": [
+        "line:1, first exported symbol or module entry",
+        "cluster:data"
+      ],
+      "tag": [
+        "overview",
+        "all"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
+      "id": "src-app-navigation-mainmenu",
+      "cluster": "data",
+      "label": "mainMenu.ts",
+      "sub": "src/app/navigation/mainMenu.ts",
+      "path": "src/app/navigation/mainMenu.ts:1",
+      "role": "UI를 구성하는 재사용 컴포넌트입니다.",
+      "plain": "src/app/navigation/mainMenu.ts 파일이 앱의 한 부분을 담당합니다.",
+      "notes": [
+        "line:1, first exported symbol or module entry",
+        "cluster:data"
+      ],
+      "tag": [
+        "overview",
+        "all"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
       "id": "admin-page",
       "cluster": "pages",
       "label": "AdminPage.tsx",
@@ -2070,6 +2401,25 @@
       "dead": false
     },
     {
+      "id": "src-app-pages-aroundxwindowprogrampage",
+      "cluster": "pages",
+      "label": "AroundXWindowProgramPage.tsx",
+      "sub": "src/app/pages/AroundXWindowProgramPage.tsx",
+      "path": "src/app/pages/AroundXWindowProgramPage.tsx:3",
+      "role": "사용자가 직접 방문하는 페이지 단위 화면입니다.",
+      "plain": "사이트 방문자가 실제로 보는 한 화면입니다.",
+      "notes": [
+        "line:3, first exported symbol or module entry",
+        "cluster:pages"
+      ],
+      "tag": [
+        "overview",
+        "all"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
       "id": "src-app-pages-blogpage",
       "cluster": "pages",
       "label": "BlogPage.tsx",
@@ -2085,6 +2435,25 @@
         "overview",
         "all",
         "posts"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
+      "id": "src-app-pages-companiespage",
+      "cluster": "pages",
+      "label": "CompaniesPage.tsx",
+      "sub": "src/app/pages/CompaniesPage.tsx",
+      "path": "src/app/pages/CompaniesPage.tsx:13",
+      "role": "사용자가 직접 방문하는 페이지 단위 화면입니다.",
+      "plain": "사이트 방문자가 실제로 보는 한 화면입니다.",
+      "notes": [
+        "line:13, first exported symbol or module entry",
+        "cluster:pages"
+      ],
+      "tag": [
+        "overview",
+        "all"
       ],
       "critical": false,
       "dead": false
@@ -2114,11 +2483,11 @@
       "cluster": "pages",
       "label": "EventApplicationPage.tsx",
       "sub": "src/app/pages/EventApplicationPage.tsx",
-      "path": "src/app/pages/EventApplicationPage.tsx:130",
+      "path": "src/app/pages/EventApplicationPage.tsx:131",
       "role": "사용자가 직접 방문하는 페이지 단위 화면입니다.",
       "plain": "사이트 방문자가 실제로 보는 한 화면입니다.",
       "notes": [
-        "line:130, first exported symbol or module entry",
+        "line:131, first exported symbol or module entry",
         "cluster:pages"
       ],
       "tag": [
@@ -2212,11 +2581,11 @@
       "cluster": "pages",
       "label": "FoundersClubPage.tsx",
       "sub": "src/app/pages/FoundersClubPage.tsx",
-      "path": "src/app/pages/FoundersClubPage.tsx:35",
+      "path": "src/app/pages/FoundersClubPage.tsx:37",
       "role": "사용자가 직접 방문하는 페이지 단위 화면입니다.",
       "plain": "사이트 방문자가 실제로 보는 한 화면입니다.",
       "notes": [
-        "line:35, first exported symbol or module entry",
+        "line:37, first exported symbol or module entry",
         "cluster:pages"
       ],
       "tag": [
@@ -2252,11 +2621,11 @@
       "cluster": "pages",
       "label": "MediaPage.tsx",
       "sub": "src/app/pages/MediaPage.tsx",
-      "path": "src/app/pages/MediaPage.tsx:26",
+      "path": "src/app/pages/MediaPage.tsx:22",
       "role": "사용자가 직접 방문하는 페이지 단위 화면입니다.",
       "plain": "사이트 방문자가 실제로 보는 한 화면입니다.",
       "notes": [
-        "line:26, first exported symbol or module entry",
+        "line:22, first exported symbol or module entry",
         "cluster:pages"
       ],
       "tag": [
@@ -2410,11 +2779,11 @@
       "cluster": "pages",
       "label": "SearchPage.tsx",
       "sub": "src/app/pages/SearchPage.tsx",
-      "path": "src/app/pages/SearchPage.tsx:35",
+      "path": "src/app/pages/SearchPage.tsx:36",
       "role": "사용자가 직접 방문하는 페이지 단위 화면입니다.",
       "plain": "사이트 방문자가 실제로 보는 한 화면입니다.",
       "notes": [
-        "line:35, first exported symbol or module entry",
+        "line:36, first exported symbol or module entry",
         "cluster:pages"
       ],
       "tag": [
@@ -2487,11 +2856,11 @@
       "cluster": "routes",
       "label": "routes.tsx",
       "sub": "src/app/routes.tsx",
-      "path": "src/app/routes.tsx:27",
+      "path": "src/app/routes.tsx:32",
       "role": "React Router 경로와 보호 라우트 구성을 정의합니다.",
       "plain": "src/app/routes.tsx 파일이 앱의 한 부분을 담당합니다.",
       "notes": [
-        "line:27, first exported symbol or module entry",
+        "line:32, first exported symbol or module entry",
         "cluster:routes"
       ],
       "tag": [
@@ -2911,11 +3280,11 @@
       "cluster": "utils",
       "label": "mediaPost.ts",
       "sub": "src/utils/mediaPost.ts",
-      "path": "src/utils/mediaPost.ts:2",
+      "path": "src/utils/mediaPost.ts:1",
       "role": "도메인 값을 계산하거나 변환하는 순수 보조 모듈입니다.",
       "plain": "src/utils/mediaPost.ts 파일이 앱의 한 부분을 담당합니다.",
       "notes": [
-        "line:2, first exported symbol or module entry",
+        "line:1, first exported symbol or module entry",
         "cluster:utils"
       ],
       "tag": [
@@ -2951,11 +3320,11 @@
       "cluster": "utils",
       "label": "postThumbnail.ts",
       "sub": "src/utils/postThumbnail.ts",
-      "path": "src/utils/postThumbnail.ts:3",
+      "path": "src/utils/postThumbnail.ts:5",
       "role": "도메인 값을 계산하거나 변환하는 순수 보조 모듈입니다.",
       "plain": "src/utils/postThumbnail.ts 파일이 앱의 한 부분을 담당합니다.",
       "notes": [
-        "line:3, first exported symbol or module entry",
+        "line:5, first exported symbol or module entry",
         "cluster:utils"
       ],
       "tag": [
@@ -3441,6 +3810,16 @@
       ]
     },
     {
+      "from": "src-app-components-aboutsection",
+      "to": "src-app-components-window-program-windowprogramtimeline",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
       "from": "admin-route",
       "to": "use-admin",
       "kind": "normal",
@@ -3450,6 +3829,16 @@
         "overview",
         "auth",
         "admin"
+      ]
+    },
+    {
+      "from": "src-app-components-apppagination",
+      "to": "src-app-components-ui-pagination",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
       ]
     },
     {
@@ -3575,6 +3964,16 @@
     {
       "from": "consulting-modal",
       "to": "src-utils-schedulefields",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "consulting-modal",
+      "to": "src-app-components-programconfirmationcard",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -3773,6 +4172,26 @@
       ]
     },
     {
+      "from": "header-section",
+      "to": "src-app-navigation-mainmenu",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-herosection",
+      "to": "src-app-content-windowprograminfo",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
       "from": "src-app-components-herosection",
       "to": "lang-ctx",
       "kind": "normal",
@@ -3915,13 +4334,12 @@
     },
     {
       "from": "src-app-components-mediasection",
-      "to": "src-utils-mediapost",
+      "to": "src-utils-postthumbnail",
       "kind": "normal",
       "label": "import",
       "tag": [
         "all",
-        "overview",
-        "media"
+        "overview"
       ]
     },
     {
@@ -4089,6 +4507,16 @@
     {
       "from": "src-app-components-noticesection",
       "to": "src-app-components-ui-skeleton",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-programconfirmationcard",
+      "to": "src-app-components-ui-button",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -4297,6 +4725,26 @@
       ]
     },
     {
+      "from": "src-app-components-windowprogramtimelinesection",
+      "to": "src-app-components-window-program-windowprogramintro",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-windowprogramtimelinesection",
+      "to": "src-app-components-window-program-windowprogramtimeline",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
       "from": "src-app-components-admin-adminblogqueuemanagement",
       "to": "theme-ctx",
       "kind": "normal",
@@ -4351,6 +4799,56 @@
     {
       "from": "src-app-components-admin-adminbulkresultmodal",
       "to": "src-lib-layers",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-admincompaniesmanagement",
+      "to": "supabase-client",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-admincompaniesmanagement",
+      "to": "src-app-components-searchinput",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-admincompaniesmanagement",
+      "to": "src-app-components-contentliststyles",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-admincompaniesmanagement",
+      "to": "src-app-components-apppagination",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-admincompaniesmanagement",
+      "to": "types",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -4473,16 +4971,6 @@
     },
     {
       "from": "admin-events-mgmt",
-      "to": "theme-ctx",
-      "kind": "normal",
-      "label": "import",
-      "tag": [
-        "all",
-        "overview"
-      ]
-    },
-    {
-      "from": "admin-events-mgmt",
       "to": "src-app-components-ui-badge",
       "kind": "normal",
       "label": "import",
@@ -4530,6 +5018,16 @@
         "all",
         "overview",
         "events"
+      ]
+    },
+    {
+      "from": "admin-events-mgmt",
+      "to": "src-app-components-apppagination",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
       ]
     },
     {
@@ -4936,17 +5434,29 @@
     },
     {
       "from": "src-app-components-admin-livearchitecturemap",
-      "to": "src-lib-errorexplainer",
+      "to": "src-app-components-admin-architecture-architectureinboxpanel",
       "kind": "normal",
       "label": "import",
       "tag": [
         "all",
-        "overview"
+        "overview",
+        "admin"
       ]
     },
     {
       "from": "src-app-components-admin-livearchitecturemap",
-      "to": "src-app-components-admin-architecture-incidentfeed",
+      "to": "src-app-components-admin-architecture-architecturesidebars",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-livearchitecturemap",
+      "to": "src-app-components-admin-architecture-opspipeline",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -4958,6 +5468,50 @@
     {
       "from": "src-app-components-admin-livearchitecturemap",
       "to": "src-app-components-admin-architecture-mapdiff",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-livearchitecturemap",
+      "to": "src-app-components-admin-architecture-constants",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-livearchitecturemap",
+      "to": "src-app-components-admin-architecture-maputils",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-livearchitecturemap",
+      "to": "src-app-components-admin-architecture-storage",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-livearchitecturemap",
+      "to": "src-app-components-admin-architecture-types",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -4984,6 +5538,214 @@
       "tag": [
         "all",
         "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-architecture-architectureinboxpanel",
+      "to": "src-app-components-admin-architecture-constants",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-architecture-architectureinboxpanel",
+      "to": "src-app-components-admin-architecture-maputils",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-architecture-architectureinboxpanel",
+      "to": "src-app-components-admin-architecture-styles",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-architecture-architectureinboxpanel",
+      "to": "src-app-components-admin-architecture-types",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-architecture-architecturesidebars",
+      "to": "src-lib-errorexplainer",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-architecture-architecturesidebars",
+      "to": "src-app-components-admin-architecture-constants",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-architecture-architecturesidebars",
+      "to": "src-app-components-admin-architecture-maputils",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-architecture-architecturesidebars",
+      "to": "src-app-components-admin-architecture-styles",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-architecture-architecturesidebars",
+      "to": "src-app-components-admin-architecture-mapdiff",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-architecture-architecturesidebars",
+      "to": "src-app-components-admin-architecture-types",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-architecture-constants",
+      "to": "src-app-components-admin-architecture-types",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-architecture-maputils",
+      "to": "src-app-components-admin-architecture-constants",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-architecture-maputils",
+      "to": "src-app-components-admin-architecture-types",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-architecture-opspipeline",
+      "to": "src-app-components-admin-architecture-constants",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-architecture-opspipeline",
+      "to": "src-app-components-admin-architecture-maputils",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-architecture-opspipeline",
+      "to": "src-app-components-admin-architecture-styles",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-architecture-opspipeline",
+      "to": "src-app-components-admin-architecture-types",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-architecture-storage",
+      "to": "src-app-components-admin-architecture-constants",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-architecture-storage",
+      "to": "src-app-components-admin-architecture-types",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
       ]
     },
     {
@@ -5557,6 +6319,36 @@
       ]
     },
     {
+      "from": "src-app-components-window-program-windowprogramintro",
+      "to": "src-app-content-windowprograminfo",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-window-program-windowprogramintro",
+      "to": "lang-ctx",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-window-program-windowprogramtimeline",
+      "to": "src-app-components-window-program-timelinedata",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
       "from": "admin-page",
       "to": "theme-ctx",
       "kind": "normal",
@@ -5627,6 +6419,36 @@
         "all",
         "overview",
         "admin"
+      ]
+    },
+    {
+      "from": "src-app-pages-aroundxwindowprogrampage",
+      "to": "page-shell",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-pages-aroundxwindowprogrampage",
+      "to": "src-app-components-windowprogramtimelinesection",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-pages-aroundxwindowprogrampage",
+      "to": "theme-ctx",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
       ]
     },
     {
@@ -5711,7 +6533,87 @@
     },
     {
       "from": "src-app-pages-blogpage",
-      "to": "src-app-components-ui-pagination",
+      "to": "src-app-components-apppagination",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-pages-companiespage",
+      "to": "src-lib-layers",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-pages-companiespage",
+      "to": "page-shell",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-pages-companiespage",
+      "to": "src-app-components-searchinput",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-pages-companiespage",
+      "to": "supabase-client",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-pages-companiespage",
+      "to": "src-app-components-loadingspinner",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-pages-companiespage",
+      "to": "src-app-components-contentliststyles",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-pages-companiespage",
+      "to": "types",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-pages-companiespage",
+      "to": "src-app-components-apppagination",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -5804,6 +6706,16 @@
     {
       "from": "event-apply",
       "to": "page-shell",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "event-apply",
+      "to": "src-app-components-programconfirmationcard",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -6014,7 +6926,7 @@
     },
     {
       "from": "src-app-pages-eventarchivepage",
-      "to": "src-app-components-ui-pagination",
+      "to": "src-app-components-apppagination",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -6125,7 +7037,7 @@
     },
     {
       "from": "events-page",
-      "to": "src-app-components-ui-pagination",
+      "to": "src-app-components-apppagination",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -6266,6 +7178,16 @@
     {
       "from": "founders-club",
       "to": "page-shell",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "founders-club",
+      "to": "src-app-components-programconfirmationcard",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -6445,17 +7367,6 @@
     },
     {
       "from": "src-app-pages-mediapage",
-      "to": "src-utils-mediapost",
-      "kind": "normal",
-      "label": "import",
-      "tag": [
-        "all",
-        "overview",
-        "media"
-      ]
-    },
-    {
-      "from": "src-app-pages-mediapage",
       "to": "types",
       "kind": "normal",
       "label": "import",
@@ -6467,6 +7378,16 @@
     {
       "from": "src-app-pages-mediapage",
       "to": "src-app-components-contentliststyles",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-pages-mediapage",
+      "to": "src-utils-postthumbnail",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -6669,7 +7590,7 @@
     },
     {
       "from": "src-app-pages-newspage",
-      "to": "src-app-components-ui-pagination",
+      "to": "src-app-components-apppagination",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -6750,7 +7671,7 @@
     },
     {
       "from": "notice-page",
-      "to": "src-app-components-ui-pagination",
+      "to": "src-app-components-apppagination",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -7012,7 +7933,7 @@
     },
     {
       "from": "src-app-pages-resourcespage",
-      "to": "src-app-components-ui-pagination",
+      "to": "src-app-components-apppagination",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -7023,6 +7944,16 @@
     {
       "from": "src-app-pages-searchpage",
       "to": "page-shell",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-pages-searchpage",
+      "to": "src-app-components-searchinput",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -7362,6 +8293,16 @@
     },
     {
       "from": "routes",
+      "to": "src-app-pages-companiespage",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "routes",
       "to": "src-app-pages-privacypolicypage",
       "kind": "normal",
       "label": "import",
@@ -7373,6 +8314,26 @@
     {
       "from": "routes",
       "to": "src-app-pages-termsofusepage",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "routes",
+      "to": "src-app-pages-aroundxwindowprogrampage",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "routes",
+      "to": "src-app-navigation-mainmenu",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -7572,27 +8533,6 @@
       ]
     },
     {
-      "from": "src-utils-mediapost",
-      "to": "src-utils-file",
-      "kind": "normal",
-      "label": "import",
-      "tag": [
-        "all",
-        "overview"
-      ]
-    },
-    {
-      "from": "src-utils-mediapost",
-      "to": "src-app-constants-mediacategories",
-      "kind": "normal",
-      "label": "import",
-      "tag": [
-        "all",
-        "overview",
-        "media"
-      ]
-    },
-    {
       "from": "src-utils-postthumbnail",
       "to": "src-utils-file",
       "kind": "normal",
@@ -7610,6 +8550,27 @@
       "tag": [
         "all",
         "overview"
+      ]
+    },
+    {
+      "from": "src-utils-postthumbnail",
+      "to": "src-app-constants-mediacategories",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-utils-postthumbnail",
+      "to": "src-utils-mediapost",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "posts"
       ]
     },
     {

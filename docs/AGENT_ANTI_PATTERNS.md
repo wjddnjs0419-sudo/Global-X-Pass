@@ -3,6 +3,11 @@
 > **CRITICAL:** This document tracks past mistakes, build failures, and architectural pitfalls to prevent recurrence. AI agents MUST review this list before implementing changes.
 
 ## 🚫 Anti-Patterns & Lessons Learned
+- [2026-05-19] **AI Draft Single-Pass Failure:** Gemini 블로그 초안 생성/수정에서 길이·제목 수·해시태그 검증을 1회 응답에만 의존하고 바로 실패시키지 말 것. 사용자 입력을 다시 받기 전에 직전 JSON 응답과 검증 실패 사유를 붙인 자동 보정 재생성 루프를 먼저 태워야 한다.
+- [2026-05-18] **QA Login Success Alert Misread:** Playwright 로그인 helper에서 `window.alert` 발생 자체를 실패로 단정하지 말 것. 이 프로젝트는 일반 유저 로그인 성공도 `alert("환영합니다! 로그인이 완료되었습니다.")`를 띄우므로, dialog 문구와 최종 URL/OTP 상태를 함께 판정해야 user-flow QA가 성공 직후 cleanup으로 잘못 빠지지 않는다.
+- [2026-05-15] **Architecture Deadcode Overdelete:** 아키텍처 맵의 `DEAD 코드`를 곧바로 삭제 대상으로 해석하지 말 것. lazy/dynamic import, 별도 HTML/Vite entry, `supabase.functions.invoke()` 문자열 호출, 배포된 Edge Function처럼 import 그래프 밖의 실행 경로를 먼저 확인해야 한다.
+- [2026-05-15] **IPC Result Narrowing Drift:** Electron bridge 결과 union은 renderer에서 `result.ok === true` / `result.ok !== true`처럼 명시적으로 분기할 것. 느슨한 truthy/falsy 체크에 기대면 `LiveArchitectureMap` 같은 TSX에서 에러 필드 narrowing이 깨져 빌드가 실패할 수 있다.
+- [2026-05-15] **Telemetry Source NodeId Drift:** `logSupabaseFailure()`/`logActionFailure()`의 source에는 임의 문자열을 넣지 말 것. `src/lib/errorLogger.ts`의 `NodeId` union에 등록된 노드 ID만 사용해야 `LiveArchitectureMap` 타입 검증과 이슈 배지가 깨지지 않는다.
 - [2026-05-15] **QA Secret Hardcode:** Playwright 테스트, 진단 스크립트, QA 운영 문서에 QA 계정/비밀번호/MFA 시크릿을 평문으로 커밋하지 말 것. 자동 QA 자격 증명은 `QA_ADMIN_*`/`QA_USER_*` 환경 변수 또는 GitHub Secrets로만 주입한다.
 - [2026-05-15] **Architecture App Validation Drift:** `architecture.html`/`LiveArchitectureMap` 같은 개인용 Electron 맵 UI를 수정할 때 `npm run validate`만으로 끝내지 말 것. Electron 앱은 `dist-architecture`와 패키징된 `.app`를 읽으므로 최소 `npm run map:build`, 패키지 사용 중이면 `npm run app:pack`까지 함께 검증해야 “코드는 바뀌었는데 앱은 그대로” 상태를 막을 수 있다.
 - [2026-05-14] 아이콘 컴포넌트를 `Map`, `Set`, `Date`처럼 전역 생성자와 같은 이름으로 import하지 말 것. TSX 파일 안의 `new Map<...>()` 같은 표준 타입 생성자까지 아이콘 컴포넌트로 shadowing되어 타입 오류가 연쇄 발생한다.

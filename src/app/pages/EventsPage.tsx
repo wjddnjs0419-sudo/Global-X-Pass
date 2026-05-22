@@ -10,7 +10,7 @@ import { isImage } from "../../utils/file";
 import { EVENT_STATUS_CONFIG, getEffectiveEventStatus, getEventRemaining, isEventApplicationOpen } from "../../utils/eventApplication";
 import { formatLocalDateTime, formatStructuredLocation } from "../../utils/scheduleFields";
 import { getFilterTabStyle, getMutedLabelStyle, getStatusPillStyle } from "../components/contentListStyles";
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis } from "../components/ui/pagination";
+import { AppPagination } from "../components/AppPagination";
 import { logSupabaseFailure } from "../../lib/uxTelemetry";
 
 const PAGE_SIZE = 10;
@@ -220,32 +220,7 @@ export function EventsPage() {
                 </div>
               );
             })}
-            {totalPages > 1 && (
-              <div className="mt-10">
-                <Pagination>
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious href="#" onClick={e => { e.preventDefault(); if (currentPage > 1) setCurrentPage(p => p - 1); }} aria-disabled={currentPage === 1} className={currentPage === 1 ? "pointer-events-none opacity-40" : ""} />
-                    </PaginationItem>
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
-                      const showPage = page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1;
-                      const showEllipsisBefore = page === currentPage - 2 && currentPage > 3;
-                      const showEllipsisAfter = page === currentPage + 2 && currentPage < totalPages - 2;
-                      if (showEllipsisBefore || showEllipsisAfter) return <PaginationItem key={`el-${page}`}><PaginationEllipsis /></PaginationItem>;
-                      if (!showPage) return null;
-                      return (
-                        <PaginationItem key={page}>
-                          <PaginationLink href="#" isActive={currentPage === page} onClick={e => { e.preventDefault(); setCurrentPage(page); }}>{page}</PaginationLink>
-                        </PaginationItem>
-                      );
-                    })}
-                    <PaginationItem>
-                      <PaginationNext href="#" onClick={e => { e.preventDefault(); if (currentPage < totalPages) setCurrentPage(p => p + 1); }} aria-disabled={currentPage === totalPages} className={currentPage === totalPages ? "pointer-events-none opacity-40" : ""} />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              </div>
-            )}
+            <AppPagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} className="mt-10" />
           </div>
           );
         })()}

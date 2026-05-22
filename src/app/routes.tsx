@@ -23,8 +23,13 @@ import { NotFoundPage } from "./pages/NotFoundPage";
 import { ExpensesPage } from "./pages/ExpensesPage";
 import { ConsultingPage } from "./pages/ConsultingPage";
 import { FoundersClubPage } from "./pages/FoundersClubPage";
+import { CompaniesPage } from "./pages/CompaniesPage";
 import { PrivacyPolicyPage } from "./pages/PrivacyPolicyPage";
 import { TermsOfUsePage } from "./pages/TermsOfUsePage";
+import { AroundXWindowProgramPage } from "./pages/AroundXWindowProgramPage";
+import { AROUND_X_ROUTES } from "./navigation/mainMenu";
+
+const toChildRoutePath = (path: string) => path.replace(/^\//, "");
 
 export const router = createBrowserRouter([
   {
@@ -38,6 +43,7 @@ export const router = createBrowserRouter([
       { path: "events/:id/apply", Component: AuthRoute, children: [{ index: true, Component: EventApplicationPage }] },
       { path: "events/archive", Component: EventArchivePage },
       { path: "resources", Component: AuthRoute, children: [{ index: true, Component: ResourcesPage }] },
+      { path: "companies", Component: AuthRoute, children: [{ index: true, Component: CompaniesPage }] },
       { path: "media", Component: AuthRoute, children: [{ index: true, Component: MediaPage }] },
       { path: "blog", Component: AuthRoute, children: [{ index: true, Component: BlogPage }] },
       { path: "faq", Component: FaqPage },
@@ -51,6 +57,7 @@ export const router = createBrowserRouter([
       { path: "expenses", Component: AuthRoute, children: [{ index: true, Component: ExpensesPage }] },
       { path: "consulting", Component: AuthRoute, children: [{ index: true, Component: ConsultingPage }] },
       { path: "founders-club", Component: AuthRoute, children: [{ index: true, Component: FoundersClubPage }] },
+      { path: toChildRoutePath(AROUND_X_ROUTES.windowProgram), Component: AroundXWindowProgramPage },
       { path: "privacy-policy", Component: PrivacyPolicyPage },
       { path: "terms-of-use", Component: TermsOfUsePage },
       { path: "post/:id", Component: PostDetailPage },

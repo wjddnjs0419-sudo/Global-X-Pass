@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
+import { Ban, X } from "lucide-react";
 import { PageShell } from "../components/PageShell";
+import { ProgramConfirmationCard } from "../components/ProgramConfirmationCard";
 import { useTheme } from "../ThemeContext";
 import { supabase } from "../../lib/supabaseClient";
 import { LAYERS } from "../../lib/layers";
@@ -43,7 +45,10 @@ export function FoundersClubPage() {
   const [applyTarget, setApplyTarget] = useState<SessionWithCount | null>(null);
   const [message, setMessage] = useState("");
   const [applying, setApplying] = useState(false);
+  const [cancelingApplication, setCancelingApplication] = useState(false);
   const [appliedId, setAppliedId] = useState<string | null>(null);
+  const [appliedApplicationId, setAppliedApplicationId] = useState<string | null>(null);
+  const [applyCancelled, setApplyCancelled] = useState(false);
   const [expandedSessions, setExpandedSessions] = useState<Set<string>>(new Set());
 
   const toggleExpanded = (id: string) =>
@@ -52,6 +57,30 @@ export function FoundersClubPage() {
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
+
+  const closeApplyModal = () => {
+    setApplyTarget(null);
+    setAppliedId(null);
+    setAppliedApplicationId(null);
+    setApplyCancelled(false);
+  };
+
+  const modalCloseButtonStyle = {
+    position: "absolute",
+    top: "var(--space-md)",
+    right: "var(--space-md)",
+    width: "var(--size-event-application-action-sm, 36px)",
+    height: "var(--size-event-application-action-sm, 36px)",
+    borderRadius: "50%",
+    border: "1px solid var(--color-border-soft)",
+    background: "var(--color-field-bg)",
+    color: "var(--color-text-muted)",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+    zIndex: 1,
+  } as const;
 
   useEffect(() => {
     const init = async () => {
@@ -109,7 +138,7 @@ export function FoundersClubPage() {
       logSupabaseFailure("founders-club", "get_founders_club_application_counts", countError);
     }
     if (acceptedAppsError) {
-      console.error("세션 수락 인원 조회 오류:", acceptedAppsError.message);
+      console.error("세션 확정 인원 조회 오류:", acceptedAppsError.message);
       logSupabaseFailure("founders-club", "fetch_accepted_founders_club_applications", acceptedAppsError, { severity: "low" });
     }
     if (userAppsError) {
@@ -194,14 +223,46 @@ export function FoundersClubPage() {
   const handleApply = async () => {
     if (!applyTarget || !userId) return;
     setApplying(true);
-    const { error } = await supabase.from("founders_club_applications").insert({
-      session_id: applyTarget.id,
-      user_id: userId,
-      message: message.trim() || null,
-    });
+    const { data, error } = await supabase
+      .from("founders_club_applications")
+      .insert({
+        session_id: applyTarget.id,
+        user_id: userId,
+        status: "accepted",
+        message: message.trim() || null,
+      })
+      .select("id")
+      .single();
     if (error) { alert(error.code === "23505" ? "이미 신청하셨습니다." : "신청 실패: " + error.message); }
-    else { setAppliedId(applyTarget.id); fetchSessions(userId, isAdmin); }
+    else {
+      setAppliedId(applyTarget.id);
+      setAppliedApplicationId(data.id);
+      setApplyCancelled(false);
+      fetchSessions(userId, isAdmin);
+    }
     setApplying(false);
+  };
+
+  const handleCancelAppliedApplication = async () => {
+    if (!appliedApplicationId || !userId) return;
+    if (!window.confirm("Founder's Club 예약을 취소하시겠습니까?")) return;
+
+    setCancelingApplication(true);
+    const { error } = await supabase
+      .from("founders_club_applications")
+      .update({ status: "cancelled" })
+      .eq("id", appliedApplicationId);
+
+    if (error) {
+      alert("예약 취소 실패: " + error.message);
+      setCancelingApplication(false);
+      return;
+    }
+
+    setAppliedApplicationId(null);
+    setApplyCancelled(true);
+    await fetchSessions(userId, isAdmin);
+    setCancelingApplication(false);
   };
 
   const statusCfg = {
@@ -252,9 +313,9 @@ export function FoundersClubPage() {
                     </div>
                     <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                       <span style={getStatusPillStyle(cfg.color, isDark)}>{cfg.label}</span>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-muted)" }}>수락 {s.accepted_count}/{s.max_participants}명</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-muted)" }}>확정 {s.accepted_count}/{s.max_participants}명</span>
                       {isAdmin && (
-                        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-muted)" }}>신청 {s.application_counts.total_count}건</span>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-muted)" }}>전체 {s.application_counts.total_count}건</span>
                       )}
                     </div>
                   </div>
@@ -276,7 +337,7 @@ export function FoundersClubPage() {
                         onClick={() => toggleExpanded(s.id)}
                         style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", cursor: "pointer", padding: 0, color: "var(--color-text-muted)", fontSize: 13, fontWeight: 700 }}
                       >
-                        <span>수락된 참여자 {s.accepted_count}명</span>
+                        <span>확정 참여자 {s.accepted_count}명</span>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
                           style={{ transform: expandedSessions.has(s.id) ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>
                           <polyline points="6 9 12 15 18 9"/>
@@ -292,7 +353,7 @@ export function FoundersClubPage() {
                               <span style={{ color: "var(--color-text-muted)", marginLeft: "auto", fontSize: 12 }}>{a.email}</span>
                             </div>
                           )) : (
-                            <p style={{ color: "var(--color-text-muted)", fontSize: 13, margin: 0 }}>수락된 참여자가 없습니다.</p>
+                            <p style={{ color: "var(--color-text-muted)", fontSize: 13, margin: 0 }}>확정 참여자가 없습니다.</p>
                           )}
                         </div>
                       )}
@@ -300,7 +361,7 @@ export function FoundersClubPage() {
                   ) : alreadyApplied ? (
                     <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 0" }}>
                       <span style={getStatusPillStyle(appColor, isDark)}>
-                        {{ pending: "신청 완료 — 검토 중", accepted: "수락됨", rejected: "신청이 거절되었습니다", cancelled: "신청이 취소되었습니다" }[appStatus!] ?? "신청함"}
+                        {{ pending: "대기 중", accepted: "확정됨", rejected: "신청이 거절되었습니다", cancelled: "신청이 취소되었습니다" }[appStatus!] ?? "신청함"}
                       </span>
                     </div>
                   ) : (
@@ -321,14 +382,35 @@ export function FoundersClubPage() {
 
       {/* Apply modal */}
       {applyTarget && (
-        <div style={{ position: "fixed", inset: 0, background: "var(--color-backdrop)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: LAYERS.modal, padding: 20 }} onClick={e => { if (e.target === e.currentTarget) setApplyTarget(null); }}>
-          <div style={{ background: "var(--color-bg-elevated)", borderRadius: 24, padding: "36px 32px", width: "100%", maxWidth: 440, boxShadow: "var(--shadow-dialog)" }}>
+        <div style={{ position: "fixed", inset: 0, background: "var(--color-backdrop)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: LAYERS.modal, padding: 20 }} onClick={e => { if (e.target === e.currentTarget) closeApplyModal(); }}>
+          <div style={{ position: "relative", background: "var(--color-bg-elevated)", borderRadius: 24, padding: "36px 32px", width: "100%", maxWidth: 440, boxShadow: "var(--shadow-dialog)" }}>
             {appliedId === applyTarget.id ? (
-              <div style={{ textAlign: "center" }}>
-                <h3 style={{ color: "var(--color-text-primary)", fontWeight: 800, marginBottom: 12 }}>신청 완료!</h3>
-                <p style={{ color: "var(--color-text-muted)", lineHeight: 1.6, marginBottom: 24 }}>신청이 접수되었습니다. 운영자 검토 후 수락 여부가 결정됩니다.</p>
-                <button onClick={() => { setApplyTarget(null); setAppliedId(null); }} style={{ padding: "12px 32px", borderRadius: 12, border: "none", background: "var(--color-accent-blue)", color: "var(--color-on-primary)", fontWeight: 700, cursor: "pointer" }}>닫기</button>
-              </div>
+              <>
+                <button type="button" aria-label="모달 닫기" onClick={closeApplyModal} style={modalCloseButtonStyle}>
+                  <X size="var(--size-event-application-icon-md, 18px)" />
+                </button>
+                <ProgramConfirmationCard
+                  title={applyCancelled ? "예약이 취소되었습니다." : "Founder's Club 참여가 확정되었습니다."}
+                  description={applyCancelled ? "다시 참여가 필요하면 신청 가능한 세션에서 재신청해주세요." : "세션 안내는 등록된 이메일로 공유드리겠습니다."}
+                  padding="0"
+                  actions={applyCancelled
+                    ? [
+                        { label: "내 신청 내역 보기", to: "/mypage" },
+                        { label: "닫기", onClick: closeApplyModal },
+                      ]
+                    : [
+                        {
+                          label: "예약 취소",
+                          loadingLabel: "취소 중...",
+                          loading: cancelingApplication,
+                          variant: "destructive",
+                          icon: <Ban size="var(--size-event-application-icon-md)" />,
+                          onClick: handleCancelAppliedApplication,
+                        },
+                        { label: "내 신청 내역 보기", to: "/mypage" },
+                      ]}
+                />
+              </>
             ) : (
               <>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>

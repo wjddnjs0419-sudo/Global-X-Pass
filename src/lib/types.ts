@@ -1,3 +1,16 @@
+export interface Company {
+  id: string;
+  name: string;
+  slug: string;
+  industry: string;
+  participation_year: number | null;
+  description: string;
+  website_url: string;
+  status: "published" | "draft";
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Post {
   id: string;
   title: string;
@@ -28,7 +41,7 @@ export interface ThumbnailCrop {
   x: number;
   y: number;
   zoom: number;
-  aspect: '16/10' | '10/9';
+  aspect: '7/1' | '16/10' | '16/9' | '10/9' | '1/1' | '540/675';
 }
 
 export interface EventFormConfig {

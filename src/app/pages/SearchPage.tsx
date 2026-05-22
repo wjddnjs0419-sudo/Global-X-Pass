@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { PageShell } from "../components/PageShell";
+import { SearchInput } from "../components/SearchInput";
 import { useTheme } from "../ThemeContext";
 import { getFilterTabStyle, getMutedLabelStyle } from "../components/contentListStyles";
 
@@ -54,41 +55,15 @@ export function SearchPage() {
   return (
     <PageShell title="통합 검색" subtitle="공지·행사·자료·미디어를 한 번에 검색하세요." accentColor="var(--color-accent-blue)">
       {/* Search box */}
-      <div
-        className="flex items-center gap-3 rounded-2xl py-2 pl-5 pr-2 mb-6"
-        style={{
-          background: "var(--color-field-bg)", border: "1px solid var(--color-border-subtle)",
-          boxShadow: "var(--shadow-card-rest)",
-        }}
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
-        <input
-          autoFocus
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="검색어를 입력하세요 (예: 데모데이, IR 템플릿, 동남아)"
-          className="flex-1 bg-transparent border-none outline-none text-[15px] py-[14px] font-['Pretendard',sans-serif]"
-          style={{ color: "var(--color-text-primary)" }}
-        />
-        {query && (
-          <button
-            onClick={() => setQuery("")}
-            className="bg-transparent border-none cursor-pointer text-[18px] px-2"
-            style={{ color: "var(--color-text-muted)" }}
-          >
-            ×
-          </button>
-        )}
-        <button
-          onClick={handleSearch}
-          className="px-[22px] py-3 rounded-xl border-none text-white text-[14px] font-bold cursor-pointer font-['Pretendard',sans-serif]"
-          style={{ background: "var(--color-accent-blue)" }}
-        >
-          검색
-        </button>
-      </div>
+      <SearchInput
+        value={query}
+        onChange={setQuery}
+        onSubmit={handleSearch}
+        submitLabel="검색"
+        placeholder="검색어를 입력하세요 (예: 데모데이, IR 템플릿, 동남아)"
+        autoFocus
+        className="mb-6"
+      />
 
       {/* Popular */}
       {!query && (

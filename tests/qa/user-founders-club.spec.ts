@@ -53,7 +53,7 @@ async function createFoundersSession(page: Page) {
 
 async function closeFoundersSession(page: Page) {
   await openAdminTab(page, /Founder's Club|파운더스/);
-  const row = findByQaTitle(page, sessionTheme).locator('xpath=ancestor::div[.//button[normalize-space(.)="신청 보기"]][1]');
+  const row = findByQaTitle(page, sessionTheme).locator('xpath=ancestor::div[.//button[normalize-space(.)="참여자 보기"]][1]');
   await expect(row).toBeVisible({ timeout: 15000 });
   await row.locator('select').first().selectOption('closed');
   await expect(row.locator('span').filter({ hasText: /^마감$/ }).first()).toBeVisible({ timeout: 15000 });
@@ -65,7 +65,7 @@ async function deleteFoundersArtifacts(page: Page) {
   const sessionRow = findByQaTitle(page, sessionTheme).locator('xpath=ancestor::div[.//button[normalize-space(.)="삭제"]][1]');
   if (!await sessionRow.isVisible({ timeout: 5000 }).catch(() => false)) return;
 
-  const applicationsButton = sessionRow.getByRole('button', { name: '신청 보기' });
+  const applicationsButton = sessionRow.getByRole('button', { name: '참여자 보기' });
   if (await applicationsButton.isVisible({ timeout: 2000 }).catch(() => false)) {
     await applicationsButton.click();
 
@@ -109,10 +109,12 @@ test.describe('User Founders Club QA', () => {
       await page.locator('textarea[placeholder*="참여 동기"]').fill('QA founders application message');
       await page.getByRole('button', { name: '신청하기 (선착순)' }).click();
 
-      await expect(page.getByText('신청 완료!', { exact: true })).toBeVisible({ timeout: 20000 });
-      await page.getByRole('button', { name: '닫기' }).click();
+      await expect(page.getByText("Founder's Club 참여가 확정되었습니다.", { exact: true })).toBeVisible({ timeout: 20000 });
+      await expect(page.getByRole('button', { name: '예약 취소' })).toBeVisible();
+      await expect(page.getByRole('link', { name: '내 신청 내역 보기' })).toBeVisible();
+      await page.goto('/founders-club');
       const updatedCard = getPublicFoundersCard(page, sessionTheme);
-      await expect(updatedCard.getByText('신청 완료 — 검토 중', { exact: true })).toBeVisible({ timeout: 20000 });
+      await expect(updatedCard.getByText('확정됨', { exact: true })).toBeVisible({ timeout: 20000 });
       await expect(updatedCard.getByRole('button', { name: /^지금 신청/ })).toHaveCount(0);
 
       await logoutIfNeeded(page);

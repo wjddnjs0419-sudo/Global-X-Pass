@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import type React from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { Ban, CalendarDays, CheckCircle2, MapPin, Plus, Save, Send, Users, X } from "lucide-react";
+import { Ban, CalendarDays, MapPin, Plus, Save, Send, Users, X } from "lucide-react";
 import { PageShell } from "../components/PageShell";
+import { ProgramConfirmationCard } from "../components/ProgramConfirmationCard";
 import { Button } from "../components/ui/button";
 import { getBackLinkStyle, getMutedLabelStyle, getStatusPillStyle } from "../components/contentListStyles";
 import { AdvancedThumbnailEditor } from "../components/admin/AdvancedThumbnailEditor";
@@ -13,7 +14,7 @@ import { useAdmin } from "../../hooks/useAdmin";
 import type { EventApplication, EventCustomQuestion, EventFormConfig, Post, Profile } from "../../lib/types";
 import { isImage } from "../../utils/file";
 import { sanitizeRichHtml } from "../../utils/htmlSecurity";
-import { EVENT_APPLICATION_STATUS, EVENT_STATUS_CONFIG, getEffectiveEventStatus, getEventRemaining, isEventApplicationOpen, mergeEventFormConfig } from "../../utils/eventApplication";
+import { EVENT_STATUS_CONFIG, getEffectiveEventStatus, getEventRemaining, isEventApplicationOpen, mergeEventFormConfig } from "../../utils/eventApplication";
 import { getThumbnailCandidates, uploadThumbnailIfDataUrl } from "../../utils/postThumbnail";
 import { composeLocalDateTimeIso, composeStructuredLocation, formatLocalDateTime, formatStructuredLocation, getDaysInMonth, getMinuteOptions, pad2, parseDateTimeParts, parseStructuredLocation } from "../../utils/scheduleFields";
 
@@ -232,12 +233,6 @@ export function EventApplicationPage() {
     justifyContent: "center",
     cursor: "pointer",
     flex: "0 0 auto",
-  };
-  const contactButtonStyle: React.CSSProperties = {
-    background: "var(--color-accent-blue-soft-bg)",
-    border: "1px solid var(--color-accent-blue-soft-border)",
-    color: "var(--color-accent-blue)",
-    boxShadow: "var(--shadow-card-rest)",
   };
   const compactInputStyle: React.CSSProperties = {
     ...input,
@@ -502,6 +497,7 @@ export function EventApplicationPage() {
       .insert({
         post_id: post.id,
         user_id: userId,
+        status: "accepted",
         company_tech: form.company_tech.trim(),
         applicant_name: form.applicant_name.trim(),
         position: form.position.trim(),
@@ -522,6 +518,7 @@ export function EventApplicationPage() {
       return;
     }
     setApplication(data as EventApplication);
+    setAcceptedCount(prev => prev + 1);
     setSaved(true);
   };
 
@@ -650,7 +647,7 @@ export function EventApplicationPage() {
               <div style={{ padding: "var(--space-event-application-card)", display: "flex", flexDirection: "column", gap: "var(--space-md)" }}>
                 <div style={{ display: "flex", gap: "var(--space-xs)", flexWrap: "wrap" }}>
                   {statusCfg && <span style={getStatusPillStyle(statusCfg.color, isDark)}>{statusCfg.label}</span>}
-                  {capacity != null && <span style={getMutedLabelStyle(isDark)}>{acceptedCount}/{capacity}명 수락</span>}
+                  {capacity != null && <span style={getMutedLabelStyle(isDark)}>{acceptedCount}/{capacity}명 확정</span>}
                 </div>
                 <h2 style={{ margin: 0, color: "var(--color-text-primary)", fontSize: "var(--text-event-application-title)", fontWeight: "var(--weight-black)", lineHeight: "var(--leading-event-application-title)" }}>{post.title}</h2>
                 <div style={{ display: "grid", gap: "var(--space-event-application-compact-inline)", color: "var(--color-text-muted)", fontSize: "var(--text-event-application-body)" }}>
@@ -914,41 +911,31 @@ export function EventApplicationPage() {
                 </Button>
               )}
               {saved || application ? (
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: "var(--space-event-application-centered-gap)", padding: "var(--space-event-application-centered-y) 0" }}>
-                  <CheckCircle2 size="var(--size-event-application-action-lg)" color="var(--color-accent-green)" />
-                  <h3 style={{ margin: 0, color: "var(--color-text-primary)", fontSize: "var(--text-event-application-heading)", fontWeight: "var(--weight-black)" }}>
-                    {application?.status === "cancelled" ? "신청이 취소되었습니다." : activeConfig.completionTitle}
-                  </h3>
-                  <p style={{ margin: 0, color: "var(--color-text-muted)", lineHeight: "var(--leading-event-application-message)" }}>
-                    {application?.status === "cancelled" ? "재참가가 필요하면 운영자에게 문의해주세요." : activeConfig.completionMessage}
-                  </p>
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-event-application-compact-inline)", width: "100%", maxWidth: "320px" }}>
-                    {application?.status === "cancelled" && (
-                      <div style={{ display: "flex", gap: "var(--space-xs)", flexWrap: "wrap", justifyContent: "center" }}>
-                        <Button asChild variant="outline" size="sm" style={contactButtonStyle}>
-                          <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
-                        </Button>
-                        <Button asChild variant="outline" size="sm" style={contactButtonStyle}>
-                          <Link to="/faq">문의 안내 보기</Link>
-                        </Button>
-                      </div>
-                    )}
-                    {application && (
-                      <span style={getStatusPillStyle(EVENT_APPLICATION_STATUS[application.status].color, isDark)}>
-                        {EVENT_APPLICATION_STATUS[application.status].label}
-                      </span>
-                    )}
-                    {canCancelApplication && (
-                      <Button type="button" variant="destructive" onClick={handleCancelApplication} disabled={submitting} style={{ width: "100%" }}>
-                        <Ban size="var(--size-event-application-icon-md)" />
-                        {submitting ? "취소 중..." : "신청 취소"}
-                      </Button>
-                    )}
-                    <Button asChild variant="outline" style={{ width: "100%" }}>
-                      <Link to="/mypage">내 신청 내역 보기</Link>
-                    </Button>
-                  </div>
-                </div>
+                <ProgramConfirmationCard
+                  title={application?.status === "cancelled" ? "신청이 취소되었습니다." : activeConfig.completionTitle}
+                  description={application?.status === "cancelled" ? "재참가가 필요하면 운영자에게 문의해주세요." : activeConfig.completionMessage}
+                  actions={[
+                    ...(application?.status === "cancelled"
+                      ? [
+                          { label: CONTACT_EMAIL, href: `mailto:${CONTACT_EMAIL}` },
+                          { label: "문의 안내 보기", to: "/faq" },
+                        ]
+                      : []),
+                    ...(canCancelApplication
+                      ? [
+                          {
+                            label: "신청 취소",
+                            loadingLabel: "취소 중...",
+                            loading: submitting,
+                            variant: "destructive" as const,
+                            icon: <Ban size="var(--size-event-application-icon-md)" />,
+                            onClick: handleCancelApplication,
+                          },
+                        ]
+                      : []),
+                    { label: "내 신청 내역 보기", to: "/mypage" },
+                  ]}
+                />
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-event-application-section-gap)" }}>
                   <div style={{ paddingRight: isAdmin ? "var(--space-event-application-admin-inline-reserve)" : 0 }}>

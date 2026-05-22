@@ -1,13 +1,21 @@
-import { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 interface PageShellProps {
   title: string;
   subtitle?: string;
   accentColor?: string;
+  contentMaxWidth?: CSSProperties["maxWidth"];
+  contentPadding?: CSSProperties["padding"];
   children: ReactNode;
 }
 
-export function PageShell({ title, subtitle, children }: PageShellProps) {
+export function PageShell({
+  title,
+  subtitle,
+  contentMaxWidth = 1200,
+  contentPadding = "clamp(32px, 6vw, 48px) clamp(18px, 4vw, 32px) clamp(60px, 10vw, 96px)",
+  children,
+}: PageShellProps) {
   return (
     <div
       style={{
@@ -54,7 +62,7 @@ export function PageShell({ title, subtitle, children }: PageShellProps) {
       </div>
 
       {/* Page content */}
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "clamp(32px, 6vw, 48px) clamp(18px, 4vw, 32px) clamp(60px, 10vw, 96px)" }}>
+      <div style={{ maxWidth: contentMaxWidth, margin: "0 auto", padding: contentPadding }}>
         {children}
       </div>
     </div>

@@ -1,8 +1,10 @@
 import type React from "react";
 import { isImage } from "./file";
 import { supabase } from "../lib/supabaseClient";
+import { isWideMediaCategory } from "../app/constants/mediaCategories";
+import { getExternalMediaThumbnailUrl, parseMediaMeta } from "./mediaPost";
 
-export type ThumbnailAspect = "7/1" | "16/10" | "10/9" | "1/1";
+export type ThumbnailAspect = "7/1" | "16/10" | "16/9" | "10/9" | "1/1" | "540/675";
 
 export interface ThumbnailCrop {
   x: number;
@@ -14,7 +16,7 @@ export interface ThumbnailCrop {
 export interface ThumbnailCandidate {
   url: string;
   label: string;
-  source: "content" | "attachment";
+  source: "content" | "attachment" | "external";
 }
 
 export interface ResolvedPostThumbnail {
@@ -30,8 +32,10 @@ export const ZOOM_STEP = 0.05;
 export const THUMBNAIL_OUTPUT_WIDTH: Record<ThumbnailAspect, number> = {
   "7/1": 1400,
   "16/10": 1280,
+  "16/9": 1280,
   "10/9": 1000,
   "1/1": 800,
+  "540/675": 1080,
 };
 
 export const POST_THUMBNAIL_ASPECT: Record<string, ThumbnailAspect> = {
@@ -49,8 +53,13 @@ const clamp = (value: unknown, min: number, max: number, fallback: number) => {
   return Math.min(max, Math.max(min, numeric));
 };
 
-export const getPostThumbnailAspect = (category: string): ThumbnailAspect =>
-  POST_THUMBNAIL_ASPECT[category] ?? "16/10";
+export const getPostThumbnailAspect = (category: string, tags?: string | null): ThumbnailAspect => {
+  if (category === "media") {
+    return isWideMediaCategory(tags) ? "16/9" : "540/675";
+  }
+
+  return POST_THUMBNAIL_ASPECT[category] ?? "16/10";
+};
 
 export const toCssAspectRatio = (aspect: ThumbnailAspect) => aspect.replace("/", " / ");
 
@@ -139,6 +148,41 @@ export const getThumbnailCandidates = (
   return candidates;
 };
 
+export const getPostThumbnailCandidates = (
+  post: {
+    category?: string | null;
+    content?: string | null;
+    image_url?: string | null;
+    tags?: string | null;
+  },
+): ThumbnailCandidate[] => {
+  if (post.category !== "media") {
+    return getThumbnailCandidates(post.content ?? "", post.image_url);
+  }
+
+  const contentImages = extractImageUrlsFromHtml(post.content ?? "");
+  const attachmentImages = getAttachmentImageUrls(post.image_url);
+  const meta = parseMediaMeta(post.content ?? "");
+  const externalThumbnail = isWideMediaCategory(post.tags)
+    ? getExternalMediaThumbnailUrl(meta.externalUrl)
+    : null;
+  const seen = new Set<string>();
+  const candidates: ThumbnailCandidate[] = [];
+
+  const addCandidate = (url: string | null | undefined, label: string, source: ThumbnailCandidate["source"]) => {
+    const trimmed = url?.trim();
+    if (!trimmed || seen.has(trimmed)) return;
+    seen.add(trimmed);
+    candidates.push({ url: trimmed, label, source });
+  };
+
+  addCandidate(externalThumbnail, "외부 미디어 썸네일", "external");
+  attachmentImages.forEach((url, index) => addCandidate(url, `첨부 이미지 ${index + 1}`, "attachment"));
+  contentImages.forEach((url, index) => addCandidate(url, `본문 이미지 ${index + 1}`, "content"));
+
+  return candidates;
+};
+
 export const resolvePostThumbnail = (
   post: {
     category?: string | null;
@@ -146,11 +190,11 @@ export const resolvePostThumbnail = (
     image_url?: string | null;
     thumbnail_url?: string | null;
     thumbnail_crop?: unknown;
+    tags?: string | null;
   },
 ): ResolvedPostThumbnail => {
-  const aspect = getPostThumbnailAspect(post.category ?? "");
-  const candidates = getThumbnailCandidates(post.content ?? "", post.image_url);
-  const candidateUrls = new Set(candidates.map(candidate => candidate.url));
+  const aspect = getPostThumbnailAspect(post.category ?? "", post.tags);
+  const candidates = getPostThumbnailCandidates(post);
   const manualUrl = post.thumbnail_url?.trim();
 
   if (manualUrl) {

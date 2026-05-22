@@ -383,10 +383,10 @@ export function MyPage() {
     }
     if (!confirm("2단계 인증을 해제하시겠습니까? 관리자 계정 보안이 취약해질 수 있습니다.")) return;
     setLoading(true);
-    
+
     const { data: factors } = await supabase.auth.mfa.listFactors();
     const { verifiedTotpFactor } = getTotpFactorSnapshot(factors);
-    
+
     if (verifiedTotpFactor) {
       const { error } = await supabase.auth.mfa.unenroll({ factorId: verifiedTotpFactor.id });
       if (error) alert("해제 실패: " + error.message);
@@ -399,7 +399,20 @@ export function MyPage() {
   };
 
   if (!user) return null;
+  if (!profileLoaded) {
+    return (
+      <PageShell title="마이페이지" subtitle="내 정보 확인 및 설정" accentColor="#4377F1">
+        <div className="flex justify-center pb-[60px]">
+          <div className="w-full max-w-[500px] rounded-[20px] px-9 py-10 text-center" style={{ background: card, border: `1px solid ${border}`, color: textMuted }}>
+            불러오는 중...
+          </div>
+        </div>
+      </PageShell>
+    );
+  }
+
   const hasPendingMfaSetup = !isMfaEnabled && Boolean(mfaFactorId);
+  const adminMfaEnrollmentLocked = profile?.role === "admin" && !isMfaEnabled;
 
   const getProfileText = (value?: string | null) => {
     if (!profileLoaded) return "불러오는 중...";
@@ -413,97 +426,105 @@ export function MyPage() {
   );
 
   return (
-    <PageShell title="마이페이지" subtitle="내 정보 확인 및 설정" accentColor="#4377F1">
+    <PageShell
+      title={adminMfaEnrollmentLocked ? "관리자 보안 설정" : "마이페이지"}
+      subtitle={adminMfaEnrollmentLocked ? "관리자 권한 사용 전 2단계 인증을 완료해 주세요" : "내 정보 확인 및 설정"}
+      accentColor="#4377F1"
+    >
       <div className="flex flex-col items-center pb-[60px] gap-6">
         <div
           className="w-full max-w-[500px] rounded-[20px] px-9 py-10 flex flex-col gap-8"
           style={{ background: card, border: `1px solid ${border}` }}
         >
-          <div>
-            <h3 className="mb-5 text-[18px]" style={{ color: textMain }}>가입 정보</h3>
-            <div className="text-[15px] mb-3" style={{ color: textMuted }}>이메일 : <span className="font-semibold" style={{ color: textMain }}>{getProfileText(profile?.email)}</span></div>
-            <div className="text-[15px] mb-3" style={{ color: textMuted }}>이름 : <span className="font-semibold" style={{ color: textMain }}>{getProfileText(profile?.name)}</span></div>
-            <div className="text-[15px] mb-3" style={{ color: textMuted }}>연락처 : <span className="font-semibold" style={{ color: textMain }}>{getProfileText(profile?.phone)}</span></div>
-            <div className="text-[15px] mb-3" style={{ color: textMuted }}>소속 : <span className="font-semibold" style={{ color: textMain }}>{getProfileText(profile?.company)}</span></div>
-            <div className="text-[15px]" style={{ color: textMuted }}>구분 : <span className="font-semibold" style={{ color: textMain }}>{getProfileText(profile?.user_type)}</span></div>
-          </div>
-
-          <hr className="border-none m-0" style={{ borderTop: `1px solid ${border}` }} />
-
-          <div>
-            <h3 className="mb-4 text-[18px]" style={{ color: textMain }}>비밀번호 변경</h3>
-            <div className="flex gap-2 mb-3">
-              <div className="relative flex-1">
-                <input 
-                  type={showOldPassword ? "text" : "password"} 
-                  value={oldPassword} 
-                  onChange={(e) => setOldPassword(e.target.value)} 
-                  placeholder="현재 비밀번호 확인" 
-                  className="w-full pl-4 pr-10 py-3 rounded-xl text-[14px] outline-none font-['Pretendard',sans-serif] box-border m-0" 
-                  style={inputDynamicStyle} 
-                  disabled={isVerified} 
-                />
-                <button type="button" onClick={() => setShowOldPassword(!showOldPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 bg-none border-none cursor-pointer" style={{ color: textMuted }}>
-                  {eyeIcon}
-                </button>
+          {!adminMfaEnrollmentLocked && (
+            <>
+              <div>
+                <h3 className="mb-5 text-[18px]" style={{ color: textMain }}>가입 정보</h3>
+                <div className="text-[15px] mb-3" style={{ color: textMuted }}>이메일 : <span className="font-semibold" style={{ color: textMain }}>{getProfileText(profile?.email)}</span></div>
+                <div className="text-[15px] mb-3" style={{ color: textMuted }}>이름 : <span className="font-semibold" style={{ color: textMain }}>{getProfileText(profile?.name)}</span></div>
+                <div className="text-[15px] mb-3" style={{ color: textMuted }}>연락처 : <span className="font-semibold" style={{ color: textMain }}>{getProfileText(profile?.phone)}</span></div>
+                <div className="text-[15px] mb-3" style={{ color: textMuted }}>소속 : <span className="font-semibold" style={{ color: textMain }}>{getProfileText(profile?.company)}</span></div>
+                <div className="text-[15px]" style={{ color: textMuted }}>구분 : <span className="font-semibold" style={{ color: textMain }}>{getProfileText(profile?.user_type)}</span></div>
               </div>
-              {!isVerified && (
-                <button 
-                  onClick={handleVerifyOldPassword} 
-                  disabled={loading} 
-                  className="px-4 rounded-xl border-none cursor-pointer font-semibold"
-                  style={{ background: isDark ? "rgba(255,255,255,0.1)" : "#f1f5f9", color: textMain }}
-                >
-                  확인
-                </button>
-              )}
-            </div>
 
-            {isVerified && (
-              <form onSubmit={handlePasswordUpdate}>
-                <div className="relative">
-                  <input
-                    type={showNewPassword ? "text" : "password"}
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="새 비밀번호 (8자 이상)"
-                    className="w-full pl-4 pr-10 py-3 rounded-xl text-[14px] outline-none font-['Pretendard',sans-serif] box-border mb-3"
-                    style={inputDynamicStyle}
-                    required
-                  />
-                  <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute right-3 top-[22px] -translate-y-1/2 bg-none border-none cursor-pointer" style={{ color: textMuted }}>
-                    {eyeIcon}
-                  </button>
-                </div>
-                {isMfaEnabled && profile?.role === "admin" && (
-                  <div className="mb-3">
-                    <p className="text-[13px] mb-2" style={{ color: textMuted }}>OTP 인증 코드 확인 (보안 정책)</p>
-                    <div className="flex justify-center">
-                      <InputOTP maxLength={6} value={pwChangeMfaOtp} onChange={setPwChangeMfaOtp}>
-                        <InputOTPGroup>
-                          {[0,1,2,3,4,5].map(idx => (
-                            <InputOTPSlot key={idx} index={idx} style={{ width: 40, height: 50, fontSize: 18, fontWeight: 700, background: inputBg, borderColor: inputBorder, color: textMain }} />
-                          ))}
-                        </InputOTPGroup>
-                      </InputOTP>
-                    </div>
+              <hr className="border-none m-0" style={{ borderTop: `1px solid ${border}` }} />
+
+              <div>
+                <h3 className="mb-4 text-[18px]" style={{ color: textMain }}>비밀번호 변경</h3>
+                <div className="flex gap-2 mb-3">
+                  <div className="relative flex-1">
+                    <input
+                      type={showOldPassword ? "text" : "password"}
+                      value={oldPassword}
+                      onChange={(e) => setOldPassword(e.target.value)}
+                      placeholder="현재 비밀번호 확인"
+                      className="w-full pl-4 pr-10 py-3 rounded-xl text-[14px] outline-none font-['Pretendard',sans-serif] box-border m-0"
+                      style={inputDynamicStyle}
+                      disabled={isVerified}
+                    />
+                    <button type="button" onClick={() => setShowOldPassword(!showOldPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 bg-none border-none cursor-pointer" style={{ color: textMuted }}>
+                      {eyeIcon}
+                    </button>
                   </div>
+                  {!isVerified && (
+                    <button
+                      onClick={handleVerifyOldPassword}
+                      disabled={loading}
+                      className="px-4 rounded-xl border-none cursor-pointer font-semibold"
+                      style={{ background: isDark ? "rgba(255,255,255,0.1)" : "#f1f5f9", color: textMain }}
+                    >
+                      확인
+                    </button>
+                  )}
+                </div>
+
+                {isVerified && (
+                  <form onSubmit={handlePasswordUpdate}>
+                    <div className="relative">
+                      <input
+                        type={showNewPassword ? "text" : "password"}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="새 비밀번호 (8자 이상)"
+                        className="w-full pl-4 pr-10 py-3 rounded-xl text-[14px] outline-none font-['Pretendard',sans-serif] box-border mb-3"
+                        style={inputDynamicStyle}
+                        required
+                      />
+                      <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute right-3 top-[22px] -translate-y-1/2 bg-none border-none cursor-pointer" style={{ color: textMuted }}>
+                        {eyeIcon}
+                      </button>
+                    </div>
+                    {isMfaEnabled && profile?.role === "admin" && (
+                      <div className="mb-3">
+                        <p className="text-[13px] mb-2" style={{ color: textMuted }}>OTP 인증 코드 확인 (보안 정책)</p>
+                        <div className="flex justify-center">
+                          <InputOTP maxLength={6} value={pwChangeMfaOtp} onChange={setPwChangeMfaOtp}>
+                            <InputOTPGroup>
+                              {[0,1,2,3,4,5].map(idx => (
+                                <InputOTPSlot key={idx} index={idx} style={{ width: 40, height: 50, fontSize: 18, fontWeight: 700, background: inputBg, borderColor: inputBorder, color: textMain }} />
+                              ))}
+                            </InputOTPGroup>
+                          </InputOTP>
+                        </div>
+                      </div>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={loading || (isMfaEnabled && profile?.role === "admin" && pwChangeMfaOtp.length !== 6)}
+                      className={`w-full py-[14px] rounded-xl border-none text-white text-[15px] font-bold font-['Pretendard',sans-serif] mt-2 ${(loading || (isMfaEnabled && profile?.role === "admin" && pwChangeMfaOtp.length !== 6)) ? "cursor-not-allowed" : "cursor-pointer"}`}
+                      style={{ background: (loading || (isMfaEnabled && profile?.role === "admin" && pwChangeMfaOtp.length !== 6)) ? "var(--color-disabled-bg)" : "var(--color-accent-blue)", boxShadow: "none" }}
+                    >
+                      {loading ? "변경 중..." : "새 비밀번호 저장"}
+                    </button>
+                  </form>
                 )}
-                <button
-                  type="submit"
-                  disabled={loading || (isMfaEnabled && profile?.role === "admin" && pwChangeMfaOtp.length !== 6)}
-                  className={`w-full py-[14px] rounded-xl border-none text-white text-[15px] font-bold font-['Pretendard',sans-serif] mt-2 ${(loading || (isMfaEnabled && profile?.role === "admin" && pwChangeMfaOtp.length !== 6)) ? "cursor-not-allowed" : "cursor-pointer"}`}
-                  style={{ background: (loading || (isMfaEnabled && profile?.role === "admin" && pwChangeMfaOtp.length !== 6)) ? "var(--color-disabled-bg)" : "var(--color-accent-blue)", boxShadow: "none" }}
-                >
-                  {loading ? "변경 중..." : "새 비밀번호 저장"}
-                </button>
-              </form>
-            )}
-          </div>
+              </div>
+            </>
+          )}
 
           {profile?.role === "admin" && (
             <>
-              <hr className="border-none mt-2 mb-0" style={{ borderTop: `1px solid ${border}` }} />
+              {!adminMfaEnrollmentLocked && <hr className="border-none mt-2 mb-0" style={{ borderTop: `1px solid ${border}` }} />}
               <div>
                 <h3 className="mb-4 text-[18px]" style={{ color: textMain }}>관리자 보안 (MFA)</h3>
 
@@ -563,10 +584,10 @@ export function MyPage() {
                         >
                           <InputOTPGroup>
                             {[0, 1, 2, 3, 4, 5].map((idx) => (
-                              <InputOTPSlot 
-                                key={idx} 
-                                index={idx} 
-                                style={{ width: 40, height: 50, fontSize: 18, fontWeight: 700, background: inputBg, borderColor: inputBorder, color: textMain }} 
+                              <InputOTPSlot
+                                key={idx}
+                                index={idx}
+                                style={{ width: 40, height: 50, fontSize: 18, fontWeight: 700, background: inputBg, borderColor: inputBorder, color: textMain }}
                               />
                             ))}
                           </InputOTPGroup>
@@ -618,17 +639,21 @@ export function MyPage() {
                 )}
               </div>
 
-              <hr className="border-none mt-2 mb-0" style={{ borderTop: `1px solid ${border}` }} />
-              <div>
-                <h3 className="mb-4 text-[18px]" style={{ color: textMain }}>관리자 권한</h3>
-                <button
-                  onClick={() => navigate("/admin")}
-                  className="w-full py-[14px] rounded-xl text-[15px] font-bold cursor-pointer font-['Pretendard',sans-serif]"
-                  style={{ background: selectedBg, border: `1px solid ${labelBorder}`, color: textMain, boxShadow: "none" }}
-                >
-                  관리자 페이지(게시물 등록) 바로가기
-                </button>
-              </div>
+              {isMfaEnabled && (
+                <>
+                  <hr className="border-none mt-2 mb-0" style={{ borderTop: `1px solid ${border}` }} />
+                  <div>
+                    <h3 className="mb-4 text-[18px]" style={{ color: textMain }}>관리자 권한</h3>
+                    <button
+                      onClick={() => navigate("/admin")}
+                      className="w-full py-[14px] rounded-xl text-[15px] font-bold cursor-pointer font-['Pretendard',sans-serif]"
+                      style={{ background: selectedBg, border: `1px solid ${labelBorder}`, color: textMain, boxShadow: "none" }}
+                    >
+                      관리자 페이지(게시물 등록) 바로가기
+                    </button>
+                  </div>
+                </>
+              )}
             </>
           )}
         </div>
@@ -636,12 +661,12 @@ export function MyPage() {
         {/* Consulting reservations — admin 제외 */}
         {profile?.role !== "admin" && consultingReservations.length > 0 && (
           <div className="w-full max-w-[500px] rounded-[20px] px-9 py-8 flex flex-col gap-4" style={{ background: card, border: `1px solid ${border}` }}>
-            <h3 style={{ color: textMain, fontSize: 18, margin: 0 }}>나의 컨설팅 신청</h3>
+            <h3 style={{ color: textMain, fontSize: 18, margin: 0 }}>나의 컨설팅 예약</h3>
             {consultingReservations.map((r: any) => {
               const slot = r.consulting_slots;
               const consultant = slot?.consultants;
               const statusCfg: Record<string, { label: string; color: string }> = {
-                pending:   { label: "대기중", color: "var(--color-brand-yellow)" },
+                pending:   { label: "대기", color: "var(--color-brand-yellow)" },
                 confirmed: { label: "확정",   color: "var(--color-accent-green)" },
                 rejected:  { label: "거절",   color: "var(--color-brand-red)" },
                 cancelled: { label: "취소",   color: "var(--color-neutral)" },
@@ -670,12 +695,12 @@ export function MyPage() {
         {/* Founder's Club applications — admin 제외 */}
         {profile?.role !== "admin" && clubApplications.length > 0 && (
           <div className="w-full max-w-[500px] rounded-[20px] px-9 py-8 flex flex-col gap-4" style={{ background: card, border: `1px solid ${border}` }}>
-            <h3 style={{ color: textMain, fontSize: 18, margin: 0 }}>나의 Founder's Club 신청</h3>
+            <h3 style={{ color: textMain, fontSize: 18, margin: 0 }}>나의 Founder's Club 참여</h3>
             {clubApplications.map((a: any) => {
               const session = a.founders_club_sessions;
               const statusCfg: Record<string, { label: string; color: string }> = {
-                pending:   { label: "검토중",  color: "var(--color-brand-yellow)" },
-                accepted:  { label: "수락됨",  color: "var(--color-accent-green)" },
+                pending:   { label: "대기",  color: "var(--color-brand-yellow)" },
+                accepted:  { label: "확정",  color: "var(--color-accent-green)" },
                 rejected:  { label: "거절됨",  color: "var(--color-brand-red)" },
                 cancelled: { label: "취소",    color: "var(--color-neutral)" },
               };
@@ -703,7 +728,7 @@ export function MyPage() {
         {/* Event applications — admin 제외 */}
         {profile?.role !== "admin" && eventApplications.length > 0 && (
           <div className="w-full max-w-[500px] rounded-[20px] px-9 py-8 flex flex-col gap-4" style={{ background: card, border: `1px solid ${border}` }}>
-            <h3 style={{ color: textMain, fontSize: 18, margin: 0 }}>나의 행사 신청</h3>
+            <h3 style={{ color: textMain, fontSize: 18, margin: 0 }}>나의 행사 참가</h3>
             {eventApplications.map((a: any) => {
               const event = a.posts;
               const cfg = EVENT_APPLICATION_STATUS[a.status as keyof typeof EVENT_APPLICATION_STATUS] ?? { label: a.status, color: "#888" };
