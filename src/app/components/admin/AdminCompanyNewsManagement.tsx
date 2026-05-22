@@ -1,12 +1,21 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ExternalLink, Play, RefreshCw, Trash2 } from "lucide-react";
 import { supabase } from "../../../lib/supabaseClient";
+import { useTheme } from "../../ThemeContext";
 import { AppPagination } from "../AppPagination";
+import { SearchInput } from "../SearchInput";
+import { getFilterTabStyle } from "../contentListStyles";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import type { Article } from "../../../lib/types";
 
 const PAGE_SIZE = 20;
+const DEFAULT_CRAWL_OPTIONS = {
+  batchSize: 25,
+  resultsPerCompany: 5,
+  delayMs: 300,
+  maxStoredArticles: 300,
+};
 
 type ArticleStatusFilter = "all" | Article["status"];
 
@@ -59,6 +68,7 @@ function sanitizeSearch(value: string): string {
 }
 
 export default function AdminCompanyNewsManagement() {
+  const { isDark } = useTheme();
   const [articles, setArticles] = useState<AdminArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -70,12 +80,7 @@ export default function AdminCompanyNewsManagement() {
   const [deleteTarget, setDeleteTarget] = useState<AdminArticle | null>(null);
   const [triggerLoading, setTriggerLoading] = useState(false);
   const [triggerMessage, setTriggerMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
-  const [crawlOptions, setCrawlOptions] = useState({
-    batchSize: 25,
-    resultsPerCompany: 5,
-    delayMs: 300,
-    maxStoredArticles: 300,
-  });
+  const [crawlOptions, setCrawlOptions] = useState(DEFAULT_CRAWL_OPTIONS);
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(totalCount / PAGE_SIZE)), [totalCount]);
 
@@ -299,28 +304,18 @@ export default function AdminCompanyNewsManagement() {
             type="button"
             aria-pressed={statusFilter === tab.id}
             onClick={() => setStatusFilter(tab.id)}
-            style={{
-              padding: "10px 15px",
-              borderRadius: 10,
-              border: `1px solid ${statusFilter === tab.id ? "var(--color-accent-blue)" : border}`,
-              background: statusFilter === tab.id ? "var(--color-accent-blue-soft-bg)" : "transparent",
-              color: statusFilter === tab.id ? "var(--color-accent-blue)" : textMuted,
-              fontWeight: 800,
-              cursor: "pointer",
-              fontSize: 13,
-            }}
+            style={getFilterTabStyle(isDark, statusFilter === tab.id)}
           >
             {tab.label}
           </button>
         ))}
       </div>
 
-      <input
-        type="text"
+      <SearchInput
         value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
+        onChange={setSearchTerm}
         placeholder="제목 · 요약 · 출처 검색"
-        style={{ ...inputStyle, maxWidth: 420 }}
+        className="max-w-[420px]"
       />
 
       {fetchError && (

@@ -12,7 +12,8 @@
 | `.github/workflows/company-news-crawl.yml` | 기본 `results_per_company=5`, `max_stored_articles=300` 입력 추가 및 스크립트 인자 전달. 썸네일 입력 제거. |
 | `supabase/functions/trigger-company-news-crawl/index.ts` | 관리자 권한 확인 후 GitHub Actions `company-news-crawl.yml`을 `workflow_dispatch`로 실행하는 Edge Function 추가. 브라우저에 Naver/API secret을 노출하지 않는다. 썸네일 입력 제거. |
 | `src/app/components/admin/AdminCompanyNewsManagement.tsx` | 관리자 `기업 뉴스 관리` 화면 추가. 즉시 수집, 옵션 조정, 상태 필터, 검색, 20개 단위 페이지네이션, 승인/거절/대기 전환/삭제 제공. 썸네일 옵션 제거. |
-| `src/app/pages/CompanyNewsPage.tsx` | 공개 기업 뉴스 카드를 썸네일 없는 텍스트형 카드로 정리. |
+| `src/app/components/admin/AdminCompanyNewsManagement.tsx` | 기존 `SearchInput`, `getFilterTabStyle`, `Badge`, `Button` 재사용으로 UI 패턴 정리. |
+| `src/app/pages/CompanyNewsPage.tsx` | 공개 기업 뉴스 카드를 썸네일 없는 텍스트형 카드로 정리하고, 출처 표시는 공통 `Badge`를 사용하도록 변경. |
 | `src/app/pages/AdminPage.tsx` | `company-news` lazy tab 추가. |
 | `src/app/components/admin/AdminSidebar.tsx` | 콘텐츠 섹션에 `기업 뉴스 관리` 메뉴 추가. |
 | `supabase/migrations/20260522103000_company_articles_retention.sql` | retention 정리용 `articles_published_created_idx` 추가, `articles` GRANT 명시. |

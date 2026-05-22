@@ -1,12 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
+import { ExternalLink } from "lucide-react";
 import { PageShell } from "../components/PageShell";
 import { supabase } from "../../lib/supabaseClient";
 import { LoadingSpinner, ErrorMessage } from "../components/LoadingSpinner";
 import { AppPagination } from "../components/AppPagination";
+import { Badge } from "../components/ui/badge";
 import type { Article } from "../../lib/types";
 
 const PAGE_SIZE = 10;
 const ACCENT = "var(--color-accent-blue)";
+
+function formatArticleDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("ko-KR", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
 
 export function CompanyNewsPage() {
   const [articles, setArticles] = useState<Article[]>([]);
@@ -40,7 +50,7 @@ export function CompanyNewsPage() {
   );
 
   return (
-    <PageShell title="기업 뉴스" subtitle="스타트업 참여기업 관련 기사 중 관리자 승인된 항목만 노출합니다." accentColor={ACCENT}>
+    <PageShell title="기업 뉴스" subtitle="참여기업의 최신 기사들을 확인해보세요." accentColor={ACCENT}>
       <div className="max-w-[980px] mx-auto pb-[100px]">
         {loading ? (
           <LoadingSpinner />
@@ -60,7 +70,6 @@ export function CompanyNewsPage() {
             <div className="flex flex-col gap-4">
               {pagedArticles.map((article) => {
                 const href = article.originallink || article.link;
-                const publishedAt = new Date(article.published_at);
 
                 return (
                   <a
@@ -77,15 +86,9 @@ export function CompanyNewsPage() {
                     <div className="min-w-0 p-4 sm:p-5 flex flex-col gap-2">
                       <div className="flex items-start gap-2 flex-wrap">
                         {article.source && (
-                          <span
-                            className="shrink-0 mt-[3px] px-2 py-1 rounded-full text-[12px] font-semibold"
-                            style={{
-                              background: "rgba(67,119,241,0.12)",
-                              color: "var(--color-accent-blue)",
-                            }}
-                          >
+                          <Badge variant="blue" shape="pill" className="mt-[3px]">
                             {article.source}
-                          </span>
+                          </Badge>
                         )}
                         <h2
                           className="m-0 font-extrabold leading-snug line-clamp-2"
@@ -106,14 +109,10 @@ export function CompanyNewsPage() {
 
                       <div className="flex items-center gap-3 mt-auto pt-1 flex-wrap">
                         <span className="text-[12px] font-medium" style={{ color: "var(--color-text-muted)" }}>
-                          {publishedAt.toLocaleDateString("ko-KR", {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                          })}
+                          {formatArticleDate(article.published_at)}
                         </span>
-                        <span className="text-[12px] font-medium" style={{ color: ACCENT }}>
-                          원문 보기
+                        <span className="inline-flex items-center gap-1 text-[12px] font-bold" style={{ color: ACCENT }}>
+                          원문 보기 <ExternalLink size={12} />
                         </span>
                       </div>
                     </div>
