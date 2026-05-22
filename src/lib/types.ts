@@ -4,6 +4,7 @@ export interface Company {
   slug: string;
   industry: string;
   participation_year: number | null;
+  program_name: string;
   search_keywords?: string | null;
   last_crawled_at?: string | null;
   description: string;

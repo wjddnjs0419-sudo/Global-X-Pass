@@ -12,7 +12,7 @@ import type { Article } from "../../../lib/types";
 const PAGE_SIZE = 20;
 const DEFAULT_CRAWL_OPTIONS = {
   batchSize: 25,
-  resultsPerCompany: 5,
+  resultsPerCompany: 1,
   delayMs: 300,
   maxStoredArticles: 300,
   minRelevanceScore: 3,

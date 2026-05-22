@@ -1,9 +1,9 @@
-export type WindowProgramDescriptionSegment = {
+export type ChangguProgramDescriptionSegment = {
   text: string;
   emphasis?: boolean;
 };
 
-export const WINDOW_PROGRAM_INFO = {
+export const CHANGGU_PROGRAM_INFO = {
   label: { ko: "PROGRAM INFO", en: "PROGRAM INFO" },
   title: {
     ko: ["Around X", "창구 프로그램"],
@@ -20,7 +20,7 @@ export const WINDOW_PROGRAM_INFO = {
       { text: "Korea's representative app/game startup accelerating program", emphasis: true },
       { text: " co-operated by Next Challenge, Google Play, the Ministry of SMEs and Startups, and KISED. We will contribute to creating global success stories together by discovering companies with potential." },
     ],
-  } satisfies Record<"ko" | "en", WindowProgramDescriptionSegment[]>,
+  } satisfies Record<"ko" | "en", ChangguProgramDescriptionSegment[]>,
   hint: {
     ko: "중앙 코어를 클릭해 프로그램 정보 보기",
     en: "Click the central core to view program info",

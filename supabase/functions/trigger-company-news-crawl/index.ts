@@ -85,7 +85,7 @@ Deno.serve(async (req: Request) => {
 
     const body = (await req.json().catch(() => ({}))) as CrawlRequestBody;
     const batchSize = clampInteger(body.batchSize, 25, 1, 100);
-    const resultsPerCompany = clampInteger(body.resultsPerCompany, 5, 1, 20);
+    const resultsPerCompany = clampInteger(body.resultsPerCompany, 1, 1, 20);
     const delayMs = clampInteger(body.delayMs, 300, 100, 2000);
     const maxStoredArticles = clampInteger(body.maxStoredArticles, 300, 50, 1000);
     const minRelevanceScore = clampInteger(body.minRelevanceScore, 3, 1, 10);

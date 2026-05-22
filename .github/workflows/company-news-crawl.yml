@@ -2,7 +2,7 @@ name: Company News Crawl
 
 on:
   schedule:
-    - cron: "0 */6 * * *"
+    - cron: "0 0,6,12,18 * * *"
   workflow_dispatch:
     inputs:
       batch_size:
@@ -12,7 +12,7 @@ on:
       results_per_company:
         description: "Maximum unique news items to keep per company"
         required: false
-        default: "5"
+        default: "1"
       delay_ms:
         description: "Delay between company and article requests"
         required: false
@@ -65,7 +65,7 @@ jobs:
         run: |
           ARGS=(
             --batch-size "${BATCH_SIZE:-25}"
-            --results-per-company "${RESULTS_PER_COMPANY:-5}"
+            --results-per-company "${RESULTS_PER_COMPANY:-1}"
             --delay-ms "${DELAY_MS:-300}"
             --max-stored-articles "${MAX_STORED_ARTICLES:-300}"
             --min-relevance-score "${MIN_RELEVANCE_SCORE:-3}"

@@ -10,7 +10,7 @@ type Result = { id: number; type: string; title: string; desc: string; to: strin
 const TYPE_COLOR: Record<string, string> = {
   공지: "var(--color-brand-blue)",
   행사: "var(--color-accent-ncf)",
-  미디어: "var(--color-brand-blue)",
+  인사이트: "var(--color-brand-blue)",
   자료: "var(--color-accent-purple)",
   블로그: "var(--color-brand-yellow)",
   FAQ: "var(--color-accent-purple)",
@@ -21,7 +21,7 @@ const ALL: Result[] = [
   { id: 1, type: "공지", title: "창구 프로그램 8기 모집 안내", desc: "2026년 8기 모집 공고 및 일정이 공개되었습니다.", to: "/notice", color: TYPE_COLOR["공지"] },
   { id: 2, type: "행사", title: "NCF Spring Networking Night 2026", desc: "스타트업·투자자 200명 네트워킹 이벤트.", to: "/events", color: TYPE_COLOR["행사"] },
   { id: 3, type: "행사", title: "글로벌 진출 전략 워크숍 — 동남아 편", desc: "현지 전문가와 함께하는 반일 워크숍.", to: "/events", color: TYPE_COLOR["행사"] },
-  { id: 4, type: "미디어", title: "동남아 게임 앱 시장, Q2 성장률 23%", desc: "Vol.32 · 시장 분석", to: "/media", color: TYPE_COLOR["미디어"] },
+  { id: 4, type: "인사이트", title: "동남아 게임 앱 시장, Q2 성장률 23%", desc: "Vol.32 · 시장 분석", to: "/insights", color: TYPE_COLOR["인사이트"] },
   { id: 5, type: "자료", title: "글로벌 IR 피칭 템플릿 v3", desc: "PDF · 다운로드 1,840회", to: "/resources", color: TYPE_COLOR["자료"] },
   { id: 6, type: "자료", title: "Google Play ASO 가이드 2026", desc: "최신 알고리즘 변경 분석", to: "/resources", color: TYPE_COLOR["자료"] },
   { id: 7, type: "블로그", title: "7기 수료 기업 A사 인터뷰", desc: "동남아 MAU 10만 달성 비결", to: "/blog", color: TYPE_COLOR["블로그"] },

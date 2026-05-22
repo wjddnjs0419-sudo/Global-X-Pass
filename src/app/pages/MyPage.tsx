@@ -3,7 +3,8 @@ import { useNavigate } from "react-router";
 import { PageShell } from "../components/PageShell";
 import { useTheme } from "../ThemeContext";
 import { createClient } from "@supabase/supabase-js";
-import { X } from "lucide-react";
+import { X, Trash2 } from "lucide-react";
+import { LAYERS } from "../../lib/layers";
 import { supabase, supabaseUrl, supabaseAnonKey } from "../../lib/supabaseClient";
 import type { Profile } from "../../lib/types";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "../components/ui/input-otp";
@@ -29,6 +30,12 @@ export function MyPage() {
   const [consultingReservations, setConsultingReservations] = useState<any[]>([]);
   const [clubApplications, setClubApplications] = useState<any[]>([]);
   const [eventApplications, setEventApplications] = useState<any[]>([]);
+
+  // 회원탈퇴 모달
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+  const [deleteAccountPassword, setDeleteAccountPassword] = useState("");
+  const [showDeleteAccountPassword, setShowDeleteAccountPassword] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   // MFA States
   const [mfaQr, setMfaQr] = useState<string | null>(null);
@@ -87,6 +94,27 @@ export function MyPage() {
     opacity: loading ? 0.55 : 1,
   };
 
+  const deleteIconStyle: React.CSSProperties = {
+    ...cancelIconStyle,
+    background: isDark ? "rgba(234,67,53,0.10)" : "rgba(234,67,53,0.07)",
+  };
+
+  const modalCloseButtonStyle: React.CSSProperties = {
+    position: "absolute",
+    top: "var(--space-md)",
+    right: "var(--space-md)",
+    width: 36,
+    height: 36,
+    borderRadius: "50%",
+    border: "1px solid var(--color-border-soft)",
+    background: "var(--color-field-bg)",
+    color: "var(--color-text-muted)",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+  };
+
   const statusPill = (cfg: { label: string; color: string }) => (
     <span style={{ ...getStatusPillStyle(cfg.color, isDark), whiteSpace: "nowrap" }}>{cfg.label}</span>
   );
@@ -96,7 +124,6 @@ export function MyPage() {
       .from("consulting_reservations")
       .select("*, consulting_slots(slot_date, slot_time, location, consultants(name, category))")
       .eq("user_id", userId)
-      .neq("status", "cancelled")
       .order("created_at", { ascending: false });
     setConsultingReservations(resData || []);
   };
@@ -106,7 +133,6 @@ export function MyPage() {
       .from("founders_club_applications")
       .select("*, founders_club_sessions(theme, session_date, session_time, location, status)")
       .eq("user_id", userId)
-      .neq("status", "cancelled")
       .order("created_at", { ascending: false });
     setClubApplications(clubData || []);
   };
@@ -116,7 +142,6 @@ export function MyPage() {
       .from("event_applications")
       .select("*, posts(title, event_date, location, event_status)")
       .eq("user_id", userId)
-      .neq("status", "cancelled")
       .order("created_at", { ascending: false });
     setEventApplications(eventData || []);
   };
@@ -376,6 +401,47 @@ export function MyPage() {
     setLoading(false);
   };
 
+  const handleDeleteConsultingReservation = async (id: string) => {
+    setLoading(true);
+    const { error } = await supabase.from("consulting_reservations").delete().eq("id", id);
+    if (error) { alert("삭제 실패: " + error.message); }
+    else { setConsultingReservations(prev => prev.filter(r => r.id !== id)); }
+    setLoading(false);
+  };
+
+  const handleDeleteClubApplication = async (id: string) => {
+    setLoading(true);
+    const { error } = await supabase.from("founders_club_applications").delete().eq("id", id);
+    if (error) { alert("삭제 실패: " + error.message); }
+    else { setClubApplications(prev => prev.filter(a => a.id !== id)); }
+    setLoading(false);
+  };
+
+  const handleDeleteEventApplication = async (id: string) => {
+    setLoading(true);
+    const { error } = await supabase.from("event_applications").delete().eq("id", id);
+    if (error) { alert("삭제 실패: " + error.message); }
+    else { setEventApplications(prev => prev.filter(a => a.id !== id)); }
+    setLoading(false);
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!deleteAccountPassword) return;
+    setIsDeletingAccount(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("delete-own-account", {
+        body: { password: deleteAccountPassword },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      await supabase.auth.signOut();
+      navigate("/");
+    } catch (err: any) {
+      alert("탈퇴 실패: " + (err.message ?? "알 수 없는 오류"));
+      setIsDeletingAccount(false);
+    }
+  };
+
   const handleMfaUnenroll = async () => {
     if (profile?.role === "admin") {
       alert("관리자 계정은 보안 정책상 2단계 인증을 해제할 수 없습니다.");
@@ -519,6 +585,25 @@ export function MyPage() {
                   </form>
                 )}
               </div>
+
+              {profile?.role !== "admin" && (
+                <>
+                  <hr className="border-none m-0" style={{ borderTop: `1px solid ${border}` }} />
+                  <div>
+                    <h3 className="mb-2 text-[18px]" style={{ color: textMain }}>회원 탈퇴</h3>
+                    <p className="text-[13px] mb-4" style={{ color: textMuted, lineHeight: 1.5 }}>
+                      탈퇴 시 모든 신청 내역이 즉시 삭제되며 복구할 수 없습니다.
+                    </p>
+                    <button
+                      onClick={() => setShowDeleteAccountModal(true)}
+                      className="w-full py-3 rounded-xl text-[14px] font-semibold"
+                      style={{ background: deleteBg, border: `1px solid ${deleteBorder}`, color: "var(--color-brand-red)", cursor: "pointer" }}
+                    >
+                      회원 탈퇴
+                    </button>
+                  </div>
+                </>
+              )}
             </>
           )}
 
@@ -673,11 +758,17 @@ export function MyPage() {
               };
               const cfg = statusCfg[r.status] ?? { label: r.status, color: "var(--color-text-muted)" };
               const canCancel = r.status === "pending" || r.status === "confirmed";
+              const canDelete = r.status === "cancelled" || r.status === "rejected";
               return (
                 <div key={r.id} style={requestCardStyle}>
                   {canCancel && (
                     <button type="button" aria-label="컨설팅 신청 취소" onClick={() => handleCancelConsultingReservation(r)} disabled={loading} style={cancelIconStyle}>
                       <X size={14} />
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button type="button" aria-label="내역 삭제" onClick={() => handleDeleteConsultingReservation(r.id)} disabled={loading} style={deleteIconStyle}>
+                      <Trash2 size={13} />
                     </button>
                   )}
                   <div>
@@ -706,11 +797,17 @@ export function MyPage() {
               };
               const cfg = statusCfg[a.status] ?? { label: a.status, color: "var(--color-text-muted)" };
               const canCancel = a.status === "pending" || a.status === "accepted";
+              const canDelete = a.status === "cancelled" || a.status === "rejected";
               return (
                 <div key={a.id} style={requestCardStyle}>
                   {canCancel && (
                     <button type="button" aria-label="Founder's Club 신청 취소" onClick={() => handleCancelClubApplication(a)} disabled={loading} style={cancelIconStyle}>
                       <X size={14} />
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button type="button" aria-label="내역 삭제" onClick={() => handleDeleteClubApplication(a.id)} disabled={loading} style={deleteIconStyle}>
+                      <Trash2 size={13} />
                     </button>
                   )}
                   <div>
@@ -733,11 +830,17 @@ export function MyPage() {
               const event = a.posts;
               const cfg = EVENT_APPLICATION_STATUS[a.status as keyof typeof EVENT_APPLICATION_STATUS] ?? { label: a.status, color: "#888" };
               const canCancel = a.status === "pending" || a.status === "accepted";
+              const canDelete = a.status === "cancelled" || a.status === "rejected";
               return (
                 <div key={a.id} style={requestCardStyle}>
                   {canCancel && (
                     <button type="button" aria-label="행사 신청 취소" onClick={() => handleCancelEventApplication(a)} disabled={loading} style={cancelIconStyle}>
                       <X size={14} />
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button type="button" aria-label="내역 삭제" onClick={() => handleDeleteEventApplication(a.id)} disabled={loading} style={deleteIconStyle}>
+                      <Trash2 size={13} />
                     </button>
                   )}
                   <div>
@@ -752,6 +855,78 @@ export function MyPage() {
           </div>
         )}
       </div>
+
+      {/* 회원탈퇴 모달 */}
+      {showDeleteAccountModal && (
+        <div
+          style={{ position: "fixed", inset: 0, background: "var(--color-backdrop)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: LAYERS.modal, padding: 20 }}
+          onClick={e => { if (e.target === e.currentTarget) { setShowDeleteAccountModal(false); setDeleteAccountPassword(""); } }}
+        >
+          <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 20, padding: "32px 28px", width: "100%", maxWidth: 420, position: "relative" }}>
+            <button
+              type="button"
+              aria-label="닫기"
+              onClick={() => { setShowDeleteAccountModal(false); setDeleteAccountPassword(""); }}
+              style={modalCloseButtonStyle}
+            >
+              <X size={16} />
+            </button>
+
+            <p style={{ margin: "0 0 8px", fontSize: 17, fontWeight: 700, color: textMain }}>정말 탈퇴하시겠습니까?</p>
+            <p style={{ margin: "0 0 20px", fontSize: 13, color: textMuted, lineHeight: 1.6 }}>
+              탈퇴 시 컨설팅 예약, Founder's Club 참여, 행사 신청 등 모든 데이터가 즉시 삭제되며 복구할 수 없습니다.
+            </p>
+
+            <p className="text-[13px] mb-2" style={{ color: textMuted }}>비밀번호를 입력해 탈퇴를 확인해 주세요</p>
+            <div className="relative mb-5">
+              <input
+                type={showDeleteAccountPassword ? "text" : "password"}
+                value={deleteAccountPassword}
+                onChange={e => setDeleteAccountPassword(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter" && deleteAccountPassword) handleDeleteAccount(); }}
+                placeholder="현재 비밀번호"
+                className="w-full pl-4 pr-10 py-3 rounded-xl text-[14px] outline-none font-['Pretendard',sans-serif] box-border"
+                style={inputDynamicStyle}
+                disabled={isDeletingAccount}
+                autoFocus
+              />
+              <button
+                type="button"
+                onClick={() => setShowDeleteAccountPassword(v => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 bg-none border-none cursor-pointer"
+                style={{ color: textMuted }}
+              >
+                {eyeIcon}
+              </button>
+            </div>
+
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={() => { setShowDeleteAccountModal(false); setDeleteAccountPassword(""); }}
+                disabled={isDeletingAccount}
+                className="flex-1 py-3 rounded-xl text-[14px] font-semibold"
+                style={{ background: isDark ? "rgba(255,255,255,0.08)" : "#f1f5f9", color: textMain, border: "none", cursor: isDeletingAccount ? "not-allowed" : "pointer" }}
+              >
+                취소
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={isDeletingAccount || !deleteAccountPassword}
+                className="flex-1 py-3 rounded-xl text-[14px] font-bold"
+                style={{
+                  background: deleteAccountPassword && !isDeletingAccount ? "var(--color-brand-red)" : deleteBg,
+                  border: `1px solid ${deleteBorder}`,
+                  color: deleteAccountPassword && !isDeletingAccount ? "#fff" : "var(--color-brand-red)",
+                  cursor: isDeletingAccount || !deleteAccountPassword ? "not-allowed" : "pointer",
+                  opacity: isDeletingAccount ? 0.65 : 1,
+                }}
+              >
+                {isDeletingAccount ? "탈퇴 중..." : "탈퇴하기"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </PageShell>
   );
 }

@@ -46,7 +46,7 @@ export function MediaPage() {
 
   useEffect(() => {
     if (location.search) {
-      navigate("/media", { replace: true });
+      navigate("/insights", { replace: true });
     }
   }, [location.search, navigate]);
 
@@ -68,8 +68,8 @@ export function MediaPage() {
 
   return (
     <PageShell
-      title="미디어"
-      subtitle="Global X Pass가 직접 제작한 리포트, 팟캐스트, 영상 콘텐츠를 만나보세요."
+      title="인사이트"
+      subtitle="Global X Pass가 직접 제작한 콘텐츠를 만나보세요."
       accentColor="var(--color-accent-ncf)"
     >
       <div className="max-w-[1200px] mx-auto pb-[100px]">
@@ -88,7 +88,7 @@ export function MediaPage() {
               color: "var(--color-text-muted)",
             }}
           >
-            <p style={{ margin: 0, fontSize: 16, fontWeight: 800, lineHeight: 1.7, color: "var(--color-text-primary)" }}>아직 등록된 미디어 콘텐츠가 없습니다.</p>
+            <p style={{ margin: 0, fontSize: 16, fontWeight: 800, lineHeight: 1.7, color: "var(--color-text-primary)" }}>아직 등록된 인사이트 콘텐츠가 없습니다.</p>
             <p style={{ margin: "8px 0 0", fontSize: 13, lineHeight: 1.6 }}>관리자에서 미디어 카테고리 게시물을 등록하면 이곳에 표시됩니다.</p>
           </div>
         ) : (

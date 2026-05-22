@@ -1,8 +1,8 @@
 import type { CSSProperties, ReactNode } from "react";
 import {
-  WINDOW_PROGRAM_TIMELINE_COPY,
-  WINDOW_PROGRAM_TIMELINE_PHASES,
-  type WindowProgramTimelinePhase,
+  CHANGGU_PROGRAM_TIMELINE_COPY,
+  CHANGGU_PROGRAM_TIMELINE_PHASES,
+  type ChangguProgramTimelinePhase,
 } from "./timelineData";
 
 const CONTAINER_HEIGHT = 500;
@@ -10,7 +10,7 @@ const OUTER_RING_SIZE = 168;
 const CONNECTOR_HEIGHT = 42;
 const VERTICAL_SPACER = 45;
 
-interface WindowProgramTimelineProps {
+interface ChangguProgramTimelineProps {
   isDark?: boolean;
   title?: string;
   subtitle?: string;
@@ -21,7 +21,7 @@ interface WindowProgramTimelineProps {
   style?: CSSProperties;
 }
 
-interface WindowProgramTimelineTheme {
+interface ChangguProgramTimelineTheme {
   sectionBg: string;
   dotGrid: string;
   glowBlue: string;
@@ -42,7 +42,7 @@ interface WindowProgramTimelineTheme {
 const alphaIndigo = (opacity: number) => `rgba(107,110,232,${opacity})`;
 const connectorColor = "#6B6EE8";
 
-function getTimelineTheme(isDark: boolean): WindowProgramTimelineTheme {
+function getTimelineTheme(isDark: boolean): ChangguProgramTimelineTheme {
   if (isDark) {
     return {
       sectionBg:
@@ -88,7 +88,7 @@ function getTimelineTheme(isDark: boolean): WindowProgramTimelineTheme {
   };
 }
 
-function TimelineCircle({ phase, theme }: { phase: WindowProgramTimelinePhase; theme: WindowProgramTimelineTheme }) {
+function TimelineCircle({ phase, theme }: { phase: ChangguProgramTimelinePhase; theme: ChangguProgramTimelineTheme }) {
   return (
     <div
       aria-hidden="true"
@@ -136,7 +136,7 @@ function TimelineCircle({ phase, theme }: { phase: WindowProgramTimelinePhase; t
   );
 }
 
-function TimelineConnector({ isTop, theme }: { isTop: boolean; theme: WindowProgramTimelineTheme }) {
+function TimelineConnector({ isTop, theme }: { isTop: boolean; theme: ChangguProgramTimelineTheme }) {
   const dot = <div style={{ width: 10, height: 10, borderRadius: "50%", background: theme.dotColor, flexShrink: 0 }} />;
   const line = <div style={{ flex: 1, borderLeft: `2px dashed ${theme.dashColor}` }} />;
 
@@ -167,7 +167,7 @@ function TimelineConnector({ isTop, theme }: { isTop: boolean; theme: WindowProg
   );
 }
 
-function TimelineText({ phase, theme }: { phase: WindowProgramTimelinePhase; theme: WindowProgramTimelineTheme }) {
+function TimelineText({ phase, theme }: { phase: ChangguProgramTimelinePhase; theme: ChangguProgramTimelineTheme }) {
   return (
     <ul style={{ listStyle: "none", padding: 0, margin: 0, textAlign: "left", width: "100%" }}>
       <li style={{ fontWeight: 700, fontSize: 15, color: theme.labelColor, lineHeight: 1.4, marginBottom: 6 }}>
@@ -183,26 +183,26 @@ function TimelineText({ phase, theme }: { phase: WindowProgramTimelinePhase; the
   );
 }
 
-export function WindowProgramTimeline({
+export function ChangguProgramTimeline({
   isDark = false,
-  title = WINDOW_PROGRAM_TIMELINE_COPY.title,
-  subtitle = WINDOW_PROGRAM_TIMELINE_COPY.subtitle,
+  title = CHANGGU_PROGRAM_TIMELINE_COPY.title,
+  subtitle = CHANGGU_PROGRAM_TIMELINE_COPY.subtitle,
   showHeader = true,
   beforeTimeline,
   sectionPadding = "clamp(60px, 10vw, 100px) clamp(20px, 5vw, 40px) clamp(56px, 8vw, 84px)",
   contentMaxWidth = 1280,
   style,
-}: WindowProgramTimelineProps) {
+}: ChangguProgramTimelineProps) {
   const theme = getTimelineTheme(isDark);
 
   return (
     <>
       <style>{`
-        .window-program-tl-desktop { display: block; }
-        .window-program-tl-mobile  { display: none; }
+        .changgu-program-tl-desktop { display: block; }
+        .changgu-program-tl-mobile  { display: none; }
         @media (max-width: 900px) {
-          .window-program-tl-desktop { display: none !important; }
-          .window-program-tl-mobile  { display: flex !important; }
+          .changgu-program-tl-desktop { display: none !important; }
+          .changgu-program-tl-mobile  { display: flex !important; }
         }
       `}</style>
 
@@ -285,7 +285,7 @@ export function WindowProgramTimeline({
 
           {beforeTimeline}
 
-          <div className="window-program-tl-desktop" style={{ position: "relative", height: CONTAINER_HEIGHT }}>
+          <div className="changgu-program-tl-desktop" style={{ position: "relative", height: CONTAINER_HEIGHT }}>
             <div
               aria-hidden="true"
               style={{
@@ -299,7 +299,7 @@ export function WindowProgramTimeline({
               }}
             />
 
-            {WINDOW_PROGRAM_TIMELINE_PHASES.map((phase, index) => {
+            {CHANGGU_PROGRAM_TIMELINE_PHASES.map((phase, index) => {
               const isTop = index % 2 === 0;
               const leftPct = `${(index + 0.5) * 25}%`;
 
@@ -362,10 +362,10 @@ export function WindowProgramTimeline({
           </div>
 
           <ol
-            className="window-program-tl-mobile"
+            className="changgu-program-tl-mobile"
             style={{ flexDirection: "column", gap: 32, listStyle: "none", padding: 0, margin: 0 }}
           >
-            {WINDOW_PROGRAM_TIMELINE_PHASES.map((phase) => (
+            {CHANGGU_PROGRAM_TIMELINE_PHASES.map((phase) => (
               <li key={phase.year} style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
                 <div
                   aria-hidden="true"

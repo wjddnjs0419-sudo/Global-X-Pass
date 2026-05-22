@@ -1,8 +1,8 @@
 import changguSymbol from "../../../imports/changgu-symbol.png";
-import { WINDOW_PROGRAM_INFO, type WindowProgramDescriptionSegment } from "../../content/windowProgramInfo";
+import { CHANGGU_PROGRAM_INFO, type ChangguProgramDescriptionSegment } from "../../content/changguProgramInfo";
 import { useLanguage } from "../../LanguageContext";
 
-interface WindowProgramIntroProps {
+interface ChangguProgramIntroProps {
   isDark?: boolean;
 }
 
@@ -10,7 +10,7 @@ function ProgramDescription({
   segments,
   emphasisColor,
 }: {
-  segments: WindowProgramDescriptionSegment[];
+  segments: ChangguProgramDescriptionSegment[];
   emphasisColor: string;
 }) {
   return (
@@ -28,7 +28,7 @@ function ProgramDescription({
   );
 }
 
-export function WindowProgramIntro({ isDark = false }: WindowProgramIntroProps) {
+export function ChangguProgramIntro({ isDark = false }: ChangguProgramIntroProps) {
   const { lang } = useLanguage();
   const currentLang = lang as "ko" | "en";
   const textColor = isDark ? "rgba(236,242,255,0.82)" : "rgba(30,30,80,0.72)";
@@ -57,14 +57,14 @@ export function WindowProgramIntro({ isDark = false }: WindowProgramIntroProps) 
         style={{
           margin: 0,
           color: textColor,
-          fontSize: "clamp(18px, 2.2vw, 28px)",
+          fontSize: "clamp(14px, 1.4vw, 18px)",
           lineHeight: 1.85,
           fontWeight: 500,
           letterSpacing: 0,
           wordBreak: "keep-all",
         }}
       >
-        <ProgramDescription segments={WINDOW_PROGRAM_INFO.description[currentLang]} emphasisColor={emphasisColor} />
+        <ProgramDescription segments={CHANGGU_PROGRAM_INFO.description[currentLang]} emphasisColor={emphasisColor} />
       </p>
     </div>
   );

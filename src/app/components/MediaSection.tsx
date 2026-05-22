@@ -263,7 +263,7 @@ export function MediaSection({ isDark = false }: MediaSectionProps) {
 
               {showMoreLink && (
                 <Link
-                  to="/media"
+                  to="/insights"
                   className="media-showcase-more"
                   style={{ color: isDark ? "rgba(255,255,255,0.74)" : "rgba(15,23,42,0.58)" }}
                 >

@@ -18,9 +18,9 @@ export interface MediaCategory {
 // ⚠️ 아래 ID 목록은 supabase/migrations/20260507170000_media_category_labels.sql의
 //    CHECK 제약과 반드시 동기화할 것. 카테고리 추가·삭제 시 두 파일을 함께 수정해야 한다.
 export const MEDIA_CATEGORY_DEFINITIONS: Omit<MediaCategory, "label">[] = [
-  { id: "report",       defaultLabel: "리포트",      shape: "portrait" },
-  { id: "issue-paper",  defaultLabel: "이슈페이퍼",  shape: "portrait" },
-  { id: "trend-report", defaultLabel: "트렌드리포트", shape: "portrait" },
+  { id: "report",       defaultLabel: "마켓",  shape: "portrait" },
+  { id: "issue-paper",  defaultLabel: "테크",  shape: "portrait" },
+  { id: "trend-report", defaultLabel: "CEO",   shape: "portrait" },
   { id: "podcast",      defaultLabel: "팟캐스트",    shape: "wide" },
   { id: "video",        defaultLabel: "영상",        shape: "wide" },
   { id: "interview",    defaultLabel: "인터뷰",      shape: "wide" },

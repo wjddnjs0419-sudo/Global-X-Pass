@@ -37,7 +37,7 @@ export function PageShell({
           <h1
             style={{
               margin: 0,
-              fontSize: "clamp(28px, 4vw, 44px)",
+              fontSize: "clamp(22px, 3vw, 34px)",
               fontWeight: 800,
               color: "var(--color-on-primary)",
               letterSpacing: "-0.03em",

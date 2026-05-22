@@ -1,4 +1,4 @@
-export interface WindowProgramTimelinePhase {
+export interface ChangguProgramTimelinePhase {
   year: string;
   solidColor: string;
   gradient: string;
@@ -7,12 +7,12 @@ export interface WindowProgramTimelinePhase {
   bullets: string[];
 }
 
-export const WINDOW_PROGRAM_TIMELINE_COPY = {
+export const CHANGGU_PROGRAM_TIMELINE_COPY = {
   title: "Around X 창구 프로그램",
   subtitle: "당신의 기업이 글로벌 시장에서 PLAY 될 때까지 함께합니다.",
 };
 
-export const WINDOW_PROGRAM_TIMELINE_PHASES: WindowProgramTimelinePhase[] = [
+export const CHANGGU_PROGRAM_TIMELINE_PHASES: ChangguProgramTimelinePhase[] = [
   {
     year: "2019",
     solidColor: "#4377F1",

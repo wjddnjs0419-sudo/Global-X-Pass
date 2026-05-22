@@ -8,6 +8,7 @@ export type MenuLabel = {
 export type MenuItem = {
   label: MenuLabel;
   path: string;
+  comingSoon?: boolean;
 };
 
 export type MainMenu = {
@@ -17,7 +18,7 @@ export type MainMenu = {
 };
 
 export const AROUND_X_ROUTES = {
-  windowProgram: "/around-x/window-program",
+  changguProgram: "/around-x/changgu-program",
   renault: "/around-x/renault",
   fincantieri: "/around-x/fincantieri",
 } as const;
@@ -28,10 +29,8 @@ const MAIN_MENU_BY_KEY: Record<MenuKey, MainMenu> = {
     label: "Resources",
     items: [
       { label: { ko: "자료실", en: "Resources" }, path: "/resources" },
-      { label: { ko: "미디어", en: "Media" }, path: "/media" },
-      { label: { ko: "블로그", en: "Blog" }, path: "/blog" },
+      { label: { ko: "인사이트", en: "Insights" }, path: "/insights" },
       { label: { ko: "사업비 자료실", en: "Expense Center" }, path: "/expenses" },
-      { label: { ko: "참여 기업", en: "Companies" }, path: "/companies" },
     ],
   },
   programs: {
@@ -64,9 +63,10 @@ const MAIN_MENU_BY_KEY: Record<MenuKey, MainMenu> = {
     key: "aroundX",
     label: "Around X",
     items: [
-      { label: { ko: "창구 프로그램", en: "Changgu Program" }, path: AROUND_X_ROUTES.windowProgram },
-      { label: { ko: "르노", en: "Renault" }, path: AROUND_X_ROUTES.renault },
-      { label: { ko: "핀칸티에리", en: "Fincantieri" }, path: AROUND_X_ROUTES.fincantieri },
+      { label: { ko: "창구 프로그램", en: "Changgu Program" }, path: AROUND_X_ROUTES.changguProgram },
+      { label: { ko: "르노", en: "Renault" }, path: AROUND_X_ROUTES.renault, comingSoon: true },
+      { label: { ko: "핀칸티에리", en: "Fincantieri" }, path: AROUND_X_ROUTES.fincantieri, comingSoon: true },
+      { label: { ko: "참여 기업", en: "Companies" }, path: "/companies" },
     ],
   },
 };

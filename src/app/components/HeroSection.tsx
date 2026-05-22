@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router";
-import { WINDOW_PROGRAM_INFO, type WindowProgramDescriptionSegment } from "../content/windowProgramInfo";
+import { CHANGGU_PROGRAM_INFO, type ChangguProgramDescriptionSegment } from "../content/changguProgramInfo";
 import { useLanguage } from "../LanguageContext";
 
 function StarField() {
@@ -150,13 +150,13 @@ const nodeData = [
   },
   {
     id: "5", index: 4,
-    label: { ko: "미디어", en: "Media" },
+    label: { ko: "인사이트", en: "Insights" },
     icon: <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /><path d="M9 7h7" /><path d="M9 11h7" /></svg>,
-    card: { badge: { ko: "MEDIA", en: "MEDIA" }, badgeSub: { ko: "콘텐츠", en: "Content" }, title: { ko: "미디어", en: "Media" }, desc: { ko: "Global X Pass의 리포트와\n인사이트 콘텐츠를 확인하세요.", en: "Explore Global X Pass reports\nand insight content." }, href: "/media" },
+    card: { badge: { ko: "INSIGHTS", en: "INSIGHTS" }, badgeSub: { ko: "콘텐츠", en: "Content" }, title: { ko: "인사이트", en: "Insights" }, desc: { ko: "Global X Pass의 리포트와\n인사이트 콘텐츠를 확인하세요.", en: "Explore Global X Pass reports\nand insight content." }, href: "/insights" },
   },
 ];
 
-function WindowProgramHeroDescription({ segments }: { segments: WindowProgramDescriptionSegment[] }) {
+function ChangguProgramHeroDescription({ segments }: { segments: ChangguProgramDescriptionSegment[] }) {
   return (
     <>
       {segments.map((segment, index) =>
@@ -341,24 +341,24 @@ export function HeroSection() {
 
         <div onClick={(e) => e.stopPropagation()} className={`absolute transition-all duration-[1200ms] ease-[cubic-bezier(0.19,1,0.22,1)] z-20 ${expanded ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'} max-lg:left-1/2 max-lg:-translate-x-1/2 max-lg:text-center max-md:w-[90%] md:max-lg:w-[70%] ${expanded ? 'max-lg:bottom-[36px]' : 'max-lg:-bottom-[300px]'} lg:top-1/2 lg:-translate-y-1/2 lg:w-[400px] lg:text-left ${expanded ? 'lg:right-[8%]' : 'lg:-right-[520px]'}`}>
           <div className="text-[#4285F4] font-extrabold tracking-[2px] mb-[12px]" style={{ fontSize: `${Math.max(11, 13 * scale)}px` }}>
-            {WINDOW_PROGRAM_INFO.label[infoLang]}
+            {CHANGGU_PROGRAM_INFO.label[infoLang]}
           </div>
           <h2 className="text-white font-extrabold m-0 mb-[20px] tracking-[-1.5px] leading-[1.2]" style={{ fontSize: `${Math.max(24, 42 * scale)}px` }}>
-            {WINDOW_PROGRAM_INFO.title[infoLang].map((line, index) => (
+            {CHANGGU_PROGRAM_INFO.title[infoLang].map((line, index) => (
               <span key={line}>
                 {line}
-                {index < WINDOW_PROGRAM_INFO.title[infoLang].length - 1 && <br />}
+                {index < CHANGGU_PROGRAM_INFO.title[infoLang].length - 1 && <br />}
               </span>
             ))}
           </h2>
           <p className="text-[rgba(255,255,255,0.8)] leading-[1.8] break-keep m-0" style={{ fontSize: `${Math.max(14, 17 * scale)}px` }}>
-            <WindowProgramHeroDescription segments={WINDOW_PROGRAM_INFO.description[infoLang]} />
+            <ChangguProgramHeroDescription segments={CHANGGU_PROGRAM_INFO.description[infoLang]} />
           </p>
         </div>
 
         {!expanded && (
           <div className="absolute left-1/2 -translate-x-1/2 text-[rgba(255,255,255,0.35)] tracking-[0.05em] whitespace-nowrap z-[5] font-medium max-md:bottom-[28px] md:bottom-[40px]" style={{ fontSize: `${Math.max(11, 13 * scale)}px` }}>
-            {WINDOW_PROGRAM_INFO.hint[infoLang]}
+            {CHANGGU_PROGRAM_INFO.hint[infoLang]}
           </div>
         )}
       </div>

@@ -572,7 +572,7 @@ export function PostDetailPage() {
       <div className={`${post?.category === "media" && !isEditing ? "max-w-[1100px]" : "max-w-[900px]"} mx-auto pb-[100px]`}>
         <div className="flex justify-between items-center mb-8">
           <button
-            onClick={() => post?.category === "media" ? navigate("/media") : navigate(-1)}
+            onClick={() => post?.category === "media" ? navigate("/insights") : navigate(-1)}
             style={getBackLinkStyle()}
           >
             ← 목록으로 돌아가기

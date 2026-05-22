@@ -60,7 +60,7 @@ const NAVER_CLIENT_ID = process.env.NAVER_CLIENT_ID;
 const NAVER_CLIENT_SECRET = process.env.NAVER_CLIENT_SECRET;
 
 const BATCH_SIZE = Number.parseInt(getArgValue("--batch-size") ?? "25", 10);
-const RESULTS_PER_COMPANY = Number.parseInt(getArgValue("--results-per-company") ?? "5", 10);
+const RESULTS_PER_COMPANY = Number.parseInt(getArgValue("--results-per-company") ?? "1", 10);
 const REQUEST_DELAY_MS = Number.parseInt(getArgValue("--delay-ms") ?? "300", 10);
 const DRY_RUN = hasFlag("--dry-run");
 const AUDIT_EXISTING_RELEVANCE = hasFlag("--audit-existing-relevance");

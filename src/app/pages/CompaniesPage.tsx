@@ -6,19 +6,24 @@ import { PageShell } from "../components/PageShell";
 import { SearchInput } from "../components/SearchInput";
 import { supabase } from "../../lib/supabaseClient";
 import { LoadingSpinner, ErrorMessage } from "../components/LoadingSpinner";
-import { getMutedLabelStyle, getStatusPillStyle } from "../components/contentListStyles";
+import { getMutedLabelStyle, getStatusPillStyle, getFilterTabStyle } from "../components/contentListStyles";
 import type { Company } from "../../lib/types";
 import { AppPagination } from "../components/AppPagination";
+import { useTheme } from "../ThemeContext";
 
 const PAGE_SIZE = 20;
 
+
 export function CompaniesPage() {
+  const { isDark } = useTheme();
   const [searchParams, setSearchParams] = useSearchParams();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [query, setQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [activeYear, setActiveYear] = useState<number | null>(null);
+  const [activeProgram, setActiveProgram] = useState<string | null>(null);
 
   const detailSlug = searchParams.get("detail");
   const detailCompany = detailSlug && !loading ? (companies.find(c => c.slug === detailSlug) ?? null) : null;
@@ -45,22 +50,33 @@ export function CompaniesPage() {
     return () => window.removeEventListener("keydown", handler);
   }, [detailSlug, setSearchParams]);
 
-  const filtered = query.trim()
-    ? companies.filter((c) => {
-        const normalizedQuery = query.toLowerCase();
-        return (
-          c.name.toLowerCase().includes(normalizedQuery) ||
-          c.industry.toLowerCase().includes(normalizedQuery) ||
-          (c.participation_year ? String(c.participation_year).includes(normalizedQuery) : false)
-        );
-      })
-    : companies;
+  const years = [...new Set(companies.map((c) => c.participation_year).filter((y): y is number => y !== null))].sort((a, b) => b - a);
+
+  const filtered = companies.filter((c) => {
+    if (activeProgram !== null && c.program_name !== activeProgram) return false;
+    if (activeYear !== null && c.participation_year !== activeYear) return false;
+    if (query.trim()) {
+      const q = query.toLowerCase();
+      if (!c.name.toLowerCase().includes(q) && !c.industry.toLowerCase().includes(q) && !(c.participation_year ? String(c.participation_year).includes(q) : false)) return false;
+    }
+    return true;
+  });
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   const handleQueryChange = (value: string) => {
     setQuery(value);
+    setCurrentPage(1);
+  };
+
+  const handleYearFilter = (year: number | null) => {
+    setActiveYear(year);
+    setCurrentPage(1);
+  };
+
+  const handleProgramFilter = (program: string | null) => {
+    setActiveProgram(program);
     setCurrentPage(1);
   };
 
@@ -77,8 +93,34 @@ export function CompaniesPage() {
           value={query}
           onChange={handleQueryChange}
           placeholder="기업명 또는 분야로 검색"
-          className="mb-8"
+          className="mb-5"
         />
+
+        {/* 프로그램명 필터 */}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+          <button type="button" onClick={() => handleProgramFilter(null)} style={getFilterTabStyle(isDark, activeProgram === null)}>
+            전체
+          </button>
+          {[...new Set(companies.map((c) => c.program_name))].sort().map((p) => (
+            <button key={p} type="button" onClick={() => handleProgramFilter(p)} style={getFilterTabStyle(isDark, activeProgram === p)}>
+              {p}
+            </button>
+          ))}
+        </div>
+
+        {/* 년도 필터 */}
+        {years.length > 0 && (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 32 }}>
+            <button type="button" onClick={() => handleYearFilter(null)} style={getFilterTabStyle(isDark, activeYear === null)}>
+              전체
+            </button>
+            {years.map((y) => (
+              <button key={y} type="button" onClick={() => handleYearFilter(y)} style={getFilterTabStyle(isDark, activeYear === y)}>
+                {y}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* 컨텐츠 영역 */}
         {loading ? (
@@ -156,18 +198,14 @@ function CompanyCard({ company, onClick }: { company: Company; onClick: () => vo
       }}
     >
       {/* 메타 배지 */}
-      {(company.participation_year || company.industry) && (
+      {company.participation_year && (
         <div className="flex flex-wrap gap-2">
-          {company.participation_year && (
-            <span style={getMutedLabelStyle()}>
-              {company.participation_year}
-            </span>
-          )}
-          {company.industry && (
-            <span style={getStatusPillStyle("var(--color-accent-blue)")}>
-              {company.industry}
-            </span>
-          )}
+          <span style={getMutedLabelStyle()}>
+            {company.participation_year}
+          </span>
+          <span style={getStatusPillStyle("var(--color-accent-blue)")}>
+            {company.program_name}
+          </span>
         </div>
       )}
 

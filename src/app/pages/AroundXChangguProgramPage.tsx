@@ -1,8 +1,8 @@
+import { ChangguProgramTimelineSection } from "../components/ChangguProgramTimelineSection";
 import { PageShell } from "../components/PageShell";
-import { WindowProgramTimelineSection } from "../components/WindowProgramTimelineSection";
 import { useTheme } from "../ThemeContext";
 
-export function AroundXWindowProgramPage() {
+export function AroundXChangguProgramPage() {
   const { isDark } = useTheme();
 
   return (
@@ -13,7 +13,7 @@ export function AroundXWindowProgramPage() {
       contentMaxWidth="none"
       contentPadding={0}
     >
-      <WindowProgramTimelineSection isDark={isDark} />
+      <ChangguProgramTimelineSection isDark={isDark} />
     </PageShell>
   );
 }

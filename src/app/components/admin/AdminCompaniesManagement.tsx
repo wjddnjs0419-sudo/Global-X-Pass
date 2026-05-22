@@ -6,14 +6,15 @@ import { AppPagination } from "../AppPagination";
 import type { Company } from "../../../lib/types";
 
 const PAGE_SIZE = 20;
-const CSV_TEMPLATE_HEADERS = "name,industry,participation_year,description,website_url";
-const CSV_TEMPLATE_EXAMPLE = '"기업명 예시","AI/소프트웨어","2026","기업 설명을 입력하세요","https://example.com"';
+const CSV_TEMPLATE_HEADERS = "name,program_name,industry,participation_year,description,website_url";
+const CSV_TEMPLATE_EXAMPLE = '"기업명 예시","창구 프로그램","AI/소프트웨어","2026","기업 설명을 입력하세요","https://example.com"';
 const PARTICIPATION_YEAR_MIN = 2000;
 const PARTICIPATION_YEAR_MAX = 2100;
 
 type CompanyForm = {
   name: string;
   slug: string;
+  program_name: string;
   industry: string;
   participation_year: string;
   description: string;
@@ -24,6 +25,7 @@ type CompanyForm = {
 const emptyForm: CompanyForm = {
   name: "",
   slug: "",
+  program_name: "창구 프로그램",
   industry: "",
   participation_year: "",
   description: "",
@@ -74,12 +76,12 @@ function parseParticipationYear(value: string): number | null {
   return year;
 }
 
-function parseCsv(text: string): { name: string; industry: string; participation_year: string; description: string; website_url: string }[] {
+function parseCsv(text: string): { name: string; program_name: string; industry: string; participation_year: string; description: string; website_url: string }[] {
   const lines = text.split(/\r?\n/);
   if (lines.length < 2) return [];
   const headers = parseCsvRow(lines[0]).map((h) => h.trim().toLowerCase());
   const idx = (key: string) => headers.indexOf(key);
-  const result: { name: string; industry: string; participation_year: string; description: string; website_url: string }[] = [];
+  const result: { name: string; program_name: string; industry: string; participation_year: string; description: string; website_url: string }[] = [];
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line) continue;
@@ -88,6 +90,7 @@ function parseCsv(text: string): { name: string; industry: string; participation
     if (!name) continue;
     result.push({
       name,
+      program_name: (vals[idx("program_name")] ?? "").trim() || "창구 프로그램",
       industry: (vals[idx("industry")] ?? "").trim(),
       participation_year: (vals[idx("participation_year")] ?? "").trim(),
       description: (vals[idx("description")] ?? "").trim(),
@@ -194,7 +197,7 @@ export default function AdminCompaniesManagement() {
     const parsed = parseCsv(text);
 
     if (parsed.length === 0) {
-      setCsvError("파싱된 유효한 행이 없습니다. 헤더(name, industry, participation_year, description, website_url)를 확인해주세요.");
+      setCsvError("파싱된 유효한 행이 없습니다. 헤더(name, program_name, industry, participation_year, description, website_url)를 확인해주세요.");
       setUploading(false);
       return;
     }
@@ -212,6 +215,7 @@ export default function AdminCompaniesManagement() {
     const rows = parsed.map((r) => ({
       name: r.name,
       slug: slugify(r.name),
+      program_name: r.program_name,
       industry: r.industry,
       participation_year: parseParticipationYear(r.participation_year),
       description: r.description,
@@ -243,6 +247,7 @@ export default function AdminCompaniesManagement() {
     setForm({
       name: c.name,
       slug: c.slug,
+      program_name: c.program_name,
       industry: c.industry,
       participation_year: c.participation_year ? String(c.participation_year) : "",
       description: c.description,
@@ -283,6 +288,7 @@ export default function AdminCompaniesManagement() {
     const payload = {
       name: form.name.trim(),
       slug: form.slug.trim(),
+      program_name: form.program_name.trim() || "창구 프로그램",
       industry: form.industry.trim(),
       participation_year: participationYear,
       description: form.description.trim(),
@@ -421,7 +427,7 @@ export default function AdminCompaniesManagement() {
           </h3>
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
             <p style={{ margin: 0, fontSize: 13, color: "var(--color-text-muted)", lineHeight: 1.6 }}>
-              헤더: <code style={{ fontSize: 12, background: "var(--color-surface-subtle)", padding: "2px 6px", borderRadius: 4 }}>name,industry,participation_year,description,website_url</code>
+              헤더: <code style={{ fontSize: 12, background: "var(--color-surface-subtle)", padding: "2px 6px", borderRadius: 4 }}>name,program_name,industry,participation_year,description,website_url</code>
               &nbsp;— slug는 자동 생성, 중복 slug는 skip됩니다.
             </p>
             <button
@@ -577,6 +583,18 @@ export default function AdminCompaniesManagement() {
             <p style={{ margin: "5px 0 0", fontSize: 12, color: "var(--color-text-muted)" }}>
               기업명 입력 시 자동 생성됩니다. /companies/{form.slug || "slug"} 경로로 사용됩니다.
             </p>
+          </div>
+
+          {/* 프로그램명 */}
+          <div>
+            <label style={labelStyle}>프로그램명</label>
+            <input
+              type="text"
+              value={form.program_name}
+              onChange={(e) => setForm((p) => ({ ...p, program_name: e.target.value }))}
+              placeholder="예: 창구 프로그램"
+              style={inputStyle}
+            />
           </div>
 
           {/* 분야 */}
