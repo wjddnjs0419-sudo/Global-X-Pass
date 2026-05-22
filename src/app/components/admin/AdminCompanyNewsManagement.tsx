@@ -182,11 +182,9 @@ export default function AdminCompanyNewsManagement() {
     setTriggerLoading(false);
 
     if (error || !data?.dispatched) {
-      const functionError = error as { context?: { json?: () => Promise<{ error?: string; dispatchError?: string }> } } | null;
-      const errorBody = await functionError?.context?.json?.().catch(() => null);
       setTriggerMessage({
         type: "err",
-        text: `실행 요청 실패: ${errorBody?.dispatchError ?? errorBody?.error ?? data?.dispatchError ?? error?.message ?? "알 수 없는 오류"}`,
+        text: "실행 요청에 실패했습니다. 잠시 후 다시 시도해 주세요.",
       });
       return;
     }
