@@ -2,7 +2,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTheme } from "../../ThemeContext";
 
-type TabId = "dashboard" | "users" | "create" | "manage" | "events" | "consulting" | "founders" | "blog-queue";
+type TabId = "dashboard" | "users" | "create" | "manage" | "events" | "consulting" | "founders" | "blog-queue" | "company-news";
 
 interface AdminSidebarProps {
   activeTab: string;
@@ -43,6 +43,10 @@ const SECTIONS: { label: string; items: { id: TabId; label: string; icon: ReactN
       {
         id: "blog-queue", label: "블로그 동기화",
         icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
+      },
+      {
+        id: "company-news", label: "기업 뉴스 관리",
+        icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"/><path d="M8 7h8"/><path d="M8 11h8"/><path d="M8 15h5"/></svg>,
       },
     ],
   },

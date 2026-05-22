@@ -50,6 +50,7 @@ const MAIN_MENU_BY_KEY: Record<MenuKey, MainMenu> = {
     items: [
       { label: { ko: "공지사항", en: "Notice" }, path: "/notice" },
       { label: { ko: "뉴스", en: "News" }, path: "/news" },
+      { label: { ko: "기업 뉴스", en: "Company News" }, path: "/company-news" },
     ],
   },
   support: {

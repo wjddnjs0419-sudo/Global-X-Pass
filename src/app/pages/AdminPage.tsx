@@ -17,11 +17,12 @@ const AdminEventManagement = lazy(() => import('../components/admin/AdminEventMa
 const AdminConsultingManagement = lazy(() => import('../components/admin/AdminConsultingManagement'));
 const AdminFoundersClubManagement = lazy(() => import('../components/admin/AdminFoundersClubManagement'));
 const AdminBlogQueueManagement    = lazy(() => import('../components/admin/AdminBlogQueueManagement'));
+const AdminCompanyNewsManagement  = lazy(() => import('../components/admin/AdminCompanyNewsManagement'));
 
-type TabId = "dashboard" | "users" | "create" | "manage" | "events" | "consulting" | "founders" | "blog-queue";
+type TabId = "dashboard" | "users" | "create" | "manage" | "events" | "consulting" | "founders" | "blog-queue" | "company-news";
 
 const ADMIN_ACTIVE_TAB_KEY = "gxp_admin_active_tab";
-const ADMIN_TABS: TabId[] = ["dashboard", "users", "create", "manage", "events", "consulting", "founders", "blog-queue"];
+const ADMIN_TABS: TabId[] = ["dashboard", "users", "create", "manage", "events", "consulting", "founders", "blog-queue", "company-news"];
 
 const getStoredAdminTab = (): TabId => {
   if (typeof window === "undefined") return "dashboard";
@@ -238,6 +239,18 @@ export default function AdminPage() {
               </div>
             }>
               <AdminBlogQueueManagement />
+            </Suspense>
+          )}
+
+          {activeTab === "company-news" && (
+            <Suspense fallback={
+              <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+                <div style={{ height: 33, width: 170, borderRadius: 8, background: skColor, animation: "pulse 1.5s ease-in-out infinite" }} />
+                <div style={{ height: 82, borderRadius: 16, background: skColor, animation: "pulse 1.5s ease-in-out infinite" }} />
+                <SkFallback rows={6} h={92} r={16} gap={12} />
+              </div>
+            }>
+              <AdminCompanyNewsManagement />
             </Suspense>
           )}
         </main>

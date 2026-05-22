@@ -20,6 +20,8 @@
     "blog:worker": "node scripts/import-blog-posts.mjs --process-queue --write --mirror-images",
     "blog:analyze-style": "node scripts/analyze-blog-style.mjs",
     "blog:ai-generate": "node scripts/generate-ai-post.mjs",
+    "news:crawl": "node scripts/crawl-company-news.mjs",
+    "news:crawl:dry-run": "node scripts/crawl-company-news.mjs --dry-run",
     "check:frontend-secrets": "node scripts/check-frontend-secrets.mjs",
     "validate": "tsc --noEmit && eslint src/ --max-warnings=0 && vite build && npm run check:frontend-secrets"
   },

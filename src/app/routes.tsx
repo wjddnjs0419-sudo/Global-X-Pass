@@ -3,6 +3,7 @@ import { RootLayout } from "./components/RootLayout";
 import { HomePage } from "./components/HomePage";
 import { NoticePage } from "./pages/NoticePage";
 import { NewsPage } from "./pages/NewsPage";
+import { CompanyNewsPage } from "./pages/CompanyNewsPage";
 import { EventsPage } from "./pages/EventsPage";
 import { EventApplicationPage } from "./pages/EventApplicationPage";
 import { EventArchivePage } from "./pages/EventArchivePage";
@@ -39,6 +40,7 @@ export const router = createBrowserRouter([
       { index: true, Component: HomePage },
       { path: "notice", Component: NoticePage },
       { path: "news", Component: NewsPage },
+      { path: "company-news", Component: CompanyNewsPage },
       { path: "events", Component: EventsPage },
       { path: "events/:id/apply", Component: AuthRoute, children: [{ index: true, Component: EventApplicationPage }] },
       { path: "events/archive", Component: EventArchivePage },

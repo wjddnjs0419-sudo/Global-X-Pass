@@ -4,6 +4,10 @@
 
 ## Pending Approval
 
+- [Done] 회사 뉴스 운영 관리 기능 추가 (2026-05-22) — `articles` 최신 300개 유지, 수집 기본값 `results_per_company=5`, GitHub Actions 수동 입력 보강, 관리자 `기업 뉴스 관리` lazy 탭 추가(즉시 수집/필터/검색/승인/거절/삭제/페이지네이션), `trigger-company-news-crawl` Edge Function 배포, retention 인덱스/GRANT 마이그레이션 원격 반영. `npm run validate` ✅, 뉴스 dry-run ✅, `supabase db push` ✅, function deploy ✅
+
+- [Done] 스타트업 참여기업 뉴스 자동 수집 시스템 추가 (2026-05-22) — `companies`의 기업명/`search_keywords`를 기준으로 네이버 뉴스 검색 API를 호출해 `articles` 테이블에 기사 메타데이터만 저장하는 배치 수집 파이프라인 구현. `articles` 마이그레이션(기업 키워드/`last_crawled_at`, `thumbnail_url`, `url_hash` unique, 조회 인덱스, RLS, `updated_at` 트리거), `scripts/crawl-company-news.mjs`(배치 크기, `last_crawled_at` 오름차순, 기업별 `try/catch`, 중복 방지, HTML 엔티티/태그 정리, optional thumbnail mirroring), `.github/workflows/company-news-crawl.yml`(6시간마다 실행, `workflow_dispatch` 지원), `src/app/pages/CompanyNewsPage.tsx` + 라우트/메뉴 노출, `src/lib/types.ts`/`package.json` 보강. `npm run validate` ✅
+
 - [Done] Supabase 2개 프로젝트 데이터 혼재 원인 확인 및 Date-planner 분리 (2026-05-22) — `Global X Pass`는 `yzbjvkifwinumytehxgf` 유지, `Codex_sample(Date-planner)` `.env`/CLI link를 `wqjguifsmtblgrhdfnji`로 전환. Date-planner 스키마를 새 프로젝트에 적용하고 테이블/row count 확인. `npm run validate` ✅ (`Codex_sample`, `Global X Pass`)
 
 - [Done] 미디어 페이지 썸네일 머신 통합 (2026-05-21) — `postThumbnail.ts`가 미디어 게시물도 대표 썸네일 단일 진입점으로 처리하도록 확장. 미디어 비율(`16/9`, `540/675`)과 외부 미디어 후보를 추가하고, `/media` 및 홈 미디어 섹션은 `resolvePostThumbnail()` + `getThumbnailImageStyle()` 사용. 관리자 작성/수정의 수동 썸네일 허용 범위에 `media` 포함. `npm run validate` ✅
@@ -19,6 +23,3 @@
 - [Done] `Around X` 메인 메뉴 및 하위 메뉴 추가 (2026-05-21) — 네비게이션 설정을 `src/app/navigation/mainMenu.ts`로 분리하고, 헤더는 `Support` 우측/사이드 메뉴는 `Programs` 하단에 `Around X`와 `창구 프로그램`·`르노`·`핀칸티에리` 링크를 추가. `npm run validate` ✅, Playwright 렌더 확인 ✅
 
 - [Done] 참여 기업 연도 배지/모달 중복 표시 후속 정리 (2026-05-21) — 카드의 연도 배지는 `2026`으로 단순화하고, 상세 모달 헤더의 중복 연도 배지는 제거해 `참여 정보` 섹션만 연도 문구를 담당하게 함. `npm run validate` ✅, `/companies` 브라우저 확인 ✅
-- [Done] 참여 기업 행사 참여 년도 표시 추가 및 전체 기업 2026년 주입 (2026-05-21) — `companies.participation_year` 컬럼/체크/GRANT 추가, 기존 원격 100개 기업 전체 2026 백필, 관리자 폼·CSV·목록과 공개 카드·상세 모달 반영. `npm run validate` ✅, `/companies` 브라우저 확인 ✅
-
-- [Done] 아키텍처 맵 `LiveArchitectureMap.tsx` 과밀화 해소 리팩터링 (2026-05-21) — 타입/상수/storage/mapUtils/styles/인박스/Ops/사이드바를 `admin/architecture/` 모듈로 분리하고 리뷰 보강(QA polling, Blog pipeline, clipboard guard, ignore 정리) 반영. `npm run validate` ✅, `npm run map:build` ✅

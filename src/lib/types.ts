@@ -4,9 +4,27 @@ export interface Company {
   slug: string;
   industry: string;
   participation_year: number | null;
+  search_keywords?: string | null;
+  last_crawled_at?: string | null;
   description: string;
   website_url: string;
   status: "published" | "draft";
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Article {
+  id: string;
+  company_id: string;
+  title: string;
+  description: string | null;
+  link: string;
+  originallink: string | null;
+  source: string | null;
+  thumbnail_url: string | null;
+  published_at: string;
+  status: "pending" | "approved" | "rejected";
+  url_hash: string;
   created_at: string;
   updated_at: string;
 }
