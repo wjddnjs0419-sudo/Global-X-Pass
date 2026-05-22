@@ -15,6 +15,7 @@ const DEFAULT_CRAWL_OPTIONS = {
   resultsPerCompany: 5,
   delayMs: 300,
   maxStoredArticles: 300,
+  minRelevanceScore: 3,
 };
 
 type ArticleStatusFilter = "all" | Article["status"];
@@ -26,6 +27,12 @@ type CompanySummary = {
 
 type AdminArticle = Article & {
   companies?: CompanySummary | CompanySummary[] | null;
+};
+
+type TriggerCompanyNewsResponse = {
+  dispatched?: boolean;
+  dispatchError?: string | null;
+  error?: string;
 };
 
 const STATUS_LABEL: Record<Article["status"], string> = {
@@ -63,6 +70,19 @@ function getCompanyName(article: AdminArticle): string {
   return company?.name ?? "회사 미연결";
 }
 
+function getRelevanceLabel(article: AdminArticle): string {
+  if (article.relevance_score == null) return "관련도 미집계";
+  return `관련도 ${article.relevance_score}`;
+}
+
+function getRelevanceVariant(article: AdminArticle): "blue" | "green" | "yellow" | "secondary" {
+  const score = article.relevance_score ?? 0;
+  if (score >= 6) return "green";
+  if (score >= 3) return "blue";
+  if (score > 0) return "yellow";
+  return "secondary";
+}
+
 function sanitizeSearch(value: string): string {
   return value.trim().replace(/[,%]/g, " ");
 }
@@ -94,13 +114,22 @@ export default function AdminCompanyNewsManagement() {
 
     let query = supabase
       .from("articles")
-      .select("id, company_id, title, description, link, originallink, source, published_at, status, url_hash, created_at, updated_at, companies(name, slug)", { count: "exact" })
-      .order("published_at", { ascending: false })
-      .order("created_at", { ascending: false })
+      .select("id, company_id, title, description, link, originallink, source, published_at, status, url_hash, relevance_score, matched_terms, relevance_reason, created_at, updated_at, companies(name, slug)", { count: "exact" })
       .range(from, to);
 
     if (statusFilter !== "all") {
       query = query.eq("status", statusFilter);
+    }
+
+    if (statusFilter === "pending") {
+      query = query
+        .order("relevance_score", { ascending: false, nullsFirst: false })
+        .order("published_at", { ascending: false })
+        .order("created_at", { ascending: false });
+    } else {
+      query = query
+        .order("published_at", { ascending: false })
+        .order("created_at", { ascending: false });
     }
 
     if (queryText) {
@@ -179,16 +208,19 @@ export default function AdminCompanyNewsManagement() {
     setTriggerLoading(true);
     setTriggerMessage(null);
 
-    const { data, error } = await supabase.functions.invoke("trigger-company-news-crawl", {
+    const { data, error } = await supabase.functions.invoke<TriggerCompanyNewsResponse>("trigger-company-news-crawl", {
       body: crawlOptions,
     });
 
     setTriggerLoading(false);
 
     if (error || !data?.dispatched) {
+      const detail = data?.dispatchError || data?.error || error?.message;
       setTriggerMessage({
         type: "err",
-        text: "실행 요청에 실패했습니다. 잠시 후 다시 시도해 주세요.",
+        text: detail
+          ? `실행 요청에 실패했습니다. ${detail}`
+          : "실행 요청에 실패했습니다. 잠시 후 다시 시도해 주세요.",
       });
       return;
     }
@@ -279,6 +311,17 @@ export default function AdminCompanyNewsManagement() {
             style={inputStyle}
           />
         </label>
+        <label style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 12, fontWeight: 700, color: textMuted }}>
+          최소 관련도
+          <input
+            type="number"
+            min={1}
+            max={10}
+            value={crawlOptions.minRelevanceScore}
+            onChange={(e) => setCrawlOptions((prev) => ({ ...prev, minRelevanceScore: Number(e.target.value) }))}
+            style={inputStyle}
+          />
+        </label>
       </div>
 
       {triggerMessage && (
@@ -346,6 +389,7 @@ export default function AdminCompanyNewsManagement() {
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 7 }}>
                       <Badge variant={STATUS_BADGE[article.status]} shape="pill">{STATUS_LABEL[article.status]}</Badge>
+                      <Badge variant={getRelevanceVariant(article)} shape="pill">{getRelevanceLabel(article)}</Badge>
                       <span style={{ fontSize: 12, fontWeight: 700, color: textMuted }}>{getCompanyName(article)}</span>
                       {article.source && <span style={{ fontSize: 12, color: textMuted }}>{article.source}</span>}
                     </div>
@@ -357,6 +401,35 @@ export default function AdminCompanyNewsManagement() {
                         {article.description}
                       </p>
                     )}
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 9 }}>
+                      {(article.matched_terms ?? []).length > 0 ? (
+                        article.matched_terms?.map((term) => (
+                          <span
+                            key={term}
+                            style={{
+                              fontSize: 12,
+                              fontWeight: 700,
+                              color: textMuted,
+                              background: "var(--color-surface-muted)",
+                              border: `1px solid ${border}`,
+                              borderRadius: 999,
+                              padding: "3px 8px",
+                            }}
+                          >
+                            {term}
+                          </span>
+                        ))
+                      ) : (
+                        <span style={{ fontSize: 12, fontWeight: 700, color: textMuted }}>
+                          매칭 키워드 없음
+                        </span>
+                      )}
+                      {article.relevance_reason && (
+                        <span style={{ fontSize: 12, color: textMuted }}>
+                          {article.relevance_reason}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div style={{ color: textMuted, fontSize: 12, whiteSpace: "nowrap" }}>
                     발행 {fmtDate(article.published_at)}

@@ -28,6 +28,7 @@
 4. **Supabase 최적화:** 데이터베이스 조회(Select), 추가(Insert), 수정(Update) 시 효율적인 쿼리를 작성하고, 실시간성(Realtime)이나 보안(RLS) 요건을 충족합니다.
 5. **실시간 아키텍처 맵 유지:** `/flow-map`의 실시간 맵은 `scripts/generate-architecture-map.mjs`가 생성하는 `src/generated/architectureMap.json`을 사용합니다. 구조 변경 시 생성기와 JSDoc 태그(`@role`, `@plain`, `@notes`, `@critical`, `@cluster`, `@tag`)를 함께 고려하고, 에러 배지가 필요한 파일은 `src/lib/errorLogger.ts`의 `NodeId`와 맵 노드 ID를 맞춥니다.
 6. **UX 관측성:** 주요 Supabase/RPC 실패를 `setError`나 `console.error`로만 끝내지 말고 `logSupabaseFailure()`로 기록합니다. 중요한 CTA는 `data-monitor-action`을 붙여 무반응 후보를 추적할 수 있게 합니다.
+7. **기업 뉴스 관련도:** 기업 뉴스 수집/관리 기능을 수정할 때는 `articles.relevance_score`, `matched_terms`, `relevance_reason` 저장 흐름과 관리자 승인 대기 관련도 정렬을 유지합니다. 광범위 키워드 결과를 관련도 검증 없이 저장하지 않습니다.
 7. **QA 비밀값 경계:** Playwright 테스트, 진단 스크립트, QA 운영 문서에 QA 계정/비밀번호/MFA 시크릿을 평문 하드코딩하지 않습니다. `QA_ADMIN_EMAIL`, `QA_ADMIN_PASSWORD`, `QA_ADMIN_MFA_SECRET`, 필요 시 `QA_USER_EMAIL`, `QA_USER_PASSWORD` 환경 변수 또는 CI Secret만 사용합니다.
 
 ## 기술 스택 및 제약 사항

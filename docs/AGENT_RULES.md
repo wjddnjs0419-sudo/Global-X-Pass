@@ -70,6 +70,7 @@
 - **Documentation Canon:** Keep root guidance documents lean. `GEMINI.md` (or `CLAUDE.md`) is the canonical project router, while temporary execution state lives in `PLAN.md` / `RESULT.md`.
 - **Blog Import Convention:** Around X 블로그 이관은 RSS로 후보를 발견하고 `PostView.naver`의 `se-main-container` 본문을 파싱하는 반자동 manifest 방식으로 유지할 것. 뉴스레터는 `Around X-뉴스레터` 게시판 기준 `news` + `뉴스레터` 고정 태그, 행사 아카이브는 manifest에서 글별 수동 태그를 지정하고, 썸네일은 1차에서 네이버 원본 이미지 URL을 사용한다. 중복 감지는 본문 앞 `GXP_BLOG_IMPORT_META` HTML comment의 `sourceUrl`로 처리할 것.
 - **Blog Sync Automation Boundary:** Supabase 자동화는 `pg_cron` + `pg_net`으로 Edge Function을 호출하는 경량 트리거/델타 확인/큐 적재까지를 기본 경계로 삼는다. 전체 Naver 페이지네이션 크롤링과 이미지 미러링은 Edge Function 제한을 고려해 Node 기반 외부 worker 또는 수동 스크립트에서 처리하는 방향을 우선 검토할 것.
+- **Company News Relevance Gate:** 기업 뉴스 크롤러는 `scripts/utils/companyNewsRelevance.mjs`의 관련도 계산을 통과한 기사만 저장해야 한다. `articles.relevance_score`, `matched_terms`, `relevance_reason`을 함께 저장하고, 관리자 `승인 대기` 큐는 관련도 내림차순을 기본으로 유지한다. 기존 기사 정리는 삭제보다 dry-run audit 및 `rejected` 후보 처리를 우선한다.
 
 ## Verification Matrix
 `npm run validate` remains the universal gate after any repository change. In addition, every approved task must identify which matrix rows apply, perform the relevant checks when feasible, and record results or explicit skip reasons in `RESULT.md`.

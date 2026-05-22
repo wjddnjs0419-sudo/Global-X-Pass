@@ -1,3 +1,24 @@
+## 2026-05-22 회사 뉴스 운영 관리 기능 추가
+
+- 기업 뉴스 수집/검토 흐름을 운영 가능한 형태로 보강했다.
+- 수집량은 기본 회사당 5개, `articles`는 최신 300개 유지로 정리했다.
+- `/admin`의 `기업 뉴스 관리` 탭에서 즉시 수집, 기사 검색/필터링, 승인/거절/삭제를 처리할 수 있게 했다.
+- 뉴스 크롤링에서는 썸네일 수집과 표시를 제거하고 텍스트 메타데이터만 사용하도록 바꿨다.
+- 검증: `npm run validate` ✅, 뉴스 dry-run ✅, `supabase db push` ✅, `supabase functions deploy trigger-company-news-crawl` ✅
+
+---
+
+## 2026-05-22 Favicon을 창구 로고로 교체
+
+- `index.html`의 favicon 링크를 `./src/imports/changgu-symbol.png`로 변경했다.
+- `architecture.html`의 favicon 링크도 동일한 창구 심볼 PNG로 변경했다.
+- 기존 `/favicon.svg` 대신 실제 창구 브랜드 자산을 직접 참조하도록 바꿔, 브라우저 캐시와 분리된 새 아이콘 경로를 사용했다.
+- 파비콘에는 가로형 `changgu-logo.png`보다 정사각형 `changgu-symbol.png`가 더 적합해서 심볼을 사용했다.
+- 검증: `npm run validate` ✅, `npm run map:build` ✅
+- 참고: `public/favicon.svg`는 더 이상 참조되지 않지만, 이번 작업에서는 삭제하지 않았다.
+
+---
+
 ## 2026-05-21 미디어 페이지 썸네일 머신 통합
 
 - 미디어 게시물도 `postThumbnail.ts`의 대표 썸네일 resolver를 사용하도록 통합했다.
@@ -2736,3 +2757,20 @@ Electron 아키텍처 맵 앱에 admin+AAL2 로그인 오버레이와 런타임 
 - `npm run validate` ✅
 - Playwright 데스크톱 1440px 확인 ✅ — 중복 `h2` 제거, 창구 로고 표시, 설명 중앙 정렬, intro→timeline 흐름 확인.
 - Playwright 모바일 390px 확인 ✅ — 로고/설명/타임라인 단일 컬럼 흐름, 가로 overflow 없음.
+# RESULT ARCHIVE ADDENDUM: 참여기업 뉴스 자동 수집 + 승인형 공개 노출 추가 (2026-05-22)
+
+## 상태
+스타트업 참여기업 뉴스를 매일 수집해 `articles` 테이블에 메타데이터만 저장하는 흐름을 추가했다. 웹사이트에는 `/company-news` 공개 페이지를 만들고, `status = 'approved'`인 기사만 노출하도록 연결했다. 썸네일은 `--with-thumbnails` 플래그가 켜졌을 때만 원문 페이지의 `og:image`를 가져와 Supabase Storage로 미러링한다.
+
+## 주요 변경
+| 대상 | 변경 |
+|---|---|
+| `supabase/migrations/20260522090000_create_company_articles.sql` | `companies.search_keywords`, `companies.last_crawled_at`, `articles` 테이블, 인덱스, RLS, `updated_at` 트리거 추가 |
+| `scripts/crawl-company-news.mjs` | 네이버 뉴스 검색 API 기반 수집기 추가 |
+| `.github/workflows/company-news-crawl.yml` | 6시간 자동 실행 + `workflow_dispatch` 추가 |
+| `src/app/pages/CompanyNewsPage.tsx` | 승인된 기사만 보여주는 `/company-news` 공개 페이지 추가 |
+| `src/app/routes.tsx`, `src/app/navigation/mainMenu.ts`, `src/lib/types.ts`, `package.json` | 라우트/메뉴/타입/스크립트 보강 |
+
+## 검증
+- `npm run validate` ✅
+- 외부 Naver 자격 증명이 필요한 실제 크롤링 실행은 당시 수행하지 않았다.

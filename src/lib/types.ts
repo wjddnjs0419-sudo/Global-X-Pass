@@ -24,6 +24,9 @@ export interface Article {
   published_at: string;
   status: "pending" | "approved" | "rejected";
   url_hash: string;
+  relevance_score?: number | null;
+  matched_terms?: string[] | null;
+  relevance_reason?: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -21,6 +21,10 @@ on:
         description: "Maximum total articles to keep after each crawl"
         required: false
         default: "300"
+      min_relevance_score:
+        description: "Minimum relevance score for company news"
+        required: false
+        default: "3"
 
 concurrency:
   group: company-news-crawl
@@ -42,6 +46,7 @@ jobs:
       RESULTS_PER_COMPANY: ${{ github.event.inputs.results_per_company }}
       DELAY_MS: ${{ github.event.inputs.delay_ms }}
       MAX_STORED_ARTICLES: ${{ github.event.inputs.max_stored_articles }}
+      MIN_RELEVANCE_SCORE: ${{ github.event.inputs.min_relevance_score }}
 
     steps:
       - name: Checkout
@@ -63,6 +68,7 @@ jobs:
             --results-per-company "${RESULTS_PER_COMPANY:-5}"
             --delay-ms "${DELAY_MS:-300}"
             --max-stored-articles "${MAX_STORED_ARTICLES:-300}"
+            --min-relevance-score "${MIN_RELEVANCE_SCORE:-3}"
           )
 
           node scripts/crawl-company-news.mjs "${ARGS[@]}"

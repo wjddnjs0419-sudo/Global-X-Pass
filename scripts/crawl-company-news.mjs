@@ -5,6 +5,11 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 import { stripHtml } from "./utils/naverHtmlParser.mjs";
+import {
+  buildCompanyNewsQueries,
+  evaluateCompanyNewsRelevance,
+  isCompanyNewsRelevant,
+} from "./utils/companyNewsRelevance.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -58,9 +63,18 @@ const BATCH_SIZE = Number.parseInt(getArgValue("--batch-size") ?? "25", 10);
 const RESULTS_PER_COMPANY = Number.parseInt(getArgValue("--results-per-company") ?? "5", 10);
 const REQUEST_DELAY_MS = Number.parseInt(getArgValue("--delay-ms") ?? "300", 10);
 const DRY_RUN = hasFlag("--dry-run");
+const AUDIT_EXISTING_RELEVANCE = hasFlag("--audit-existing-relevance");
+const APPLY_EXISTING_RELEVANCE = hasFlag("--apply-existing-relevance");
+const REJECT_LOW_RELEVANCE_EXISTING = hasFlag("--reject-low-relevance-existing");
+const EXISTING_STATUS = getArgValue("--existing-status") ?? "pending";
+const EXISTING_AUDIT_LIMIT = Number.parseInt(getArgValue("--existing-limit") ?? "300", 10);
 const MAX_COMPANY_KEYWORDS = Number.parseInt(getArgValue("--max-keywords") ?? "6", 10);
 const MAX_STORED_ARTICLES = Number.parseInt(
   getArgValue("--max-stored-articles") ?? process.env.NEWS_MAX_STORED_ARTICLES ?? "300",
+  10,
+);
+const MIN_RELEVANCE_SCORE = Number.parseInt(
+  getArgValue("--min-relevance-score") ?? process.env.NEWS_MIN_RELEVANCE_SCORE ?? "3",
   10,
 );
 
@@ -86,25 +100,6 @@ function normalizeText(value) {
   return stripHtml(value ?? "").replace(/\s+/g, " ").trim();
 }
 
-function splitKeywords(raw) {
-  return (raw ?? "")
-    .split(/[\n,;|/]+/)
-    .map((part) => part.trim())
-    .filter(Boolean);
-}
-
-function buildSearchKeywords(company) {
-  const preferred = splitKeywords(company.search_keywords);
-  const terms = preferred.length > 0 ? preferred : [company.name.trim()];
-  if (company.name.trim() && !terms.some((term) => term === company.name.trim())) {
-    terms.unshift(company.name.trim());
-  }
-
-  return Array.from(new Set(terms))
-    .filter(Boolean)
-    .slice(0, Math.max(1, MAX_COMPANY_KEYWORDS));
-}
-
 function normalizeUrl(raw) {
   const value = (raw ?? "").trim();
   if (!value) return "";
@@ -124,6 +119,11 @@ function normalizeUrl(raw) {
   } catch {
     return value;
   }
+}
+
+function summarizeTitle(value) {
+  const text = normalizeText(value);
+  return text.length > 80 ? `${text.slice(0, 77)}...` : text;
 }
 
 function resolveHost(url) {
@@ -258,6 +258,86 @@ async function insertArticles(rows) {
   return inserted;
 }
 
+function getJoinedCompany(article) {
+  return Array.isArray(article.companies) ? article.companies[0] : article.companies;
+}
+
+async function updateArticleRelevance(article, relevance, nextStatus) {
+  const payload = {
+    relevance_score: relevance.score,
+    matched_terms: relevance.matchedTerms,
+    relevance_reason: nextStatus === "rejected"
+      ? `${relevance.reason}_below_threshold`
+      : relevance.reason,
+  };
+
+  if (nextStatus) {
+    payload.status = nextStatus;
+  }
+
+  const { error } = await supabase
+    .from("articles")
+    .update(payload)
+    .eq("id", article.id);
+
+  if (error) {
+    throw new Error(`기존 기사 관련도 업데이트 실패: ${error.message}`);
+  }
+}
+
+async function auditExistingRelevance(options) {
+  let query = supabase
+    .from("articles")
+    .select("id, title, description, status, relevance_score, matched_terms, relevance_reason, published_at, companies(name, search_keywords)")
+    .order("published_at", { ascending: false })
+    .limit(options.limit);
+
+  if (options.status !== "all") {
+    query = query.eq("status", options.status);
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    throw new Error(`기존 기사 조회 실패: ${error.message}`);
+  }
+
+  let relevant = 0;
+  let lowRelevance = 0;
+  let updated = 0;
+  let rejected = 0;
+
+  for (const article of data ?? []) {
+    const company = getJoinedCompany(article);
+    if (!company) continue;
+
+    const relevance = evaluateCompanyNewsRelevance(company, article);
+    const accepted = isCompanyNewsRelevant(relevance, options.minRelevanceScore);
+    if (accepted) {
+      relevant += 1;
+    } else {
+      lowRelevance += 1;
+      console.log(
+        `[news-crawl] existing low-relevance id=${article.id} status=${article.status} ` +
+        `score=${relevance.score} matched=${relevance.matchedTerms.join(",") || "-"} ` +
+        `title="${summarizeTitle(article.title)}"`,
+      );
+    }
+
+    if (options.apply) {
+      const nextStatus = !accepted && options.rejectLowRelevance ? "rejected" : null;
+      await updateArticleRelevance(article, relevance, nextStatus);
+      updated += 1;
+      if (nextStatus === "rejected") rejected += 1;
+    }
+  }
+
+  console.log(
+    `[news-crawl] existing relevance audit status=${options.status} checked=${data?.length ?? 0} ` +
+    `relevant=${relevant} lowRelevance=${lowRelevance} updated=${updated} rejected=${rejected} ` +
+    `apply=${options.apply ? "yes" : "no"}`,
+  );
+}
+
 async function updateCompanyCrawledAt(companyId, timestamp) {
   const { error } = await supabase
     .from("companies")
@@ -305,26 +385,49 @@ async function pruneOldArticles(maxStoredArticles) {
 }
 
 async function processCompany(company, options) {
-  const keywords = buildSearchKeywords(company);
-  console.log(`[news-crawl] company=${company.name} keywords=${keywords.join(" | ")}`);
+  const queries = buildCompanyNewsQueries(company, MAX_COMPANY_KEYWORDS);
+  console.log(`[news-crawl] company=${company.name} queries=${queries.join(" | ")}`);
 
   const discovered = [];
   const seenHashes = new Set();
+  let rejectedByRelevance = 0;
 
-  for (const keyword of keywords) {
+  for (const query of queries) {
     try {
-      const items = await fetchNaverNews(keyword, options.resultsPerCompany);
-      console.log(`[news-crawl]   query="${keyword}" items=${items.length}`);
+      const items = await fetchNaverNews(query, options.resultsPerCompany);
+      console.log(`[news-crawl]   query="${query}" items=${items.length}`);
 
       for (const item of items) {
         const candidate = buildCandidate(company, item);
         if (!candidate || seenHashes.has(candidate.url_hash)) continue;
         seenHashes.add(candidate.url_hash);
-        discovered.push(candidate);
+        const relevance = evaluateCompanyNewsRelevance(company, candidate);
+        const accepted = isCompanyNewsRelevant(relevance, options.minRelevanceScore);
+        const relevanceReason = accepted ? relevance.reason : `${relevance.reason}_below_threshold`;
+
+        if (!accepted) {
+          rejectedByRelevance += 1;
+          console.log(
+            `[news-crawl]   rejected score=${relevance.score} matched=${relevance.matchedTerms.join(",") || "-"} ` +
+            `reason=${relevanceReason} title="${summarizeTitle(candidate.title)}"`,
+          );
+          continue;
+        }
+
+        discovered.push({
+          ...candidate,
+          relevance_score: relevance.score,
+          matched_terms: relevance.matchedTerms,
+          relevance_reason: relevanceReason,
+        });
+        console.log(
+          `[news-crawl]   accepted score=${relevance.score} matched=${relevance.matchedTerms.join(",") || "-"} ` +
+          `title="${summarizeTitle(candidate.title)}"`,
+        );
         if (discovered.length >= options.resultsPerCompany) break;
       }
     } catch (error) {
-      console.error(`[news-crawl]   query failed: "${keyword}" (${error.message})`);
+      console.error(`[news-crawl]   query failed: "${query}" (${error.message})`);
     }
 
     if (discovered.length >= options.resultsPerCompany) break;
@@ -346,13 +449,14 @@ async function processCompany(company, options) {
 
   console.log(
     `[news-crawl]   discovered=${discovered.length} new=${freshRows.length} inserted=${inserted} ` +
-    `existing=${discovered.length - freshRows.length}`,
+    `existing=${discovered.length - freshRows.length} rejectedByRelevance=${rejectedByRelevance}`,
   );
 
   return {
     discovered: discovered.length,
     newCount: freshRows.length,
     inserted,
+    rejectedByRelevance,
   };
 }
 
@@ -390,17 +494,42 @@ async function main() {
     throw new Error("--max-stored-articles는 0 이상의 숫자여야 합니다.");
   }
 
+  if (!Number.isFinite(MIN_RELEVANCE_SCORE) || MIN_RELEVANCE_SCORE <= 0) {
+    throw new Error("--min-relevance-score는 1 이상의 숫자여야 합니다.");
+  }
+
+  if (!Number.isFinite(EXISTING_AUDIT_LIMIT) || EXISTING_AUDIT_LIMIT <= 0) {
+    throw new Error("--existing-limit은 1 이상의 숫자여야 합니다.");
+  }
+
+  if (!["pending", "approved", "rejected", "all"].includes(EXISTING_STATUS)) {
+    throw new Error("--existing-status는 pending, approved, rejected, all 중 하나여야 합니다.");
+  }
+
   const options = {
     batchSize: BATCH_SIZE,
     resultsPerCompany: RESULTS_PER_COMPANY,
     delayMs: REQUEST_DELAY_MS,
     dryRun: DRY_RUN,
     maxStoredArticles: MAX_STORED_ARTICLES,
+    minRelevanceScore: MIN_RELEVANCE_SCORE,
   };
+
+  if (AUDIT_EXISTING_RELEVANCE) {
+    await auditExistingRelevance({
+      status: EXISTING_STATUS,
+      limit: EXISTING_AUDIT_LIMIT,
+      minRelevanceScore: options.minRelevanceScore,
+      apply: APPLY_EXISTING_RELEVANCE && !DRY_RUN,
+      rejectLowRelevance: REJECT_LOW_RELEVANCE_EXISTING,
+    });
+    return;
+  }
 
   console.log(
     `[news-crawl] start batchSize=${options.batchSize} resultsPerCompany=${options.resultsPerCompany} ` +
     `delayMs=${options.delayMs} maxStoredArticles=${options.maxStoredArticles} ` +
+    `minRelevanceScore=${options.minRelevanceScore} ` +
     `dryRun=${options.dryRun ? "yes" : "no"}`,
   );
 
@@ -410,6 +539,7 @@ async function main() {
   let totalDiscovered = 0;
   let totalNew = 0;
   let totalInserted = 0;
+  let totalRejectedByRelevance = 0;
   let processed = 0;
   let failed = 0;
 
@@ -419,6 +549,7 @@ async function main() {
       totalDiscovered += summary.discovered;
       totalNew += summary.newCount;
       totalInserted += summary.inserted;
+      totalRejectedByRelevance += summary.rejectedByRelevance;
       processed += 1;
     } catch (error) {
       failed += 1;
@@ -437,7 +568,8 @@ async function main() {
 
   console.log(
     `[news-crawl] done processed=${processed} failed=${failed} discovered=${totalDiscovered} ` +
-    `new=${totalNew} inserted=${totalInserted} dryRun=${options.dryRun ? "yes" : "no"}`,
+    `new=${totalNew} inserted=${totalInserted} rejectedByRelevance=${totalRejectedByRelevance} ` +
+    `dryRun=${options.dryRun ? "yes" : "no"}`,
   );
 
   if (!options.dryRun) {
