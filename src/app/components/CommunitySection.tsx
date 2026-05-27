@@ -21,7 +21,7 @@ interface CommunitySectionProps { isDark?: boolean; }
 
 const CAT_MAP: Record<string, { label: string; color: string }> = {
   notice:           { label: "공지사항", color: "#EA4335" },
-  news:             { label: "인사이트", color: "#4377F1" },
+  news:             { label: "뉴스",     color: "#4377F1" },
   events:           { label: "행사소식", color: "#18A343" },
   "events-archive": { label: "행사소식", color: "#18A343" },
   resources:        { label: "자료실",   color: "#4377F1" },
@@ -31,8 +31,8 @@ const CAT_MAP: Record<string, { label: string; color: string }> = {
 const TABS = [
   { id: "all",       label: "전체",    path: "" },
   { id: "notice",    label: "공지사항", path: "/notice" },
-  { id: "news",      label: "인사이트", path: "/news" },
-  { id: "events",    label: "행사소식", path: "/events" },
+  { id: "news",      label: "뉴스",    path: "/news" },
+  { id: "events-archive", label: "행사소식", path: "/events/archive" },
   { id: "resources", label: "자료실",  path: "/resources" },
 ];
 
@@ -41,7 +41,7 @@ const POSTS_PER_TAB = 24;
 const TAB_ACCENT: Record<string, "blue" | "green" | "red" | "purple"> = {
   notice: "red",
   news: "blue",
-  events: "green",
+  "events-archive": "green",
   resources: "blue",
 };
 
@@ -66,9 +66,7 @@ export function CommunitySection({ isDark = false }: CommunitySectionProps) {
           .order("created_at", { ascending: false })
           .limit(POSTS_PER_TAB);
 
-        if (activeTab === "events") {
-          query = query.in("category", ["events", "events-archive"]);
-        } else if (activeTab !== "all") {
+        if (activeTab !== "all") {
           query = query.eq("category", activeTab);
         }
 
@@ -86,27 +84,6 @@ export function CommunitySection({ isDark = false }: CommunitySectionProps) {
           POSTS_PER_TAB,
         );
         setDisplayPosts((data as Post[]) || []);
-        setPageDirection(1);
-        setPage(0);
-        setLoading(false);
-        return;
-      }
-
-      if (activeTab === "events") {
-        const [eventsResult, archiveResult] = await Promise.all([
-          fetchPublicPostPreviews("events", POSTS_PER_TAB),
-          supabase
-            .from("posts")
-            .select("*")
-            .eq("category", "events-archive")
-            .order("created_at", { ascending: false })
-            .limit(POSTS_PER_TAB),
-        ]);
-        const combined = [
-          ...((eventsResult.data as Post[] | null) || []),
-          ...((archiveResult.data as Post[] | null) || []),
-        ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-        setDisplayPosts(combined.slice(0, POSTS_PER_TAB));
         setPageDirection(1);
         setPage(0);
         setLoading(false);
