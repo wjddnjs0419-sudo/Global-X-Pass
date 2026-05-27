@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
-import { supabase } from "../../lib/supabaseClient";
+import { fetchPublicPostPreviews } from "../../utils/publicPostPreviews";
 import type { Post } from "../../lib/types";
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 import {
@@ -58,12 +58,7 @@ export function MediaSection({ isDark = false }: MediaSectionProps) {
       setLoading(true);
       setError(false);
 
-      const { data, error: fetchError } = await supabase
-        .from("posts")
-        .select("*")
-        .eq("category", "media")
-        .order("created_at", { ascending: false })
-        .limit(16);
+      const { data, error: fetchError } = await fetchPublicPostPreviews("media", 16);
 
       if (cancelled) return;
 
@@ -172,7 +167,7 @@ export function MediaSection({ isDark = false }: MediaSectionProps) {
               ...HOME_SECTION_TITLE_STYLE_COMPACT,
             }}
           >
-            미디어
+            인사이트
           </h2>
           <p
             className="media-showcase-description"
@@ -183,7 +178,7 @@ export function MediaSection({ isDark = false }: MediaSectionProps) {
               whiteSpace: "nowrap",
             }}
           >
-            Global X Pass에서 발간한 리포트와 인사이트를 확인하세요
+            Global X Pass가 직접 전하는 리포트와 인사이트를 확인하세요
           </p>
         </div>
 
@@ -206,14 +201,14 @@ export function MediaSection({ isDark = false }: MediaSectionProps) {
         ) : error ? (
           <SectionNotice
             isDark={isDark}
-            title="미디어 콘텐츠를 불러오지 못했습니다."
+            title="인사이트 콘텐츠를 불러오지 못했습니다."
             description="잠시 후 다시 시도해주세요."
           />
         ) : displayPosts.length === 0 ? (
           <SectionNotice
             isDark={isDark}
-            title="등록된 미디어 콘텐츠가 없습니다."
-            description="관리자에서 미디어 게시물을 등록하면 이곳에 최신 콘텐츠가 표시됩니다."
+            title="등록된 인사이트 콘텐츠가 없습니다."
+            description="관리자에서 인사이트 게시물을 등록하면 이곳에 최신 콘텐츠가 표시됩니다."
           />
         ) : (
           <>
@@ -224,7 +219,7 @@ export function MediaSection({ isDark = false }: MediaSectionProps) {
               {currentPage > 0 && (
                 <button
                   type="button"
-                  aria-label="이전 미디어 보기"
+                  aria-label="이전 인사이트 보기"
                   onClick={goToPrevPage}
                   className="media-showcase-nav media-showcase-nav-prev"
                   style={{ color: th.headingColor }}
@@ -253,7 +248,7 @@ export function MediaSection({ isDark = false }: MediaSectionProps) {
 
               <button
                 type="button"
-                aria-label={currentPage < totalPages - 1 ? "다음 미디어 보기" : "미디어 전체보기 표시"}
+                aria-label={currentPage < totalPages - 1 ? "다음 인사이트 보기" : "인사이트 전체보기 표시"}
                 onClick={goToNextPage}
                 className="media-showcase-nav media-showcase-nav-next"
                 style={{ color: th.headingColor }}
@@ -483,7 +478,7 @@ function MediaContentCard({
               color: subtleText,
             }}
           >
-            <span style={{ fontSize: 12, fontWeight: 800 }}>MEDIA</span>
+            <span style={{ fontSize: 12, fontWeight: 800 }}>INSIGHT</span>
           </div>
         )}
       </div>

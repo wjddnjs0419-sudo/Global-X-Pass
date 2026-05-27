@@ -22,7 +22,6 @@ interface CommunitySectionProps { isDark?: boolean; }
 const CAT_MAP: Record<string, { label: string; color: string }> = {
   notice:           { label: "공지사항", color: "#EA4335" },
   news:             { label: "인사이트", color: "#4377F1" },
-  blog:             { label: "블로그",   color: "#A855F7" },
   events:           { label: "행사소식", color: "#18A343" },
   "events-archive": { label: "행사소식", color: "#18A343" },
   resources:        { label: "자료실",   color: "#4377F1" },
@@ -33,7 +32,6 @@ const TABS = [
   { id: "all",       label: "전체",    path: "" },
   { id: "notice",    label: "공지사항", path: "/notice" },
   { id: "news",      label: "인사이트", path: "/news" },
-  { id: "blog",      label: "블로그",   path: "/blog" },
   { id: "events",    label: "행사소식", path: "/events" },
   { id: "resources", label: "자료실",  path: "/resources" },
 ];
@@ -43,7 +41,6 @@ const POSTS_PER_TAB = 24;
 const TAB_ACCENT: Record<string, "blue" | "green" | "red" | "purple"> = {
   notice: "red",
   news: "blue",
-  blog: "purple",
   events: "green",
   resources: "blue",
 };
@@ -116,12 +113,7 @@ export function CommunitySection({ isDark = false }: CommunitySectionProps) {
         return;
       }
 
-      const { data } = await supabase
-        .from("posts")
-        .select("*")
-        .eq("category", activeTab)
-        .order("created_at", { ascending: false })
-        .limit(POSTS_PER_TAB);
+      const { data } = await fetchPublicPostPreviews(activeTab, POSTS_PER_TAB);
       setDisplayPosts((data as Post[]) || []);
       setPageDirection(1);
       setPage(0);

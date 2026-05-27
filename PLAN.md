@@ -2,7 +2,29 @@
 
 완료된 계획은 `RESULT.md`에 세부 구현 내용과 검증 결과가 기록되어 있으므로, 이 파일에는 활성/예정 작업만 유지합니다. 완료 항목은 `[Done]` 한 줄로 축약하고, 10개를 넘으면 가장 오래된 완료 항목부터 삭제합니다.
 
-## Active
+## Pending Approval
+
+- [ ] **Codex 재리뷰 재실행 — 게시판 gated 일관 적용 변경분 (미커밋)** — 미커밋 diff 누적: ①게시판 3단계 접근 모델(1차 리뷰 4건 반영 완료) ②gated 일관 적용(아래 Done) — 홈 4개 섹션 RPC 전환, AdminBoardManagement board gated 허용, 이머젼 anon RLS, 마이그 2건. `codex login` 정상화 후 `/codex:rescue`로 미커밋 diff 재리뷰 필요. 점검 포인트: (a) gated board 본문이 anon 직접 API로 노출 안 되는지(`posts_select_public_by_flag`=public만), (b) gated 목록 RPC(`list_public_post_previews`)가 본문 500자만 노출하는지, (c) `consultants_select_public`이 `is_active=true`만 노출하는지, (d) gated page 신청 INSERT가 anon 차단되는지.
+
+## Done
+
+- [Done] 게시판 gated 일관 적용 + 자동 반영 수정 (2026-05-27) — 증상: 비로그인이 행사/인사이트/자료실/이머젼/파운더스 목록을 못 봄 + 어드민 게시판관리 변경이 공개 사이트에 반영 안 됨. 근본원인 4가지 진단·수정: ①`post_categories`가 `supabase_realtime` publication 누락 → `useBoardAccess`/`BoardCategoriesContext`의 postgres_changes 구독이 영영 안 불려 라이브 반영 깨짐 → publication 추가. ②events/resources/media `access_level=gated` 통일(목록 공개+상세 로그인), `AdminBoardManagement`의 board gated 금지(`gatedBlocked`) 가드 제거. ③gated board 목록을 직접 `posts.select()`하던 홈 4개 섹션(Media/Resource/NoticeResource/Community)이 RLS(public만)에 막혀 빈 목록 → `fetchPublicPostPreviews`(list_public_post_previews RPC, is_public=true·본문 500자) 전환. ④온라인 이머젼 `consultants`/`consulting_categories`에 anon SELECT 정책 부재 → `consultants_select_public`(is_active=true)·`consulting_categories_select_public` 추가. 마이그 2건(`101555_post_categories_realtime_and_access_fix`/`102620_consulting_immersion_public_read`) sync 정렬. gated 동작은 RPC 목록+`posts_select_public_by_flag`(public만 직접) 본문 차단+`get_post_access_info`(access_level≠public→로그인) 3중. 인사이트(media)/파운더스(founders_club_sessions) 빈 화면은 사용자가 데이터 전량 삭제해 0개라 정상(코드/권한 무관). `npm run validate` ✅. Codex 재리뷰는 Pending Approval 참고.
+
+- [Done] 파비콘 임시 제거 + 도메인 ncf-aroundx.com 전환 (2026-05-27) — `index.html` 파비콘 `<link rel="icon">` 제거(임시 무파비콘, `public/favicon.svg`는 미참조로 보존). 운영 도메인 globalxpass.com→ncf-aroundx.com 전환: `supabase/functions/_shared/cors.ts` `ALLOWED_ORIGINS`에서 기존 globalxpass.com/netlify 2개 제거 + `https://`·`http://ncf-aroundx.com` 추가, `AdminFlowMap.tsx` 허용주소 안내 텍스트 갱신. cors 공용 코드 변경분 반영 위해 edge function 19개 일괄 재배포(`supabase functions deploy`), dist 2회 재빌드. Supabase 콘솔 Auth URL Configuration(Site URL/Redirect URLs)은 사용자 수동 완료. `npm run validate` ✅, 신규 마이그 없음(원격 last=061936, sync 일치)
+
+- [Done] 게시판 3단계 접근 모델(public/gated/private) + 특수 페이지 통합 (2026-05-27) — `post_categories`에 `access_level`(public/gated/private)+`kind`(board/page) 추가. `is_public`은 트리거로 access_level과 동기화(RLS `posts_select_public_by_flag` 호환), `enforce_post_category_lock`에 access_level 보호 추가. `get_post_access_info` RPC를 access_level 기반으로 전환. companies/consulting/founders-club을 `kind=page` 가상 게시판(gated)으로 등록하고 routes의 `AuthRoute` 제거 → `BoardAccessGate`(private만 진입 차단)+신규 `useAuthGate`(gated에서 상세/신청 클릭 시 로그인). `OfficeHourPanel` 목록 공개화, `founders_club_sessions` anon SELECT 정책 추가. 보안 마이그 `board_access_rls_hardening`으로 anon posts(`access_level='public'`)/companies(published) RLS 강화. `AdminBoardManagement`는 3단계 셀렉트(board는 gated 비활성)+낙관적 갱신. 사업비 자료실=private 유지. 마이그 3건(053805/055536/061936) sync 정렬, `npm run validate` ✅. Codex 재리뷰는 Pending Approval 항목 참고.
+
+- [Done] 홈 인사이트 문구 정리 + 프로그램 태그 모바일 높이 보정 (2026-05-27) — `MediaSection`의 홈 노출 텍스트를 `우리 인사이트` 기준으로 정리하고, 에러/빈 상태/캐러셀 접근성 라벨/fallback `INSIGHT` 표기를 함께 맞췄다. `ProgramSection`은 태그 래퍼 `alignItems/alignContent`와 칩 `inline-flex + alignSelf + lineHeight`를 보정해 모바일에서 키워드 박스가 행 높이에 늘어나는 현상을 막았다. `npm run validate` ✅, 홈 `/` 브라우저 heading smoke ✅
+
+- [Done] 홈 About 섹션 미니멀 재정렬 (2026-05-27) — 승인된 재기획 기준대로 과한 Around X 전용 배경/그라데이션/브랜드 배지/키워드 칩/반복 색상 장식을 제거하고, `homeSectionStyles.ts` + `getSectionTheme()` 기반의 기존 홈 섹션 문법으로 재정렬했다. 반복 가치 카드는 신규 `AboutValueCard`로 분리했고, 아이콘은 `AdminSidebar`의 16px `currentColor` 선형 스타일을 참고했다. `npm run validate` ✅, 홈 `/` 데스크톱·모바일·다크·EN 브라우저 smoke ✅
+
+- [Done] 홈 About 섹션을 Around X 브랜드 소개로 전환 (2026-05-27) — 홈 `AboutSection`을 창구 프로그램 타임라인 대신 `Around X` 브랜드 소개로 교체했다. `Logo.png` 워드마크를 재사용하고, `Around X Purple (#8264FF) → Around X Blue (#0073FF)` 그라데이션 토큰과 4가지 핵심 가치(글로벌 지향성·협업·연결·확장성)를 홈 첫 소개 블록에 반영했다. `/` 홈 브라우저 smoke 확인 ✅, `npm run validate` ✅
+
+- [Done] 중복 UI / 구식 편집 경로 정리 감사 후속 (2026-05-27) — `EventApplicationPage`의 예전 관리자 인라인 편집기(`adminEditing`/`adminDraft`/`handleAdminSave`)와 직접 `posts.update()` 저장 경로를 삭제해 행사 편집 진입을 `/post/:id?edit=1` + `AdminPostCreate`로 단일화. 홈 `EventSection` 대표 행사 배경은 `resolvePostThumbnail()` 사용으로 새 대표 이미지 저장소를 반영. `AdminDashboard` 인기 게시물 라벨은 `post_categories` 동적 라벨 우선으로 전환. `categoryStore.ts`는 `useBoardTagPresets()`의 DB 로딩 전 정적 fallback으로 사용 중이라 유지. `npm run validate` ✅
+
+- [Done] 행사 대표 이미지 업로드/수정/삭제 + 행사 수정 UI 단일화 (2026-05-27) — events 대표 이미지를 `thumbnail_url` 원본 URL + `thumbnail_crop` JSON으로 저장하도록 확장. `EventFormConfigEditor` 신규 추가로 신청서 질문/문구(`event_form_config`)를 어드민 게시물 작성/수정에서 함께 관리. `/events`와 행사 신청 상단 이미지는 `resolvePostThumbnail()` 우선 렌더. 상세 수정은 `AdminPostCreate` 위임, 행사관리/신청 페이지 편집 버튼은 게시물 편집 경로로 연결. `npm run validate` ✅, 인앱 브라우저 `/events` smoke ✅
+
+- [Done] PostDetailPage 상세 인라인 편집 찌꺼기 제거 + 관리자 편집 진입 유지 (2026-05-27) — `PostDetailPage.tsx`의 `isEditing`/저장·삭제 모달·Quill 편집·첨부 업로드·썸네일 편집 상태를 제거해 상세를 보기 전용으로 수렴시키되, 상단의 어드민 수정 버튼은 `AdminPage?editPostId=` 새 편집 경로로 유지했다. `EventApplicationPage`/`AdminEventManagement`의 게시물 편집 버튼도 새 관리자 편집 진입점으로 재연결했다. `npm run validate` ✅
 
 ## Future / 추후 수정
 
@@ -60,30 +82,12 @@ supabase secrets set GROQ_API_KEY=...
 
 ---
 
-## Pending Approval
+- [Done] 어드민 사이드바 그룹 재정리 — 콘텐츠/자동화 분리 (2026-05-27) — `AdminSidebar.tsx` `SECTIONS`에서 과밀했던 `콘텐츠` 6개를 직접 편집형 `콘텐츠` 3(게시물 작성·관리·게시판) + 외부 수집형 신설 `자동화` 3(블로그 동기화·기업 뉴스·언론보도)으로 분리. 정적 배열 재구성만 — TabId/렌더/라우팅/DB 무변경. `npm run validate` ✅, Codex 블로킹 없음(중복/누락 tab id 없음, 12개 전부 AdminPage 렌더)
 
-- [Done] 인사이트/참여기업 메뉴 개편 + 필터 개선 (2026-05-26) — MediaPage title 인사이트 변경, 인사이트 필터 라벨(마켓·테크·CEO), 참여기업 Around X 하위 이동(핀칸티에리 아래), program_name 컬럼 추가 및 카드·필터·CSV·어드민 폼 전면 반영. `npm run validate` ✅, Supabase migration ✅
+- [Done] 블로그 게시판 완전 삭제 + 어드민 카테고리 드롭다운 동적화 (2026-05-27) — "지웠다"는 인식과 달리 blog는 코드·DB에 그대로 남아 있었음(공개 네비에서만 숨김). 마이그 `20260527030134`로 posts(category=blog) 10개·board_tag_presets 6행·post_categories blog 행 삭제. 프론트 표면 제거(BlogPage/`/blog` 라우트·adminConstants `CATEGORIES`/`CATEGORY_COLOR`·categoryStore `BOARD_PRESETS`·CommunitySection·SearchPage 데모·PostDetailPage 테마/매핑). 근본 원인이던 하드코딩 `CATEGORIES`↔동적 `post_categories` 불일치는 `BoardCategoriesContext.useBoardCategoryList()`를 추가해 AdminPostCreate/AdminPostManage 드롭다운을 동적화(`categoryOptions = boardList.length ? boardList : CATEGORIES`)로 해소. 네이버 블로그 크롤링 자동화(sync-naver-blog 등)는 적재처가 news/events-archive라 의도적 보존. `npm run validate` ✅, 원격 DB 0/0/0 ✅, Codex 블로킹 없음, migration sync 정렬 완료
 
-- [Done] 마이페이지 회원탈퇴 + 취소/거절 내역 삭제 기능 (2026-05-22) — `delete-own-account` Edge Function 신규 배포, RLS DELETE 정책 마이그레이션 적용, MyPage에 회원탈퇴 모달(비밀번호 확인) 및 cancelled/rejected 카드 Trash2 삭제 버튼 추가. `npm run validate` ✅, `supabase db push` ✅, `functions deploy` ✅
+- [Done] 언론보도 링크 원클릭 등록 자동 메타데이터화 (2026-05-27) — `/news` 언론보도를 `링크 입력 -> 미리보기 -> 초안 저장 -> 게시 승인` 승인형 워크플로우로 개편. Naver 검색 API는 쓰지 않고, `supabase/functions/external-news-preview`에서 URL 직접 fetch + OG/HTML/JSON-LD 메타 추출 + SSRF 방지 가드를 구현했다. `AdminExternalNewsManagement`는 목록/필터와 새 `ExternalNewsPreviewComposer`로 분리했고, `ExternalNewsPreviewCard`/`ExternalNewsDraftEditor`를 추가해 기존 스타일과 공용 컴포넌트를 재사용했다. `external_news_items`는 새 테이블 없이 기존 `draft | published` 상태만 재사용한다. `npm run validate` ✅
 
-- [Done] 아키텍처 맵 Ops 참여기업 뉴스 실시간 Actions/Crawler 폴링 반영 (2026-05-22) — `company-news-crawl.yml` GitHub Actions run 조회 IPC와 6초 폴링을 추가해 `Ops > 뉴스` 파이프라인이 실제 `queued/in_progress/completed` 상태와 conclusion/업데이트 시간을 반영하도록 개선. 완료/실패 시 polling 자동 중단. `npm run validate` ✅, `npm run app:pack` ✅, `/Applications` 앱 갱신 및 UI 확인 ✅
+- [Done] 파운더스클럽 참여사 직접 세션 등록 + 어드민 승인 (2026-05-27) — `/founders`에 participant `세션 등록하기` 버튼/모달(전 항목 필수) 추가. 세션은 `pending`으로 생성→어드민이 `승인`(recruiting)/`반려`(rejected). 허위 등록 방지는 participant 역할 게이트(`is_founders_session_host()`)+세션 승인 이중. `founders_club_sessions.created_by`·status(`pending`/`rejected`) 확장, pending/rejected 가시성 제한(작성자·admin), 미승인 세션 신청 차단 가드, 호스트 본인 세션 삭제 정책, 승인 시 등록자 자동참가 트리거(마이그 `013726`/`015126`/`020631`). 등록 모달은 공용 `ModalShell`/`getModalFieldStyle` 재사용. 관리자 패널 직접 생성(즉시 모집중)은 유지. Codex 3회 반영(🔴 stale SELECT 정책 노출, 🟡 가드 FOR UPDATE, 🟡 fontFamily). `npm run validate` ✅, migration sync 정렬 완료
 
-- [Done] 아키텍처 맵 Ops 참여기업 뉴스 파이프라인 시각 보정 (2026-05-22) — `뉴스` 탭의 기본 상태를 `idle` 중심으로 조정해 `기업 키워드 → Edge Fn → Actions → Crawler → Articles → Review` 흐름이 중간에 끊겨 보이지 않도록 수정. `기업 뉴스 수집 요청 완료` 시 `Crawler`가 `active`로 이어지게 해 dispatch 이후의 흐름도 자연스럽게 보이도록 보정. `npm run validate` ✅, 앱 번들 갱신 ✅
-
-- [Done] 아키텍처 맵 Ops에 참여기업 뉴스 수동 실행 탭 추가 (2026-05-22) — `src/app/components/admin/architecture/opsPipeline.tsx`에 `뉴스` 서브탭을 추가해 `QA / 블로그 / 뉴스 / AI` 구조로 확장하고, `trigger-company-news-crawl` Edge Function과 `company-news-crawl.yml` 흐름을 파이프라인 노드(기업 키워드 → Edge Fn → GitHub Actions → 수집 스크립트 → `articles` → 관리자 검수)로 시각화. `src/app/components/admin/LiveArchitectureMap.tsx`에서 회사 뉴스 전용 trigger 상태/메시지/에러와 수집 옵션을 관리하고, `src/app/components/admin/architecture/constants.ts`에 관련 workflow URL 및 기본 옵션을 추가. `src/generated/architectureMap.json` 재생성 ✅, `npm run validate` ✅
-
-- [Done] 아키텍처 맥 앱 로고를 창구 심볼로 교체 (2026-05-22) — electron-builder macOS 아이콘 경로를 `src/imports/changgu-symbol.png`로 전환해 창구 프로그램 로고가 패키징된 앱 번들 아이콘에 반영되도록 변경. `npm run app:pack` ✅, `/Applications/Global X Pass Architecture Map.app` 재복사 ✅, `npm run validate` 검증 중
-
-- [Done] 아키텍처 맵 macOS 앱 번들 복구 (2026-05-22) — `npm run app:pack`으로 `release/mac-arm64/Global X Pass Architecture Map.app`을 다시 생성해 패키징된 앱 번들을 복구. `map:build` ✅, `electron-builder --dir` ✅, 산출물 확인 ✅
-
-- [Done] 아키텍처 맵 Ops GitHub token 저장 경로 호환성 복구 (2026-05-22) — Electron 앱이 `~/Library/Application Support/Electron`을 쓰면서도 기존 `~/Library/Application Support/@figma/my-make-file/github-token.txt`와 `qa-credentials.env`를 함께 읽도록 `electron/main.cjs`를 수정해, Ops 탭의 `GitHub 실행`이 인증 없이 실패하던 문제를 해결. `npm run validate` ✅, `node --check electron/main.cjs` ✅, Electron 실동작 dispatch ✅
-
-- [Done] 아키텍처 맵 Edge Function CORS 허용 origin 확장 (2026-05-22) — `supabase/functions/_shared/cors.ts`에 `http://localhost:5175`와 `http://127.0.0.1:5175`를 추가해 아키텍처 맵 앱(Electron + `map:dev`)에서 `decrypt-error-logs` 호출이 브라우저 CORS에 막히지 않도록 수정. `npm run validate` ✅, `supabase functions deploy decrypt-error-logs` ✅, Electron 재로드 확인 ✅
-
-- [Done] 기업 뉴스 수집 기본값 조정 (2026-05-22) — 자동/수동 수집 기본값을 `batch_size=25`, `results_per_company=1`로 통일하고, GitHub Actions schedule을 하루 4회(`0 0,6,12,18 * * *`, UTC)로 명시. `npm run validate` ✅, 기본값 dry-run ✅, function deploy ✅
-
-- [Done] 기업 뉴스 즉시 수집 버튼 실패 원인 노출 및 dispatch 정합성 복구 (2026-05-22) — 관리자 화면에서 Edge Function/GitHub Actions `dispatchError` 상세를 표시하도록 수정하고, 관련성 필터 변경사항을 `main`에 push해 원격 workflow input과 Edge Function payload 정합성 복구. `npm run validate` ✅, Node tests ✅, git push ✅
-
-- [Done] 기업 뉴스 수집 데이터 초기화 (2026-05-22) — 원격 `articles` 73건 삭제, `companies.last_crawled_at` 25건 `NULL` 초기화로 동일 회사 재수집 가능 상태 전환. 삭제 후 `articles=0`, 크롤링 완료 회사 `0` 확인, 새 필터 dry-run ✅
-
-- [Done] Around X 준비중 페이지 분기 및 changgu-program 리네이밍 (2026-05-22) — `mainMenu.ts`에 `comingSoon?: boolean` 플래그 추가, 르노·핀칸티에리에 `comingSoon: true` 설정. `ComingSoonPage.tsx` 신규 생성(메뉴 라벨 동적 표시), `WildcardRoute.tsx`로 404/준비중 분기. `window-program` → `changgu-program` 전면 리네이밍(URL·키·상수·타입·컴포넌트·폴더·CSS 클래스). `PageShell` 배너 타이틀 `clamp(44→34px)`, `ChangguProgramIntro` 본문 `clamp(28→18px)` 축소. `npm run validate` ✅, git amend + force push ✅
+- [Done] 1:1 컨설팅 → 온라인 이머젼 / 오피스아워 분리 (2026-05-26) — `/consulting`을 상단 탭 2개로 분리. 온라인 이머젼은 기존 전문가 선택형 그대로(`ImmersionPanel` 추출), 오피스아워는 전문가 비노출 + 6~12월 월별 모집(정원 제한, `FOR UPDATE` 정원 트리거) + 관리자 매칭. 신규 테이블 `office_hour_months`/`office_hour_applications`, 잔여좌석 RPC, edge function `office-hour-admin-applications`(프로필 복호화) 배포. 관리자 `오피스아워 관리` 탭(월별 정원/신청 매칭). 상태 라벨·색상은 `officeHours.ts`, 모달 셸은 `ModalShell.tsx`로 공용화. Codex 리뷰 반영(🔴 INSERT 상태 우회 차단, 🟡 로더 에러 처리). `npm run validate` ✅, migration sync 정렬 완료

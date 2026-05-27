@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router";
 import { getSectionTheme } from "../utils/sectionTheme";
-import { supabase } from "../../lib/supabaseClient";
+import { fetchPublicPostPreviews } from "../../utils/publicPostPreviews";
 import { cleanText } from "../../utils/text";
 import type { Post } from "../../lib/types";
 import { Button } from "./ui/button";
@@ -20,12 +20,7 @@ export function ResourceSection({ isDark = false }: ResourceSectionProps) {
 
   useEffect(() => {
     const fetchResources = async () => {
-      const { data } = await supabase
-        .from("posts")
-        .select("*")
-        .eq("category", "resources")
-        .order("created_at", { ascending: false })
-        .limit(4);
+      const { data } = await fetchPublicPostPreviews("resources", 4);
       setResources((data as Post[]) || []);
       setLoading(false);
     };
