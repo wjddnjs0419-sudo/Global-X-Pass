@@ -117,10 +117,10 @@ export function NoticeResourceSection({ isDark = false }: NoticeResourceSectionP
             loading={loading}
           />
 
-          <div style={{ display: "flex", flex: 1, flexDirection: "column", gap: "var(--space-xs)", minWidth: 0 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-xs)", minWidth: 0 }}>
             {loading ? (
               [0, 1, 2, 3].map((i) => (
-                <div key={i} style={{ display: "flex", flex: "1 1 0", alignItems: "center", gap: "var(--space-sm)", minHeight: 74, padding: "13px var(--space-md)", background: th.cardBg, border: `1px solid ${th.cardBorder}`, borderRadius: "15px", minWidth: 0 }}>
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: "var(--space-sm)", minHeight: 74, padding: "13px var(--space-md)", background: th.cardBg, border: `1px solid ${th.cardBorder}`, borderRadius: "15px", minWidth: 0 }}>
                   <Skeleton className="h-9 w-11 shrink-0" />
                   <div className="flex-1 min-w-0 space-y-2">
                     <Skeleton className="h-4 w-5/6" />
@@ -299,7 +299,6 @@ function NoticeRow({
       className="notice-resource-card"
       style={{
         minHeight: 74,
-        flex: "1 1 0",
         display: "flex",
         alignItems: "center",
         gap: "var(--space-sm)",

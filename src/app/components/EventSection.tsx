@@ -45,6 +45,56 @@ export function EventSection({ isDark = false }: EventSectionProps) {
     : "";
   const displayLocation = formatStructuredLocation(featured?.location, "NCF 오피스");
   const featuredThumbnailUrl = featured ? resolvePostThumbnail(featured).url : null;
+  const hasUpcoming = upcomingEvents.length > 0;
+
+  const featuredInner = featured ? (
+    <>
+      <div style={{ display: "flex", gap: "var(--space-xs)", marginBottom: "20px", alignItems: "center", flexWrap: "wrap" }}>
+        <span style={{ fontSize: "12px", fontWeight: 800, color: th.mutedText, letterSpacing: "0.02em" }}>
+          대표 행사
+        </span>
+      </div>
+
+      <div style={{ maxHeight: "176px", overflow: "hidden" }}>
+        <h3
+          onClick={() => navigate(`/events/${featured.id}/apply`)}
+          style={{
+            color: th.headingColor,
+            fontSize: "clamp(20px,2.2vw,26px)",
+            fontWeight: 800,
+            margin: "0 0 var(--space-sm)",
+            lineHeight: 1.3,
+            cursor: "pointer",
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+          }}
+        >
+          {featured.title}
+        </h3>
+        <p style={{ color: th.subText, fontSize: "var(--text-body-sm)", lineHeight: 1.6, margin: 0, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+          {cleanText(featured.content)}
+        </p>
+      </div>
+
+      <div style={{ marginTop: "auto", paddingTop: "20px" }}>
+        <div className="flex flex-wrap gap-x-4 gap-y-1" style={{ marginBottom: "20px", color: th.subText, fontSize: "12px", fontWeight: 650 }}>
+          <span>일시 {displayDate}</span>
+          <span>장소 {displayLocation}</span>
+        </div>
+
+        <Button
+          variant="outline"
+          onClick={() => navigate(`/events/${featured.id}/apply`)}
+          shape="pill"
+          className={`w-full ${getHomeSectionCtaPillClass(isDark, "green")}`}
+        >
+          자세히 보기 →
+        </Button>
+      </div>
+    </>
+  ) : null;
 
   return (
     <section style={{
@@ -83,7 +133,7 @@ export function EventSection({ isDark = false }: EventSectionProps) {
           )}
         </div>
 
-        <div className="grid grid-cols-1 min-[900px]:grid-cols-2 gap-6">
+        <div className={`grid grid-cols-1 gap-6${loading || hasUpcoming ? " min-[900px]:grid-cols-2" : ""}`}>
           {loading ? (
             <>
               <Skeleton className="h-[420px] rounded-3xl" />
@@ -106,110 +156,99 @@ export function EventSection({ isDark = false }: EventSectionProps) {
           ) : featured ? (
             <>
               {/* ── 대표 행사 카드 ── */}
-              <div style={{
-                background: th.cardBg,
-                border: `1px solid ${th.cardBorder}`,
-                borderRadius: HOME_CARD_RADIUS, padding: "clamp(22px, 5vw, 36px)",
-                display: "flex", flexDirection: "column", gap: "var(--space-lg)", position: "relative", overflow: "hidden", height: "100%",
-              }}>
-                {featuredThumbnailUrl && (
-                  <div
-                    aria-hidden="true"
-                    style={{
-                      position: "absolute",
-                      inset: 0,
-                      backgroundImage: `url(${featuredThumbnailUrl})`,
-                      backgroundSize: "cover",
-                      backgroundPosition: "center",
-                      opacity: isDark ? 0.14 : 0.09,
-                      pointerEvents: "none",
-                    }}
-                  />
-                )}
-                <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", minHeight: "100%", height: "100%" }}>
-
-                  <div style={{ display: "flex", gap: "var(--space-xs)", marginBottom: "20px", alignItems: "center", flexWrap: "wrap" }}>
-                    <span style={{ fontSize: "12px", fontWeight: 800, color: th.mutedText, letterSpacing: "0.02em" }}>
-                      대표 행사
-                    </span>
-                  </div>
-
-                  <div style={{ maxHeight: "176px", overflow: "hidden" }}>
-                    <h3
-                      onClick={() => navigate(`/events/${featured.id}/apply`)}
+              {hasUpcoming ? (
+                <div style={{
+                  background: th.cardBg,
+                  border: `1px solid ${th.cardBorder}`,
+                  borderRadius: HOME_CARD_RADIUS, padding: "clamp(22px, 5vw, 36px)",
+                  display: "flex", flexDirection: "column", gap: "var(--space-lg)", position: "relative", overflow: "hidden", height: "100%",
+                }}>
+                  {featuredThumbnailUrl && (
+                    <div
+                      aria-hidden="true"
                       style={{
-                        color: th.headingColor,
-                        fontSize: "clamp(20px,2.2vw,26px)",
-                        fontWeight: 800,
-                        margin: "0 0 var(--space-sm)",
-                        lineHeight: 1.3,
-                        cursor: "pointer",
-                        display: "-webkit-box",
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: "vertical",
-                        overflow: "hidden",
+                        position: "absolute",
+                        inset: 0,
+                        backgroundImage: `url(${featuredThumbnailUrl})`,
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                        opacity: isDark ? 0.14 : 0.09,
+                        pointerEvents: "none",
                       }}
-                    >
-                      {featured.title}
-                    </h3>
-                    <p style={{ color: th.subText, fontSize: "var(--text-body-sm)", lineHeight: 1.6, margin: 0, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                      {cleanText(featured.content)}
-                    </p>
-                  </div>
-
-                  <div style={{ marginTop: "auto", paddingTop: "20px" }}>
-                    <div className="flex flex-wrap gap-x-4 gap-y-1" style={{ marginBottom: "20px", color: th.subText, fontSize: "12px", fontWeight: 650 }}>
-                      <span>일시 {displayDate}</span>
-                      <span>장소 {displayLocation}</span>
-                    </div>
-
-                    <Button
-                      variant="outline"
-                      onClick={() => navigate(`/events/${featured.id}/apply`)}
-                      shape="pill"
-                      className={`w-full ${getHomeSectionCtaPillClass(isDark, "green")}`}
-                    >
-                      자세히 보기 →
-                    </Button>
+                    />
+                  )}
+                  <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", minHeight: "100%", height: "100%" }}>
+                    {featuredInner}
                   </div>
                 </div>
-              </div>
+              ) : (
+                // 우측 목록이 없을 때: 우측 빈칸 대신 풀폭 가로 hero 카드
+                <div
+                  className="flex flex-col min-[640px]:flex-row"
+                  style={{
+                    background: th.cardBg,
+                    border: `1px solid ${th.cardBorder}`,
+                    borderRadius: HOME_CARD_RADIUS,
+                    position: "relative",
+                    overflow: "hidden",
+                  }}
+                >
+                  {featuredThumbnailUrl && (
+                    <div
+                      aria-hidden="true"
+                      className="w-full min-[640px]:w-[44%] shrink-0"
+                      style={{
+                        backgroundImage: `url(${featuredThumbnailUrl})`,
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                        minHeight: "200px",
+                        alignSelf: "stretch",
+                      }}
+                    />
+                  )}
+                  <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", padding: "clamp(22px, 5vw, 36px)" }}>
+                    {featuredInner}
+                  </div>
+                </div>
+              )}
 
               {/* ── 우측 목록 ── */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                {upcomingEvents.map((ev) => {
-                  const date = new Date(ev.created_at);
-                  return (
-                    <div
-                      key={ev.id}
-                      onClick={() => navigate(`/events/${ev.id}/apply`)}
-                      style={{ background: th.cardBg, border: `1px solid ${th.cardBorder}`, borderRadius: HOME_CARD_RADIUS, padding: "18px 20px", display: "flex", gap: "var(--space-md)", outline: "1px solid transparent", transition: "transform 0.18s ease, outline-color 0.18s ease, border-color 0.18s ease", cursor: "pointer" }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = "translateY(-2px)";
-                        e.currentTarget.style.outlineColor = "rgba(24,163,67,0.35)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = "translateY(0)";
-                        e.currentTarget.style.outlineColor = "transparent";
-                      }}
-                    >
-                      <div style={{ flexShrink: 0, width: "80px" }}>
-                        <div style={{ fontSize: "12px", fontWeight: 800, color: th.mutedText, marginBottom: "2px" }}>
-                          {date.getMonth() + 1}.{date.getDate()}
+              {hasUpcoming && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                  {upcomingEvents.map((ev) => {
+                    const date = new Date(ev.created_at);
+                    return (
+                      <div
+                        key={ev.id}
+                        onClick={() => navigate(`/events/${ev.id}/apply`)}
+                        style={{ background: th.cardBg, border: `1px solid ${th.cardBorder}`, borderRadius: HOME_CARD_RADIUS, padding: "18px 20px", display: "flex", gap: "var(--space-md)", outline: "1px solid transparent", transition: "transform 0.18s ease, outline-color 0.18s ease, border-color 0.18s ease", cursor: "pointer" }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = "translateY(-2px)";
+                          e.currentTarget.style.outlineColor = "rgba(24,163,67,0.35)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = "translateY(0)";
+                          e.currentTarget.style.outlineColor = "transparent";
+                        }}
+                      >
+                        <div style={{ flexShrink: 0, width: "80px" }}>
+                          <div style={{ fontSize: "12px", fontWeight: 800, color: th.mutedText, marginBottom: "2px" }}>
+                            {date.getMonth() + 1}.{date.getDate()}
+                          </div>
+                          <div style={{ fontSize: "10px", fontWeight: 800, color: th.mutedText, letterSpacing: "0.04em" }}>EVENT</div>
                         </div>
-                        <div style={{ fontSize: "10px", fontWeight: 800, color: th.mutedText, letterSpacing: "0.04em" }}>EVENT</div>
-                      </div>
-                      <div style={{ width: "1px", background: th.rowDivider, flexShrink: 0 }} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ color: th.itemTitle, fontSize: "14px", fontWeight: 700, marginBottom: "4px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ev.title}</div>
-                        <div style={{ color: th.itemDesc, fontSize: "12px", lineHeight: 1.5, display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                          {cleanText(ev.content)}
+                        <div style={{ width: "1px", background: th.rowDivider, flexShrink: 0 }} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ color: th.itemTitle, fontSize: "14px", fontWeight: 700, marginBottom: "4px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ev.title}</div>
+                          <div style={{ color: th.itemDesc, fontSize: "12px", lineHeight: 1.5, display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                            {cleanText(ev.content)}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </>
           ) : null}
         </div>

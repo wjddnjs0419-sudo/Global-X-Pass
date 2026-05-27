@@ -1,28 +1,28 @@
-# RESULT: 행사 목록 썸네일 2버그 수정 (2026-05-28)
+# RESULT: 홈 공지·행사 섹션 빈 공간 해결 (2026-05-28)
 
 ## 현재 상태
 
-- **증상**: ①`/events`(EventsPage) 카드에서 대표 썸네일 이미지가 영역 밖으로 거대하게 표시되고 카드 높이가 비정상적으로 커짐. ②어드민 게시물 작성에서 행사 대표 썸네일에 이미지를 업로드하면 하단 "별도 첨부파일" 목록에 자동으로 추가되고 `image_url`에도 중복 적재됨.
-- **결과**: 두 버그 모두 events 카테고리 전용 문제로 진단·수정. Codex 2회 리뷰(1차 needs-fix → 재작업 → 2차 SAFE-TO-COMMIT).
+- **증상**: 메인페이지 게시물이 적어 ①공지사항 섹션은 공지 1개가 컬럼 전체 높이로 stretch되어 세로 중앙 거대 카드처럼 보이고, ②행사 소식 섹션은 공개 행사 1개(=대표 1개, 우측 목록 0개)일 때 2단 grid의 우측 절반이 통째로 비어 보임.
+- **결과**: 두 섹션 모두 "위부터/꽉 차게" 채워지도록 수정. 라이브 데이터(행사 1·공지 1) 기준 빈 공간 해소 확인.
 
 ## 변경 내용
 
 | 대상 | 변경 |
 |---|---|
-| `EventsPage.tsx` 썸네일 컨테이너 | 데스크톱 `sm:h-auto sm:self-stretch` flex 행에서 img `height:100%`가 부모 높이 미확정 → 원본 비율로 펼쳐져 카드 높이를 폭발시키던 순환 의존 해소. 컨테이너 `relative overflow-hidden` + img `absolute inset-0`로 전환(절대배치라 부모 높이 산정서 제외). object-cover/crop transform은 overflow로 클립 |
-| `AdminPostCreate.tsx` 썸네일↔첨부 분리 | 근본 원인: `onCropApply`가 업로드 썸네일 파일을 `pendingThumbnailFile`(전용) **+** `files[]`(첨부)에 이중 보관 → 저장 시 events 분기가 `files` 전체를 `image_url`로 올려 중복. `files[]` push 제거 + `thumbnailFromUploadRef`로 standalone(에디터 직접 업로드)/candidate(기존 첨부 선택) 출처 구분 |
-| ↳ `[files]` 이펙트 | `pendingThumbnailFile` clear 조건에 `!thumbnailFromUploadRef.current` 추가 → standalone 썸네일은 첨부 변경에도 유지, candidate만 첨부 제거 시 해제 |
-| ↳ `onCropApply` | file 있으면 ref=true(standalone), `fileObjectUrls`서 찾으면 ref=false(candidate), 못 찾으면(applied 재크롭) 기존 `pendingThumbnailFile` 유지 |
-| ↳ `onChange` | candidate면 ref=false, 해제/dataUrl이면 null+ref=false, blob standalone 적용 url은 직전 `onCropApply` 결과 유지 |
-| ↳ 저장 업로드 가드 | `if (pendingThumbnailFile && supportsFinalThumbnail)` → 미지원 카테고리 전환 시 orphan storage 업로드 방지 |
+| `NoticeResourceSection.tsx` 공지 컬럼 | grid 두 컬럼이 동일 높이로 stretch되는데 공지 컨테이너 `flex:1` + 각 `NoticeRow`/로딩 스켈레톤 `flex:"1 1 0"`이 1개 행을 컬럼 전체로 늘리던 원인 제거. stretch 3곳 삭제 → `minHeight:74` 자연 높이로 위부터 쌓임 |
+| `EventSection.tsx` 적응형 레이아웃 | 대표 카드 콘텐츠(badge/제목·설명/footer)를 `featuredInner` 변수로 추출해 두 레이아웃 공유. `hasUpcoming = upcomingEvents.length > 0` 분기 |
+| ↳ 우측 목록 0개(`!hasUpcoming`) | 대표 카드를 풀폭 가로 hero로 렌더(썸네일 패널 좌 `min-[640px]:flex-row` + 내용 우), 우측 목록 div 미렌더 → 빈 우측 절반 제거 |
+| ↳ 1개+(`hasUpcoming`) | 기존 2단(대표 `height:100%` + 우측 목록) 그대로 유지 |
+| ↳ grid 클래스 | `loading || hasUpcoming`일 때만 `min-[900px]:grid-cols-2`, 아니면 1단. 로딩 스켈레톤은 2단 유지 |
 
 ## 검증 결과
 
-- 인사이트(media)/news/events-archive는 영향 없음 분석 완료 — media는 컨테이너 `aspectRatio`로 높이 확정(이슈1 무관) + `cropOutputMode="dataUrl"`이라 events 전용 `onCropApply` files-push 경로 미진입(이슈2 무관).
 - `npm run validate` ✅ ×2 (tsc + eslint --max-warnings=0 + vite build + 프론트 시크릿 23개).
-- Codex 리뷰: 1차 Change1 safe / Change2 needs-fix(4건: standalone 소스 유실·blob URL이 thumbnail_url 저장·재크롭 복구 불가·미지원 orphan). 재작업 후 2차 **4건 전부 RESOLVED, 신규 회귀 없음, SAFE-TO-COMMIT**.
+- Codex 리뷰 2건(공지·행사 각 1회) **BLOCKING 0** — 회귀/다크모드/반응형(640·900px) 부작용 없음. 잔여 리스크는 모바일 col 모드 footer 시각 완성도(비블로킹).
+- 브라우저 `/` 홈 smoke(Playwright): 공지 섹션 캡처(공지 1행 상단 정렬·자료실 4그리드 정상), 행사 섹션 캡처(풀폭 가로 hero), 콘솔 에러 0 육안 확인 ✅.
 
 ## 미실행 / 후속
 
-- **브라우저 smoke 미실행**: 실제 `/events` 카드 렌더 + 어드민 행사 썸네일 업로드→첨부 비추가→저장→재편집 육안 확인 권장.
-- 본 커밋에 이전 세션 누적 미커밋분이 함께 포함됨(사용자 지시: 전체 누적분 신규 커밋).
+- 프론트만 변경 — Supabase 마이그레이션 변경 없음(sync 영향 없음).
+- 미커밋 잔여: `.claude/settings.json`(이번 스모크 임시 권한)·`src/generated/architectureMap.json`(생성물 1줄) — 기능 커밋서 제외.
+- **Pending Approval 유지**: 게시판 gated 일관 적용 미커밋분 Codex 재리뷰는 별건(PLAN.md 참고).
