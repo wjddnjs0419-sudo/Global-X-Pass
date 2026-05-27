@@ -7,9 +7,11 @@ import { isBrowserSafeImageFile } from "../../../utils/file";
 import {
   getThumbnailAspectNumber,
   getThumbnailOutputSize,
+  getThumbnailImageStyle,
   toCssAspectRatio,
   type ThumbnailAspect,
   type ThumbnailCandidate,
+  type ThumbnailCrop,
 } from "../../../utils/postThumbnail";
 
 interface AdvancedThumbnailEditorProps {
@@ -17,6 +19,9 @@ interface AdvancedThumbnailEditorProps {
   candidates: ThumbnailCandidate[];
   value: string | null;
   onChange: (value: string | null) => void;
+  valueCrop?: ThumbnailCrop | null;
+  cropOutputMode?: "dataUrl" | "metadata";
+  onCropApply?: (payload: { url: string; crop: ThumbnailCrop | null; file?: File }) => void;
   title?: string;
   statusLabel?: string;
   emptyStatusLabel?: string;
@@ -31,6 +36,7 @@ interface SourceImage {
   label: string;
   source: "content" | "attachment" | "external" | "upload" | "applied";
   objectUrl?: string;
+  file?: File;
 }
 
 interface CropRect {
@@ -115,6 +121,24 @@ const createDefaultCropRect = (imageAspect: number, targetAspect: number): CropR
   }, imageAspect, targetAspect);
 };
 
+const cropRectToThumbnailCrop = (rect: CropRect, aspect: ThumbnailAspect): ThumbnailCrop => ({
+  x: clamp(rect.x + rect.width / 2, 0, 100),
+  y: clamp(rect.y + rect.height / 2, 0, 100),
+  zoom: clamp(100 / rect.width, 1, 3),
+  aspect,
+});
+
+const thumbnailCropToRect = (crop: ThumbnailCrop, imageAspect: number, targetAspect: number): CropRect => {
+  const width = clamp(100 / Math.max(crop.zoom, 1), MIN_CROP_WIDTH, 100);
+  const height = getRectHeight(width, imageAspect, targetAspect);
+  return normalizeRect({
+    x: crop.x - width / 2,
+    y: crop.y - height / 2,
+    width,
+    height,
+  }, imageAspect, targetAspect);
+};
+
 const cropImageToDataUrl = async (url: string, rect: CropRect, aspect: ThumbnailAspect, outputWidth?: number) => {
   const image = await loadImage(url);
   const defaultOutputSize = getThumbnailOutputSize(aspect);
@@ -142,6 +166,9 @@ export function AdvancedThumbnailEditor({
   candidates,
   value,
   onChange,
+  valueCrop = null,
+  cropOutputMode = "dataUrl",
+  onCropApply,
   title = "대표 썸네일",
   statusLabel = "수동 지정됨",
   emptyStatusLabel = "자동 선택 사용 중",
@@ -194,7 +221,7 @@ export function AdvancedThumbnailEditor({
     ? "linear-gradient(45deg, rgba(255,255,255,0.06) 25%, transparent 25%), linear-gradient(-45deg, rgba(255,255,255,0.06) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.06) 75%), linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.06) 75%)"
     : "linear-gradient(45deg, rgba(15,23,42,0.08) 25%, transparent 25%), linear-gradient(-45deg, rgba(15,23,42,0.08) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, rgba(15,23,42,0.08) 75%), linear-gradient(-45deg, transparent 75%, rgba(15,23,42,0.08) 75%)";
   const aspectLabel = aspect === "10/9"
-    ? "뉴스 카드 비율 10:9"
+    ? "목록 카드 비율 10:9"
     : aspect === "16/10"
       ? "행사 아카이브 카드 비율 16:10"
       : aspect === "7/1"
@@ -257,6 +284,7 @@ export function AdvancedThumbnailEditor({
       label: file.name,
       source: "upload",
       objectUrl,
+      file,
     };
     setUploadedSource(previous => {
       if (previous?.objectUrl) URL.revokeObjectURL(previous.objectUrl);
@@ -366,6 +394,15 @@ export function AdvancedThumbnailEditor({
     if (!modalSource || !imageSize) return;
     setApplying(true);
     try {
+      if (cropOutputMode === "metadata") {
+        const metadataCrop = cropRectToThumbnailCrop(activeRect, aspect);
+        onChange(modalSource.url);
+        onCropApply?.({ url: modalSource.url, crop: metadataCrop, file: modalSource.file });
+        if (singleImageMode) clearUploadedSource();
+        closeEditor();
+        return;
+      }
+
       const dataUrl = await cropImageToDataUrl(modalSource.url, activeRect, aspect);
       onChange(dataUrl);
       if (singleImageMode) clearUploadedSource();
@@ -426,7 +463,7 @@ export function AdvancedThumbnailEditor({
             }}
           >
             <span style={{ display: "block", width: 96, aspectRatio: toCssAspectRatio(aspect), overflow: "hidden", borderRadius: 9, background: panelBg }}>
-              <img src={appliedSource.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+              <img src={appliedSource.url} alt="" style={getThumbnailImageStyle(valueCrop)} />
             </span>
             <span className="min-w-0">
               <span className="block truncate text-xs font-extrabold">{appliedLabel}</span>
@@ -529,8 +566,11 @@ export function AdvancedThumbnailEditor({
                     draggable={false}
                     onLoad={event => {
                       const size = { width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight };
+                      const loadedImageAspect = size.width / size.height;
                       setImageSize(size);
-                      setCropRect(createDefaultCropRect(size.width / size.height, targetAspect));
+                      setCropRect(modalSource.source === "applied" && valueCrop
+                        ? thumbnailCropToRect(valueCrop, loadedImageAspect, targetAspect)
+                        : createDefaultCropRect(loadedImageAspect, targetAspect));
                       setLoadFailed(false);
                     }}
                     onError={() => setLoadFailed(true)}

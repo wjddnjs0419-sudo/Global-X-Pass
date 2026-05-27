@@ -3,10 +3,13 @@ import { Link } from "react-router";
 import { supabase } from "../../lib/supabaseClient";
 import { fetchPublicPostPreviews } from "../../utils/publicPostPreviews";
 import { PageShell } from "../components/PageShell";
+import { BoardAccessGate } from "../components/BoardAccessGate";
+import { useBoardCategoryLabel, useBoardCategoryDescription } from "../BoardCategoriesContext";
 import { useTheme } from "../ThemeContext";
 import { LoadingSpinner, ErrorMessage } from "../components/LoadingSpinner";
 import { cleanText } from "../../utils/text";
 import { isImage } from "../../utils/file";
+import { getThumbnailImageStyle, resolvePostThumbnail } from "../../utils/postThumbnail";
 import { EVENT_STATUS_CONFIG, getEffectiveEventStatus, getEventRemaining, isEventApplicationOpen } from "../../utils/eventApplication";
 import { formatLocalDateTime, formatStructuredLocation } from "../../utils/scheduleFields";
 import { getFilterTabStyle, getMutedLabelStyle, getStatusPillStyle } from "../components/contentListStyles";
@@ -17,6 +20,8 @@ const PAGE_SIZE = 10;
 
 export function EventsPage() {
   const { isDark } = useTheme();
+  const boardTitle = useBoardCategoryLabel("events", "행사");
+  const boardSubtitle = useBoardCategoryDescription("events", "NCF에서 진행하는 다양한 이벤트와 프로그램을 확인해 보세요.");
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -48,7 +53,8 @@ export function EventsPage() {
   }, []);
 
   return (
-    <PageShell title="행사" subtitle="NCF에서 진행하는 다양한 이벤트와 프로그램을 확인해 보세요." accentColor="var(--color-accent-green)">
+    <BoardAccessGate category="events">
+    <PageShell title={boardTitle} subtitle={boardSubtitle} accentColor="var(--color-accent-green)">
       <div className="max-w-[1100px] mx-auto pb-[100px]">
         {loading ? (
           <LoadingSpinner />
@@ -78,11 +84,13 @@ export function EventsPage() {
               </div>
             )}
             {pagedPosts.map((post) => {
+              const resolvedThumbnail = resolvePostThumbnail(post);
               const attachmentImages = post.image_url?.split(",").filter(isImage) || [];
-              const thumbnailUrl =
+              const fallbackThumbnailUrl =
                 attachmentImages.length > 0
                   ? attachmentImages[0]
                   : (post.content?.match(/<img[^>]+src="([^">]+)"/) || [])[1];
+              const thumbnailUrl = resolvedThumbnail.url ?? fallbackThumbnailUrl;
               const excerpt = cleanText(post.content);
               const tags = post.tags
                 ? post.tags.split(",").map((t: string) => t.trim()).filter(Boolean)
@@ -105,14 +113,15 @@ export function EventsPage() {
                 >
                   {/* Thumbnail */}
                   <div
-                    className="w-full sm:w-[260px] shrink-0 h-52 sm:h-auto sm:self-stretch"
+                    className="relative overflow-hidden w-full sm:w-[260px] shrink-0 h-52 sm:h-auto sm:self-stretch"
                     style={{ background: "var(--color-img-placeholder)" }}
                   >
                     {thumbnailUrl ? (
                       <img
                         src={thumbnailUrl}
                         alt=""
-                        className="w-full h-full object-cover block"
+                        className="absolute inset-0 block"
+                        style={getThumbnailImageStyle(resolvedThumbnail.url ? resolvedThumbnail.crop : null)}
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
@@ -226,5 +235,6 @@ export function EventsPage() {
         })()}
       </div>
     </PageShell>
+    </BoardAccessGate>
   );
 }

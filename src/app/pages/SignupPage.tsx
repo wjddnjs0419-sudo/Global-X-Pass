@@ -63,9 +63,7 @@ export default function SignupPage() {
       if (!data?.success) throw new Error(data?.error || "회원가입 중 오류가 발생했습니다.");
 
       await supabase.auth.signOut();
-      alert(data.needsEmailConfirmation
-        ? "회원가입이 완료되었습니다! 이메일 확인 후 로그인해 주세요."
-        : "회원가입이 완료되었습니다! 로그인해 주세요.");
+      alert("회원가입 신청이 완료되었습니다!\n관리자 승인 후 로그인하실 수 있습니다.");
       navigate("/login");
     } catch (err: unknown) {
       const msg = (err instanceof Error ? err.message : String(err)) || "";

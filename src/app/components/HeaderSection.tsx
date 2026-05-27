@@ -6,7 +6,8 @@ import { useLanguage } from "../LanguageContext";
 import { useTheme } from "../ThemeContext";
 import { useAdmin } from "../../hooks/useAdmin";
 import { LAYERS } from "../../lib/layers";
-import { DESKTOP_MAIN_MENUS, SIDEBAR_MAIN_MENUS, type MenuKey } from "../navigation/mainMenu";
+import { DESKTOP_MAIN_MENUS, SIDEBAR_MAIN_MENUS, type MenuKey, type MenuItem } from "../navigation/mainMenu";
+import { useBoardCategoryLabels } from "../BoardCategoriesContext";
 
 interface HeaderSectionProps {
   isDark?: boolean;
@@ -28,6 +29,9 @@ export function HeaderSection({ isDark = false }: HeaderSectionProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { lang, toggleLang } = useLanguage();
+  const boardLabels = useBoardCategoryLabels();
+  const itemLabel = (it: MenuItem) =>
+    it.category && lang === "ko" ? boardLabels[it.category] ?? it.label.ko : it.label[lang];
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -214,7 +218,7 @@ export function HeaderSection({ isDark = false }: HeaderSectionProps) {
                           onMouseEnter={(e) => (e.currentTarget.style.background = menuSelectedBg)}
                           onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                         >
-                          {it.label[lang]}
+                          {itemLabel(it)}
                         </Link>
                       ))}
                     </div>
@@ -326,7 +330,7 @@ export function HeaderSection({ isDark = false }: HeaderSectionProps) {
               </div>
               {m.items.map((it) => (
                 <Link key={it.path} to={it.path} onClick={() => setSidebarOpen(false)} className="block px-[12px] py-[10px] rounded-[10px] text-[15px] font-semibold no-underline transition-colors duration-150 ease-in-out" style={{ color: sidebarText }} onMouseEnter={(e) => (e.currentTarget.style.background = menuSelectedBg)} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
-                  {it.label[lang]}
+                  {itemLabel(it)}
                 </Link>
               ))}
             </div>

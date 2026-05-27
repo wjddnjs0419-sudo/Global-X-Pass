@@ -103,12 +103,14 @@ Deno.serve(async (req: Request) => {
 
         const userId = created.user.id;
 
-        // handle_new_user 트리거가 profiles 행 생성 후 추가 필드 업데이트
+        // handle_new_user 트리거가 profiles 행 생성 후 추가 필드 업데이트.
+        // 어드민이 직접 등록한 계정이므로 승인 단계 없이 즉시 approved(ban 미적용).
         await adminClient.from("profiles").update({
           name,
           phone: (u.phone ?? "").trim() || null,
           company: (u.company ?? "").trim() || null,
           role,
+          status: "approved",
         }).eq("id", userId);
 
         // 최신 profiles 행(email 포함) 조회 후 PII 인라인 암호화

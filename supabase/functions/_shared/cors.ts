@@ -1,10 +1,12 @@
 const ALLOWED_ORIGINS = [
-  "https://globalxpass.com",
-  "https://google-play-changgoo-program.netlify.app",
+  "https://ncf-aroundx.com",
+  "http://ncf-aroundx.com",
   "http://localhost:5173",
   "http://localhost:5174",
+  "http://localhost:5175",
   "http://127.0.0.1:5173",
   "http://127.0.0.1:5174",
+  "http://127.0.0.1:5175",
 ];
 
 export function corsHeaders(req: Request): Record<string, string> {

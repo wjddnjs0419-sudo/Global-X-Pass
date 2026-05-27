@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { PageShell } from "../components/PageShell";
+import { BoardAccessGate } from "../components/BoardAccessGate";
+import { useBoardCategoryLabel, useBoardCategoryDescription } from "../BoardCategoriesContext";
 import { useTheme } from "../ThemeContext";
-import { supabase } from "../../lib/supabaseClient";
+import { fetchPublicPostPreviews } from "../../utils/publicPostPreviews";
 import { LoadingSpinner, ErrorMessage } from "../components/LoadingSpinner";
 import type { Post } from "../../lib/types";
 import { getFilterTabStyle } from "../components/contentListStyles";
@@ -23,6 +25,8 @@ type MediaPost = Post;
 
 export function MediaPage() {
   const { isDark } = useTheme();
+  const boardTitle = useBoardCategoryLabel("media", "인사이트");
+  const boardSubtitle = useBoardCategoryDescription("media", "Global X Pass가 직접 제작한 콘텐츠를 만나보세요.");
   const navigate = useNavigate();
   const location = useLocation();
   const [posts, setPosts] = useState<MediaPost[]>([]);
@@ -32,16 +36,11 @@ export function MediaPage() {
   const mediaCategories = useMediaCategories();
 
   useEffect(() => {
-    supabase
-      .from("posts")
-      .select("*")
-      .eq("category", "media")
-      .order("created_at", { ascending: false })
-      .then(({ data, error: err }) => {
-        if (err) setError(true);
-        else setPosts((data as Post[]) || []);
-        setLoading(false);
-      });
+    fetchPublicPostPreviews("media").then(({ data, error: err }) => {
+      if (err) setError(true);
+      else setPosts((data as Post[]) || []);
+      setLoading(false);
+    });
   }, []);
 
   useEffect(() => {
@@ -67,9 +66,10 @@ export function MediaPage() {
   };
 
   return (
+    <BoardAccessGate category="media">
     <PageShell
-      title="인사이트"
-      subtitle="Global X Pass가 직접 제작한 콘텐츠를 만나보세요."
+      title={boardTitle}
+      subtitle={boardSubtitle}
       accentColor="var(--color-accent-ncf)"
     >
       <div className="max-w-[1200px] mx-auto pb-[100px]">
@@ -141,6 +141,7 @@ export function MediaPage() {
         )}
       </div>
     </PageShell>
+    </BoardAccessGate>
   );
 }
 

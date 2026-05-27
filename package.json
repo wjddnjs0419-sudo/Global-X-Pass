@@ -128,7 +128,7 @@
       "package.json"
     ],
     "mac": {
-      "icon": "build/icon.png",
+      "icon": "src/imports/changgu-symbol.png",
       "category": "public.app-category.developer-tools",
       "target": [
         "dir"

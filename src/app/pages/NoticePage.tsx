@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { fetchPublicPostPreviews } from "../../utils/publicPostPreviews";
 import { PageShell } from "../components/PageShell";
+import { BoardAccessGate } from "../components/BoardAccessGate";
+import { useBoardCategoryLabel, useBoardCategoryDescription } from "../BoardCategoriesContext";
 import { useTheme } from "../ThemeContext";
 import { LoadingSpinner, ErrorMessage } from "../components/LoadingSpinner";
 import { cleanText } from "../../utils/text";
@@ -13,6 +15,8 @@ const PAGE_SIZE = 10;
 
 export function NoticePage() {
   const { isDark } = useTheme();
+  const boardTitle = useBoardCategoryLabel("notice", "공지사항");
+  const boardSubtitle = useBoardCategoryDescription("notice", "NCF의 새로운 소식과 안내 사항을 확인하세요.");
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -36,7 +40,8 @@ export function NoticePage() {
   const handleTagChange = (tag: string) => { setActiveTag(tag); setCurrentPage(1); };
 
   return (
-    <PageShell title="공지사항" subtitle="NCF의 새로운 소식과 안내 사항을 확인하세요." accentColor="var(--color-brand-red)">
+    <BoardAccessGate category="notice">
+    <PageShell title={boardTitle} subtitle={boardSubtitle} accentColor="var(--color-brand-red)">
       <div className="max-w-[900px] mx-auto pb-[100px]">
         {loading ? (
           <LoadingSpinner />
@@ -98,5 +103,6 @@ export function NoticePage() {
         )}
       </div>
     </PageShell>
+    </BoardAccessGate>
   );
 }

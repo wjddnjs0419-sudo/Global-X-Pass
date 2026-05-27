@@ -9,7 +9,6 @@ import { EventApplicationPage } from "./pages/EventApplicationPage";
 import { EventArchivePage } from "./pages/EventArchivePage";
 import { ResourcesPage } from "./pages/ResourcesPage";
 import { MediaPage } from "./pages/MediaPage";
-import { BlogPage } from "./pages/BlogPage";
 import { FaqPage } from "./pages/FaqPage";
 import { LoginPage } from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
@@ -44,10 +43,9 @@ export const router = createBrowserRouter([
       { path: "events", Component: EventsPage },
       { path: "events/:id/apply", Component: AuthRoute, children: [{ index: true, Component: EventApplicationPage }] },
       { path: "events/archive", Component: EventArchivePage },
-      { path: "resources", Component: AuthRoute, children: [{ index: true, Component: ResourcesPage }] },
-      { path: "companies", Component: AuthRoute, children: [{ index: true, Component: CompaniesPage }] },
-      { path: "insights", Component: AuthRoute, children: [{ index: true, Component: MediaPage }] },
-      { path: "blog", Component: AuthRoute, children: [{ index: true, Component: BlogPage }] },
+      { path: "resources", Component: ResourcesPage },
+      { path: "companies", Component: CompaniesPage },
+      { path: "insights", Component: MediaPage },
       { path: "faq", Component: FaqPage },
       { path: "login", Component: LoginPage },
       { path: "signup", Component: SignupPage },
@@ -57,8 +55,8 @@ export const router = createBrowserRouter([
       { path: "admin", Component: AdminRoute, children: [{ index: true, Component: AdminPage }] },
       { path: "design-system", Component: AdminRoute, children: [{ index: true, Component: () => null }] },
       { path: "expenses", Component: AuthRoute, children: [{ index: true, Component: ExpensesPage }] },
-      { path: "consulting", Component: AuthRoute, children: [{ index: true, Component: ConsultingPage }] },
-      { path: "founders-club", Component: AuthRoute, children: [{ index: true, Component: FoundersClubPage }] },
+      { path: "consulting", Component: ConsultingPage },
+      { path: "founders-club", Component: FoundersClubPage },
       { path: toChildRoutePath(AROUND_X_ROUTES.changguProgram), Component: AroundXChangguProgramPage },
       { path: "privacy-policy", Component: PrivacyPolicyPage },
       { path: "terms-of-use", Component: TermsOfUsePage },

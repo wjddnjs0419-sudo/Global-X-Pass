@@ -16,9 +16,22 @@ const architectureEntry = isDev
 // packaged: .app/Contents/MacOS/binary 에서 5단계 위 = release/mac-arm64 → release → 프로젝트
 function resolveProjectRoot() {
   if (isDev) return path.resolve(__dirname, "..");
-  const exeDir = path.dirname(app.getPath("exe"));
-  const candidate = path.resolve(exeDir, "..", "..", "..", "..", "..");
-  return fs.existsSync(path.join(candidate, "package.json")) ? candidate : os.homedir();
+
+  const candidates = [
+    process.env.GXP_PROJECT_ROOT,
+    path.resolve(path.dirname(app.getPath("exe")), "..", "..", "..", "..", ".."),
+    path.resolve(app.getAppPath(), "..", "..", ".."),
+    path.join(os.homedir(), "Desktop", "Global X Pass"),
+    path.join(os.homedir(), "Documents", "Global X Pass"),
+    path.join(os.homedir(), "Downloads", "Global X Pass"),
+    process.cwd(),
+  ].filter(Boolean);
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(path.join(candidate, "package.json"))) return candidate;
+  }
+
+  return os.homedir();
 }
 
 let projectRoot = isDev ? path.resolve(__dirname, "..") : null;
@@ -27,6 +40,7 @@ const GITHUB_OWNER = "wjddnjs0419-sudo";
 const GITHUB_REPO = "Global-X-Pass";
 const QA_WORKFLOW_FILE = "qa-dispatch.yml";
 const QA_WORKFLOW_REF = "main";
+const COMPANY_NEWS_WORKFLOW_FILE = "company-news-crawl.yml";
 const GITHUB_TOKEN_FILE = "github-token.txt";
 const QA_CREDENTIALS_FILE = "qa-credentials.env";
 const QA_TEST_SUITES = new Set([
@@ -75,26 +89,52 @@ function getQaCredentialsPath() {
   return path.join(app.getPath("userData"), QA_CREDENTIALS_FILE);
 }
 
-function readStoredGithubToken() {
-  try {
-    return fs.readFileSync(getGithubTokenPath(), "utf8").trim();
-  } catch {
-    return "";
+function getLegacyUserDataPath() {
+  return path.join(app.getPath("appData"), "@figma/my-make-file");
+}
+
+function getUserDataPaths() {
+  return [...new Set([app.getPath("userData"), getLegacyUserDataPath()])];
+}
+
+function readStoredText(filename) {
+  for (const dir of getUserDataPaths()) {
+    try {
+      return fs.readFileSync(path.join(dir, filename), "utf8").trim();
+    } catch {}
+  }
+  return "";
+}
+
+function writeStoredText(filename, value) {
+  const clean = String(value || "").trim();
+  if (!clean) throw new Error(`${filename} is empty`);
+
+  for (const dir of getUserDataPaths()) {
+    const filePath = path.join(dir, filename);
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, clean, { mode: 0o600 });
   }
 }
 
+function clearStoredText(filename) {
+  for (const dir of getUserDataPaths()) {
+    try {
+      fs.rmSync(path.join(dir, filename), { force: true });
+    } catch {}
+  }
+}
+
+function readStoredGithubToken() {
+  return readStoredText(GITHUB_TOKEN_FILE);
+}
+
 function writeStoredGithubToken(token) {
-  const clean = String(token || "").trim();
-  if (!clean) throw new Error("GitHub token is empty");
-  const tokenPath = getGithubTokenPath();
-  fs.mkdirSync(path.dirname(tokenPath), { recursive: true });
-  fs.writeFileSync(tokenPath, clean, { mode: 0o600 });
+  writeStoredText(GITHUB_TOKEN_FILE, token);
 }
 
 function clearStoredGithubToken() {
-  try {
-    fs.rmSync(getGithubTokenPath(), { force: true });
-  } catch {}
+  clearStoredText(GITHUB_TOKEN_FILE);
 }
 
 function escapeEnvValue(value) {
@@ -102,7 +142,7 @@ function escapeEnvValue(value) {
 }
 
 function hasStoredQaCredentials() {
-  return fs.existsSync(getQaCredentialsPath());
+  return Boolean(readStoredText(QA_CREDENTIALS_FILE));
 }
 
 function writeStoredQaCredentials(credentials) {
@@ -113,24 +153,17 @@ function writeStoredQaCredentials(credentials) {
     throw new Error("QA email, password, and MFA secret are required");
   }
 
-  const credentialsPath = getQaCredentialsPath();
-  fs.mkdirSync(path.dirname(credentialsPath), { recursive: true });
-  fs.writeFileSync(
-    credentialsPath,
-    [
-      `QA_ADMIN_EMAIL='${escapeEnvValue(email)}'`,
-      `QA_ADMIN_PASSWORD='${escapeEnvValue(password)}'`,
-      `QA_ADMIN_MFA_SECRET='${escapeEnvValue(mfaSecret)}'`,
-      "",
-    ].join("\n"),
-    { mode: 0o600 },
-  );
+  const credentialsText = [
+    `QA_ADMIN_EMAIL='${escapeEnvValue(email)}'`,
+    `QA_ADMIN_PASSWORD='${escapeEnvValue(password)}'`,
+    `QA_ADMIN_MFA_SECRET='${escapeEnvValue(mfaSecret)}'`,
+    "",
+  ].join("\n");
+  writeStoredText(QA_CREDENTIALS_FILE, credentialsText);
 }
 
 function clearStoredQaCredentials() {
-  try {
-    fs.rmSync(getQaCredentialsPath(), { force: true });
-  } catch {}
+  clearStoredText(QA_CREDENTIALS_FILE);
 }
 
 function resolveProjectPath(filePath) {
@@ -392,6 +425,51 @@ async function readQaWorkflowRuns() {
     ok: true,
     repo: `${GITHUB_OWNER}/${GITHUB_REPO}`,
     workflow: QA_WORKFLOW_FILE,
+    runs: normalized,
+    fetchedAt: new Date().toISOString(),
+  };
+}
+
+async function readCompanyNewsWorkflowRuns() {
+  const runsPath = `/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions/workflows/${COMPANY_NEWS_WORKFLOW_FILE}/runs?per_page=20&branch=main`;
+  const runsJson = await githubRequest(runsPath);
+  const runs = Array.isArray(runsJson?.workflow_runs) ? runsJson.workflow_runs : [];
+
+  const normalized = await Promise.all(runs.map(async (run) => {
+    let failedStep = null;
+    if (run.conclusion && run.conclusion !== "success" && run.jobs_url) {
+      try {
+        const jobsUrl = new URL(run.jobs_url);
+        const jobsJson = await githubRequest(`${jobsUrl.pathname}${jobsUrl.search || ""}`);
+        const jobs = Array.isArray(jobsJson?.jobs) ? jobsJson.jobs : [];
+        failedStep = jobs.map(normalizeFailedStep).find(Boolean) ?? null;
+      } catch (error) {
+        failedStep = { job: "GitHub Actions", step: String(error?.message ?? error), conclusion: "unknown" };
+      }
+    }
+
+    return {
+      id: String(run.id),
+      runNumber: run.run_number,
+      runAttempt: run.run_attempt,
+      name: run.name || "Company News Crawl",
+      displayTitle: run.display_title || run.name || "Company News Crawl",
+      event: run.event || "unknown",
+      status: run.status || "unknown",
+      conclusion: run.conclusion || null,
+      branch: run.head_branch || "main",
+      actor: run.actor?.login || null,
+      createdAt: run.created_at,
+      updatedAt: run.updated_at,
+      htmlUrl: run.html_url,
+      failedStep,
+    };
+  }));
+
+  return {
+    ok: true,
+    repo: `${GITHUB_OWNER}/${GITHUB_REPO}`,
+    workflow: COMPANY_NEWS_WORKFLOW_FILE,
     runs: normalized,
     fetchedAt: new Date().toISOString(),
   };
@@ -695,6 +773,19 @@ function createWindow() {
     }
   });
 
+  ipcMain.handle("company-news:read-runs", async () => {
+    try {
+      return await readCompanyNewsWorkflowRuns();
+    } catch (err) {
+      return {
+        ok: false,
+        error: String(err?.message ?? err),
+        statusCode: err?.statusCode ?? null,
+        needsToken: err?.statusCode === 401 || err?.statusCode === 403 || err?.statusCode === 404,
+      };
+    }
+  });
+
   ipcMain.handle("qa:trigger-run", async (_event, suite) => {
     try {
       return await triggerQaWorkflowRun(suite);
@@ -787,6 +878,7 @@ function createWindow() {
     ipcMain.removeHandler("blog-ai:generate");
     ipcMain.removeHandler("blog-ai:revise");
     ipcMain.removeHandler("qa:read-runs");
+    ipcMain.removeHandler("company-news:read-runs");
     ipcMain.removeHandler("qa:trigger-run");
     ipcMain.removeHandler("qa:run-visible");
     ipcMain.removeHandler("qa-credentials:get-status");

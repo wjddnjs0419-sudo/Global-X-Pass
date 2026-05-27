@@ -1,3 +1,30 @@
+## 2026-05-27 게시판 3단계 접근 모델(public/gated/private) + 특수 페이지 통합
+
+- `post_categories`에 `access_level`(public/gated/private)+`kind`(board/page) 추가. `is_public`은 트리거로 access_level과 동기화(RLS `posts_select_public_by_flag` 호환).
+- companies/consulting/founders-club을 `kind=page` 가상 게시판(gated)으로 등록 → 목록 공개 + 상세/신청 클릭 시 로그인. expenses=private 유지.
+- 마이그 3건: `053805_board_access_levels`, `055536_founders_sessions_public_read`, `061936_board_access_rls_hardening`(anon posts access_level='public' / companies published RLS 강화).
+- 프론트: `useAuthGate`(신규 gated 게이트, requireAuth async), `BoardAccessGate`(private만 진입 차단), `AdminBoardManagement` 3단계 셀렉트(board는 gated 비활성), `PostDetailPage` `PUBLIC_DETAIL_CATEGORIES` 하드코딩 제거→RPC+access_level fallback, routes에서 AuthRoute 제거.
+- 검증: `npm run validate` ✅, 마이그 sync 정렬. Codex 재리뷰는 PLAN Pending Approval(1차 4건 반영 후 런타임 오류로 미완).
+
+---
+
+## 2026-05-27 홈 About 섹션 미니멀 재정렬
+
+- 메인페이지 `AboutSection`을 `Around X` 브랜드 소개로 유지하되, 기존 홈 섹션 디자인 시스템의 미니멀 문법으로 재정렬했다.
+- 과한 Around X 전용 배경/그라데이션/브랜드 배지/키워드 칩/반복 색상 장식을 제거하고 `HOME_SECTION_*` 리듬과 `getSectionTheme()` 토큰으로 맞췄다.
+- 가치 카드는 `AboutValueCard`로 분리했고, 전달받은 Around X 단독 로고를 `around-x-logo-rgb.png`로 추가해 다크모드에서는 white 처리 필터를 적용했다.
+- 검증: `npm run validate` ✅, 홈 `/` 데스크톱·모바일·다크·EN 브라우저 smoke ✅
+
+---
+
+## 2026-05-27 어드민 사이드바 그룹 재정리
+
+- 어드민 사이드바의 `콘텐츠` 그룹을 직접 편집형(`게시물 작성`, `게시물 관리`, `게시판 관리`)과 자동 수집형(`블로그 동기화`, `기업 뉴스 관리`, `언론보도 관리`)으로 분리했다.
+- 자동 수집형 3개는 새 `자동화` 그룹으로 이동했고, 탭 id/라우팅/DB는 변경하지 않았다.
+- 검증: `npm run validate` ✅, Codex 리뷰 블로킹 없음.
+
+---
+
 ## 2026-05-22 회사 뉴스 운영 관리 기능 추가
 
 - 기업 뉴스 수집/검토 흐름을 운영 가능한 형태로 보강했다.

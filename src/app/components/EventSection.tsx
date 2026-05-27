@@ -4,6 +4,7 @@ import { getSectionTheme } from "../utils/sectionTheme";
 import { fetchPublicPostPreviews } from "../../utils/publicPostPreviews";
 import { cleanText } from "../../utils/text";
 import { formatStructuredLocation } from "../../utils/scheduleFields";
+import { resolvePostThumbnail } from "../../utils/postThumbnail";
 import type { Post } from "../../lib/types";
 import { Button } from "./ui/button";
 import { Skeleton } from "./ui/skeleton";
@@ -43,6 +44,7 @@ export function EventSection({ isDark = false }: EventSectionProps) {
     ? (featured.event_date || new Date(featured.created_at).toLocaleDateString("ko-KR"))
     : "";
   const displayLocation = formatStructuredLocation(featured?.location, "NCF 오피스");
+  const featuredThumbnailUrl = featured ? resolvePostThumbnail(featured).url : null;
 
   return (
     <section style={{
@@ -110,13 +112,13 @@ export function EventSection({ isDark = false }: EventSectionProps) {
                 borderRadius: HOME_CARD_RADIUS, padding: "clamp(22px, 5vw, 36px)",
                 display: "flex", flexDirection: "column", gap: "var(--space-lg)", position: "relative", overflow: "hidden", height: "100%",
               }}>
-                {featured.image_url && (
+                {featuredThumbnailUrl && (
                   <div
                     aria-hidden="true"
                     style={{
                       position: "absolute",
                       inset: 0,
-                      backgroundImage: `url(${featured.image_url})`,
+                      backgroundImage: `url(${featuredThumbnailUrl})`,
                       backgroundSize: "cover",
                       backgroundPosition: "center",
                       opacity: isDark ? 0.14 : 0.09,

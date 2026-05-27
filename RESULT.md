@@ -1,45 +1,28 @@
-# RESULT: 게시판 gated 일관 적용 + 자동 반영 수정 (2026-05-27)
+# RESULT: 행사 목록 썸네일 2버그 수정 (2026-05-28)
 
 ## 현재 상태
 
-- **증상**: 비로그인 방문자가 행사·인사이트·자료실·온라인 이머젼·파운더스 목록을 못 봄. 어드민 "게시판 관리"에서 접근 권한을 바꿔도 공개 사이트에 즉시 반영 안 됨.
-- **결과**: 자료실/행사/이머젼은 "목록 공개 + 상세·신청 로그인"으로 정상화. 어드민 변경은 realtime으로 라이브 반영. 인사이트/파운더스는 데이터 0개(사용자 삭제)라 빈 화면이 정상.
-
-## 근본 원인 → 수정 (4가지)
-
-| # | 원인 | 수정 |
-|---|---|---|
-| 1 | `post_categories`가 `supabase_realtime` publication에 없음 → `useBoardAccess`·`BoardCategoriesContext`의 `postgres_changes` 구독 콜백이 영영 안 불림 → 어드민 변경이 새로고침 전까지 미반영 | publication에 `post_categories` 추가 (마이그) |
-| 2 | events=gated(OK)지만 resources=public·media=private로 의도와 어긋남 + 어드민 UI가 board의 gated 선택을 막음 | events/resources/media → `access_level=gated` 통일(마이그), `AdminBoardManagement` `gatedBlocked` 가드 제거 |
-| 3 | gated board 목록을 직접 `posts.select()`하던 홈 섹션이 RLS(`posts_select_public_by_flag`=public만)에 막혀 빈 목록 | Media/Resource/NoticeResource/Community 섹션을 `fetchPublicPostPreviews` RPC로 전환 |
-| 4 | 온라인 이머젼 `consultants`·`consulting_categories`에 anon SELECT 정책 부재 → 비로그인 전혀 못 봄 | `consultants_select_public`(is_active=true)·`consulting_categories_select_public` 추가 (마이그) |
+- **증상**: ①`/events`(EventsPage) 카드에서 대표 썸네일 이미지가 영역 밖으로 거대하게 표시되고 카드 높이가 비정상적으로 커짐. ②어드민 게시물 작성에서 행사 대표 썸네일에 이미지를 업로드하면 하단 "별도 첨부파일" 목록에 자동으로 추가되고 `image_url`에도 중복 적재됨.
+- **결과**: 두 버그 모두 events 카테고리 전용 문제로 진단·수정. Codex 2회 리뷰(1차 needs-fix → 재작업 → 2차 SAFE-TO-COMMIT).
 
 ## 변경 내용
 
 | 대상 | 변경 |
 |---|---|
-| `supabase/migrations/20260527101555_post_categories_realtime_and_access_fix.sql` | realtime publication 추가(idempotent) + events/resources/media `access_level='gated'` UPDATE(잠금 제외, sync 트리거가 is_public 동기화) |
-| `supabase/migrations/20260527102620_consulting_immersion_public_read.sql` | consultants(anon, is_active=true)·consulting_categories(anon) SELECT 정책 추가 |
-| `src/app/components/admin/AdminBoardManagement.tsx` | board의 `gated`('상세 로그인') 금지 가드 제거 + 주석 갱신 |
-| `src/app/components/MediaSection.tsx` | `posts.select` → `fetchPublicPostPreviews("media",16)`, supabase import 제거 |
-| `src/app/components/ResourceSection.tsx` | `posts.select` → `fetchPublicPostPreviews("resources",4)`, supabase import 제거 |
-| `src/app/components/NoticeResourceSection.tsx` | resources 직접 select → `fetchPublicPostPreviews("resources",4)`, supabase import 제거 |
-| `src/app/components/CommunitySection.tsx` | 비로그인 fallback 직접 select → `fetchPublicPostPreviews(activeTab, POSTS_PER_TAB)` |
-
-## gated board 동작 (3중 게이트, 기존 인프라 재사용)
-
-- **목록**: `list_public_post_previews` RPC (SECURITY DEFINER, anon, `is_public=true`만, 본문 500자 strip) → gated 목록 노출.
-- **본문 직접**: `posts_select_public_by_flag` RLS = `access_level='public'`만 anon → gated 본문 직접 차단.
-- **상세**: `get_post_access_info` = `access_level≠'public'` → requires_auth → 로그인 리다이렉트.
+| `EventsPage.tsx` 썸네일 컨테이너 | 데스크톱 `sm:h-auto sm:self-stretch` flex 행에서 img `height:100%`가 부모 높이 미확정 → 원본 비율로 펼쳐져 카드 높이를 폭발시키던 순환 의존 해소. 컨테이너 `relative overflow-hidden` + img `absolute inset-0`로 전환(절대배치라 부모 높이 산정서 제외). object-cover/crop transform은 overflow로 클립 |
+| `AdminPostCreate.tsx` 썸네일↔첨부 분리 | 근본 원인: `onCropApply`가 업로드 썸네일 파일을 `pendingThumbnailFile`(전용) **+** `files[]`(첨부)에 이중 보관 → 저장 시 events 분기가 `files` 전체를 `image_url`로 올려 중복. `files[]` push 제거 + `thumbnailFromUploadRef`로 standalone(에디터 직접 업로드)/candidate(기존 첨부 선택) 출처 구분 |
+| ↳ `[files]` 이펙트 | `pendingThumbnailFile` clear 조건에 `!thumbnailFromUploadRef.current` 추가 → standalone 썸네일은 첨부 변경에도 유지, candidate만 첨부 제거 시 해제 |
+| ↳ `onCropApply` | file 있으면 ref=true(standalone), `fileObjectUrls`서 찾으면 ref=false(candidate), 못 찾으면(applied 재크롭) 기존 `pendingThumbnailFile` 유지 |
+| ↳ `onChange` | candidate면 ref=false, 해제/dataUrl이면 null+ref=false, blob standalone 적용 url은 직전 `onCropApply` 결과 유지 |
+| ↳ 저장 업로드 가드 | `if (pendingThumbnailFile && supportsFinalThumbnail)` → 미지원 카테고리 전환 시 orphan storage 업로드 방지 |
 
 ## 검증 결과
 
-- `npm run validate` ✅ (tsc + eslint --max-warnings=0 + vite build + 프론트 시크릿 스캔 23개)
-- DB 확인: events/media/resources = `gated`·is_public=true, `post_categories` publication 포함, consultants 9개(active)·consulting_categories 3개 anon 정책 적용
-- migration sync ✅: 원격 last `20260527102620_consulting_immersion_public_read` = 로컬 마지막 파일 일치
-- 데이터 사실: posts에 media 카테고리 0개, founders_club_sessions 0개 → 사용자 전량 삭제로 인한 정상 빈 화면
+- 인사이트(media)/news/events-archive는 영향 없음 분석 완료 — media는 컨테이너 `aspectRatio`로 높이 확정(이슈1 무관) + `cropOutputMode="dataUrl"`이라 events 전용 `onCropApply` files-push 경로 미진입(이슈2 무관).
+- `npm run validate` ✅ ×2 (tsc + eslint --max-warnings=0 + vite build + 프론트 시크릿 23개).
+- Codex 리뷰: 1차 Change1 safe / Change2 needs-fix(4건: standalone 소스 유실·blob URL이 thumbnail_url 저장·재크롭 복구 불가·미지원 orphan). 재작업 후 2차 **4건 전부 RESOLVED, 신규 회귀 없음, SAFE-TO-COMMIT**.
 
 ## 미실행 / 후속
 
-- **비로그인 브라우저 smoke 미실행** — /events·/resources·/insights·/consulting(이머젼)·/founders-club 목록 + 상세 로그인 게이트 육안 확인 권장.
-- **Codex 재리뷰 미실행** — 미커밋 diff(컴포넌트 4 + admin UI + 마이그 2). PLAN.md Pending Approval 참고.
+- **브라우저 smoke 미실행**: 실제 `/events` 카드 렌더 + 어드민 행사 썸네일 업로드→첨부 비추가→저장→재편집 육안 확인 권장.
+- 본 커밋에 이전 세션 누적 미커밋분이 함께 포함됨(사용자 지시: 전체 누적분 신규 커밋).

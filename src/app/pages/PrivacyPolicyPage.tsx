@@ -1,116 +1,127 @@
-import { Badge } from "../components/ui/badge";
 import { PageShell } from "../components/PageShell";
-import { CONTACT_EMAIL } from "../constants/contact";
 
-const sections = [
+type Section = {
+  title: string;
+  paragraphs: string[];
+};
+
+const intro =
+  "재단법인 넥스트챌린지(이하 '회사')는 Global X Pass 플랫폼(이하 '사이트')을 운영함에 있어 이용자의 개인정보를 보호하고 이와 관련한 고충을 신속하고 원활하게 처리할 수 있도록 「개인정보 보호법」 제30조에 따라 다음과 같이 개인정보 처리방침을 수립·공개합니다.";
+const effectiveDate = "시행일자: 2026년 5월 28일";
+
+const sections: Section[] = [
   {
-    title: "1. 개인정보의 처리 목적",
-    body: [
-      "Global X Pass는 회원 가입 및 계정 관리, 프로그램 신청과 운영, 1:1 컨설팅 예약, Founder's Club 신청, 행사 안내와 신청 관리, 자료 제공, 문의 응대, 서비스 보안 및 이용 통계 관리를 위해 개인정보를 처리합니다.",
-      "처리 목적이 변경되는 경우 관련 법령에 따라 필요한 조치를 이행하고, 본 개인정보처리방침을 통해 안내합니다.",
+    title: "1. 개인정보의 처리 목적 및 항목",
+    paragraphs: [
+      "사이트는 이용자의 동의를 바탕으로 다음의 목적을 위해 필요한 최소한의 개인정보를 처리합니다. 수집한 개인정보는 고지한 목적 외의 용도로 사용되지 않습니다.",
+      "① 프로그램 참여 문의 및 협력 제안 접수(상시 문의)",
+      "필수항목: 이름(담당자명), 이메일 주소, 연락처(전화번호), 소속, 직책, 신청 상태, 신청 답변, 예약 내용, 문의 내용, 회원 구분, 인증 관련 식별자",
+      "② 인터넷 서비스 이용과정에서 자동 생성되어 수집되는 항목",
+      "자동수집항목: IP 주소, 쿠키(Cookie), 방문 기록, 서비스 이용 기록, 기기 정보",
     ],
   },
   {
-    title: "2. 처리하는 개인정보 항목",
-    body: [
-      "회원 가입 및 계정 관리: 이름, 이메일, 연락처, 소속, 회원 구분, 인증 관련 식별자",
-      "프로그램 신청 및 예약: 신청자 이름, 이메일, 연락처, 소속, 직책, 신청 답변, 예약 내용, 신청 상태",
-      "서비스 운영 및 보안: 접속 경로, 페이지 조회 기록, 브라우저/기기 정보, 활동 로그, 부정 이용 방지를 위한 최소한의 기술 정보",
+    title: "2. 개인정보의 처리 및 보유기간",
+    paragraphs: [
+      "① 회사는 이용자로부터 개인정보를 수집할 때 동의받은 기간 또는 법령에 따른 보유·이용기간 내에서 개인정보를 처리하고 보유합니다.",
+      "② 각각의 개인정보 처리 및 보유 기간은 다음과 같습니다.",
+      "- 문의 접수 및 상담 처리 관련 정보: 문의에 대한 답변 및 고충 처리가 완료된 시점으로부터 3년간 보관 (향후 동일인의 재문의 및 이력 확인을 위함)",
+      "- 회원 관리, 프로그램 운영 관련 정보 등 관계 법령의 규정에 의하여 보존할 필요가 있는 경우 해당 법령에서 정하는 기간 동안 보관",
+      "- 소비자의 불만 또는 분쟁처리에 관한 기록: 3년(전자상거래법)",
     ],
   },
   {
-    title: "3. 개인정보의 보유 및 이용기간",
-    body: [
-      "개인정보는 수집 및 이용 목적이 달성되면 지체 없이 파기하는 것을 원칙으로 합니다.",
-      "다만 회원 관리, 프로그램 운영 기록, 분쟁 대응, 관계 법령상 보존 의무가 필요한 경우 해당 목적에 필요한 기간 동안 보관할 수 있습니다.",
-      "회원 탈퇴 또는 삭제 요청이 접수된 경우 관련 법령 및 내부 처리 절차에 따라 보관 필요성을 확인한 뒤 파기 또는 분리 보관합니다.",
+    title: "3. 개인정보의 파기 절차 및 방법",
+    paragraphs: [
+      "회사는 개인정보 보유기간의 경과, 처리목적 달성 등 개인정보가 불필요하게 되었을 때에는 지체 없이 해당 개인정보를 파기합니다.",
+      "① 파기절차: 목적이 달성된 개인정보는 별도의 DB 또는 보관 장소로 옮겨져 내부 방침 및 법령에 따라 일정 기간 저장된 후 파기됩니다.",
+      "② 파기방법: 전자적 파일 형태로 저장된 개인정보는 기록을 재생할 수 없는 기술적 방법(포맷 등)을 사용하여 영구 삭제하며, 종이 문서에 출력된 개인정보는 분쇄기로 분쇄하거나 소각합니다.",
     ],
   },
   {
-    title: "4. 개인정보의 제3자 제공 및 처리위탁",
-    body: [
-      "Global X Pass는 정보주체의 동의가 있거나 법령에 특별한 규정이 있는 경우를 제외하고 개인정보를 외부에 제공하지 않습니다.",
-      "서비스 운영을 위해 Supabase의 인증, 데이터베이스, 스토리지, Edge Function 기능을 사용하며, 클라우드 인프라와 보안 운영 범위 내에서 개인정보 처리가 이루어질 수 있습니다.",
-      "향후 별도 수탁사 또는 제3자 제공이 필요한 경우 제공받는 자, 목적, 항목, 보유기간을 사전에 안내합니다.",
+    title: "4. 개인정보 처리업무의 위탁",
+    paragraphs: [
+      "회사는 원활한 서비스 제공 및 사이트 운영을 위하여 다음과 같이 개인정보 처리업무를 외부에 위탁하고 있습니다. 위탁 계약 시 개인정보가 안전하게 관리될 수 있도록 필요한 사항을 규정하고 있습니다.",
+      "① 웹호스팅 및 서버 인프라 운영: Netlify",
+      "② 서비스 운영을 위하여 Supabase의 인증, 데이터베이스, 스토리지, Edge Function 기능을 사용하며, 클라우드 인프라와 보안 운영 내에서 개인정보 처리가 이뤄질 수 있습니다.",
+      "※ 수탁자가 변경되거나 추가될 경우 본 개인정보 처리방침을 통해 지체 없이 공개합니다.",
     ],
   },
   {
-    title: "5. 개인정보의 안전성 확보 조치",
-    body: [
-      "회원의 이름, 이메일, 연락처는 AES-256-GCM 방식으로 암호화하여 저장하며, 암호화된 값은 `enc:v1` 형식으로 관리합니다.",
-      "관리자 기능은 역할 권한과 MFA 인증 상태를 기준으로 제한되며, 민감한 조회 및 관리 작업은 Supabase Edge Function과 데이터베이스 RLS 정책을 통해 통제합니다.",
-      "관리자 활동, 페이지 조회, 인증 상태 등 보안상 필요한 기록은 접근 제한과 최소 권한 원칙에 따라 관리합니다.",
+    title: "5. 정보주체의 권리·의무 및 행사방법",
+    paragraphs: [
+      "① 이용자는 회사에 대해 언제든지 개인정보 열람·정정·삭제·처리정지 요구 등의 권리를 행사할 수 있습니다.",
+      "② 권리 행사는 서면, 이메일 등을 통해 하실 수 있으며 회사는 이에 대해 지체 없이 조치하겠습니다.",
     ],
   },
   {
-    title: "6. 정보주체의 권리와 행사 방법",
-    body: [
-      "정보주체는 본인의 개인정보에 대해 열람, 정정, 삭제, 처리정지, 동의 철회를 요청할 수 있습니다.",
-      "서비스 내 마이페이지에서 확인 가능한 정보는 직접 확인할 수 있으며, 추가 요청은 아래 문의 이메일로 접수할 수 있습니다.",
-      "Global X Pass는 요청자의 본인 여부를 확인한 뒤 관련 법령에 따라 지체 없이 처리합니다.",
+    title: "6. 개인정보의 안전성 확보 조치",
+    paragraphs: [
+      "① 회원의 이름, 이메일, 연락처는 AES-256-GCM 방식으로 암호화하여 저장하며, 암호화된 값은 `enc:v1` 형식으로 관리합니다.",
+      "② 관리자 기능은 역할 권한과 MFA 인증 상태를 기준으로 제한되며, 민감한 조회 및 관리 작업은 Supabase Edge Function과 데이터 RLS 정책을 통해 통제합니다.",
+      "③ 관리자 활동, 페이지 조회, 인증 상태 등 보안상 필요한 기록은 접근 제한과 최소 권한 원칙에 따라 관리합니다.",
     ],
   },
   {
-    title: "7. 개인정보 자동 수집 장치",
-    body: [
-      "서비스 품질 개선, 보안 점검, 페이지 조회 통계를 위해 브라우저 환경에서 필요한 최소한의 이용 기록이 저장될 수 있습니다.",
-      "동일 경로 반복 조회는 일정 시간 동안 제한하여 불필요한 기록 생성을 줄이고 있습니다.",
+    title: "7. 개인정보 자동 수집 장치의 설치·운영 및 거부",
+    paragraphs: [
+      "① 사이트는 이용자에게 개인화되고 맞춤화된 서비스를 제공하기 위해 이용정보를 저장하고 수시로 불러오는 ‘쿠키(cookie)’를 사용합니다.",
+      "② 이용자는 쿠키 설치에 대한 선택권을 가지고 있습니다. 웹 브라우저 상단의 설정 메뉴를 통해 모든 쿠키를 허용하거나, 쿠키가 저장될 때마다 확인을 거치거나, 모든 쿠키의 저장을 거부할 수 있습니다.",
+      "③ 설정 방법 예시(크롬): 웹 브라우저 우측 상단 설정 > 개인정보 및 보안 > 인터넷 사용 기록 삭제 및 쿠키 설정 변경",
     ],
   },
   {
-    title: "8. 개인정보 보호책임자 및 문의",
-    body: [
-      "개인정보 처리와 관련한 문의, 열람 및 삭제 요청, 불만 처리는 Global X Pass 운영 담당자에게 문의할 수 있습니다.",
-      `문의 이메일: ${CONTACT_EMAIL}`,
+    title: "8. 개인정보 보호책임자 및 고충 처리 부서",
+    paragraphs: [
+      "회사는 개인정보 처리에 관한 업무를 총괄해서 책임지고, 이용자의 불만처리 및 피해구제 등을 위하여 아래와 같이 개인정보 보호책임자를 지정하고 있습니다.",
+      "개인정보 보호책임자 및 담당부서",
+      "- 성명/직책: 정효진 부대표",
+      "- 담당부서: 재단법인 넥스트챌린지 글로벌 액셀러레이팅 본부",
+      "- 연락처: 02-6352-6422, ncf-ncglobal@ncf.or.kr",
     ],
   },
   {
-    title: "9. 권익침해 구제",
-    body: [
-      "개인정보 침해에 대한 신고나 상담이 필요한 경우 개인정보침해 신고센터, 개인정보분쟁조정위원회 등 관계 기관을 통해 도움을 받을 수 있습니다.",
+    title: "9. 개인정보 처리방침의 변경",
+    paragraphs: [
+      "본 개인정보 처리방침은 시행일로부터 적용되며, 법령 및 방침에 따른 변경 내용의 추가, 삭제 및 정정이 있는 경우에는 변경사항의 시행 7일 전부터 사이트의 공지사항(또는 하단 링크)을 통해 고지할 것입니다.",
     ],
   },
   {
-    title: "10. 개인정보처리방침의 변경",
-    body: [
-      "본 방침은 서비스 정책, 개인정보 처리 방식, 관계 법령 변경에 따라 개정될 수 있으며, 중요한 변경이 있는 경우 서비스 내 공지 등을 통해 안내합니다.",
-      "시행일: 2026년 5월 4일",
+    title: "10. 권익침해 구제",
+    paragraphs: [
+      "개인정보 침해에 대한 신고나 상담 등이 필요한 경우 개인정보침해 신고센터, 개인정보분쟁조정위원회 등 관계 기관을 통해 도움을 받을 수 있습니다.",
     ],
   },
 ];
 
 export function PrivacyPolicyPage() {
-  const card = "var(--color-surface-card)";
-  const border = "var(--color-border-soft)";
-  const textMain = "var(--color-text-primary)";
-  const textMuted = "var(--color-text-muted)";
-  const noteBg = "var(--color-accent-blue-soft-bg)";
-
   return (
-    <PageShell title="개인정보처리방침" subtitle="Global X Pass의 개인정보 처리 기준과 보호 조치를 안내합니다." accentColor="var(--color-accent-blue)">
+    <PageShell title="Global X Pass 개인정보 처리방침">
       <div className="max-w-[900px] mx-auto pb-[80px]">
-        <div className="rounded-[20px] px-6 py-6 sm:px-8 sm:py-8 mb-4" style={{ background: noteBg, border: "1px solid var(--color-accent-blue-soft-border)" }}>
-          <Badge variant="blue" shape="pill" showDot>PRIVACY</Badge>
-          <p className="m-0 mt-4 text-[14px] leading-[1.8]" style={{ color: textMuted }}>
-            본 개인정보처리방침은 Global X Pass 서비스 운영 현황을 기준으로 작성되었습니다. 실제 운영 전 개인정보 보호책임자, 수탁사, 법정 보유기간 등 확정 정보가 있는 경우 최신 내용으로 보완해야 합니다.
-          </p>
-        </div>
+        <div className="rounded-[20px] px-6 py-7 sm:px-8 sm:py-8" style={{ background: "var(--color-surface-card)", border: "1px solid var(--color-border-soft)" }}>
+          <div className="flex flex-col gap-7">
+            <p className="m-0 text-[13px] leading-[1.8]" style={{ color: "var(--color-text-muted)" }}>
+              {effectiveDate}
+            </p>
+            <p className="m-0 text-[14px] leading-[1.9]" style={{ color: "var(--color-text-muted)" }}>
+              {intro}
+            </p>
 
-        <div className="rounded-[20px] px-6 py-7 sm:px-8 sm:py-8" style={{ background: card, border: `1px solid ${border}` }}>
-          {sections.map((section) => (
-            <section key={section.title} className="mb-7 last:mb-0">
-              <h2 className="m-0 mb-2 text-[15px] font-extrabold leading-[1.45]" style={{ color: textMain }}>
-                {section.title}
-              </h2>
-              <div className="flex flex-col gap-2">
-                {section.body.map((paragraph) => (
-                  <p key={paragraph} className="m-0 text-[13px] leading-[1.75]" style={{ color: textMuted }}>
-                    {paragraph}
-                  </p>
-                ))}
-              </div>
-            </section>
-          ))}
+            {sections.map((section) => (
+              <section key={section.title} className="flex flex-col gap-2">
+                <h2 className="m-0 text-[15px] font-extrabold leading-[1.45]" style={{ color: "var(--color-text-primary)" }}>
+                  {section.title}
+                </h2>
+                <div className="flex flex-col gap-1">
+                  {section.paragraphs.map((paragraph) => (
+                    <p key={paragraph} className="m-0 text-[13px] leading-[1.8]" style={{ color: "var(--color-text-muted)" }}>
+                      {paragraph}
+                    </p>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
         </div>
       </div>
     </PageShell>

@@ -184,15 +184,35 @@ function ProgramCard({ program: p, th }: { program: typeof programs[0]; th: Retu
       </div>
 
       {/* Tags */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", minHeight: "58px" }}>
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "6px",
+          minHeight: "58px",
+          alignItems: "flex-start",
+          alignContent: "flex-start",
+        }}
+      >
         {p.tags.map((tag) => (
-          <span key={tag} style={{
-            fontSize: "11px", fontWeight: 600,
-            color: th.mutedText,
-            background: th.cardBg,
-            border: `1px solid ${th.rowDivider}`,
-            padding: "var(--space-2xs) 9px", borderRadius: "7px",
-          }}>{tag}</span>
+          <span
+            key={tag}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              alignSelf: "flex-start",
+              fontSize: "11px",
+              fontWeight: 600,
+              lineHeight: 1.35,
+              color: th.mutedText,
+              background: th.cardBg,
+              border: `1px solid ${th.rowDivider}`,
+              padding: "var(--space-2xs) 9px",
+              borderRadius: "7px",
+            }}
+          >
+            {tag}
+          </span>
         ))}
       </div>
 

@@ -400,7 +400,7 @@ export function AdminFlowMap() {
             <div style={{ fontSize: 12, fontWeight: 700, color: codeColor, marginBottom: 8 }}>Edge Function CORS 화이트리스트</div>
             <div style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,0.6)" : "#374151", lineHeight: 1.7 }}>
               Edge Function은 허용된 origin에서만 브라우저 호출을 수락합니다.<br /><br />
-              허용 주소: <Code>https://globalxpass.com</Code>, <Code>https://google-play-changgoo-program.netlify.app</Code>, <Code>localhost/127.0.0.1</Code> Vite 개발 주소.<br /><br />
+              허용 주소: <Code>https://ncf-aroundx.com</Code>, <Code>http://ncf-aroundx.com</Code>, <Code>localhost/127.0.0.1</Code> Vite 개발 주소.<br /><br />
               배포 도메인 변경 시 CORS 목록 갱신 + 함수 재배포가 필요합니다.
             </div>
           </div>

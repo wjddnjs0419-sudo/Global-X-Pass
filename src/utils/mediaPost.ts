@@ -5,6 +5,8 @@ export const MEDIA_META_START = "<!--GXP_MEDIA_META:";
 export const MEDIA_META_END = "-->";
 const ALLOWED_MEDIA_EXTERNAL_PROTOCOLS = new Set(["http:", "https:"]);
 const URL_SCHEME_PATTERN = /^[a-z][a-z\d+.-]*:/i;
+const YOUTUBE_URL_PATTERN = /(?:https?:\/\/)?(?:www\.)?(?:youtu\.be\/[A-Za-z0-9_-]{6,}(?:[^\s"'<>]*)?|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/)[A-Za-z0-9_-]{6,}(?:[^\s"'<>]*)?)/i;
+const VIDEO_TAG_HINTS = ["영상", "video", "동영상", "vod", "youtube"];
 
 export function normalizeMediaExternalUrl(value?: string | null) {
   const raw = value?.trim();
@@ -72,4 +74,34 @@ export function getYouTubeVideoId(value?: string | null) {
 export function getExternalMediaThumbnailUrl(value?: string | null) {
   const videoId = getYouTubeVideoId(normalizeMediaExternalUrl(value));
   return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
+}
+
+export function isVideoArchiveTag(value?: string | null) {
+  const normalized = (value ?? "").trim().toLowerCase();
+  return VIDEO_TAG_HINTS.some((hint) => normalized.includes(hint.toLowerCase()));
+}
+
+export function extractFirstYouTubeUrlFromHtml(value: string) {
+  if (!value) return "";
+
+  const normalizeCandidate = (candidate?: string | null) => {
+    const normalized = normalizeMediaExternalUrl(candidate);
+    return getYouTubeVideoId(normalized) ? normalized : "";
+  };
+
+  if (typeof DOMParser !== "undefined") {
+    const doc = new DOMParser().parseFromString(value, "text/html");
+    const nodes = Array.from(doc.querySelectorAll("a[href], iframe[src], embed[src], video[src]"));
+
+    for (const node of nodes) {
+      const candidate = normalizeCandidate(node.getAttribute("href") || node.getAttribute("src"));
+      if (candidate) return candidate;
+    }
+
+    const textCandidate = normalizeCandidate(doc.body?.textContent ?? "");
+    if (textCandidate) return textCandidate;
+  }
+
+  const rawMatch = value.match(YOUTUBE_URL_PATTERN)?.[0];
+  return normalizeCandidate(rawMatch);
 }

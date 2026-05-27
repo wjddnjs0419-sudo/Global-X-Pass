@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router";
 import { useTheme } from "../../ThemeContext";
 import { CATEGORIES } from "./adminConstants";
+import { useBoardCategoryLabels, useBoardCategoryList } from "../../BoardCategoriesContext";
 import { supabase } from "../../../lib/supabaseClient";
 import { AdminPostModal } from "./AdminPostModal";
 
@@ -22,6 +23,14 @@ const fmtDate = (iso: string) => {
 
 export function AdminPostManage({ refreshKey, onStartEdit, onDeleted }: AdminPostManageProps) {
   const { isDark } = useTheme();
+  const boardLabels = useBoardCategoryLabels();
+  const boardList = useBoardCategoryList();
+  // 게시판 옵션은 post_categories(동적) 우선, 로딩 전에는 정적 폴백.
+  const categoryOptions = boardList.length ? boardList : CATEGORIES;
+  const catLabel = (id: string) => {
+    const fallback = CATEGORIES.find((c) => c.id === id)?.label ?? id;
+    return id === "expenses" ? fallback : boardLabels[id] ?? fallback;
+  };
   const navigate = useNavigate();
 
   const [posts, setPosts] = useState<any[]>([]);
@@ -69,6 +78,31 @@ export function AdminPostManage({ refreshKey, onStartEdit, onDeleted }: AdminPos
     fetchPosts();
   };
 
+  const togglePublic = async (post: any) => {
+    if (post.category === "expenses") {
+      alert("사업비 자료실(expenses)은 정책상 항상 비공개로 운영되며 공개 설정을 변경할 수 없습니다.");
+      return;
+    }
+    const next = !(post.is_public ?? true);
+    const { error } = await supabase.from('posts').update({ is_public: next }).eq('id', post.id);
+    if (error) { alert(`공개 설정 변경 실패: ${error.message}`); return; }
+    fetchPosts();
+  };
+
+  const bulkSetPublic = async (nextPublic: boolean) => {
+    if (filterCategory === "all") { alert("카테고리를 선택한 뒤 일괄 설정할 수 있습니다."); return; }
+    if (filterCategory === "expenses") {
+      alert("사업비 자료실(expenses)은 정책상 항상 비공개로 운영되며 일괄 변경할 수 없습니다.");
+      return;
+    }
+    const label = catLabel(filterCategory);
+    const verb = nextPublic ? "공개" : "비공개";
+    if (!window.confirm(`'${label}' 카테고리의 모든 게시물을 ${verb} 상태로 변경하시겠습니까?`)) return;
+    const { error } = await supabase.from('posts').update({ is_public: nextPublic }).eq('category', filterCategory);
+    if (error) { alert(`일괄 변경 실패: ${error.message}`); return; }
+    fetchPosts();
+  };
+
   const handleConfirmDelete = async () => {
     if (!deletingId) return;
     setDeleteLoading(true);
@@ -99,11 +133,30 @@ export function AdminPostManage({ refreshKey, onStartEdit, onDeleted }: AdminPos
         <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:gap-3">
           <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className="w-full sm:w-auto" style={{ ...inputStyle, padding: "10px 16px" }}>
             <option value="all">전체 카테고리</option>
-            {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+            {categoryOptions.map(c => <option key={c.id} value={c.id}>{catLabel(c.id)}</option>)}
           </select>
           <input type="text" placeholder="검색어 입력..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full sm:w-[240px]" style={inputStyle} />
         </div>
       </div>
+
+      {filterCategory !== "all" && filterCategory !== "expenses" && (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3" style={{ padding: "14px 18px", background: labelBg, border: `1px solid ${labelBorder}`, borderRadius: 12 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <span style={{ fontWeight: 800, fontSize: 13, color: textMain }}>'{catLabel(filterCategory)}' 카테고리 일괄 설정</span>
+            <span style={{ fontSize: 12, color: textMuted }}>이 카테고리의 모든 게시물 공개/비공개 상태를 한 번에 변경합니다.</span>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={() => bulkSetPublic(true)} style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${labelBorder}`, background: card, color: textMain, fontWeight: 750, cursor: "pointer", fontSize: 13 }}>전체 공개</button>
+            <button onClick={() => bulkSetPublic(false)} style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${labelBorder}`, background: card, color: textMain, fontWeight: 750, cursor: "pointer", fontSize: 13 }}>전체 비공개</button>
+          </div>
+        </div>
+      )}
+
+      {filterCategory === "expenses" && (
+        <div className="flex items-center gap-3" style={{ padding: "14px 18px", background: isDark ? "rgba(234,67,53,0.08)" : "rgba(234,67,53,0.06)", border: `1px solid ${isDark ? "rgba(234,67,53,0.28)" : "rgba(234,67,53,0.22)"}`, borderRadius: 12 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--color-brand-red)" }}>🔒 사업비 자료실은 정책상 항상 비공개로 운영되며 공개 설정을 변경할 수 없습니다.</span>
+        </div>
+      )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
         {loading
@@ -111,15 +164,14 @@ export function AdminPostManage({ refreshKey, onStartEdit, onDeleted }: AdminPos
           : currentPosts.length === 0
             ? <div style={{ padding: "60px", textAlign: "center", color: textMuted }}>게시물이 없습니다.</div>
             : currentPosts.map(post => {
-                const cat = CATEGORIES.find(c => c.id === post.category);
                 return (
-                  <div key={post.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-[16px] sm:gap-0" style={{ background: card, border: `1px solid ${border}`, borderRadius: "16px", padding: "18px 24px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "20px", minWidth: 0 }}>
+                  <div key={post.id} className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-[16px] sm:gap-3" style={{ background: card, border: `1px solid ${border}`, borderRadius: "16px", padding: "18px 24px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "16px", minWidth: 0, flex: 1 }}>
                       <span style={{ fontSize: "12px", background: labelBg, border: `1px solid ${labelBorder}`, color: textMuted, padding: "5px 10px", borderRadius: "8px", fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0 }}>
-                        {cat?.label ?? post.category}
+                        {catLabel(post.category)}
                       </span>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
-                        <strong onClick={() => navigate(`/post/${post.id}`)} style={{ color: textMain, fontSize: "16px", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3, textDecorationColor: "rgba(67,119,241,0.4)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0, flex: 1 }}>
+                        <strong onClick={() => navigate(post.category === "events" ? `/events/${post.id}/apply` : `/post/${post.id}`)} style={{ color: textMain, fontSize: "16px", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3, textDecorationColor: "rgba(67,119,241,0.4)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>
                           {post.title}
                         </strong>
                         <span style={{ fontSize: 12, color: textMuted }}>
@@ -127,19 +179,39 @@ export function AdminPostManage({ refreshKey, onStartEdit, onDeleted }: AdminPos
                         </span>
                       </div>
                     </div>
-                    <div style={{ display: "flex", gap: "10px" }}>
-                      {post.category === "blog" && (
-                        <button onClick={() => toggleFeatured(post)} style={{ padding: "9px 12px", borderRadius: "8px", border: `1px solid ${post.is_featured ? labelBorder : border}`, background: post.is_featured ? selectedBg : "transparent", color: post.is_featured ? textMain : textMuted, fontWeight: 700, cursor: "pointer", fontSize: 13 }}>
-                          {post.is_featured ? "추천중" : "추천"}
+                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "flex-end", flexShrink: 0 }}>
+                      {post.category === "expenses" ? (
+                        <span title="사업비 자료실은 정책상 항상 비공개" style={{ padding: "9px 12px", borderRadius: "8px", border: `1px solid rgba(234,67,53,0.32)`, background: isDark ? "rgba(234,67,53,0.10)" : "rgba(234,67,53,0.06)", color: "var(--color-brand-red)", fontWeight: 800, fontSize: 13, whiteSpace: "nowrap", display: "inline-flex", alignItems: "center" }}>
+                          🔒 비공개 고정
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => togglePublic(post)}
+                          title={(post.is_public ?? true) ? "클릭하면 비공개로 전환 (로그인 유저만 열람)" : "클릭하면 공개로 전환 (비로그인도 열람)"}
+                          style={{
+                            padding: "9px 14px",
+                            borderRadius: "8px",
+                            border: `1px solid ${(post.is_public ?? true) ? "rgba(24,163,67,0.32)" : "rgba(234,67,53,0.32)"}`,
+                            background: (post.is_public ?? true)
+                              ? (isDark ? "rgba(24,163,67,0.16)" : "rgba(24,163,67,0.10)")
+                              : (isDark ? "rgba(234,67,53,0.16)" : "rgba(234,67,53,0.08)"),
+                            color: (post.is_public ?? true) ? "var(--color-accent-green)" : "var(--color-brand-red)",
+                            fontWeight: 800,
+                            cursor: "pointer",
+                            fontSize: 13,
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {(post.is_public ?? true) ? "공개" : "비공개"}
                         </button>
                       )}
                       {post.category === "events" && (
-                        <button onClick={() => toggleFeatured(post)} style={{ padding: "9px 12px", borderRadius: "8px", border: `1px solid ${post.is_featured ? labelBorder : border}`, background: post.is_featured ? selectedBg : "transparent", color: post.is_featured ? textMain : textMuted, fontWeight: 700, cursor: "pointer", fontSize: 13 }}>
+                        <button onClick={() => toggleFeatured(post)} style={{ padding: "9px 12px", borderRadius: "8px", border: `1px solid ${post.is_featured ? labelBorder : border}`, background: post.is_featured ? selectedBg : "transparent", color: post.is_featured ? textMain : textMuted, fontWeight: 700, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>
                           {post.is_featured ? "대표중" : "대표"}
                         </button>
                       )}
-                      <button onClick={() => onStartEdit(post)} style={{ padding: "9px 14px", borderRadius: "8px", border: `1px solid ${border}`, background: "transparent", color: textMain, fontWeight: 700, cursor: "pointer", fontSize: 13 }}>수정</button>
-                      <button onClick={() => setDeletingId(post.id)} style={{ padding: "9px 14px", borderRadius: "8px", border: `1px solid ${isDark ? "rgba(234,67,53,0.28)" : "rgba(234,67,53,0.22)"}`, background: isDark ? "rgba(234,67,53,0.08)" : "rgba(234,67,53,0.06)", color: "#EA4335", fontWeight: 700, cursor: "pointer", fontSize: 13 }}>삭제</button>
+                      <button onClick={() => onStartEdit(post)} style={{ padding: "9px 14px", borderRadius: "8px", border: `1px solid ${border}`, background: "transparent", color: textMain, fontWeight: 700, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>수정</button>
+                      <button onClick={() => setDeletingId(post.id)} style={{ padding: "9px 14px", borderRadius: "8px", border: `1px solid ${isDark ? "rgba(234,67,53,0.28)" : "rgba(234,67,53,0.22)"}`, background: isDark ? "rgba(234,67,53,0.08)" : "rgba(234,67,53,0.06)", color: "#EA4335", fontWeight: 700, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>삭제</button>
                     </div>
                   </div>
                 );

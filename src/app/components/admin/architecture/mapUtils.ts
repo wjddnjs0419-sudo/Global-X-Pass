@@ -1,5 +1,5 @@
 import { ACTIVE_ISSUE_STATUSES, CLUSTER_PALETTE, QA_SUITE_FILES, QA_SUITES, STATUS_META, STATUS_RANK, WATCH_ISSUE_STATUSES } from "./constants";
-import type { ArchitectureMap, BlogAiDraft, BlogImportRun, ErrorIssue, ErrorLog, FilterId, MapCluster, MapNode, NodeStatus, QaRun, QaRunTracker, QaSuiteId, Severity } from "./types";
+import type { ArchitectureMap, BlogAiDraft, BlogImportRun, CompanyNewsRun, CompanyNewsRunTracker, ErrorIssue, ErrorLog, FilterId, MapCluster, MapNode, NodeStatus, QaRun, QaRunTracker, QaSuiteId, Severity } from "./types";
 
 export const getClusterPalette = (clusterColor: string) =>
   CLUSTER_PALETTE[clusterColor] ?? CLUSTER_PALETTE.blue;
@@ -102,6 +102,13 @@ export function getQaOperationalRun(runs: QaRun[], selectedSuite: QaSuiteId, tra
   }
 
   return runs.find((run) => run.suite === selectedSuite) ?? null;
+}
+
+export function getCompanyNewsOperationalRun(runs: CompanyNewsRun[], tracker: CompanyNewsRunTracker | null) {
+  if (!tracker) return runs[0] ?? null;
+
+  const requestedAt = new Date(tracker.requestedAt).getTime() - QA_TRIGGER_MATCH_TOLERANCE_MS;
+  return runs.find((run) => new Date(run.createdAt).getTime() >= requestedAt) ?? null;
 }
 
 export const formatTriggerSource = (source: string) => {

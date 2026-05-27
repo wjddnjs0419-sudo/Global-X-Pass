@@ -63,6 +63,29 @@ export const mergeEventFormConfig = (config?: EventFormConfig | null): Required<
   };
 };
 
+export const cleanEventFormConfig = (config?: EventFormConfig | null): EventFormConfig => {
+  const merged = mergeEventFormConfig(config);
+
+  return {
+    intro: merged.intro.trim(),
+    companyTechLabel: merged.companyTechLabel.trim(),
+    nameLabel: merged.nameLabel.trim(),
+    positionLabel: merged.positionLabel.trim(),
+    emailLabel: merged.emailLabel.trim(),
+    phoneLabel: merged.phoneLabel.trim(),
+    expectationLabel: merged.expectationLabel.trim(),
+    interestsLabel: merged.interestsLabel.trim(),
+    interestOptions: merged.interestOptions.map(item => item.trim()).filter(Boolean),
+    speakerQuestionLabel: merged.speakerQuestionLabel.trim(),
+    privacyConsentLabel: merged.privacyConsentLabel.trim(),
+    completionTitle: merged.completionTitle.trim(),
+    completionMessage: merged.completionMessage.trim(),
+    customQuestions: normalizeEventCustomQuestions(merged.customQuestions)
+      .map(question => ({ ...question, label: question.label.trim() }))
+      .filter(question => question.label.length > 0),
+  };
+};
+
 export const EVENT_APPLICATION_STATUS = {
   pending: { label: "대기", color: "var(--color-brand-yellow)" },
   accepted: { label: "확정", color: "var(--color-accent-green)" },

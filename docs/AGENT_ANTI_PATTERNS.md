@@ -3,6 +3,7 @@
 > **CRITICAL:** This document tracks past mistakes, build failures, and architectural pitfalls to prevent recurrence. AI agents MUST review this list before implementing changes.
 
 ## 🚫 Anti-Patterns & Lessons Learned
+- [2026-05-27] **UI Cleanup Overdelete:** UI 수정 후 찌꺼기를 제거할 때 현재 의도된 기능 진입점까지 삭제하지 말 것. 예전 state/handler/중복 UI/낡은 저장 경로는 제거하되, 관리자 수정 버튼처럼 현재 UX에 필요한 affordance는 새 표준 경로로 재연결해 보존한다.
 - [2026-05-22] **Company News Broad Keyword Intake:** 기업 뉴스 크롤러에서 회사명 없는 광범위 키워드(`AI`, `스타트업`, `투자` 등) 검색 결과를 그대로 저장하지 말 것. 회사명/강한 키워드 관련도 점수와 `matched_terms`를 계산해 기준 미달 기사는 저장 전 제외해야 한다.
 - [2026-05-19] **AI Draft Single-Pass Failure:** Gemini 블로그 초안 생성/수정에서 길이·제목 수·해시태그 검증을 1회 응답에만 의존하고 바로 실패시키지 말 것. 사용자 입력을 다시 받기 전에 직전 JSON 응답과 검증 실패 사유를 붙인 자동 보정 재생성 루프를 먼저 태워야 한다.
 - [2026-05-18] **QA Login Success Alert Misread:** Playwright 로그인 helper에서 `window.alert` 발생 자체를 실패로 단정하지 말 것. 이 프로젝트는 일반 유저 로그인 성공도 `alert("환영합니다! 로그인이 완료되었습니다.")`를 띄우므로, dialog 문구와 최종 URL/OTP 상태를 함께 판정해야 user-flow QA가 성공 직후 cleanup으로 잘못 빠지지 않는다.

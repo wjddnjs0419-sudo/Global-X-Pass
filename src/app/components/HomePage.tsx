@@ -12,7 +12,7 @@ export function HomePage() {
   return (
     <>
       <HeroSection />
-      <AboutSection isDark={isDark} />
+      <AboutSection />
       <ProgramSection isDark={isDark} />
       <CommunitySection isDark={isDark} />
       <EventSection isDark={isDark} />

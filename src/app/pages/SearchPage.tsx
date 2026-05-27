@@ -12,7 +12,6 @@ const TYPE_COLOR: Record<string, string> = {
   행사: "var(--color-accent-ncf)",
   인사이트: "var(--color-brand-blue)",
   자료: "var(--color-accent-purple)",
-  블로그: "var(--color-brand-yellow)",
   FAQ: "var(--color-accent-purple)",
   아카이브: "var(--color-accent-purple)",
 };
@@ -24,12 +23,11 @@ const ALL: Result[] = [
   { id: 4, type: "인사이트", title: "동남아 게임 앱 시장, Q2 성장률 23%", desc: "Vol.32 · 시장 분석", to: "/insights", color: TYPE_COLOR["인사이트"] },
   { id: 5, type: "자료", title: "글로벌 IR 피칭 템플릿 v3", desc: "PDF · 다운로드 1,840회", to: "/resources", color: TYPE_COLOR["자료"] },
   { id: 6, type: "자료", title: "Google Play ASO 가이드 2026", desc: "최신 알고리즘 변경 분석", to: "/resources", color: TYPE_COLOR["자료"] },
-  { id: 7, type: "블로그", title: "7기 수료 기업 A사 인터뷰", desc: "동남아 MAU 10만 달성 비결", to: "/blog", color: TYPE_COLOR["블로그"] },
   { id: 8, type: "FAQ", title: "지원금은 언제 지급되나요?", desc: "선정 후 단계별 지급 일정 안내.", to: "/faq", color: TYPE_COLOR["FAQ"] },
   { id: 9, type: "아카이브", title: "창구 프로그램 2기 데모데이", desc: "2026.03.28 · 280명 참가", to: "/events/archive", color: TYPE_COLOR["아카이브"] },
 ];
 
-const FILTERS = ["전체", "공지", "행사", "미디어", "자료", "블로그", "FAQ", "아카이브"];
+const FILTERS = ["전체", "공지", "행사", "미디어", "자료", "FAQ", "아카이브"];
 const POPULAR = ["창구 프로그램", "데모데이", "IR 템플릿", "동남아", "Google Play"];
 
 // 개발자 전용 숨김 진입점: 이 검색어로 검색 시 디자인 시스템 페이지로 이동 (관리자만 접근 가능)

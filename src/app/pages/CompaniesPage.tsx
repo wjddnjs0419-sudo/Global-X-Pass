@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router";
 import { Globe, X } from "lucide-react";
 import { LAYERS } from "../../lib/layers";
 import { PageShell } from "../components/PageShell";
+import { BoardAccessGate } from "../components/BoardAccessGate";
 import { SearchInput } from "../components/SearchInput";
 import { supabase } from "../../lib/supabaseClient";
 import { LoadingSpinner, ErrorMessage } from "../components/LoadingSpinner";
@@ -10,12 +11,14 @@ import { getMutedLabelStyle, getStatusPillStyle, getFilterTabStyle } from "../co
 import type { Company } from "../../lib/types";
 import { AppPagination } from "../components/AppPagination";
 import { useTheme } from "../ThemeContext";
+import { useAuthGate } from "../../hooks/useAuthGate";
 
 const PAGE_SIZE = 20;
 
 
 export function CompaniesPage() {
   const { isDark } = useTheme();
+  const { isAuthed, requireAuth, redirectToLogin } = useAuthGate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,6 +31,11 @@ export function CompaniesPage() {
   const detailSlug = searchParams.get("detail");
   const detailCompany = detailSlug && !loading ? (companies.find(c => c.slug === detailSlug) ?? null) : null;
   const detailNotFound = !loading && !!detailSlug && !detailCompany;
+
+  // gated: 목록은 공개, 기업 상세(?detail=)는 로그인 필요. URL 직접 접근도 차단.
+  useEffect(() => {
+    if (detailSlug && isAuthed === false) redirectToLogin();
+  }, [detailSlug, isAuthed, redirectToLogin]);
 
   useEffect(() => {
     const fetchCompanies = async () => {
@@ -83,6 +91,7 @@ export function CompaniesPage() {
   const closeModal = () => setSearchParams({});
 
   return (
+    <BoardAccessGate category="companies">
     <PageShell
       title="참여 기업"
       subtitle="Google for Startups 프로그램에 참여한 기업들을 만나보세요."
@@ -141,7 +150,7 @@ export function CompaniesPage() {
                 <CompanyCard
                   key={company.id}
                   company={company}
-                  onClick={() => setSearchParams({ detail: company.slug })}
+                  onClick={() => requireAuth(() => setSearchParams({ detail: company.slug }))}
                 />
               ))}
             </div>
@@ -150,8 +159,8 @@ export function CompaniesPage() {
         )}
       </div>
 
-      {/* 기업 상세 모달 */}
-      {detailSlug && (
+      {/* 기업 상세 모달 (로그인 사용자만) */}
+      {detailSlug && isAuthed && (
         <div
           style={{ position: "fixed", inset: 0, background: "var(--color-backdrop)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: LAYERS.modal, padding: 20 }}
           onClick={closeModal}
@@ -180,6 +189,7 @@ export function CompaniesPage() {
         </div>
       )}
     </PageShell>
+    </BoardAccessGate>
   );
 }
 

@@ -4,19 +4,14 @@ import { supabase } from "../../../lib/supabaseClient";
 import { useTheme } from "../../ThemeContext";
 import { AppPagination } from "../AppPagination";
 import { SearchInput } from "../SearchInput";
+import { COMPANY_NEWS_CRAWL_DEFAULT_OPTIONS } from "./architecture/constants";
 import { getFilterTabStyle } from "../contentListStyles";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
+import type { CompanyNewsCrawlOptions, CompanyNewsTriggerResult } from "./architecture/types";
 import type { Article } from "../../../lib/types";
 
 const PAGE_SIZE = 20;
-const DEFAULT_CRAWL_OPTIONS = {
-  batchSize: 25,
-  resultsPerCompany: 1,
-  delayMs: 300,
-  maxStoredArticles: 300,
-  minRelevanceScore: 3,
-};
 
 type ArticleStatusFilter = "all" | Article["status"];
 
@@ -27,12 +22,6 @@ type CompanySummary = {
 
 type AdminArticle = Article & {
   companies?: CompanySummary | CompanySummary[] | null;
-};
-
-type TriggerCompanyNewsResponse = {
-  dispatched?: boolean;
-  dispatchError?: string | null;
-  error?: string;
 };
 
 const STATUS_LABEL: Record<Article["status"], string> = {
@@ -100,7 +89,7 @@ export default function AdminCompanyNewsManagement() {
   const [deleteTarget, setDeleteTarget] = useState<AdminArticle | null>(null);
   const [triggerLoading, setTriggerLoading] = useState(false);
   const [triggerMessage, setTriggerMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
-  const [crawlOptions, setCrawlOptions] = useState(DEFAULT_CRAWL_OPTIONS);
+  const [crawlOptions, setCrawlOptions] = useState<CompanyNewsCrawlOptions>(COMPANY_NEWS_CRAWL_DEFAULT_OPTIONS);
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(totalCount / PAGE_SIZE)), [totalCount]);
 
@@ -208,7 +197,7 @@ export default function AdminCompanyNewsManagement() {
     setTriggerLoading(true);
     setTriggerMessage(null);
 
-    const { data, error } = await supabase.functions.invoke<TriggerCompanyNewsResponse>("trigger-company-news-crawl", {
+    const { data, error } = await supabase.functions.invoke<CompanyNewsTriggerResult>("trigger-company-news-crawl", {
       body: crawlOptions,
     });
 

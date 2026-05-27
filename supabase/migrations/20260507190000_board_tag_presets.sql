@@ -57,6 +57,7 @@ INSERT INTO public.board_tag_presets (board_id, tag, is_hidden, is_default, sort
   ('events-archive', '커뮤니티', false, true, 10),
   ('events-archive', '기술',     false, true, 11),
   ('events-archive', '정책',     false, true, 12),
+  ('events-archive', '영상',     false, true, 13),
 
   ('blog', '창업',     false, true, 1),
   ('blog', '기술',     false, true, 2),

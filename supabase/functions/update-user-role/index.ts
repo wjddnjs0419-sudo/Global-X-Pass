@@ -82,9 +82,11 @@ Deno.serve(async (req: Request) => {
       return json({ error: "역할을 변경할 회원을 찾지 못했습니다." }, 404, cors);
     }
 
+    // 어드민이 역할을 부여하는 행위는 신원 보증으로 간주 → pending 이던 계정도 승인(approved)
+    // 처리하고 ban 을 해제해 로그인이 가능하도록 한다.
     const { data: updatedProfile, error: updateError } = await adminClient
       .from("profiles")
-      .update({ role: newRole })
+      .update({ role: newRole, status: "approved" })
       .eq("id", userId)
       .select("id, role")
       .maybeSingle();
@@ -94,6 +96,13 @@ Deno.serve(async (req: Request) => {
     }
     if (!updatedProfile) {
       return json({ error: "역할을 변경할 회원을 찾지 못했습니다." }, 404, cors);
+    }
+
+    const { error: unbanError } = await adminClient.auth.admin.updateUserById(userId, {
+      ban_duration: "none",
+    });
+    if (unbanError) {
+      throw unbanError;
     }
 
     let clearedFactorCount = 0;

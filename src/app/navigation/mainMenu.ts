@@ -9,6 +9,8 @@ export type MenuItem = {
   label: MenuLabel;
   path: string;
   comingSoon?: boolean;
+  /** post_categories.id. 지정 시 한국어 라벨을 DB 게시판 이름으로 동적 표시. */
+  category?: string;
 };
 
 export type MainMenu = {
@@ -28,8 +30,8 @@ const MAIN_MENU_BY_KEY: Record<MenuKey, MainMenu> = {
     key: "resources",
     label: "Resources",
     items: [
-      { label: { ko: "자료실", en: "Resources" }, path: "/resources" },
-      { label: { ko: "인사이트", en: "Insights" }, path: "/insights" },
+      { label: { ko: "자료실", en: "Resources" }, path: "/resources", category: "resources" },
+      { label: { ko: "인사이트", en: "Insights" }, path: "/insights", category: "media" },
       { label: { ko: "사업비 자료실", en: "Expense Center" }, path: "/expenses" },
     ],
   },
@@ -37,8 +39,8 @@ const MAIN_MENU_BY_KEY: Record<MenuKey, MainMenu> = {
     key: "programs",
     label: "Programs",
     items: [
-      { label: { ko: "행사", en: "Events" }, path: "/events" },
-      { label: { ko: "행사 아카이브", en: "Event Archive" }, path: "/events/archive" },
+      { label: { ko: "행사", en: "Events" }, path: "/events", category: "events" },
+      { label: { ko: "행사 아카이브", en: "Event Archive" }, path: "/events/archive", category: "events-archive" },
       { label: { ko: "1:1 컨설팅", en: "Consulting" }, path: "/consulting" },
       { label: { ko: "Founder's Club", en: "Founder's Club" }, path: "/founders-club" },
     ],
@@ -47,8 +49,8 @@ const MAIN_MENU_BY_KEY: Record<MenuKey, MainMenu> = {
     key: "news",
     label: "News",
     items: [
-      { label: { ko: "공지사항", en: "Notice" }, path: "/notice" },
-      { label: { ko: "뉴스", en: "News" }, path: "/news" },
+      { label: { ko: "공지사항", en: "Notice" }, path: "/notice", category: "notice" },
+      { label: { ko: "뉴스", en: "News" }, path: "/news", category: "news" },
       { label: { ko: "기업 뉴스", en: "Company News" }, path: "/company-news" },
     ],
   },
@@ -56,7 +58,7 @@ const MAIN_MENU_BY_KEY: Record<MenuKey, MainMenu> = {
     key: "support",
     label: "Support",
     items: [
-      { label: { ko: "자주 묻는 질문", en: "FAQ" }, path: "/faq" },
+      { label: { ko: "자주 묻는 질문", en: "FAQ" }, path: "/faq", category: "faq" },
     ],
   },
   aroundX: {

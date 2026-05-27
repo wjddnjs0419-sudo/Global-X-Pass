@@ -8,6 +8,13 @@ export const WINDOW_OPTIONS = [
 ];
 export const BLOG_AI_DEFAULT_PROFILE_PATH = "docs/ai/blog-style-profile.json";
 export const BLOG_AI_DEFAULT_SAMPLE_COUNT = "27";
+export const COMPANY_NEWS_CRAWL_DEFAULT_OPTIONS = {
+  batchSize: 25,
+  resultsPerCompany: 1,
+  delayMs: 300,
+  maxStoredArticles: 300,
+  minRelevanceScore: 3,
+};
 
 export const FILTERS: Array<{ id: FilterId; label: string }> = [
   { id: "overview", label: "핵심 경로" },
@@ -139,6 +146,7 @@ export const INBOX_BELL_POSITION_STORAGE_KEY = "gxp_architecture_inbox_bell_posi
 export const MAP_SNAPSHOT_STORAGE_KEY = "gxp_architecture_map_snapshot_v1";
 export const QA_WORKFLOW_URL = "https://github.com/wjddnjs0419-sudo/Global-X-Pass/actions/workflows/qa-dispatch.yml";
 export const NAVER_BLOG_SYNC_WORKFLOW_URL = "https://github.com/wjddnjs0419-sudo/Global-X-Pass/actions/workflows/naver-blog-sync.yml";
+export const COMPANY_NEWS_CRAWL_WORKFLOW_URL = "https://github.com/wjddnjs0419-sudo/Global-X-Pass/actions/workflows/company-news-crawl.yml";
 export const FLOATING_BELL_SIZE = 52;
 export const FLOATING_BELL_MARGIN = 30;
 export const FLOATING_PANEL_WIDTH = 420;

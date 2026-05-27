@@ -1,19 +1,20 @@
 import { useMemo, useState, type CSSProperties } from "react";
 import { Bell, BookOpen, Check, Copy, Database, ExternalLink, FileOutput, FileText, FlaskConical, Github, Globe, PenLine, PlayCircle, RefreshCw, Sparkles, Workflow, Zap, type LucideIcon } from "lucide-react";
-import { NAVER_BLOG_SYNC_WORKFLOW_URL, QA_SUITES, QA_WORKFLOW_URL } from "./constants";
-import { buildBlogDraftCopyText, formatBlogTitles, formatTime, getQaOperationalRun, isBlogRunTerminal } from "./mapUtils";
+import { COMPANY_NEWS_CRAWL_WORKFLOW_URL, NAVER_BLOG_SYNC_WORKFLOW_URL, QA_SUITES, QA_WORKFLOW_URL } from "./constants";
+import { buildBlogDraftCopyText, formatBlogTitles, formatTime, getCompanyNewsOperationalRun, getQaOperationalRun, isBlogRunTerminal } from "./mapUtils";
 import { compactButtonStyle, compactDangerButtonStyle, compactInputStyle, compactTextareaStyle, linkButtonStyle, opsCodeBlockStyle, opsResultRowStyle, opsSectionLabelStyle } from "./styles";
-import type { BlogAiGenerateSuccess, BlogAiInputMode, BlogImportRun, BlogSyncResult, PipelineNodeStatus, PipelineNodeStatusMap, QaCredentialsInput, QaRun, QaRunTracker, QaSuiteId } from "./types";
+import type { BlogAiGenerateSuccess, BlogAiInputMode, BlogImportRun, BlogSyncResult, CompanyNewsCrawlOptions, CompanyNewsRun, CompanyNewsRunTracker, PipelineNodeStatus, PipelineNodeStatusMap, QaCredentialsInput, QaRun, QaRunTracker, QaSuiteId } from "./types";
 
 // ─── Ops Pipeline ────────────────────────────────────────────────────────────
 
-type OpsSubTab = "qa" | "blog" | "ai";
+type OpsSubTab = "qa" | "blog" | "news" | "ai";
 type PipelineNode = { id: string; Icon: LucideIcon; label: string; sub: string; x: number; y: number; color: string };
 type PipelineEdge = { from: string; to: string };
 
 const OPS_SUB_TABS: { id: OpsSubTab; label: string; color: string }[] = [
   { id: "qa",   label: "QA",      color: "#4ea1ff" },
   { id: "blog", label: "블로그",   color: "#a855f7" },
+  { id: "news", label: "뉴스",    color: "#4377F1" },
   { id: "ai",   label: "AI 초안", color: "#fbbc05" },
 ];
 
@@ -44,6 +45,19 @@ const BLOG_PIPELINE_EDGES: PipelineEdge[] = [
   { from: "ga", to: "wk" }, { from: "wk", to: "po" },
 ];
 
+const NEWS_PIPELINE_NODES: PipelineNode[] = [
+  { id: "src", Icon: Globe,      label: "기업 키워드", sub: "companies + search_keywords", x: 80,  y: 90, color: "#34a853" },
+  { id: "ef",  Icon: Zap,        label: "Edge Fn",      sub: "trigger-company-news-crawl", x: 220, y: 90, color: "#3ecf8e" },
+  { id: "ga",  Icon: Github,     label: "Actions",      sub: "workflow_dispatch",         x: 360, y: 90, color: "#4ea1ff" },
+  { id: "wk",  Icon: Workflow,   label: "Crawler",      sub: "crawl-company-news.mjs",     x: 500, y: 90, color: "#a855f7" },
+  { id: "db",  Icon: Database,   label: "Articles",     sub: "public.articles",            x: 640, y: 90, color: "#fbbc05" },
+  { id: "rv",  Icon: Check,      label: "Review",       sub: "admin 승인",                x: 780, y: 90, color: "#34a853" },
+];
+const NEWS_PIPELINE_EDGES: PipelineEdge[] = [
+  { from: "src", to: "ef" }, { from: "ef", to: "ga" }, { from: "ga", to: "wk" },
+  { from: "wk", to: "db" }, { from: "db", to: "rv" },
+];
+
 const AI_PIPELINE_NODES: PipelineNode[] = [
   { id: "inp", Icon: PenLine,    label: "입력",          sub: "URL / 본문",              x: 80,  y: 90, color: "#fbbc05" },
   { id: "ext", Icon: FileText,   label: "본문 추출",      sub: "articleExtractor",        x: 220, y: 90, color: "#f08030" },
@@ -60,6 +74,7 @@ const AI_PIPELINE_EDGES: PipelineEdge[] = [
 const OPS_PIPELINE_DATA: Record<OpsSubTab, { nodes: PipelineNode[]; edges: PipelineEdge[]; viewBox: string }> = {
   qa:   { nodes: QA_PIPELINE_NODES,   edges: QA_PIPELINE_EDGES,   viewBox: "0 0 760 190" },
   blog: { nodes: BLOG_PIPELINE_NODES, edges: BLOG_PIPELINE_EDGES, viewBox: "0 0 860 190" },
+  news: { nodes: NEWS_PIPELINE_NODES, edges: NEWS_PIPELINE_EDGES, viewBox: "0 0 860 190" },
   ai:   { nodes: AI_PIPELINE_NODES,   edges: AI_PIPELINE_EDGES,   viewBox: "0 0 860 190" },
 };
 
@@ -317,6 +332,51 @@ function buildBlogPipelineStatuses({
   };
 }
 
+function buildCompanyNewsPipelineStatuses({
+  triggerLoading,
+  triggerError,
+  triggerMessage,
+  observedRun,
+  tracker,
+}: {
+  triggerLoading: boolean;
+  triggerError: string | null;
+  triggerMessage: string | null;
+  observedRun: CompanyNewsRun | null;
+  tracker: CompanyNewsRunTracker | null;
+}): PipelineNodeStatusMap {
+  const statuses: PipelineNodeStatusMap = { src: "idle", ef: "idle", ga: "idle", wk: "idle", db: "idle", rv: "idle" };
+
+  if (triggerLoading) {
+    return { ...statuses, src: "success", ef: "active" };
+  }
+  if (triggerError) {
+    return { ...statuses, src: "success", ef: "failed" };
+  }
+
+  if (observedRun) {
+    if (observedRun.status === "completed" && observedRun.conclusion === "success") {
+      return { src: "success", ef: "success", ga: "success", wk: "success", db: "success", rv: "success" };
+    }
+    if (observedRun.status === "completed" || observedRun.conclusion) {
+      return { src: "success", ef: "success", ga: "success", wk: "failed", db: "muted", rv: "muted" };
+    }
+    if (["queued", "requested", "waiting", "pending"].includes(observedRun.status)) {
+      return { ...statuses, src: "success", ef: "success", ga: "active" };
+    }
+    return { ...statuses, src: "success", ef: "success", ga: "success", wk: "active" };
+  }
+
+  if (tracker) {
+    return { ...statuses, src: "success", ef: "success", ga: "active" };
+  }
+
+  if (triggerMessage) {
+    return { src: "success", ef: "success", ga: "success", wk: "active", db: "muted", rv: "muted" };
+  }
+  return statuses;
+}
+
 function buildAiPipelineStatuses({
   inputMode,
   analyzeLoading,
@@ -390,6 +450,14 @@ export function OperationsSidebar({
   syncResult,
   syncObservedRun,
   syncError,
+  companyNewsTriggerLoading,
+  companyNewsTriggerMessage,
+  companyNewsTriggerError,
+  companyNewsRuns,
+  companyNewsRunTracker,
+  companyNewsLoading,
+  companyNewsError,
+  companyNewsCrawlOptions,
   blogAiInputMode,
   blogAiArticleUrl,
   blogAiArticleText,
@@ -417,6 +485,8 @@ export function OperationsSidebar({
   onTriggerQaRun,
   onRunVisibleQa,
   onTriggerBlogSync,
+  onCompanyNewsCrawlOptionsChange,
+  onTriggerCompanyNewsCrawl,
   onAnalyzeBlogStyle,
   onGenerateBlogDraft,
   onReviseBlogDraft,
@@ -439,6 +509,14 @@ export function OperationsSidebar({
   syncResult: BlogSyncResult | null;
   syncObservedRun: BlogImportRun | null;
   syncError: string | null;
+  companyNewsTriggerLoading: boolean;
+  companyNewsTriggerMessage: string | null;
+  companyNewsTriggerError: string | null;
+  companyNewsRuns: CompanyNewsRun[];
+  companyNewsRunTracker: CompanyNewsRunTracker | null;
+  companyNewsLoading: boolean;
+  companyNewsError: string | null;
+  companyNewsCrawlOptions: CompanyNewsCrawlOptions;
   blogAiInputMode: BlogAiInputMode;
   blogAiArticleUrl: string;
   blogAiArticleText: string;
@@ -466,6 +544,8 @@ export function OperationsSidebar({
   onTriggerQaRun: () => void;
   onRunVisibleQa: () => void;
   onTriggerBlogSync: () => void;
+  onCompanyNewsCrawlOptionsChange: (patch: Partial<CompanyNewsCrawlOptions>) => void;
+  onTriggerCompanyNewsCrawl: () => void;
   onAnalyzeBlogStyle: () => void;
   onGenerateBlogDraft: () => void;
   onReviseBlogDraft: () => void;
@@ -478,10 +558,15 @@ export function OperationsSidebar({
     () => getQaOperationalRun(qaRuns, selectedQaSuite, qaRunTracker),
     [qaRuns, selectedQaSuite, qaRunTracker],
   );
+  const companyNewsOperationalRun = useMemo(
+    () => getCompanyNewsOperationalRun(companyNewsRuns, companyNewsRunTracker),
+    [companyNewsRuns, companyNewsRunTracker],
+  );
 
   const isRunning =
     opsSubTab === "qa"   ? qaTriggerLoading || visibleQaLoading :
     opsSubTab === "blog" ? syncLoading :
+    opsSubTab === "news" ? companyNewsTriggerLoading || Boolean(companyNewsRunTracker && !companyNewsOperationalRun) || companyNewsOperationalRun?.status === "in_progress" || companyNewsOperationalRun?.status === "queued" :
     blogAiGenerateLoading || blogAiRevisionLoading || blogAiAnalyzeLoading;
 
   const nodeStatuses = useMemo<PipelineNodeStatusMap>(() => {
@@ -501,6 +586,15 @@ export function OperationsSidebar({
         syncError,
         syncResult,
         observedRun: syncObservedRun,
+      });
+    }
+    if (opsSubTab === "news") {
+      return buildCompanyNewsPipelineStatuses({
+        triggerLoading: companyNewsTriggerLoading,
+        triggerError: companyNewsTriggerError,
+        triggerMessage: companyNewsTriggerMessage,
+        observedRun: companyNewsOperationalRun,
+        tracker: companyNewsRunTracker,
       });
     }
     return buildAiPipelineStatuses({
@@ -526,6 +620,11 @@ export function OperationsSidebar({
     syncError,
     syncResult,
     syncObservedRun,
+    companyNewsTriggerLoading,
+    companyNewsTriggerError,
+    companyNewsTriggerMessage,
+    companyNewsOperationalRun,
+    companyNewsRunTracker,
     blogAiInputMode,
     blogAiAnalyzeLoading,
     blogAiAnalyzeError,
@@ -571,6 +670,54 @@ export function OperationsSidebar({
       }
       return { title: "블로그 동기화 idle", detail: "수동 실행 시 run row와 workflow dispatch를 추적" };
     }
+    if (opsSubTab === "news") {
+      if (companyNewsRunTracker && !companyNewsOperationalRun) {
+        return {
+          title: "기업 뉴스 Actions run 생성 대기",
+          detail: `요청 ${formatTime(companyNewsRunTracker.requestedAt)} · 6초 간격으로 GitHub run 확인 중`,
+        };
+      }
+      if (companyNewsOperationalRun) {
+        return {
+          title: `Company News #${companyNewsOperationalRun.runNumber}`,
+          detail: `${companyNewsOperationalRun.status}${companyNewsOperationalRun.conclusion ? ` / ${companyNewsOperationalRun.conclusion}` : ""} · 업데이트 ${formatTime(companyNewsOperationalRun.updatedAt)}`,
+        };
+      }
+      if (companyNewsTriggerLoading) {
+        return {
+          title: "기업 뉴스 수집 요청 중",
+          detail: `dispatch 중 · ${companyNewsCrawlOptions.batchSize}개사 × ${companyNewsCrawlOptions.resultsPerCompany}개 · 관련도 ${companyNewsCrawlOptions.minRelevanceScore}+`,
+        };
+      }
+      if (companyNewsLoading) {
+        return {
+          title: "기업 뉴스 Actions 확인 중",
+          detail: "GitHub workflow run 목록을 불러오는 중",
+        };
+      }
+      if (companyNewsError) {
+        return {
+          title: "기업 뉴스 Actions 조회 실패",
+          detail: companyNewsError,
+        };
+      }
+      if (companyNewsTriggerError) {
+        return {
+          title: "기업 뉴스 수집 실패",
+          detail: companyNewsTriggerError,
+        };
+      }
+      if (companyNewsTriggerMessage) {
+        return {
+          title: "기업 뉴스 수집 요청 완료",
+          detail: `${companyNewsCrawlOptions.batchSize}개사 × ${companyNewsCrawlOptions.resultsPerCompany}개 · Actions dispatch 완료 · 최대 ${companyNewsCrawlOptions.maxStoredArticles}건 · 관련도 ${companyNewsCrawlOptions.minRelevanceScore}+`,
+        };
+      }
+      return {
+        title: "기업 뉴스 수동 실행 idle",
+        detail: "관리자 권한으로 Edge Function을 호출해 GitHub Actions 수집을 시작합니다.",
+      };
+    }
     if (blogAiDraftResult) {
       return {
         title: "AI 초안 생성 완료",
@@ -588,6 +735,14 @@ export function OperationsSidebar({
     selectedQaSuite,
     syncObservedRun,
     syncResult,
+    companyNewsRunTracker,
+    companyNewsOperationalRun,
+    companyNewsError,
+    companyNewsTriggerLoading,
+    companyNewsLoading,
+    companyNewsTriggerError,
+    companyNewsTriggerMessage,
+    companyNewsCrawlOptions,
     blogAiDraftResult,
     blogAiAnalyzeLoading,
     blogAiSampleCount,
@@ -779,6 +934,96 @@ export function OperationsSidebar({
                   </button>
                 </div>
               )}
+            </>
+          )}
+
+          {/* ── News ── */}
+          {opsSubTab === "news" && (
+            <>
+              <button type="button" data-monitor-action="trigger-manual-company-news-crawl" onClick={onTriggerCompanyNewsCrawl} disabled={companyNewsTriggerLoading} style={ctaStyle("#4377F1", "#0d1e30", companyNewsTriggerLoading)}>
+                <PlayCircle size={13} aria-hidden />{companyNewsTriggerLoading ? "수집 중..." : "즉시 수집"}
+              </button>
+              <div style={{ display: "flex", flexDirection: "column", gap: 9, background: "#0e0e0e", border: "1px solid #222", borderRadius: 10, padding: 12 }}>
+                <div style={{ color: "#555", fontSize: 9, fontWeight: 900, letterSpacing: "0.06em" }}>수집 옵션</div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 6 }}>
+                  <label style={{ display: "flex", flexDirection: "column", gap: 4, color: "#555", fontSize: 9, fontWeight: 800 }}>
+                    처리 회사 수
+                    <input
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={companyNewsCrawlOptions.batchSize}
+                      onChange={(e) => onCompanyNewsCrawlOptionsChange({ batchSize: Number(e.currentTarget.value) })}
+                      style={compactInputStyle}
+                    />
+                  </label>
+                  <label style={{ display: "flex", flexDirection: "column", gap: 4, color: "#555", fontSize: 9, fontWeight: 800 }}>
+                    회사당 기사 수
+                    <input
+                      type="number"
+                      min={1}
+                      max={20}
+                      value={companyNewsCrawlOptions.resultsPerCompany}
+                      onChange={(e) => onCompanyNewsCrawlOptionsChange({ resultsPerCompany: Number(e.currentTarget.value) })}
+                      style={compactInputStyle}
+                    />
+                  </label>
+                  <label style={{ display: "flex", flexDirection: "column", gap: 4, color: "#555", fontSize: 9, fontWeight: 800 }}>
+                    지연(ms)
+                    <input
+                      type="number"
+                      min={100}
+                      max={2000}
+                      value={companyNewsCrawlOptions.delayMs}
+                      onChange={(e) => onCompanyNewsCrawlOptionsChange({ delayMs: Number(e.currentTarget.value) })}
+                      style={compactInputStyle}
+                    />
+                  </label>
+                  <label style={{ display: "flex", flexDirection: "column", gap: 4, color: "#555", fontSize: 9, fontWeight: 800 }}>
+                    최소 관련도
+                    <input
+                      type="number"
+                      min={1}
+                      max={10}
+                      value={companyNewsCrawlOptions.minRelevanceScore}
+                      onChange={(e) => onCompanyNewsCrawlOptionsChange({ minRelevanceScore: Number(e.currentTarget.value) })}
+                      style={compactInputStyle}
+                    />
+                  </label>
+                  <label style={{ display: "flex", flexDirection: "column", gap: 4, color: "#555", fontSize: 9, fontWeight: 800, gridColumn: "1 / -1" }}>
+                    최대 저장 기사
+                    <input
+                      type="number"
+                      min={50}
+                      max={1000}
+                      value={companyNewsCrawlOptions.maxStoredArticles}
+                      onChange={(e) => onCompanyNewsCrawlOptionsChange({ maxStoredArticles: Number(e.currentTarget.value) })}
+                      style={compactInputStyle}
+                    />
+                  </label>
+                </div>
+                <button type="button" onClick={() => window.open(COMPANY_NEWS_CRAWL_WORKFLOW_URL, "_blank", "noopener,noreferrer")} style={linkButtonStyle}>
+                  <ExternalLink size={11} aria-hidden />GitHub workflow ↗
+                </button>
+              </div>
+              {companyNewsError && <div style={msgStyle("error")}>Actions 조회 실패: {companyNewsError}</div>}
+              {companyNewsOperationalRun && (
+                <div style={{ background: "#0a1424", border: "1px solid #17345f", borderRadius: 10, padding: 10 }}>
+                  <div style={{ color: "#9fc4ff", fontSize: 10, fontWeight: 900, marginBottom: 8 }}>
+                    GitHub Actions 실시간 run
+                  </div>
+                  <div style={{ display: "grid", gap: 5, marginBottom: 8 }}>
+                    <div style={opsResultRowStyle}><span>Run</span><strong>#{companyNewsOperationalRun.runNumber}</strong></div>
+                    <div style={opsResultRowStyle}><span>Status</span><strong>{companyNewsOperationalRun.status}{companyNewsOperationalRun.conclusion ? ` / ${companyNewsOperationalRun.conclusion}` : ""}</strong></div>
+                    <div style={opsResultRowStyle}><span>Updated</span><strong>{formatTime(companyNewsOperationalRun.updatedAt)}</strong></div>
+                  </div>
+                  <button type="button" onClick={() => window.open(companyNewsOperationalRun.htmlUrl, "_blank", "noopener,noreferrer")} style={linkButtonStyle}>
+                    <ExternalLink size={11} aria-hidden />Run 열기 ↗
+                  </button>
+                </div>
+              )}
+              {companyNewsTriggerError && <div style={msgStyle("error")}>요청 실패: {companyNewsTriggerError}</div>}
+              {companyNewsTriggerMessage && <div style={msgStyle("success")}>{companyNewsTriggerMessage}</div>}
             </>
           )}
 

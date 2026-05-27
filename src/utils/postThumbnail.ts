@@ -2,7 +2,7 @@ import type React from "react";
 import { isImage } from "./file";
 import { supabase } from "../lib/supabaseClient";
 import { isWideMediaCategory } from "../app/constants/mediaCategories";
-import { getExternalMediaThumbnailUrl, parseMediaMeta } from "./mediaPost";
+import { getExternalMediaThumbnailUrl, isVideoArchiveTag, parseMediaMeta } from "./mediaPost";
 
 export type ThumbnailAspect = "7/1" | "16/10" | "16/9" | "10/9" | "1/1" | "540/675";
 
@@ -39,6 +39,7 @@ export const THUMBNAIL_OUTPUT_WIDTH: Record<ThumbnailAspect, number> = {
 };
 
 export const POST_THUMBNAIL_ASPECT: Record<string, ThumbnailAspect> = {
+  events: "10/9",
   "events-archive": "16/10",
   news: "10/9",
 };
@@ -56,6 +57,9 @@ const clamp = (value: unknown, min: number, max: number, fallback: number) => {
 export const getPostThumbnailAspect = (category: string, tags?: string | null): ThumbnailAspect => {
   if (category === "media") {
     return isWideMediaCategory(tags) ? "16/9" : "540/675";
+  }
+  if (category === "events-archive" && isVideoArchiveTag(tags)) {
+    return "16/9";
   }
 
   return POST_THUMBNAIL_ASPECT[category] ?? "16/10";
@@ -156,16 +160,18 @@ export const getPostThumbnailCandidates = (
     tags?: string | null;
   },
 ): ThumbnailCandidate[] => {
-  if (post.category !== "media") {
+  const supportsExternalThumbnail =
+    (post.category === "media" && isWideMediaCategory(post.tags))
+    || (post.category === "events-archive" && isVideoArchiveTag(post.tags));
+
+  if (!supportsExternalThumbnail) {
     return getThumbnailCandidates(post.content ?? "", post.image_url);
   }
 
   const contentImages = extractImageUrlsFromHtml(post.content ?? "");
   const attachmentImages = getAttachmentImageUrls(post.image_url);
   const meta = parseMediaMeta(post.content ?? "");
-  const externalThumbnail = isWideMediaCategory(post.tags)
-    ? getExternalMediaThumbnailUrl(meta.externalUrl)
-    : null;
+  const externalThumbnail = getExternalMediaThumbnailUrl(meta.externalUrl);
   const seen = new Set<string>();
   const candidates: ThumbnailCandidate[] = [];
 

@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { PageShell } from "../components/PageShell";
+import { BoardAccessGate } from "../components/BoardAccessGate";
+import { useBoardCategoryLabel, useBoardCategoryDescription } from "../BoardCategoriesContext";
 import { useTheme } from "../ThemeContext";
 import { supabase } from "../../lib/supabaseClient";
 import { LoadingSpinner, ErrorMessage } from "../components/LoadingSpinner";
@@ -9,6 +11,8 @@ import 'react-quill/dist/quill.snow.css';
 
 export function FaqPage() {
   const { isDark } = useTheme();
+  const boardTitle = useBoardCategoryLabel("faq", "자주 묻는 질문");
+  const boardSubtitle = useBoardCategoryDescription("faq", "궁금하신 점을 카테고리별로 빠르게 찾아보세요.");
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -35,7 +39,8 @@ export function FaqPage() {
   }, []);
 
   return (
-    <PageShell title="자주 묻는 질문" subtitle="궁금하신 점을 카테고리별로 빠르게 찾아보세요.">
+    <BoardAccessGate category="faq">
+    <PageShell title={boardTitle} subtitle={boardSubtitle}>
       <div className="max-w-[800px] mx-auto pb-[100px]">
         {loading ? (
           <LoadingSpinner />
@@ -128,5 +133,6 @@ export function FaqPage() {
         )}
       </div>
     </PageShell>
+    </BoardAccessGate>
   );
 }

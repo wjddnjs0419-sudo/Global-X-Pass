@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from "react";
-import { Navigate } from "react-router";
+import { Navigate, useLocation, useNavigate } from "react-router";
 import { useTheme } from "../ThemeContext";
 import { supabase } from "../../lib/supabaseClient";
 import { useAdmin } from "../../hooks/useAdmin";
@@ -15,14 +15,17 @@ const AdminPostCreate    = lazy(() => import('../components/admin/AdminPostCreat
 const AdminPostManage    = lazy(() => import('../components/admin/AdminPostManage'));
 const AdminEventManagement = lazy(() => import('../components/admin/AdminEventManagement'));
 const AdminConsultingManagement = lazy(() => import('../components/admin/AdminConsultingManagement'));
+const AdminOfficeHourManagement = lazy(() => import('../components/admin/AdminOfficeHourManagement'));
 const AdminFoundersClubManagement = lazy(() => import('../components/admin/AdminFoundersClubManagement'));
 const AdminBlogQueueManagement    = lazy(() => import('../components/admin/AdminBlogQueueManagement'));
 const AdminCompanyNewsManagement  = lazy(() => import('../components/admin/AdminCompanyNewsManagement'));
+const AdminExternalNewsManagement = lazy(() => import('../components/admin/AdminExternalNewsManagement'));
+const AdminBoardManagement        = lazy(() => import('../components/admin/AdminBoardManagement'));
 
-type TabId = "dashboard" | "users" | "create" | "manage" | "events" | "consulting" | "founders" | "blog-queue" | "company-news";
+type TabId = "dashboard" | "users" | "create" | "manage" | "boards" | "events" | "consulting" | "office-hours" | "founders" | "blog-queue" | "company-news" | "external-news";
 
 const ADMIN_ACTIVE_TAB_KEY = "gxp_admin_active_tab";
-const ADMIN_TABS: TabId[] = ["dashboard", "users", "create", "manage", "events", "consulting", "founders", "blog-queue", "company-news"];
+const ADMIN_TABS: TabId[] = ["dashboard", "users", "create", "manage", "boards", "events", "consulting", "office-hours", "founders", "blog-queue", "company-news", "external-news"];
 
 const getStoredAdminTab = (): TabId => {
   if (typeof window === "undefined") return "dashboard";
@@ -36,6 +39,8 @@ const getStoredAdminTab = (): TabId => {
 export default function AdminPage() {
   const { isDark } = useTheme();
   const { isAdmin, loading: adminLoading, mfaRequired, mfaEnrolled } = useAdmin();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const skColor = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)";
 
@@ -87,6 +92,25 @@ export default function AdminPage() {
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, []);
+
+  useEffect(() => {
+    const editPostId = new URLSearchParams(location.search).get("editPostId");
+    if (!editPostId) return;
+
+    let cancelled = false;
+    const openEditingPost = async () => {
+      const { data } = await supabase.from("posts").select("*").eq("id", editPostId).maybeSingle();
+      if (cancelled || !data) return;
+      setEditingPost(data);
+      window.sessionStorage.setItem(ADMIN_ACTIVE_TAB_KEY, "create");
+      setActiveTab("create");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      navigate("/admin", { replace: true });
+    };
+
+    void openEditingPost();
+    return () => { cancelled = true; };
+  }, [location.search, navigate]);
 
   const handleTabChange = (tab: TabId) => {
     window.sessionStorage.setItem(ADMIN_ACTIVE_TAB_KEY, tab);
@@ -189,6 +213,17 @@ export default function AdminPage() {
             </Suspense>
           )}
 
+          {activeTab === "boards" && (
+            <Suspense fallback={
+              <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+                <div style={{ height: 33, width: 140, borderRadius: 8, background: skColor, animation: "pulse 1.5s ease-in-out infinite" }} />
+                <SkFallback rows={6} h={92} r={16} gap={12} />
+              </div>
+            }>
+              <AdminBoardManagement />
+            </Suspense>
+          )}
+
           {activeTab === "consulting" && (
             <Suspense fallback={
               <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -200,6 +235,20 @@ export default function AdminPage() {
               </div>
             }>
               <AdminConsultingManagement />
+            </Suspense>
+          )}
+
+          {activeTab === "office-hours" && (
+            <Suspense fallback={
+              <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+                <div style={{ height: 33, width: 160, borderRadius: 8, background: skColor, animation: "pulse 1.5s ease-in-out infinite" }} />
+                <div style={{ display: "flex", gap: 8 }}>
+                  {[0,1].map(i => <div key={i} style={{ width: 100, height: 40, borderRadius: 12, background: skColor, animation: "pulse 1.5s ease-in-out infinite" }} />)}
+                </div>
+                <SkFallback rows={5} h={78} r={16} gap={16} />
+              </div>
+            }>
+              <AdminOfficeHourManagement />
             </Suspense>
           )}
 
@@ -251,6 +300,18 @@ export default function AdminPage() {
               </div>
             }>
               <AdminCompanyNewsManagement />
+            </Suspense>
+          )}
+
+          {activeTab === "external-news" && (
+            <Suspense fallback={
+              <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+                <div style={{ height: 33, width: 170, borderRadius: 8, background: skColor, animation: "pulse 1.5s ease-in-out infinite" }} />
+                <div style={{ height: 220, borderRadius: 16, background: skColor, animation: "pulse 1.5s ease-in-out infinite" }} />
+                <SkFallback rows={5} h={92} r={16} gap={12} />
+              </div>
+            }>
+              <AdminExternalNewsManagement />
             </Suspense>
           )}
         </main>

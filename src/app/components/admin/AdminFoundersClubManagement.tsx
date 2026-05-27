@@ -61,7 +61,7 @@ export function AdminFoundersClubManagement() {
     session_date_d: "",
     session_time: "",
   });
-  const [statusFilter, setStatusFilter] = useState<"all" | "recruiting" | "closed" | "completed">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "recruiting" | "closed" | "completed" | "rejected">("all");
   const [loading, setLoading] = useState(false);
 
   const card = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
@@ -197,9 +197,11 @@ export function AdminFoundersClubManagement() {
   };
 
   const statusCfg: Record<string, { label: string; color: string }> = {
-    recruiting: { label: "모집중", color: "var(--color-accent-green)" },
-    closed:     { label: "마감",   color: "var(--color-brand-red)" },
-    completed:  { label: "완료",   color: "var(--color-text-muted)" },
+    pending:    { label: "승인 대기", color: "var(--color-brand-yellow)" },
+    recruiting: { label: "모집중",   color: "var(--color-accent-green)" },
+    closed:     { label: "마감",     color: "var(--color-brand-red)" },
+    completed:  { label: "완료",     color: "var(--color-text-muted)" },
+    rejected:   { label: "반려",     color: "var(--color-brand-red)" },
   };
 
   const appStatusCfg: Record<string, { label: string; color: string }> = {
@@ -348,9 +350,11 @@ export function AdminFoundersClubManagement() {
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {([
               { id: "all",        label: "전체" },
+              { id: "pending",    label: "승인 대기" },
               { id: "recruiting", label: "모집중" },
               { id: "closed",     label: "마감" },
               { id: "completed",  label: "완료" },
+              { id: "rejected",   label: "반려" },
             ] as const).map(f => (
               <button
                 key={f.id}
@@ -377,6 +381,9 @@ export function AdminFoundersClubManagement() {
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
                   <span style={{ fontWeight: 700, color: textMain, minWidth: 0, overflowWrap: "anywhere" }}>{s.theme}</span>
                   <Badge status={s.status} cfg={statusCfg} />
+                  {s.created_by && (
+                    <span style={{ fontSize: 11, fontWeight: 700, color: textMuted, padding: "2px 8px", borderRadius: 99, border: `1px solid ${border}`, whiteSpace: "nowrap" }}>참여사 제안</span>
+                  )}
                 </div>
                 <div style={{ fontSize: 13, color: textMuted }}>
                   정원 {s.max_participants}명 · 확정 {getSessionCounts(s.id).accepted_count}명 · 전체 {getSessionCounts(s.id).total_count}건{s.session_date && ` · ${s.session_date} ${s.session_time?.slice(0, 5) ?? ""}`}
@@ -387,14 +394,22 @@ export function AdminFoundersClubManagement() {
                 <div style={{ fontSize: 12, color: textMuted, marginTop: 4 }}>{formatStructuredLocation(s.location)}</div>
               </div>
               <div className="flex w-full flex-wrap gap-2 md:w-auto md:flex-nowrap md:justify-end" style={{ alignItems: "center" }}>
+                {s.status === "pending" && (
+                  <>
+                    <button onClick={() => handleChangeStatus(s, "recruiting")} style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid var(--color-accent-green)", background: "var(--color-success-soft-bg)", color: "var(--color-accent-green)", fontWeight: 800, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap", flexShrink: 0 }}>승인</button>
+                    <button onClick={() => handleChangeStatus(s, "rejected")} style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${deleteBorder}`, background: deleteBg, color: "var(--color-brand-red)", fontWeight: 800, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap", flexShrink: 0 }}>반려</button>
+                  </>
+                )}
                 <select
                   value={s.status}
                   onChange={e => handleChangeStatus(s, e.target.value as FoundersClubSession["status"])}
                   style={{ padding: "7px 10px", borderRadius: 8, border: `1px solid ${border}`, background: inputBg, color: textMain, fontWeight: 700, cursor: "pointer", fontSize: 13, minWidth: 96, flex: "1 1 120px", whiteSpace: "nowrap" }}
                 >
+                  <option value="pending">승인 대기</option>
                   <option value="recruiting">모집중</option>
                   <option value="closed">마감</option>
                   <option value="completed">완료</option>
+                  <option value="rejected">반려</option>
                 </select>
                 <button onClick={() => { setSelectedSession(s); setSubTab("applications"); }} style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${labelBorder}`, background: selectedBg, color: textMain, fontWeight: 750, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap", flexShrink: 0 }}>참여자 보기</button>
                 <button onClick={() => handleDeleteSession(s.id)} style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${deleteBorder}`, background: deleteBg, color: "var(--color-brand-red)", fontWeight: 700, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap", flexShrink: 0 }}>삭제</button>

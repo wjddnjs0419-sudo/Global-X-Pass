@@ -86,7 +86,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: profiles, error: fetchErr } = await adminClient
       .from("profiles")
-      .select("id, name, email, phone, company, user_type, role, created_at")
+      .select("id, name, email, phone, company, user_type, role, status, created_at")
       .order("created_at", { ascending: false });
 
     if (fetchErr) throw fetchErr;

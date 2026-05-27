@@ -13,6 +13,7 @@ import { sanitizeSvgMarkup } from "../../utils/htmlSecurity";
 import { challengeAndPersistTotpVerification, getTotpFactorSnapshot } from "../../utils/mfa";
 import { formatStructuredLocation } from "../../utils/scheduleFields";
 import { getStatusPillStyle } from "../components/contentListStyles";
+import { formatOfficeHourMonth, getOfficeHourStatusConfig } from "../constants/officeHours";
 
 export function MyPage() {
   const { isDark } = useTheme();
@@ -28,6 +29,7 @@ export function MyPage() {
   const [pwChangeMfaOtp, setPwChangeMfaOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [consultingReservations, setConsultingReservations] = useState<any[]>([]);
+  const [officeHourApplications, setOfficeHourApplications] = useState<any[]>([]);
   const [clubApplications, setClubApplications] = useState<any[]>([]);
   const [eventApplications, setEventApplications] = useState<any[]>([]);
 
@@ -126,6 +128,15 @@ export function MyPage() {
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
     setConsultingReservations(resData || []);
+  };
+
+  const fetchOfficeHourApplications = async (userId: string) => {
+    const { data } = await supabase
+      .from("office_hour_applications")
+      .select("*, office_hour_months(period_month)")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+    setOfficeHourApplications(data || []);
   };
 
   const fetchClubApplications = async (userId: string) => {
@@ -248,6 +259,7 @@ export function MyPage() {
         if (data?.role !== "admin") {
           await Promise.all([
             fetchConsultingReservations(user.id),
+            fetchOfficeHourApplications(user.id),
             fetchClubApplications(user.id),
             fetchEventApplications(user.id),
           ]);
@@ -270,6 +282,23 @@ export function MyPage() {
       alert("취소 실패: " + error.message);
     } else if (user?.id) {
       await fetchConsultingReservations(user.id);
+    }
+    setLoading(false);
+  };
+
+  const handleCancelOfficeHourApplication = async (application: any) => {
+    if (!window.confirm("오피스아워 신청을 취소하시겠습니까?")) return;
+
+    setLoading(true);
+    const { error } = await supabase
+      .from("office_hour_applications")
+      .update({ status: "cancelled" })
+      .eq("id", application.id);
+
+    if (error) {
+      alert("취소 실패: " + error.message);
+    } else if (user?.id) {
+      await fetchOfficeHourApplications(user.id);
     }
     setLoading(false);
   };
@@ -406,6 +435,14 @@ export function MyPage() {
     const { error } = await supabase.from("consulting_reservations").delete().eq("id", id);
     if (error) { alert("삭제 실패: " + error.message); }
     else { setConsultingReservations(prev => prev.filter(r => r.id !== id)); }
+    setLoading(false);
+  };
+
+  const handleDeleteOfficeHourApplication = async (id: string) => {
+    setLoading(true);
+    const { error } = await supabase.from("office_hour_applications").delete().eq("id", id);
+    if (error) { alert("삭제 실패: " + error.message); }
+    else { setOfficeHourApplications(prev => prev.filter(a => a.id !== id)); }
     setLoading(false);
   };
 
@@ -775,6 +812,48 @@ export function MyPage() {
                     <div style={{ fontWeight: 700, color: textMain, fontSize: 14, marginBottom: 4 }}>{consultant?.name}</div>
                     <div style={{ fontSize: 12, color: textMuted }}>{slot?.slot_date} {slot?.slot_time?.slice(0, 5)}</div>
                     <div style={{ fontSize: 12, color: textMuted, marginTop: 3 }}>{formatStructuredLocation(slot?.location)}</div>
+                  </div>
+                  {statusPill(cfg)}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Office hour applications — admin 제외 */}
+        {profile?.role !== "admin" && officeHourApplications.length > 0 && (
+          <div className="w-full max-w-[500px] rounded-[20px] px-9 py-8 flex flex-col gap-4" style={{ background: card, border: `1px solid ${border}` }}>
+            <h3 style={{ color: textMain, fontSize: 18, margin: 0 }}>나의 오피스아워 신청</h3>
+            {officeHourApplications.map((a: any) => {
+              const periodMonth = a.office_hour_months?.period_month as string | undefined;
+              const cfg = getOfficeHourStatusConfig(a.status);
+              const canCancel = a.status === "pending" || a.status === "matched";
+              const canDelete = a.status === "cancelled" || a.status === "rejected";
+              const hasMatch = !!a.matched_expert_name;
+              return (
+                <div key={a.id} style={requestCardStyle}>
+                  {canCancel && (
+                    <button type="button" aria-label="오피스아워 신청 취소" onClick={() => handleCancelOfficeHourApplication(a)} disabled={loading} style={cancelIconStyle}>
+                      <X size={14} />
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button type="button" aria-label="내역 삭제" onClick={() => handleDeleteOfficeHourApplication(a.id)} disabled={loading} style={deleteIconStyle}>
+                      <Trash2 size={13} />
+                    </button>
+                  )}
+                  <div>
+                    <div style={{ fontWeight: 700, color: textMain, fontSize: 14, marginBottom: 4 }}>
+                      {periodMonth ? `${formatOfficeHourMonth(periodMonth)} 오피스아워` : "오피스아워"}
+                    </div>
+                    <div style={{ fontSize: 12, color: textMuted }}>희망 주제: {a.topic}</div>
+                    {hasMatch && (
+                      <div style={{ marginTop: 6 }}>
+                        <div style={{ fontSize: 12, color: textMain, fontWeight: 600 }}>전문가: {a.matched_expert_name}</div>
+                        <div style={{ fontSize: 12, color: textMuted, marginTop: 2 }}>{a.matched_date ?? "일정 조율 중"} {a.matched_time?.slice(0, 5) ?? ""}</div>
+                        <div style={{ fontSize: 12, color: textMuted, marginTop: 2 }}>{formatStructuredLocation(a.matched_location)}</div>
+                      </div>
+                    )}
                   </div>
                   {statusPill(cfg)}
                 </div>

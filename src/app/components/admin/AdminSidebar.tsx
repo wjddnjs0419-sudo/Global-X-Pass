@@ -2,7 +2,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTheme } from "../../ThemeContext";
 
-type TabId = "dashboard" | "users" | "create" | "manage" | "events" | "consulting" | "founders" | "blog-queue" | "company-news";
+type TabId = "dashboard" | "users" | "create" | "manage" | "boards" | "events" | "consulting" | "office-hours" | "founders" | "blog-queue" | "company-news" | "external-news";
 
 interface AdminSidebarProps {
   activeTab: string;
@@ -41,12 +41,25 @@ const SECTIONS: { label: string; items: { id: TabId; label: string; icon: ReactN
         icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>,
       },
       {
+        id: "boards", label: "게시판 관리",
+        icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>,
+      },
+    ],
+  },
+  {
+    label: "자동화",
+    items: [
+      {
         id: "blog-queue", label: "블로그 동기화",
         icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
       },
       {
         id: "company-news", label: "기업 뉴스 관리",
         icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"/><path d="M8 7h8"/><path d="M8 11h8"/><path d="M8 15h5"/></svg>,
+      },
+      {
+        id: "external-news", label: "언론보도 관리",
+        icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h12v18H6z"/><path d="M9 7h6"/><path d="M9 11h6"/><path d="M9 15h4"/></svg>,
       },
     ],
   },
@@ -60,6 +73,10 @@ const SECTIONS: { label: string; items: { id: TabId; label: string; icon: ReactN
       {
         id: "consulting", label: "컨설팅 관리",
         icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
+      },
+      {
+        id: "office-hours", label: "오피스아워 관리",
+        icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
       },
       {
         id: "founders", label: "Founder's Club",

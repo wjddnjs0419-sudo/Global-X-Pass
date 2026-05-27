@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { useTheme } from "../../ThemeContext";
 import { CATEGORIES, getLocalDateString } from "./adminConstants";
 import { supabase } from "../../../lib/supabaseClient";
+import { useBoardCategoryLabels } from "../../BoardCategoriesContext";
 
 interface AdminDashboardProps {
   refreshKey: number;
@@ -11,6 +12,7 @@ interface AdminDashboardProps {
 export function AdminDashboard({ refreshKey }: AdminDashboardProps) {
   const { isDark } = useTheme();
   const navigate = useNavigate();
+  const boardLabels = useBoardCategoryLabels();
 
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ views: 0, posts: 0, visitors: 0 });
@@ -91,6 +93,10 @@ export function AdminDashboard({ refreshKey }: AdminDashboardProps) {
   const maxCumul = Math.max(...chartData.map(d => d.cumulative), 1);
   const chartW = 400, chartH = 150;
   const fmtNum = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n);
+  const getCategoryLabel = (id: string) => {
+    const fallback = CATEGORIES.find(c => c.id === id)?.label ?? id;
+    return id === "expenses" ? fallback : boardLabels[id] ?? fallback;
+  };
   const getPoints = (key: 'views' | 'cumulative', max: number) =>
     chartData.map((d, i) => `${(i * (chartW / (chartPeriod - 1)))},${chartH - (d[key] / max * chartH)}`).join(" ");
 
@@ -182,7 +188,7 @@ export function AdminDashboard({ refreshKey }: AdminDashboardProps) {
                 <div key={post.id} style={{ display: "flex", alignItems: "center", gap: "12px", cursor: "pointer" }} onClick={() => navigate(`/post/${post.id}`)}>
                   <div style={{ width: "24px", height: "24px", borderRadius: "6px", background: i < 3 ? (isDark ? "rgba(255,255,255,0.14)" : "rgba(15,23,42,0.10)") : panelBg, border: `1px solid ${labelBorder}`, color: i < 3 ? textMain : textMuted, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: 800, flexShrink: 0 }}>{i + 1}</div>
                   <div style={{ flex: 1, display: "flex", alignItems: "center", gap: "8px", overflow: "hidden" }}>
-                    <span style={{ fontSize: "11px", background: labelBg, border: `1px solid ${labelBorder}`, color: textMuted, padding: "4px 7px", borderRadius: "7px", fontWeight: 700, whiteSpace: "nowrap" }}>{CATEGORIES.find(c => c.id === post.category)?.label}</span>
+                    <span style={{ fontSize: "11px", background: labelBg, border: `1px solid ${labelBorder}`, color: textMuted, padding: "4px 7px", borderRadius: "7px", fontWeight: 700, whiteSpace: "nowrap" }}>{getCategoryLabel(post.category)}</span>
                     <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: textMain, fontSize: "15px", fontWeight: 600 }}>{post.title}</div>
                   </div>
                   <div style={{ fontSize: "13px", color: textMuted, fontWeight: 700, flexShrink: 0 }}>{post.views || 0}회</div>

@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { PageShell } from "../components/PageShell";
-import { supabase } from "../../lib/supabaseClient";
+import { BoardAccessGate } from "../components/BoardAccessGate";
+import { useBoardCategoryLabel, useBoardCategoryDescription } from "../BoardCategoriesContext";
+import { fetchPublicPostPreviews } from "../../utils/publicPostPreviews";
 import { LoadingSpinner, ErrorMessage } from "../components/LoadingSpinner";
 import { getFileNameFromUrl } from "../../utils/file";
 import { LAYERS } from "../../lib/layers";
@@ -10,6 +12,8 @@ import { AppPagination } from "../components/AppPagination";
 const PAGE_SIZE = 10;
 
 export function ResourcesPage() {
+  const boardTitle = useBoardCategoryLabel("resources", "자료실");
+  const boardSubtitle = useBoardCategoryDescription("resources", "NCF와 Around X가 제공하는 필수 서식과 가이드 자료를 다운로드하세요.");
   const navigate = useNavigate();
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -19,11 +23,7 @@ export function ResourcesPage() {
 
   useEffect(() => {
     const fetchPosts = async () => {
-      const { data, error } = await supabase
-        .from('posts')
-        .select('*')
-        .eq('category', 'resources')
-        .order('created_at', { ascending: false });
+      const { data, error } = await fetchPublicPostPreviews('resources');
       if (error) setError(true);
       else setPosts(data || []);
       setLoading(false);
@@ -69,7 +69,8 @@ export function ResourcesPage() {
   };
 
   return (
-    <PageShell title="자료실" subtitle="NCF와 Around X가 제공하는 필수 서식과 가이드 자료를 다운로드하세요.">
+    <BoardAccessGate category="resources">
+    <PageShell title={boardTitle} subtitle={boardSubtitle}>
       <div className="max-w-[900px] mx-auto pb-[100px]">
         {loading ? (
           <LoadingSpinner />
@@ -197,5 +198,6 @@ export function ResourcesPage() {
         }
       `}</style>
     </PageShell>
+    </BoardAccessGate>
   );
 }

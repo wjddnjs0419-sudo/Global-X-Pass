@@ -167,8 +167,8 @@ export function AdminEventManagement() {
     if (!event) return null;
 
     return (
-      <Button asChild variant="outline" size="sm" className="h-8 min-w-[82px] justify-center rounded-[10px] px-3 text-[13px]">
-        <Link to={`/events/${event.id}/apply`}><ExternalLink size={14} />편집</Link>
+      <Button asChild variant="outline" size="sm" className="h-8 min-w-[112px] justify-center rounded-[10px] px-3 text-[13px]">
+        <Link to={`/admin?editPostId=${event.id}`}><ExternalLink size={14} />게시물 편집</Link>
       </Button>
     );
   };
@@ -324,13 +324,16 @@ export function AdminEventManagement() {
             const counts = countsByEvent.get(event.id) ?? { accepted: 0, total: 0 };
             const remaining = event.capacity == null ? null : Math.max(event.capacity - counts.accepted, 0);
             return (
-              <Link key={event.id} to={`/events/${event.id}/apply`} style={{ background: card, border: `1px solid ${border}`, borderRadius: 16, padding: 18, textDecoration: "none", display: "flex", flexDirection: "column", gap: 8 }}>
-                <strong style={{ color: textMain, fontSize: 14, lineHeight: 1.4 }}>{event.title}</strong>
+              <div key={event.id} style={{ background: card, border: `1px solid ${border}`, borderRadius: 16, padding: 18, textDecoration: "none", display: "flex", flexDirection: "column", gap: 8 }}>
+                <Link to={`/events/${event.id}/apply`} style={{ color: textMain, fontSize: 14, lineHeight: 1.4, fontWeight: 800, textDecoration: "none" }}>{event.title}</Link>
                 <span style={{ color: textMuted, fontSize: 12 }}>{event.event_date || "일시 미정"}</span>
                 <span style={{ alignSelf: "flex-start", color: textMuted, background: labelBg, border: `1px solid ${labelBorder}`, borderRadius: 8, padding: "4px 8px", fontSize: 12, fontWeight: 800 }}>
                   확정 {counts.accepted}명{remaining != null ? ` · 잔여 ${remaining}석` : ""}
                 </span>
-              </Link>
+                <Button asChild variant="outline" size="sm" className="mt-1 h-8 self-start rounded-[10px] px-3 text-[13px]">
+                  <Link to={`/admin?editPostId=${event.id}`}><ExternalLink size={14} />게시물 편집</Link>
+                </Button>
+              </div>
             );
           })}
         </div>

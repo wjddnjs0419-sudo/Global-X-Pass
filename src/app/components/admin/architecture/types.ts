@@ -207,6 +207,47 @@ export type BlogSyncResult = {
   error?: string;
 };
 
+export type CompanyNewsCrawlOptions = {
+  batchSize: number;
+  resultsPerCompany: number;
+  delayMs: number;
+  maxStoredArticles: number;
+  minRelevanceScore: number;
+};
+
+export type CompanyNewsTriggerResult = {
+  success?: boolean;
+  dispatched?: boolean;
+  dispatchError?: string | null;
+  inputs?: Record<string, string>;
+  error?: string;
+};
+
+export type CompanyNewsRun = {
+  id: string;
+  runNumber: number;
+  runAttempt: number;
+  name: string;
+  displayTitle: string;
+  event: string;
+  status: string;
+  conclusion: QaRunConclusion;
+  branch: string;
+  actor: string | null;
+  createdAt: string;
+  updatedAt: string;
+  htmlUrl: string;
+  failedStep: QaFailedStep | null;
+};
+
+export type CompanyNewsRunsResult =
+  | { ok: true; repo: string; workflow: string; runs: CompanyNewsRun[]; fetchedAt: string }
+  | { ok: false; error: string; statusCode?: number | null; needsToken?: boolean };
+
+export type CompanyNewsRunTracker = {
+  requestedAt: string;
+};
+
 export type PipelineNodeStatus = "idle" | "active" | "success" | "failed" | "muted";
 export type PipelineNodeStatusMap = Partial<Record<string, PipelineNodeStatus>>;
 

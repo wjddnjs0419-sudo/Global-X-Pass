@@ -49,7 +49,12 @@ export function LoginPage() {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      alert("로그인 실패: 이메일이나 비밀번호를 확인해주세요.");
+      // 가입 승인제: 미승인(pending)·반려(rejected) 계정은 auth ban 상태라 'user_banned' 코드로 거부된다.
+      if (error.code === "user_banned") {
+        alert("아직 로그인할 수 없는 계정입니다.\n관리자 승인이 완료되면 로그인하실 수 있습니다.");
+      } else {
+        alert("로그인 실패: 이메일이나 비밀번호를 확인해주세요.");
+      }
       setLoading(false);
       return;
     }

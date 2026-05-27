@@ -1,4 +1,19 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(cd \"/Users/jeongwonkim/Desktop/Global X Pass\" && grep -n \"PostCategory\" src/lib/types.ts; echo \"---\"; sed -n \"/PostCategory/,/}/p\" src/lib/types.ts | head -20; echo \"=== AdminPostCreate 460-475 ===\"; sed -n '460,475p' src/app/components/admin/AdminPostCreate.tsx; echo \"=== AdminPostManage 200-214 ===\"; sed -n '200,214p' src/app/components/admin/AdminPostManage.tsx)",
+      "Bash(npx eslint *)",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(echo \"ESLINT_EXIT: $?\")",
+      "mcp__plugin_supabase_supabase__get_logs",
+      "Bash(codex --version)",
+      "Bash(grep -nE '\\\\.from\\\\\\(|\\\\.select\\\\\\(|\\\\.rpc\\\\\\(|parseMediaMeta|stripMediaMeta|post\\\\.content|\\\\.content|cleanText' src/app/pages/__TRACKED_VAR__.tsx)",
+      "Bash(npm run *)",
+      "Bash(find src *)",
+      "Bash(grep -rln \"post_categories\" src/app/components/admin/)",
+      "mcp__plugin_supabase_supabase__list_edge_functions"
+    ]
+  },
   "enabledPlugins": {
     "codex@openai-codex": true
   }

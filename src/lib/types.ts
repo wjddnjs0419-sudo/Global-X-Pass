@@ -32,6 +32,36 @@ export interface Article {
   updated_at: string;
 }
 
+export interface ExternalNewsItem {
+  id: string;
+  title: string;
+  summary: string | null;
+  source_name: string;
+  external_url: string;
+  published_at: string;
+  status: "draft" | "published";
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ExternalNewsPreviewFieldSources {
+  title: string;
+  summary: string;
+  source_name: string;
+  published_at: string;
+}
+
+export interface ExternalNewsPreviewResult {
+  input_url: string;
+  canonical_url: string;
+  title: string;
+  summary: string | null;
+  source_name: string;
+  published_at: string;
+  warnings: string[];
+  field_sources: ExternalNewsPreviewFieldSources;
+}
+
 export interface Post {
   id: string;
   title: string;
@@ -56,6 +86,27 @@ export interface Post {
   event_form_config?: EventFormConfig | null;
   // blog
   is_featured?: boolean | null;
+  // visibility: true = 비로그인 anon도 열람 가능, false = 로그인 필수
+  is_public?: boolean | null;
+}
+
+export type BoardAccessLevel = "public" | "gated" | "private";
+export type BoardKind = "board" | "page";
+
+export interface PostCategory {
+  id: string;
+  label: string;
+  description: string | null;
+  /** 목록 진입 가능 여부. access_level !== 'private' 와 트리거로 동기화(RLS 호환용). */
+  is_public: boolean;
+  is_locked: boolean;
+  /** public: 목록+상세 공개 / gated: 목록 공개·상세 로그인 / private: 진입 자체 로그인 */
+  access_level: BoardAccessLevel;
+  /** board: 게시물 게시판 / page: companies 등 게시물 없는 특수 페이지 */
+  kind: BoardKind;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface ThumbnailCrop {
@@ -157,7 +208,47 @@ export interface ConsultingReservation {
   created_at: string;
 }
 
+// ── 오피스아워 (월별 모집 + 관리자 매칭) ──────────────────────────
+export interface OfficeHourMonth {
+  id: string;
+  /** 월 첫날 (예: '2026-06-01') */
+  period_month: string;
+  capacity: number;
+  is_open: boolean;
+  display_order: number;
+  created_at: string;
+}
+
+export type OfficeHourApplicationStatus =
+  | 'pending'
+  | 'matched'
+  | 'completed'
+  | 'cancelled'
+  | 'rejected';
+
+export interface OfficeHourApplication {
+  id: string;
+  month_id: string;
+  user_id: string;
+  /** 상담 희망 분야/주제 */
+  topic: string;
+  status: OfficeHourApplicationStatus;
+  matched_expert_name: string | null;
+  matched_date: string | null;
+  matched_time: string | null;
+  matched_location: string | null;
+  admin_note: string | null;
+  created_at: string;
+}
+
 // ── Founder's Club ────────────────────────────────────────────────
+export type FoundersClubSessionStatus =
+  | 'pending'
+  | 'recruiting'
+  | 'closed'
+  | 'completed'
+  | 'rejected';
+
 export interface FoundersClubSession {
   id: string;
   theme: string;
@@ -166,7 +257,9 @@ export interface FoundersClubSession {
   session_date: string | null;
   session_time: string | null;
   location?: string | null;
-  status: 'recruiting' | 'closed' | 'completed';
+  status: FoundersClubSessionStatus;
+  /** 세션 등록자(profiles.id). admin 직접 등록 시 null. */
+  created_by?: string | null;
   created_at: string;
 }
 

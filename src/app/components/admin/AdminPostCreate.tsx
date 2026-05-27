@@ -3,6 +3,7 @@ import type ReactQuillType from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { useTheme } from "../../ThemeContext";
 import { CATEGORIES } from "./adminConstants";
+import { useBoardCategoryLabels, useBoardCategoryList } from "../../BoardCategoriesContext";
 import {
   containsDocumentFile,
   DOCUMENT_UPLOAD_ACCEPT,
@@ -21,10 +22,14 @@ import {
   parseMediaMeta,
   normalizeMediaExternalUrl,
   serializeMediaMeta,
+  isVideoArchiveTag,
   type MediaMeta,
 } from "../../../utils/mediaPost";
 import { supabase } from "../../../lib/supabaseClient";
+import type { EventFormConfig, ThumbnailCrop } from "../../../lib/types";
+import { cleanEventFormConfig } from "../../../utils/eventApplication";
 import { AdminPostModal } from "./AdminPostModal";
+import { EventFormConfigEditor } from "./EventFormConfigEditor";
 import {
   getMediaCategories,
   getMediaCategoryAspectRatio,
@@ -88,6 +93,10 @@ interface AdminPostCreateProps {
 
 export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPostCreateProps) {
   const { isDark } = useTheme();
+  const boardLabels = useBoardCategoryLabels();
+  const boardList = useBoardCategoryList();
+  // 게시판 옵션은 post_categories(동적) 우선, 로딩 전에는 정적 폴백.
+  const categoryOptions = boardList.length ? boardList : CATEGORIES;
 
   const [category, setCategory]           = useState("notice");
   const [title, setTitle]                 = useState("");
@@ -98,14 +107,20 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
   const [mediaMeta, setMediaMeta] = useState<MediaMeta>(EMPTY_MEDIA_META);
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+  const [thumbnailCrop, setThumbnailCrop] = useState<ThumbnailCrop | null>(null);
   const [pendingThumbnailFile, setPendingThumbnailFile] = useState<File | null>(null);
+  // true = 썸네일 파일이 에디터 직접 업로드(standalone, files[]에 미존재) / false = 기존 첨부에서 선택(candidate, files[]에 존재)
+  const thumbnailFromUploadRef = useRef(false);
   const [fileObjectUrls, setFileObjectUrls] = useState<string[]>([]);
   const [eventMeta, setEventMeta]         = useState<EventMeta>(EMPTY_META);
+  const [eventFormConfig, setEventFormConfig] = useState<EventFormConfig>(() => cleanEventFormConfig(null));
+  const [isPublic, setIsPublic]           = useState(true);
   const [loading, setLoading]             = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [tagInput, setTagInput]           = useState("");
   const { presets, addTag, hideTag } = useBoardTagPresets(category);
   const mediaCategories = useMediaCategories();
+  const boardVisibilityRequestRef = useRef(0);
   const [mediaLabelDrafts, setMediaLabelDrafts] = useState<Record<MediaCategoryId, string>>(() =>
     Object.fromEntries(getMediaCategories().map((c) => [c.id, c.label])) as Record<MediaCategoryId, string>
   );
@@ -133,14 +148,18 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
   const deleteBorder = "var(--color-danger-soft-border)";
 
   const inputStyle = { padding: "12px 16px", borderRadius: 10, background: inputBg, border: `1px solid ${border}`, color: textMain, outline: "none", boxSizing: "border-box" as const };
-  const supportsManualThumbnail = category === "news" || category === "events-archive" || category === "media";
+  const isArchiveVideoType = category === "events-archive" && isVideoArchiveTag(eventMeta.tags);
+  const supportsManualThumbnail = category === "events" || category === "news" || category === "events-archive" || category === "media";
+  const requiresExternalMediaUrl = category === "media"
+    ? isWideMediaCategory(resolveMediaCategoryId(eventMeta.tags))
+    : isArchiveVideoType;
   const thumbnailAspect = getPostThumbnailAspect(category, eventMeta.tags);
   const thumbnailCandidates = useMemo(() => {
     if (!supportsManualThumbnail) return [];
-    const candidateContent = category === "media" && isWideMediaCategory(eventMeta.tags)
+    const candidateContent = (category === "media" && isWideMediaCategory(eventMeta.tags)) || isArchiveVideoType
       ? serializeMediaMeta(content, { externalUrl: normalizeMediaExternalUrl(mediaMeta.externalUrl) })
       : content;
-    const base = category === "media"
+    const base = category === "media" || isArchiveVideoType
       ? getPostThumbnailCandidates({
         category,
         content: candidateContent,
@@ -171,12 +190,14 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
   // editingPost가 바뀔 때 폼 상태 동기화
   useEffect(() => {
     if (editingPost) {
+      boardVisibilityRequestRef.current += 1;
       const deadlineParts = parseDateTimeParts(editingPost.application_deadline);
       setCategory(editingPost.category || "notice");
       setTitle(editingPost.title || "");
       setContent(editingPost.content || "");
       setExistingImages(editingPost.image_url ? editingPost.image_url.split(',') : []);
       setThumbnailUrl(editingPost.thumbnail_url || null);
+      setThumbnailCrop(editingPost.thumbnail_crop || null);
       setFiles([]);
       setMediaCoverFile(null);
       setMediaAttachmentFiles([]);
@@ -193,32 +214,76 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
         application_deadline_minute: deadlineParts.minute,
         tags:            editingPost.category === "media" ? resolveMediaCategoryId(editingPost.tags) || "" : editingPost.tags || "",
       });
+      setEventFormConfig(cleanEventFormConfig(editingPost.event_form_config));
+      setIsPublic(editingPost.is_public ?? true);
     } else {
       setCategory("notice");
       setTitle("");
       setContent("");
       setExistingImages([]);
       setThumbnailUrl(null);
+      setThumbnailCrop(null);
       setFiles([]);
       setMediaCoverFile(null);
       setMediaAttachmentFiles([]);
       setMediaMeta(EMPTY_MEDIA_META);
       setEventMeta(EMPTY_META);
+      setEventFormConfig(cleanEventFormConfig(null));
+      setIsPublic(true);
     }
   }, [editingPost?.id]);
 
   useEffect(() => {
     if (!supportsManualThumbnail) {
       if (thumbnailUrl !== null) setThumbnailUrl(null);
+      if (thumbnailCrop !== null) setThumbnailCrop(null);
       return;
     }
-  }, [supportsManualThumbnail, thumbnailUrl]);
+    if (category !== "events" && thumbnailCrop !== null) {
+      setThumbnailCrop(null);
+    }
+  }, [category, supportsManualThumbnail, thumbnailCrop, thumbnailUrl]);
+
+  // expenses 카테고리는 정책상 항상 비공개. 다른 카테고리에서 expenses 로 바꾸면 isPublic 강제 false.
+  useEffect(() => {
+    if (category === "expenses" && isPublic) {
+      setIsPublic(false);
+    }
+  }, [category, isPublic]);
+
+  const syncBoardVisibility = useCallback(async (nextCategory: string) => {
+    if (nextCategory === "expenses") {
+      boardVisibilityRequestRef.current += 1;
+      setIsPublic(false);
+      return;
+    }
+
+    const requestId = ++boardVisibilityRequestRef.current;
+    const { data } = await supabase
+      .from("post_categories")
+      .select("is_public")
+      .eq("id", nextCategory)
+      .maybeSingle();
+
+    if (requestId !== boardVisibilityRequestRef.current || !data) return;
+    setIsPublic(Boolean(data.is_public));
+  }, []);
+
+  // 신규 작성 시 카테고리(게시판) 기본 공개여부를 post_categories.is_public 에서 상속.
+  useEffect(() => {
+    if (editingPost) return;
+    void syncBoardVisibility(category);
+    return () => {
+      boardVisibilityRequestRef.current += 1;
+    };
+  }, [category, editingPost, syncBoardVisibility]);
 
   useEffect(() => {
     const imageFiles = files.filter(isBrowserSafeImageFile);
     const urls = imageFiles.map(f => URL.createObjectURL(f));
     setFileObjectUrls(urls);
-    setPendingThumbnailFile(prev => (prev && !files.includes(prev) ? null : prev));
+    // standalone 업로드 썸네일은 files[]에 없어도 유지. candidate(기존 첨부 선택) 썸네일만 첨부 제거 시 함께 해제.
+    setPendingThumbnailFile(prev => (prev && !thumbnailFromUploadRef.current && !files.includes(prev) ? null : prev));
     return () => urls.forEach(url => URL.revokeObjectURL(url));
   }, [files]);
 
@@ -327,6 +392,10 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
       if (isWideMediaCategory(mediaCategoryId) && !normalizedMediaUrl) {
         return alert("팟캐스트/영상/인터뷰 유형은 외부 링크를 입력해주세요.");
       }
+    } else if (category === "events-archive" && requiresExternalMediaUrl) {
+      if (!normalizeMediaExternalUrl(mediaMeta.externalUrl)) {
+        return alert("영상 게시물은 YouTube 외부 링크를 입력해주세요.");
+      }
     }
     setShowSaveModal(true);
   };
@@ -334,7 +403,10 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
   const handleConfirmSave = async () => {
     setLoading(true);
     try {
+      const uploadedFileUrls = new Map<File, string>();
       const uploadFile = async (f: File) => {
+        const cachedUrl = uploadedFileUrls.get(f);
+        if (cachedUrl) return cachedUrl;
         if (f.size > 10 * 1024 * 1024) { alert(`"${f.name}" 파일이 10MB를 초과합니다.`); setLoading(false); return; }
         if (!isAllowedUploadFile(f)) {
           throw new Error(`허용되지 않은 파일 형식입니다: ${f.name}`);
@@ -349,14 +421,18 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
         const { error: upError } = await supabase.storage.from(targetBucket).upload(fileName, f);
         if (upError) throw new Error(`파일 업로드 실패 (${f.name}): ${upError.message}`);
 
-        return supabase.storage.from(targetBucket).getPublicUrl(fileName).data.publicUrl;
+        const publicUrl = supabase.storage.from(targetBucket).getPublicUrl(fileName).data.publicUrl;
+        uploadedFileUrls.set(f, publicUrl);
+        return publicUrl;
       };
 
       const finalMediaCategoryId = category === 'media' ? resolveMediaCategoryId(eventMeta.tags) : null;
       const isFinalMediaWideType = isWideMediaCategory(finalMediaCategoryId);
+      const isFinalArchiveVideoType = category === "events-archive" && isVideoArchiveTag(eventMeta.tags);
+      const hasExternalMediaMeta = (category === "media" && isFinalMediaWideType) || isFinalArchiveVideoType;
       const normalizedMediaUrl = normalizeMediaExternalUrl(mediaMeta.externalUrl);
-      const finalContent = category === "media"
-        ? serializeMediaMeta(content, isFinalMediaWideType ? { externalUrl: normalizedMediaUrl } : EMPTY_MEDIA_META)
+      const finalContent = category === "media" || category === "events-archive"
+        ? serializeMediaMeta(content, hasExternalMediaMeta ? { externalUrl: normalizedMediaUrl } : EMPTY_MEDIA_META)
         : content;
       let imageUrls: string[] = [];
       if (category === "media") {
@@ -374,6 +450,14 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
           }
           imageUrls = [coverUrl, ...existingAttachmentUrls, ...uploadedAttachments].filter(Boolean) as string[];
         }
+      } else if (category === "events-archive" && isFinalArchiveVideoType) {
+        const externalThumbnailUrl = getExternalMediaThumbnailUrl(normalizedMediaUrl);
+        const uploadedAttachments: string[] = [];
+        for (const f of files) {
+          const uploadedUrl = await uploadFile(f);
+          if (uploadedUrl) uploadedAttachments.push(uploadedUrl);
+        }
+        imageUrls = Array.from(new Set([...(externalThumbnailUrl ? [externalThumbnailUrl] : []), ...existingImages, ...uploadedAttachments])).filter(Boolean);
       } else {
         imageUrls = [...existingImages];
         for (const f of files) {
@@ -383,19 +467,24 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
       }
 
       const finalImageUrl = imageUrls.length > 0 ? imageUrls.join(',') : null;
-      const supportsFinalThumbnail = category === "news" || category === "events-archive" || category === "media";
+      const supportsFinalThumbnail = category === "events" || category === "news" || category === "events-archive" || category === "media";
       let pendingThumbResolved: string | null = thumbnailUrl;
-      if (pendingThumbnailFile) {
+      if (pendingThumbnailFile && supportsFinalThumbnail) {
         const uploadedUrl = await uploadFile(pendingThumbnailFile);
         pendingThumbResolved = uploadedUrl ?? null;
       }
       const resolvedThumbnailUrl = await uploadThumbnailIfDataUrl(pendingThumbResolved);
-      const thumbnailPayload = getThumbnailSavePayload({
-        supportsManualThumbnail: supportsFinalThumbnail,
-        nextThumbnailUrl: resolvedThumbnailUrl,
-        previousThumbnailUrl: editingPost?.thumbnail_url,
-        previousThumbnailCrop: editingPost?.thumbnail_crop,
-      });
+      const thumbnailPayload = category === "events"
+        ? {
+          thumbnail_url: resolvedThumbnailUrl?.trim() || null,
+          thumbnail_crop: resolvedThumbnailUrl?.trim() ? thumbnailCrop : null,
+        }
+        : getThumbnailSavePayload({
+          supportsManualThumbnail: supportsFinalThumbnail,
+          nextThumbnailUrl: resolvedThumbnailUrl,
+          previousThumbnailUrl: editingPost?.thumbnail_url,
+          previousThumbnailCrop: editingPost?.thumbnail_crop,
+        });
       const applicationDeadline = composeLocalDateTimeIso(
         eventMeta.application_deadline_y,
         eventMeta.application_deadline_m,
@@ -404,16 +493,16 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
         eventMeta.application_deadline_minute,
       );
       const extraFields = category === 'events'
-        ? { event_date: eventMeta.event_date || null, location: eventMeta.location || null, event_status: eventMeta.event_status || null, application_deadline: applicationDeadline, capacity: eventMeta.capacity ? Number(eventMeta.capacity) : null, tags: eventMeta.tags || null }
-        : ['blog', 'events-archive', 'notice', 'news', 'media'].includes(category)
+        ? { event_date: eventMeta.event_date || null, location: eventMeta.location || null, event_status: eventMeta.event_status || null, application_deadline: applicationDeadline, capacity: eventMeta.capacity ? Number(eventMeta.capacity) : null, tags: eventMeta.tags || null, event_form_config: cleanEventFormConfig(eventFormConfig) }
+        : ['events-archive', 'notice', 'news', 'media'].includes(category)
           ? { tags: category === 'media' ? finalMediaCategoryId : eventMeta.tags || null }
           : {};
 
       if (editingPost) {
-        const { error } = await supabase.from('posts').update({ category, title, content: finalContent, image_url: finalImageUrl, updated_at: new Date().toISOString(), ...thumbnailPayload, ...extraFields }).eq('id', editingPost.id);
+        const { error } = await supabase.from('posts').update({ category, title, content: finalContent, image_url: finalImageUrl, is_public: isPublic, updated_at: new Date().toISOString(), ...thumbnailPayload, ...extraFields }).eq('id', editingPost.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('posts').insert([{ category, title, content: finalContent, image_url: finalImageUrl, ...thumbnailPayload, ...extraFields }]);
+        const { error } = await supabase.from('posts').insert([{ category, title, content: finalContent, image_url: finalImageUrl, is_public: isPublic, ...thumbnailPayload, ...extraFields }]);
         if (error) throw error;
       }
       onSaved();
@@ -432,7 +521,8 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
   const existingMediaCoverUrl = category === "media" ? existingImages.find(isImage) : null;
   const existingMediaAttachmentUrls = category === "media" ? existingImages.filter(url => url !== existingMediaCoverUrl) : [];
   const normalizedMediaUrl = normalizeMediaExternalUrl(mediaMeta.externalUrl);
-  const externalMediaThumbnailUrl = category === "media" && isMediaWideType ? getExternalMediaThumbnailUrl(normalizedMediaUrl) : null;
+  const externalMediaThumbnailUrl = (category === "media" && isMediaWideType) || isArchiveVideoType ? getExternalMediaThumbnailUrl(normalizedMediaUrl) : null;
+  const showExternalMediaLinkEditor = (category === "media" && !!selectedMediaCategoryId && isMediaWideType) || isArchiveVideoType;
   const saveMediaCategoryLabel = async (id: MediaCategoryId) => {
     const label = mediaLabelDrafts[id]?.trim();
     if (!label) {
@@ -448,6 +538,12 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
     // Realtime 구독이 자동으로 state를 갱신
   };
   const selectTag = (tag: string) => setEventMeta(m => ({ ...m, tags: m.tags === tag ? "" : tag }));
+  const handleCategoryChange = (nextCategory: string) => {
+    setCategory(nextCategory);
+    if (editingPost) {
+      void syncBoardVisibility(nextCategory);
+    }
+  };
   const addCustomTag = async () => {
     const trimmed = tagInput.trim();
     if (trimmed) { await addTag(trimmed); setEventMeta(m => ({ ...m, tags: trimmed })); }
@@ -495,14 +591,43 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
         aspect={thumbnailAspect}
         candidates={thumbnailCandidates}
         value={thumbnailUrl}
+        valueCrop={category === "events" ? thumbnailCrop : null}
+        cropOutputMode={category === "events" ? "metadata" : "dataUrl"}
+        onCropApply={({ url, crop, file }) => {
+          if (category !== "events") return;
+          setThumbnailUrl(url);
+          setThumbnailCrop(crop);
+          if (file) {
+            // 에디터 직접 업로드: files[]와 무관하게 썸네일 전용으로만 보관
+            setPendingThumbnailFile(file);
+            thumbnailFromUploadRef.current = true;
+            return;
+          }
+          const imgFiles = files.filter(isBrowserSafeImageFile);
+          const idx = fileObjectUrls.indexOf(url);
+          if (idx >= 0) {
+            // 기존 첨부를 썸네일로 선택
+            setPendingThumbnailFile(imgFiles[idx] ?? null);
+            thumbnailFromUploadRef.current = false;
+          }
+          // idx < 0: 이미 적용된 standalone 썸네일 재크롭 — 기존 pendingThumbnailFile 유지
+        }}
         onChange={(url) => {
           setThumbnailUrl(url);
+          if (category === "events" && !url) {
+            setThumbnailCrop(null);
+          }
           if (url && fileObjectUrls.includes(url)) {
+            // 기존 첨부를 썸네일로 선택
             const imgFiles = files.filter(isBrowserSafeImageFile);
             setPendingThumbnailFile(imgFiles[fileObjectUrls.indexOf(url)] ?? null);
-          } else {
+            thumbnailFromUploadRef.current = false;
+          } else if (!url || url.startsWith("data:")) {
+            // 해제 또는 dataUrl 모드(미디어/뉴스): 업로드 파일 불필요
             setPendingThumbnailFile(null);
+            thumbnailFromUploadRef.current = false;
           }
+          // 그 외(blob: standalone 적용 url): 직전 onCropApply가 세팅한 pendingThumbnailFile 유지
         }}
       />
     );
@@ -570,6 +695,37 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
     </div>
   );
 
+  const renderExternalMediaLinkEditor = () => {
+    if (!showExternalMediaLinkEditor) return null;
+
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "14px 18px", background: panelBg, border: `1px solid ${labelBorder}`, borderRadius: 14 }}>
+        <label style={{ fontSize: 13, fontWeight: 800, color: textMain }}>
+          외부 링크
+        </label>
+        <input
+          type="url"
+          value={mediaMeta.externalUrl}
+          onChange={e => setMediaMeta({ externalUrl: e.target.value })}
+          placeholder="YouTube, 팟캐스트, 인터뷰 영상 URL을 입력하세요"
+          style={{ ...inputStyle, fontSize: 14 }}
+        />
+        {externalMediaThumbnailUrl ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 12, padding: 12, background: inputBg, border: `1px solid ${border}`, borderRadius: 12 }}>
+            <img src={externalMediaThumbnailUrl} alt="" style={{ width: 128, aspectRatio: "16 / 9", objectFit: "cover", borderRadius: 10, flexShrink: 0 }} />
+            <p style={{ margin: 0, color: textMuted, fontSize: 12, lineHeight: 1.5 }}>
+              YouTube 썸네일을 자동으로 사용합니다. 별도 표지 이미지를 등록하지 않아도 됩니다.
+            </p>
+          </div>
+        ) : (
+          <p style={{ margin: 0, color: textMuted, fontSize: 12, lineHeight: 1.5 }}>
+            상세 페이지에서 보기/듣기 버튼으로 연결됩니다. YouTube 링크는 썸네일이 자동 생성되고, 그 외 링크는 기본 플레이스홀더로 표시됩니다.
+          </p>
+        )}
+      </div>
+    );
+  };
+
   return (
     <>
       <form onSubmit={handleSubmitClick} style={{ background: card, border: `1px solid ${border}`, borderRadius: "16px", padding: "clamp(20px, 5vw, 28px)", display: "flex", flexDirection: "column", gap: "18px", marginBottom: "40px", overflow: "hidden" }}>
@@ -581,13 +737,33 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
-          <select value={category} onChange={e => setCategory(e.target.value)} className="w-full sm:w-[200px] sm:shrink-0" style={inputStyle}>
-            {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+          <select value={category} onChange={e => handleCategoryChange(e.target.value)} className="w-full sm:w-[200px] sm:shrink-0" style={inputStyle}>
+            {categoryOptions.map(c => <option key={c.id} value={c.id}>{c.id === "expenses" ? c.label : boardLabels[c.id] ?? c.label}</option>)}
           </select>
           <input value={title} onChange={e => setTitle(e.target.value)} placeholder="제목을 입력하세요" className="w-full min-w-0" style={inputStyle} required />
         </div>
 
-        {category === "media" ? renderMediaTypePicker() : ['events', 'blog', 'events-archive', 'notice', 'news'].includes(category) && renderTagPicker()}
+        {category === "expenses" ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", background: deleteBg, border: `1px solid ${deleteBorder}`, borderRadius: 12 }}>
+            <span style={{ fontSize: 13, fontWeight: 800, color: "var(--color-brand-red)" }}>🔒 공개 범위 고정</span>
+            <span style={{ fontSize: 12, color: textMuted }}>사업비 자료실은 정책상 항상 비공개로 운영되며 공개 설정을 변경할 수 없습니다.</span>
+          </div>
+        ) : (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "12px 16px", background: panelBg, border: `1px solid ${labelBorder}`, borderRadius: 12 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+              <span style={{ fontWeight: 800, fontSize: 13, color: textMain }}>공개 범위</span>
+              <span style={{ fontSize: 12, color: textMuted }}>
+                {isPublic ? "공개 — 비로그인 방문자도 열람 가능" : "비공개 — 로그인한 회원만 열람 가능"}
+              </span>
+            </div>
+            <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+              <button type="button" onClick={() => setIsPublic(true)} style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${isPublic ? labelBorder : border}`, background: isPublic ? selectedBg : "transparent", color: isPublic ? textMain : textMuted, fontWeight: isPublic ? 800 : 600, cursor: "pointer", fontSize: 13 }}>공개</button>
+              <button type="button" onClick={() => setIsPublic(false)} style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${!isPublic ? labelBorder : border}`, background: !isPublic ? selectedBg : "transparent", color: !isPublic ? textMain : textMuted, fontWeight: !isPublic ? 800 : 600, cursor: "pointer", fontSize: 13 }}>비공개</button>
+            </div>
+          </div>
+        )}
+
+        {category === "media" ? renderMediaTypePicker() : ['events', 'events-archive', 'notice', 'news'].includes(category) && renderTagPicker()}
 
         <div className={isDark ? "quill-dark" : "quill-light"} style={{ background: inputBg, borderRadius: "10px", border: `1px solid ${border}`, overflow: "hidden" }}>
           <Suspense fallback={<div style={{ height: 300, background: skBg, animation: "pulse 1.5s ease-in-out infinite" }} />}>
@@ -604,85 +780,63 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
 
         {renderThumbnailPicker()}
 
-        {category === "media" && selectedMediaCategoryId && isMediaWideType && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "14px 18px", background: panelBg, border: `1px solid ${labelBorder}`, borderRadius: 14 }}>
-            <label style={{ fontSize: 13, fontWeight: 800, color: textMain }}>
-              외부 링크
-            </label>
-            <input
-              type="url"
-              value={mediaMeta.externalUrl}
-              onChange={e => setMediaMeta({ externalUrl: e.target.value })}
-              placeholder="YouTube, 팟캐스트, 인터뷰 영상 URL을 입력하세요"
-              style={{ ...inputStyle, fontSize: 14 }}
-            />
-            {externalMediaThumbnailUrl ? (
-              <div style={{ display: "flex", alignItems: "center", gap: 12, padding: 12, background: inputBg, border: `1px solid ${border}`, borderRadius: 12 }}>
-                <img src={externalMediaThumbnailUrl} alt="" style={{ width: 128, aspectRatio: "16 / 9", objectFit: "cover", borderRadius: 10, flexShrink: 0 }} />
-                <p style={{ margin: 0, color: textMuted, fontSize: 12, lineHeight: 1.5 }}>
-                  YouTube 썸네일을 자동으로 사용합니다. 별도 표지 이미지를 등록하지 않아도 됩니다.
-                </p>
-              </div>
-            ) : (
-              <p style={{ margin: 0, color: textMuted, fontSize: 12, lineHeight: 1.5 }}>
-                상세 페이지에서 보기/듣기 버튼으로 연결됩니다. YouTube 링크는 썸네일이 자동 생성되고, 그 외 링크는 기본 플레이스홀더로 표시됩니다.
-              </p>
-            )}
-          </div>
-        )}
+        {renderExternalMediaLinkEditor()}
 
         {category === "events" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "16px 18px", background: panelBg, border: `1px solid ${labelBorder}`, borderRadius: 14 }}>
-            <p style={{ margin: 0, fontWeight: 750, fontSize: 14, color: textMain }}>행사 상세 정보</p>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              {[
-                { label: "상태", render: () => (
-                  <select style={{ ...inputStyle, fontSize: 14 }} value={eventMeta.event_status} onChange={e => setEventMeta(m => ({ ...m, event_status: e.target.value }))}>
-                    <option value="접수예정">접수예정</option><option value="접수중">접수중</option><option value="마감임박">마감임박</option><option value="마감">마감</option>
-                  </select>
-                )},
-                { label: "일시 (예: 2026.05.08 (목) 18:00)", render: () => <input style={{ ...inputStyle, fontSize: 14 }} placeholder="2026.05.08 (목) 18:00" value={eventMeta.event_date} onChange={e => setEventMeta(m => ({ ...m, event_date: e.target.value }))} /> },
-                { label: "장소", render: () => <input style={{ ...inputStyle, fontSize: 14 }} placeholder="서울 강남 NCF 센터" value={eventMeta.location} onChange={e => setEventMeta(m => ({ ...m, location: e.target.value }))} /> },
-                { label: "정원 (명)", render: () => <input type="number" min={0} style={{ ...inputStyle, fontSize: 14 }} placeholder="200" value={eventMeta.capacity} onChange={e => setEventMeta(m => ({ ...m, capacity: e.target.value }))} /> },
-              ].map(({ label, render }) => (
-                <div key={label} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: textMuted }}>{label}</label>
-                  {render()}
-                </div>
-              ))}
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: textMuted }}>신청 마감일시 (선택)</label>
-              <div className="grid grid-cols-2 sm:grid-cols-5" style={{ gap: 8 }}>
-                <select style={{ ...inputStyle, fontSize: 14 }} value={eventMeta.application_deadline_y} onChange={e => setEventMeta(m => ({ ...m, application_deadline_y: e.target.value, application_deadline_d: Number(m.application_deadline_d) > getDaysInMonth(e.target.value, m.application_deadline_m) ? "" : m.application_deadline_d }))}>
-                  <option value="">연도</option>
-                  {deadlineYears.map(year => <option key={year} value={year}>{year}</option>)}
-                </select>
-                <select style={{ ...inputStyle, fontSize: 14 }} value={eventMeta.application_deadline_m} onChange={e => setEventMeta(m => ({ ...m, application_deadline_m: e.target.value, application_deadline_d: Number(m.application_deadline_d) > getDaysInMonth(m.application_deadline_y, e.target.value) ? "" : m.application_deadline_d }))}>
-                  <option value="">월</option>
-                  {deadlineMonths.map(month => <option key={month} value={month}>{month}</option>)}
-                </select>
-                <select style={{ ...inputStyle, fontSize: 14 }} value={eventMeta.application_deadline_d} onChange={e => setEventMeta(m => ({ ...m, application_deadline_d: e.target.value }))}>
-                  <option value="">일</option>
-                  {deadlineDays.map(day => <option key={day} value={day}>{day}</option>)}
-                </select>
-                <select style={{ ...inputStyle, fontSize: 14 }} value={eventMeta.application_deadline_h} onChange={e => setEventMeta(m => ({ ...m, application_deadline_h: e.target.value }))}>
-                  <option value="">시</option>
-                  {deadlineHours.map(hour => <option key={hour} value={hour}>{hour}시</option>)}
-                </select>
-                <select style={{ ...inputStyle, fontSize: 14 }} value={eventMeta.application_deadline_minute} onChange={e => setEventMeta(m => ({ ...m, application_deadline_minute: e.target.value }))}>
-                  {deadlineMinutes.map(minute => <option key={minute} value={minute}>{minute}분</option>)}
-                </select>
+          <>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "16px 18px", background: panelBg, border: `1px solid ${labelBorder}`, borderRadius: 14 }}>
+              <p style={{ margin: 0, fontWeight: 750, fontSize: 14, color: textMain }}>행사 상세 정보</p>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                {[
+                  { label: "상태", render: () => (
+                    <select style={{ ...inputStyle, fontSize: 14 }} value={eventMeta.event_status} onChange={e => setEventMeta(m => ({ ...m, event_status: e.target.value }))}>
+                      <option value="접수예정">접수예정</option><option value="접수중">접수중</option><option value="마감임박">마감임박</option><option value="마감">마감</option>
+                    </select>
+                  )},
+                  { label: "일시 (예: 2026.05.08 (목) 18:00)", render: () => <input style={{ ...inputStyle, fontSize: 14 }} placeholder="2026.05.08 (목) 18:00" value={eventMeta.event_date} onChange={e => setEventMeta(m => ({ ...m, event_date: e.target.value }))} /> },
+                  { label: "장소", render: () => <input style={{ ...inputStyle, fontSize: 14 }} placeholder="서울 강남 NCF 센터" value={eventMeta.location} onChange={e => setEventMeta(m => ({ ...m, location: e.target.value }))} /> },
+                  { label: "정원 (명)", render: () => <input type="number" min={0} style={{ ...inputStyle, fontSize: 14 }} placeholder="200" value={eventMeta.capacity} onChange={e => setEventMeta(m => ({ ...m, capacity: e.target.value }))} /> },
+                ].map(({ label, render }) => (
+                  <div key={label} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: textMuted }}>{label}</label>
+                    {render()}
+                  </div>
+                ))}
               </div>
-              <button
-                type="button"
-                onClick={() => setEventMeta(m => ({ ...m, application_deadline_y: "", application_deadline_m: "", application_deadline_d: "", application_deadline_h: "", application_deadline_minute: "00" }))}
-                style={{ alignSelf: "flex-start", border: "none", background: "transparent", color: textMuted, fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0 }}
-              >
-                마감일시 비우기
-              </button>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: textMuted }}>신청 마감일시 (선택)</label>
+                <div className="grid grid-cols-2 sm:grid-cols-5" style={{ gap: 8 }}>
+                  <select style={{ ...inputStyle, fontSize: 14 }} value={eventMeta.application_deadline_y} onChange={e => setEventMeta(m => ({ ...m, application_deadline_y: e.target.value, application_deadline_d: Number(m.application_deadline_d) > getDaysInMonth(e.target.value, m.application_deadline_m) ? "" : m.application_deadline_d }))}>
+                    <option value="">연도</option>
+                    {deadlineYears.map(year => <option key={year} value={year}>{year}</option>)}
+                  </select>
+                  <select style={{ ...inputStyle, fontSize: 14 }} value={eventMeta.application_deadline_m} onChange={e => setEventMeta(m => ({ ...m, application_deadline_m: e.target.value, application_deadline_d: Number(m.application_deadline_d) > getDaysInMonth(m.application_deadline_y, e.target.value) ? "" : m.application_deadline_d }))}>
+                    <option value="">월</option>
+                    {deadlineMonths.map(month => <option key={month} value={month}>{month}</option>)}
+                  </select>
+                  <select style={{ ...inputStyle, fontSize: 14 }} value={eventMeta.application_deadline_d} onChange={e => setEventMeta(m => ({ ...m, application_deadline_d: e.target.value }))}>
+                    <option value="">일</option>
+                    {deadlineDays.map(day => <option key={day} value={day}>{day}</option>)}
+                  </select>
+                  <select style={{ ...inputStyle, fontSize: 14 }} value={eventMeta.application_deadline_h} onChange={e => setEventMeta(m => ({ ...m, application_deadline_h: e.target.value }))}>
+                    <option value="">시</option>
+                    {deadlineHours.map(hour => <option key={hour} value={hour}>{hour}시</option>)}
+                  </select>
+                  <select style={{ ...inputStyle, fontSize: 14 }} value={eventMeta.application_deadline_minute} onChange={e => setEventMeta(m => ({ ...m, application_deadline_minute: e.target.value }))}>
+                    {deadlineMinutes.map(minute => <option key={minute} value={minute}>{minute}분</option>)}
+                  </select>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEventMeta(m => ({ ...m, application_deadline_y: "", application_deadline_m: "", application_deadline_d: "", application_deadline_h: "", application_deadline_minute: "00" }))}
+                  style={{ alignSelf: "flex-start", border: "none", background: "transparent", color: textMuted, fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0 }}
+                >
+                  마감일시 비우기
+                </button>
+              </div>
             </div>
-          </div>
+            <EventFormConfigEditor value={eventFormConfig} onChange={setEventFormConfig} />
+          </>
         )}
 
         {category === "media" ? selectedMediaCategoryId && !isMediaWideType ? (

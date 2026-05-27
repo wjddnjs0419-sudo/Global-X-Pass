@@ -169,6 +169,16 @@ Deno.serve(async (req: Request) => {
       throw new Error("Profile was not created by handle_new_user");
     }
 
+    // 가입 승인제: 자가가입 계정은 status='pending'(컬럼 기본값)으로 두고, auth 레벨에서
+    // 즉시 ban 처리해 관리자 승인 전까지 로그인 자체를 서버에서 차단한다. (승인 시 update-user-status 가 해제)
+    // PII 암호화 이전에 가장 먼저 ban 을 적용하고, 실패 시 throw → 아래 cleanup 으로 계정 제거.
+    const { error: banError } = await adminClient.auth.admin.updateUserById(user.id, {
+      ban_duration: "876000h",
+    });
+    if (banError) {
+      throw banError;
+    }
+
     const key = await deriveKey(encSecret);
     const { error: updateError } = await adminClient
       .from("profiles")
@@ -188,6 +198,7 @@ Deno.serve(async (req: Request) => {
 
     return json({
       success: true,
+      needsApproval: true,
       needsEmailConfirmation: !signupData.session,
     }, 200, CORS);
   } catch (err) {

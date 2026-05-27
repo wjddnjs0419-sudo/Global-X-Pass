@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-22T01:22:50.393Z",
+  "generatedAt": "2026-05-27T15:40:11.147Z",
   "roots": [
     "src",
     "supabase/functions"
@@ -154,11 +154,11 @@
       "cluster": "entry",
       "label": "App.tsx",
       "sub": "src/app/App.tsx",
-      "path": "src/app/App.tsx:3",
+      "path": "src/app/App.tsx:4",
       "role": "애플리케이션을 부트스트랩하고 전역 provider와 router를 연결합니다.",
       "plain": "src/app/App.tsx 파일이 앱의 한 부분을 담당합니다.",
       "notes": [
-        "line:3, first exported symbol or module entry",
+        "line:4, first exported symbol or module entry",
         "cluster:entry"
       ],
       "tag": [
@@ -166,6 +166,25 @@
         "all"
       ],
       "critical": true,
+      "dead": false
+    },
+    {
+      "id": "src-app-boardcategoriescontext",
+      "cluster": "data",
+      "label": "BoardCategoriesContext.tsx",
+      "sub": "src/app/BoardCategoriesContext.tsx",
+      "path": "src/app/BoardCategoriesContext.tsx:3",
+      "role": "UI를 구성하는 재사용 컴포넌트입니다.",
+      "plain": "src/app/BoardCategoriesContext.tsx 파일이 앱의 한 부분을 담당합니다.",
+      "notes": [
+        "line:3, first exported symbol or module entry",
+        "cluster:data"
+      ],
+      "tag": [
+        "overview",
+        "all"
+      ],
+      "critical": false,
       "dead": false
     },
     {
@@ -211,11 +230,30 @@
       "cluster": "components",
       "label": "AboutSection.tsx",
       "sub": "src/app/components/AboutSection.tsx",
-      "path": "src/app/components/AboutSection.tsx:5",
+      "path": "src/app/components/AboutSection.tsx:38",
       "role": "UI를 구성하는 재사용 컴포넌트입니다.",
       "plain": "src/app/components/AboutSection.tsx 파일이 앱의 한 부분을 담당합니다.",
       "notes": [
-        "line:5, first exported symbol or module entry",
+        "line:38, first exported symbol or module entry",
+        "cluster:components"
+      ],
+      "tag": [
+        "overview",
+        "all"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
+      "id": "src-app-components-aboutvaluecard",
+      "cluster": "components",
+      "label": "AboutValueCard.tsx",
+      "sub": "src/app/components/AboutValueCard.tsx",
+      "path": "src/app/components/AboutValueCard.tsx:3",
+      "role": "UI를 구성하는 재사용 컴포넌트입니다.",
+      "plain": "src/app/components/AboutValueCard.tsx 파일이 앱의 한 부분을 담당합니다.",
+      "notes": [
+        "line:3, first exported symbol or module entry",
         "cluster:components"
       ],
       "tag": [
@@ -286,15 +324,53 @@
       "dead": false
     },
     {
+      "id": "src-app-components-boardaccessgate",
+      "cluster": "components",
+      "label": "BoardAccessGate.tsx",
+      "sub": "src/app/components/BoardAccessGate.tsx",
+      "path": "src/app/components/BoardAccessGate.tsx:9",
+      "role": "UI를 구성하는 재사용 컴포넌트입니다.",
+      "plain": "src/app/components/BoardAccessGate.tsx 파일이 앱의 한 부분을 담당합니다.",
+      "notes": [
+        "line:9, first exported symbol or module entry",
+        "cluster:components"
+      ],
+      "tag": [
+        "overview",
+        "all"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
+      "id": "src-app-components-changguprogramtimelinesection",
+      "cluster": "components",
+      "label": "ChangguProgramTimelineSection.tsx",
+      "sub": "src/app/components/ChangguProgramTimelineSection.tsx",
+      "path": "src/app/components/ChangguProgramTimelineSection.tsx:6",
+      "role": "UI를 구성하는 재사용 컴포넌트입니다.",
+      "plain": "src/app/components/ChangguProgramTimelineSection.tsx 파일이 앱의 한 부분을 담당합니다.",
+      "notes": [
+        "line:6, first exported symbol or module entry",
+        "cluster:components"
+      ],
+      "tag": [
+        "overview",
+        "all"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
       "id": "src-app-components-communitysection",
       "cluster": "components",
       "label": "CommunitySection.tsx",
       "sub": "src/app/components/CommunitySection.tsx",
-      "path": "src/app/components/CommunitySection.tsx:49",
+      "path": "src/app/components/CommunitySection.tsx:46",
       "role": "UI를 구성하는 재사용 컴포넌트입니다.",
       "plain": "src/app/components/CommunitySection.tsx 파일이 앱의 한 부분을 담당합니다.",
       "notes": [
-        "line:49, first exported symbol or module entry",
+        "line:46, first exported symbol or module entry",
         "cluster:components"
       ],
       "tag": [
@@ -367,17 +443,37 @@
       "cluster": "components",
       "label": "EventSection.tsx",
       "sub": "src/app/components/EventSection.tsx",
-      "path": "src/app/components/EventSection.tsx:20",
+      "path": "src/app/components/EventSection.tsx:21",
       "role": "UI를 구성하는 재사용 컴포넌트입니다.",
       "plain": "src/app/components/EventSection.tsx 파일이 앱의 한 부분을 담당합니다.",
       "notes": [
-        "line:20, first exported symbol or module entry",
+        "line:21, first exported symbol or module entry",
         "cluster:components"
       ],
       "tag": [
         "overview",
         "all",
         "events"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
+      "id": "src-app-components-externalnewscard",
+      "cluster": "components",
+      "label": "ExternalNewsCard.tsx",
+      "sub": "src/app/components/ExternalNewsCard.tsx",
+      "path": "src/app/components/ExternalNewsCard.tsx:17",
+      "role": "UI를 구성하는 재사용 컴포넌트입니다.",
+      "plain": "src/app/components/ExternalNewsCard.tsx 파일이 앱의 한 부분을 담당합니다.",
+      "notes": [
+        "line:17, first exported symbol or module entry",
+        "cluster:components"
+      ],
+      "tag": [
+        "overview",
+        "all",
+        "posts"
       ],
       "critical": false,
       "dead": false
@@ -425,11 +521,11 @@
       "cluster": "components",
       "label": "HeaderSection.tsx",
       "sub": "src/app/components/HeaderSection.tsx",
-      "path": "src/app/components/HeaderSection.tsx:13",
+      "path": "src/app/components/HeaderSection.tsx:14",
       "role": "UI를 구성하는 재사용 컴포넌트입니다.",
       "plain": "src/app/components/HeaderSection.tsx 파일이 앱의 한 부분을 담당합니다.",
       "notes": [
-        "line:13, first exported symbol or module entry",
+        "line:14, first exported symbol or module entry",
         "cluster:components"
       ],
       "tag": [
@@ -478,6 +574,25 @@
       "dead": false
     },
     {
+      "id": "src-app-components-immersionpanel",
+      "cluster": "components",
+      "label": "ImmersionPanel.tsx",
+      "sub": "src/app/components/ImmersionPanel.tsx",
+      "path": "src/app/components/ImmersionPanel.tsx:13",
+      "role": "UI를 구성하는 재사용 컴포넌트입니다.",
+      "plain": "src/app/components/ImmersionPanel.tsx 파일이 앱의 한 부분을 담당합니다.",
+      "notes": [
+        "line:13, first exported symbol or module entry",
+        "cluster:components"
+      ],
+      "tag": [
+        "overview",
+        "all"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
       "id": "src-app-components-loadingspinner",
       "cluster": "components",
       "label": "LoadingSpinner.tsx",
@@ -501,11 +616,11 @@
       "cluster": "components",
       "label": "MediaSection.tsx",
       "sub": "src/app/components/MediaSection.tsx",
-      "path": "src/app/components/MediaSection.tsx:37",
+      "path": "src/app/components/MediaSection.tsx:39",
       "role": "UI를 구성하는 재사용 컴포넌트입니다.",
       "plain": "src/app/components/MediaSection.tsx 파일이 앱의 한 부분을 담당합니다.",
       "notes": [
-        "line:37, first exported symbol or module entry",
+        "line:39, first exported symbol or module entry",
         "cluster:components"
       ],
       "tag": [
@@ -517,15 +632,34 @@
       "dead": false
     },
     {
+      "id": "src-app-components-modalshell",
+      "cluster": "components",
+      "label": "ModalShell.tsx",
+      "sub": "src/app/components/ModalShell.tsx",
+      "path": "src/app/components/ModalShell.tsx:28",
+      "role": "UI를 구성하는 재사용 컴포넌트입니다.",
+      "plain": "src/app/components/ModalShell.tsx 파일이 앱의 한 부분을 담당합니다.",
+      "notes": [
+        "line:28, first exported symbol or module entry",
+        "cluster:components"
+      ],
+      "tag": [
+        "overview",
+        "all"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
       "id": "src-app-components-noticeresourcesection",
       "cluster": "components",
       "label": "NoticeResourceSection.tsx",
       "sub": "src/app/components/NoticeResourceSection.tsx",
-      "path": "src/app/components/NoticeResourceSection.tsx:26",
+      "path": "src/app/components/NoticeResourceSection.tsx:25",
       "role": "UI를 구성하는 재사용 컴포넌트입니다.",
       "plain": "src/app/components/NoticeResourceSection.tsx 파일이 앱의 한 부분을 담당합니다.",
       "notes": [
-        "line:26, first exported symbol or module entry",
+        "line:25, first exported symbol or module entry",
         "cluster:components"
       ],
       "tag": [
@@ -555,6 +689,44 @@
       ],
       "critical": false,
       "dead": true
+    },
+    {
+      "id": "src-app-components-officehourapplymodal",
+      "cluster": "components",
+      "label": "OfficeHourApplyModal.tsx",
+      "sub": "src/app/components/OfficeHourApplyModal.tsx",
+      "path": "src/app/components/OfficeHourApplyModal.tsx:14",
+      "role": "UI를 구성하는 재사용 컴포넌트입니다.",
+      "plain": "src/app/components/OfficeHourApplyModal.tsx 파일이 앱의 한 부분을 담당합니다.",
+      "notes": [
+        "line:14, first exported symbol or module entry",
+        "cluster:components"
+      ],
+      "tag": [
+        "overview",
+        "all"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
+      "id": "src-app-components-officehourpanel",
+      "cluster": "components",
+      "label": "OfficeHourPanel.tsx",
+      "sub": "src/app/components/OfficeHourPanel.tsx",
+      "path": "src/app/components/OfficeHourPanel.tsx:13",
+      "role": "UI를 구성하는 재사용 컴포넌트입니다.",
+      "plain": "src/app/components/OfficeHourPanel.tsx 파일이 앱의 한 부분을 담당합니다.",
+      "notes": [
+        "line:13, first exported symbol or module entry",
+        "cluster:components"
+      ],
+      "tag": [
+        "overview",
+        "all"
+      ],
+      "critical": false,
+      "dead": false
     },
     {
       "id": "page-shell",
@@ -672,15 +844,15 @@
       "dead": false
     },
     {
-      "id": "src-app-components-windowprogramtimelinesection",
+      "id": "src-app-components-wildcardroute",
       "cluster": "components",
-      "label": "WindowProgramTimelineSection.tsx",
-      "sub": "src/app/components/WindowProgramTimelineSection.tsx",
-      "path": "src/app/components/WindowProgramTimelineSection.tsx:6",
+      "label": "WildcardRoute.tsx",
+      "sub": "src/app/components/WildcardRoute.tsx",
+      "path": "src/app/components/WildcardRoute.tsx:10",
       "role": "UI를 구성하는 재사용 컴포넌트입니다.",
-      "plain": "src/app/components/WindowProgramTimelineSection.tsx 파일이 앱의 한 부분을 담당합니다.",
+      "plain": "src/app/components/WildcardRoute.tsx 파일이 앱의 한 부분을 담당합니다.",
       "notes": [
-        "line:6, first exported symbol or module entry",
+        "line:10, first exported symbol or module entry",
         "cluster:components"
       ],
       "tag": [
@@ -712,6 +884,26 @@
       "dead": true
     },
     {
+      "id": "src-app-components-admin-adminboardmanagement",
+      "cluster": "admin",
+      "label": "AdminBoardManagement.tsx",
+      "sub": "DEAD, zero importers",
+      "path": "src/app/components/admin/AdminBoardManagement.tsx:16",
+      "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
+      "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
+      "notes": [
+        "line:16, first exported symbol or module entry",
+        "cluster:admin"
+      ],
+      "tag": [
+        "overview",
+        "all",
+        "admin"
+      ],
+      "critical": false,
+      "dead": true
+    },
+    {
       "id": "src-app-components-admin-adminbulkresultmodal",
       "cluster": "admin",
       "label": "AdminBulkResultModal.tsx",
@@ -736,11 +928,11 @@
       "cluster": "admin",
       "label": "AdminCompaniesManagement.tsx",
       "sub": "DEAD, zero importers",
-      "path": "src/app/components/admin/AdminCompaniesManagement.tsx:98",
+      "path": "src/app/components/admin/AdminCompaniesManagement.tsx:101",
       "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
       "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
       "notes": [
-        "line:98, first exported symbol or module entry",
+        "line:101, first exported symbol or module entry",
         "cluster:admin"
       ],
       "tag": [
@@ -750,6 +942,47 @@
       ],
       "critical": false,
       "dead": true
+    },
+    {
+      "id": "src-app-components-admin-admincompanynewsmanagement",
+      "cluster": "admin",
+      "label": "AdminCompanyNewsManagement.tsx",
+      "sub": "DEAD, zero importers",
+      "path": "src/app/components/admin/AdminCompanyNewsManagement.tsx:77",
+      "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
+      "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
+      "notes": [
+        "line:77, first exported symbol or module entry",
+        "cluster:admin"
+      ],
+      "tag": [
+        "overview",
+        "all",
+        "admin",
+        "posts"
+      ],
+      "critical": false,
+      "dead": true
+    },
+    {
+      "id": "src-app-components-admin-adminconfirmmodal",
+      "cluster": "admin",
+      "label": "AdminConfirmModal.tsx",
+      "sub": "src/app/components/admin/AdminConfirmModal.tsx",
+      "path": "src/app/components/admin/AdminConfirmModal.tsx:14",
+      "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
+      "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
+      "notes": [
+        "line:14, first exported symbol or module entry",
+        "cluster:admin"
+      ],
+      "tag": [
+        "overview",
+        "all",
+        "admin"
+      ],
+      "critical": false,
+      "dead": false
     },
     {
       "id": "admin-consulting-mgmt",
@@ -777,11 +1010,11 @@
       "cluster": "admin",
       "label": "AdminDashboard.tsx",
       "sub": "DEAD, zero importers",
-      "path": "src/app/components/admin/AdminDashboard.tsx:9",
+      "path": "src/app/components/admin/AdminDashboard.tsx:10",
       "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
       "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
       "notes": [
-        "line:9, first exported symbol or module entry",
+        "line:10, first exported symbol or module entry",
         "cluster:admin"
       ],
       "tag": [
@@ -809,6 +1042,27 @@
         "all",
         "events",
         "admin"
+      ],
+      "critical": false,
+      "dead": true
+    },
+    {
+      "id": "src-app-components-admin-adminexternalnewsmanagement",
+      "cluster": "admin",
+      "label": "AdminExternalNewsManagement.tsx",
+      "sub": "DEAD, zero importers",
+      "path": "src/app/components/admin/AdminExternalNewsManagement.tsx:36",
+      "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
+      "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
+      "notes": [
+        "line:36, first exported symbol or module entry",
+        "cluster:admin"
+      ],
+      "tag": [
+        "overview",
+        "all",
+        "admin",
+        "posts"
       ],
       "critical": false,
       "dead": true
@@ -875,15 +1129,35 @@
       "dead": false
     },
     {
+      "id": "src-app-components-admin-adminofficehourmanagement",
+      "cluster": "admin",
+      "label": "AdminOfficeHourManagement.tsx",
+      "sub": "DEAD, zero importers",
+      "path": "src/app/components/admin/AdminOfficeHourManagement.tsx:64",
+      "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
+      "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
+      "notes": [
+        "line:64, first exported symbol or module entry",
+        "cluster:admin"
+      ],
+      "tag": [
+        "overview",
+        "all",
+        "admin"
+      ],
+      "critical": false,
+      "dead": true
+    },
+    {
       "id": "src-app-components-admin-adminpostcreate",
       "cluster": "admin",
       "label": "AdminPostCreate.tsx",
       "sub": "DEAD, zero importers",
-      "path": "src/app/components/admin/AdminPostCreate.tsx:87",
+      "path": "src/app/components/admin/AdminPostCreate.tsx:92",
       "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
       "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
       "notes": [
-        "line:87, first exported symbol or module entry",
+        "line:92, first exported symbol or module entry",
         "cluster:admin"
       ],
       "tag": [
@@ -900,11 +1174,11 @@
       "cluster": "admin",
       "label": "AdminPostManage.tsx",
       "sub": "DEAD, zero importers",
-      "path": "src/app/components/admin/AdminPostManage.tsx:21",
+      "path": "src/app/components/admin/AdminPostManage.tsx:22",
       "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
       "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
       "notes": [
-        "line:21, first exported symbol or module entry",
+        "line:22, first exported symbol or module entry",
         "cluster:admin"
       ],
       "tag": [
@@ -962,11 +1236,11 @@
       "cluster": "admin",
       "label": "AdminSidebar.tsx",
       "sub": "src/app/components/admin/AdminSidebar.tsx",
-      "path": "src/app/components/admin/AdminSidebar.tsx:66",
+      "path": "src/app/components/admin/AdminSidebar.tsx:87",
       "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
       "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
       "notes": [
-        "line:66, first exported symbol or module entry",
+        "line:87, first exported symbol or module entry",
         "cluster:admin"
       ],
       "tag": [
@@ -982,11 +1256,11 @@
       "cluster": "admin",
       "label": "AdminUserManagement.tsx",
       "sub": "DEAD, zero importers",
-      "path": "src/app/components/admin/AdminUserManagement.tsx:47",
+      "path": "src/app/components/admin/AdminUserManagement.tsx:53",
       "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
       "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
       "notes": [
-        "line:47, first exported symbol or module entry",
+        "line:53, first exported symbol or module entry",
         "cluster:admin"
       ],
       "tag": [
@@ -1002,11 +1276,11 @@
       "cluster": "admin",
       "label": "AdvancedThumbnailEditor.tsx",
       "sub": "src/app/components/admin/AdvancedThumbnailEditor.tsx",
-      "path": "src/app/components/admin/AdvancedThumbnailEditor.tsx:138",
+      "path": "src/app/components/admin/AdvancedThumbnailEditor.tsx:162",
       "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
       "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
       "notes": [
-        "line:138, first exported symbol or module entry",
+        "line:162, first exported symbol or module entry",
         "cluster:admin"
       ],
       "tag": [
@@ -1018,15 +1292,98 @@
       "dead": false
     },
     {
+      "id": "src-app-components-admin-eventformconfigeditor",
+      "cluster": "admin",
+      "label": "EventFormConfigEditor.tsx",
+      "sub": "src/app/components/admin/EventFormConfigEditor.tsx",
+      "path": "src/app/components/admin/EventFormConfigEditor.tsx:17",
+      "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
+      "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
+      "notes": [
+        "line:17, first exported symbol or module entry",
+        "cluster:admin"
+      ],
+      "tag": [
+        "overview",
+        "all",
+        "admin"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
+      "id": "src-app-components-admin-externalnewsdrafteditor",
+      "cluster": "admin",
+      "label": "ExternalNewsDraftEditor.tsx",
+      "sub": "src/app/components/admin/ExternalNewsDraftEditor.tsx",
+      "path": "src/app/components/admin/ExternalNewsDraftEditor.tsx:8",
+      "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
+      "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
+      "notes": [
+        "line:8, first exported symbol or module entry",
+        "cluster:admin"
+      ],
+      "tag": [
+        "overview",
+        "all",
+        "admin",
+        "posts"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
+      "id": "src-app-components-admin-externalnewspreviewcard",
+      "cluster": "admin",
+      "label": "ExternalNewsPreviewCard.tsx",
+      "sub": "src/app/components/admin/ExternalNewsPreviewCard.tsx",
+      "path": "src/app/components/admin/ExternalNewsPreviewCard.tsx:11",
+      "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
+      "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
+      "notes": [
+        "line:11, first exported symbol or module entry",
+        "cluster:admin"
+      ],
+      "tag": [
+        "overview",
+        "all",
+        "admin",
+        "posts"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
+      "id": "src-app-components-admin-externalnewspreviewcomposer",
+      "cluster": "admin",
+      "label": "ExternalNewsPreviewComposer.tsx",
+      "sub": "src/app/components/admin/ExternalNewsPreviewComposer.tsx",
+      "path": "src/app/components/admin/ExternalNewsPreviewComposer.tsx:109",
+      "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
+      "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
+      "notes": [
+        "line:109, first exported symbol or module entry",
+        "cluster:admin"
+      ],
+      "tag": [
+        "overview",
+        "all",
+        "admin",
+        "posts"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
       "id": "src-app-components-admin-livearchitecturemap",
       "cluster": "admin",
       "label": "LiveArchitectureMap.tsx",
       "sub": "src/app/components/admin/LiveArchitectureMap.tsx",
-      "path": "src/app/components/admin/LiveArchitectureMap.tsx:37",
+      "path": "src/app/components/admin/LiveArchitectureMap.tsx:38",
       "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
       "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
       "notes": [
-        "line:37, first exported symbol or module entry",
+        "line:38, first exported symbol or module entry",
         "cluster:admin"
       ],
       "tag": [
@@ -1182,11 +1539,11 @@
       "cluster": "admin",
       "label": "opsPipeline.tsx",
       "sub": "src/app/components/admin/architecture/opsPipeline.tsx",
-      "path": "src/app/components/admin/architecture/opsPipeline.tsx:370",
+      "path": "src/app/components/admin/architecture/opsPipeline.tsx:430",
       "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
       "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
       "notes": [
-        "line:370, first exported symbol or module entry",
+        "line:430, first exported symbol or module entry",
         "cluster:admin"
       ],
       "tag": [
@@ -1253,6 +1610,84 @@
         "overview",
         "all",
         "admin"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
+      "id": "src-app-components-admin-externalnewstypes",
+      "cluster": "admin",
+      "label": "externalNewsTypes.ts",
+      "sub": "src/app/components/admin/externalNewsTypes.ts",
+      "path": "src/app/components/admin/externalNewsTypes.ts:1",
+      "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
+      "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
+      "notes": [
+        "line:1, first exported symbol or module entry",
+        "cluster:admin"
+      ],
+      "tag": [
+        "overview",
+        "all",
+        "admin",
+        "posts"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
+      "id": "src-app-components-changgu-program-changguprogramintro",
+      "cluster": "components",
+      "label": "ChangguProgramIntro.tsx",
+      "sub": "src/app/components/changgu-program/ChangguProgramIntro.tsx",
+      "path": "src/app/components/changgu-program/ChangguProgramIntro.tsx:29",
+      "role": "UI를 구성하는 재사용 컴포넌트입니다.",
+      "plain": "src/app/components/changgu-program/ChangguProgramIntro.tsx 파일이 앱의 한 부분을 담당합니다.",
+      "notes": [
+        "line:29, first exported symbol or module entry",
+        "cluster:components"
+      ],
+      "tag": [
+        "overview",
+        "all"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
+      "id": "src-app-components-changgu-program-changguprogramtimeline",
+      "cluster": "components",
+      "label": "ChangguProgramTimeline.tsx",
+      "sub": "src/app/components/changgu-program/ChangguProgramTimeline.tsx",
+      "path": "src/app/components/changgu-program/ChangguProgramTimeline.tsx:184",
+      "role": "UI를 구성하는 재사용 컴포넌트입니다.",
+      "plain": "src/app/components/changgu-program/ChangguProgramTimeline.tsx 파일이 앱의 한 부분을 담당합니다.",
+      "notes": [
+        "line:184, first exported symbol or module entry",
+        "cluster:components"
+      ],
+      "tag": [
+        "overview",
+        "all"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
+      "id": "src-app-components-changgu-program-timelinedata",
+      "cluster": "components",
+      "label": "timelineData.ts",
+      "sub": "src/app/components/changgu-program/timelineData.ts",
+      "path": "src/app/components/changgu-program/timelineData.ts:1",
+      "role": "UI를 구성하는 재사용 컴포넌트입니다.",
+      "plain": "src/app/components/changgu-program/timelineData.ts 파일이 앱의 한 부분을 담당합니다.",
+      "notes": [
+        "line:1, first exported symbol or module entry",
+        "cluster:components"
+      ],
+      "tag": [
+        "overview",
+        "all"
       ],
       "critical": false,
       "dead": false
@@ -2227,63 +2662,6 @@
       "dead": false
     },
     {
-      "id": "src-app-components-window-program-windowprogramintro",
-      "cluster": "components",
-      "label": "WindowProgramIntro.tsx",
-      "sub": "src/app/components/window-program/WindowProgramIntro.tsx",
-      "path": "src/app/components/window-program/WindowProgramIntro.tsx:29",
-      "role": "UI를 구성하는 재사용 컴포넌트입니다.",
-      "plain": "src/app/components/window-program/WindowProgramIntro.tsx 파일이 앱의 한 부분을 담당합니다.",
-      "notes": [
-        "line:29, first exported symbol or module entry",
-        "cluster:components"
-      ],
-      "tag": [
-        "overview",
-        "all"
-      ],
-      "critical": false,
-      "dead": false
-    },
-    {
-      "id": "src-app-components-window-program-windowprogramtimeline",
-      "cluster": "components",
-      "label": "WindowProgramTimeline.tsx",
-      "sub": "src/app/components/window-program/WindowProgramTimeline.tsx",
-      "path": "src/app/components/window-program/WindowProgramTimeline.tsx:184",
-      "role": "UI를 구성하는 재사용 컴포넌트입니다.",
-      "plain": "src/app/components/window-program/WindowProgramTimeline.tsx 파일이 앱의 한 부분을 담당합니다.",
-      "notes": [
-        "line:184, first exported symbol or module entry",
-        "cluster:components"
-      ],
-      "tag": [
-        "overview",
-        "all"
-      ],
-      "critical": false,
-      "dead": false
-    },
-    {
-      "id": "src-app-components-window-program-timelinedata",
-      "cluster": "components",
-      "label": "timelineData.ts",
-      "sub": "src/app/components/window-program/timelineData.ts",
-      "path": "src/app/components/window-program/timelineData.ts:1",
-      "role": "UI를 구성하는 재사용 컴포넌트입니다.",
-      "plain": "src/app/components/window-program/timelineData.ts 파일이 앱의 한 부분을 담당합니다.",
-      "notes": [
-        "line:1, first exported symbol or module entry",
-        "cluster:components"
-      ],
-      "tag": [
-        "overview",
-        "all"
-      ],
-      "critical": false,
-      "dead": false
-    },
-    {
       "id": "src-app-constants-consultingcategories",
       "cluster": "data",
       "label": "consultingCategories.ts",
@@ -2343,13 +2721,51 @@
       "dead": false
     },
     {
-      "id": "src-app-content-windowprograminfo",
+      "id": "src-app-constants-officehours",
       "cluster": "data",
-      "label": "windowProgramInfo.ts",
-      "sub": "src/app/content/windowProgramInfo.ts",
-      "path": "src/app/content/windowProgramInfo.ts:1",
+      "label": "officeHours.ts",
+      "sub": "src/app/constants/officeHours.ts",
+      "path": "src/app/constants/officeHours.ts:1",
       "role": "UI를 구성하는 재사용 컴포넌트입니다.",
-      "plain": "src/app/content/windowProgramInfo.ts 파일이 앱의 한 부분을 담당합니다.",
+      "plain": "src/app/constants/officeHours.ts 파일이 앱의 한 부분을 담당합니다.",
+      "notes": [
+        "line:1, first exported symbol or module entry",
+        "cluster:data"
+      ],
+      "tag": [
+        "overview",
+        "all"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
+      "id": "src-app-content-aroundxbrandinfo",
+      "cluster": "data",
+      "label": "aroundXBrandInfo.ts",
+      "sub": "src/app/content/aroundXBrandInfo.ts",
+      "path": "src/app/content/aroundXBrandInfo.ts:1",
+      "role": "UI를 구성하는 재사용 컴포넌트입니다.",
+      "plain": "src/app/content/aroundXBrandInfo.ts 파일이 앱의 한 부분을 담당합니다.",
+      "notes": [
+        "line:1, first exported symbol or module entry",
+        "cluster:data"
+      ],
+      "tag": [
+        "overview",
+        "all"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
+      "id": "src-app-content-changguprograminfo",
+      "cluster": "data",
+      "label": "changguProgramInfo.ts",
+      "sub": "src/app/content/changguProgramInfo.ts",
+      "path": "src/app/content/changguProgramInfo.ts:1",
+      "role": "UI를 구성하는 재사용 컴포넌트입니다.",
+      "plain": "src/app/content/changguProgramInfo.ts 파일이 앱의 한 부분을 담당합니다.",
       "notes": [
         "line:1, first exported symbol or module entry",
         "cluster:data"
@@ -2385,11 +2801,11 @@
       "cluster": "pages",
       "label": "AdminPage.tsx",
       "sub": "src/app/pages/AdminPage.tsx",
-      "path": "src/app/pages/AdminPage.tsx:33",
+      "path": "src/app/pages/AdminPage.tsx:37",
       "role": "사용자가 직접 방문하는 페이지 단위 화면입니다.",
       "plain": "사이트 방문자가 실제로 보는 한 화면입니다.",
       "notes": [
-        "line:33, first exported symbol or module entry",
+        "line:37, first exported symbol or module entry",
         "cluster:pages"
       ],
       "tag": [
@@ -2401,11 +2817,11 @@
       "dead": false
     },
     {
-      "id": "src-app-pages-aroundxwindowprogrampage",
+      "id": "src-app-pages-aroundxchangguprogrampage",
       "cluster": "pages",
-      "label": "AroundXWindowProgramPage.tsx",
-      "sub": "src/app/pages/AroundXWindowProgramPage.tsx",
-      "path": "src/app/pages/AroundXWindowProgramPage.tsx:3",
+      "label": "AroundXChangguProgramPage.tsx",
+      "sub": "src/app/pages/AroundXChangguProgramPage.tsx",
+      "path": "src/app/pages/AroundXChangguProgramPage.tsx:3",
       "role": "사용자가 직접 방문하는 페이지 단위 화면입니다.",
       "plain": "사이트 방문자가 실제로 보는 한 화면입니다.",
       "notes": [
@@ -2420,15 +2836,53 @@
       "dead": false
     },
     {
-      "id": "src-app-pages-blogpage",
+      "id": "src-app-pages-comingsoonpage",
       "cluster": "pages",
-      "label": "BlogPage.tsx",
-      "sub": "src/app/pages/BlogPage.tsx",
-      "path": "src/app/pages/BlogPage.tsx:18",
+      "label": "ComingSoonPage.tsx",
+      "sub": "src/app/pages/ComingSoonPage.tsx",
+      "path": "src/app/pages/ComingSoonPage.tsx:10",
       "role": "사용자가 직접 방문하는 페이지 단위 화면입니다.",
       "plain": "사이트 방문자가 실제로 보는 한 화면입니다.",
       "notes": [
-        "line:18, first exported symbol or module entry",
+        "line:10, first exported symbol or module entry",
+        "cluster:pages"
+      ],
+      "tag": [
+        "overview",
+        "all"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
+      "id": "src-app-pages-companiespage",
+      "cluster": "pages",
+      "label": "CompaniesPage.tsx",
+      "sub": "src/app/pages/CompaniesPage.tsx",
+      "path": "src/app/pages/CompaniesPage.tsx:16",
+      "role": "사용자가 직접 방문하는 페이지 단위 화면입니다.",
+      "plain": "사이트 방문자가 실제로 보는 한 화면입니다.",
+      "notes": [
+        "line:16, first exported symbol or module entry",
+        "cluster:pages"
+      ],
+      "tag": [
+        "overview",
+        "all"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
+      "id": "src-app-pages-companynewspage",
+      "cluster": "pages",
+      "label": "CompanyNewsPage.tsx",
+      "sub": "src/app/pages/CompanyNewsPage.tsx",
+      "path": "src/app/pages/CompanyNewsPage.tsx:19",
+      "role": "사용자가 직접 방문하는 페이지 단위 화면입니다.",
+      "plain": "사이트 방문자가 실제로 보는 한 화면입니다.",
+      "notes": [
+        "line:19, first exported symbol or module entry",
         "cluster:pages"
       ],
       "tag": [
@@ -2440,34 +2894,15 @@
       "dead": false
     },
     {
-      "id": "src-app-pages-companiespage",
-      "cluster": "pages",
-      "label": "CompaniesPage.tsx",
-      "sub": "src/app/pages/CompaniesPage.tsx",
-      "path": "src/app/pages/CompaniesPage.tsx:13",
-      "role": "사용자가 직접 방문하는 페이지 단위 화면입니다.",
-      "plain": "사이트 방문자가 실제로 보는 한 화면입니다.",
-      "notes": [
-        "line:13, first exported symbol or module entry",
-        "cluster:pages"
-      ],
-      "tag": [
-        "overview",
-        "all"
-      ],
-      "critical": false,
-      "dead": false
-    },
-    {
       "id": "consulting-page",
       "cluster": "pages",
       "label": "ConsultingPage.tsx",
       "sub": "src/app/pages/ConsultingPage.tsx",
-      "path": "src/app/pages/ConsultingPage.tsx:13",
+      "path": "src/app/pages/ConsultingPage.tsx:15",
       "role": "사용자가 직접 방문하는 페이지 단위 화면입니다.",
       "plain": "사이트 방문자가 실제로 보는 한 화면입니다.",
       "notes": [
-        "line:13, first exported symbol or module entry",
+        "line:15, first exported symbol or module entry",
         "cluster:pages"
       ],
       "tag": [
@@ -2483,11 +2918,11 @@
       "cluster": "pages",
       "label": "EventApplicationPage.tsx",
       "sub": "src/app/pages/EventApplicationPage.tsx",
-      "path": "src/app/pages/EventApplicationPage.tsx:131",
+      "path": "src/app/pages/EventApplicationPage.tsx:57",
       "role": "사용자가 직접 방문하는 페이지 단위 화면입니다.",
       "plain": "사이트 방문자가 실제로 보는 한 화면입니다.",
       "notes": [
-        "line:131, first exported symbol or module entry",
+        "line:57, first exported symbol or module entry",
         "cluster:pages"
       ],
       "tag": [
@@ -2503,11 +2938,11 @@
       "cluster": "pages",
       "label": "EventArchivePage.tsx",
       "sub": "src/app/pages/EventArchivePage.tsx",
-      "path": "src/app/pages/EventArchivePage.tsx:12",
+      "path": "src/app/pages/EventArchivePage.tsx:27",
       "role": "사용자가 직접 방문하는 페이지 단위 화면입니다.",
       "plain": "사이트 방문자가 실제로 보는 한 화면입니다.",
       "notes": [
-        "line:12, first exported symbol or module entry",
+        "line:27, first exported symbol or module entry",
         "cluster:pages"
       ],
       "tag": [
@@ -2522,11 +2957,11 @@
       "cluster": "pages",
       "label": "EventsPage.tsx",
       "sub": "src/app/pages/EventsPage.tsx",
-      "path": "src/app/pages/EventsPage.tsx:16",
+      "path": "src/app/pages/EventsPage.tsx:19",
       "role": "사용자가 직접 방문하는 페이지 단위 화면입니다.",
       "plain": "사이트 방문자가 실제로 보는 한 화면입니다.",
       "notes": [
-        "line:16, first exported symbol or module entry",
+        "line:19, first exported symbol or module entry",
         "cluster:pages"
       ],
       "tag": [
@@ -2561,11 +2996,11 @@
       "cluster": "pages",
       "label": "FaqPage.tsx",
       "sub": "src/app/pages/FaqPage.tsx",
-      "path": "src/app/pages/FaqPage.tsx:8",
+      "path": "src/app/pages/FaqPage.tsx:10",
       "role": "사용자가 직접 방문하는 페이지 단위 화면입니다.",
       "plain": "사이트 방문자가 실제로 보는 한 화면입니다.",
       "notes": [
-        "line:8, first exported symbol or module entry",
+        "line:10, first exported symbol or module entry",
         "cluster:pages"
       ],
       "tag": [
@@ -2581,11 +3016,11 @@
       "cluster": "pages",
       "label": "FoundersClubPage.tsx",
       "sub": "src/app/pages/FoundersClubPage.tsx",
-      "path": "src/app/pages/FoundersClubPage.tsx:37",
+      "path": "src/app/pages/FoundersClubPage.tsx:62",
       "role": "사용자가 직접 방문하는 페이지 단위 화면입니다.",
       "plain": "사이트 방문자가 실제로 보는 한 화면입니다.",
       "notes": [
-        "line:37, first exported symbol or module entry",
+        "line:62, first exported symbol or module entry",
         "cluster:pages"
       ],
       "tag": [
@@ -2621,11 +3056,11 @@
       "cluster": "pages",
       "label": "MediaPage.tsx",
       "sub": "src/app/pages/MediaPage.tsx",
-      "path": "src/app/pages/MediaPage.tsx:22",
+      "path": "src/app/pages/MediaPage.tsx:24",
       "role": "사용자가 직접 방문하는 페이지 단위 화면입니다.",
       "plain": "사이트 방문자가 실제로 보는 한 화면입니다.",
       "notes": [
-        "line:22, first exported symbol or module entry",
+        "line:24, first exported symbol or module entry",
         "cluster:pages"
       ],
       "tag": [
@@ -2641,11 +3076,11 @@
       "cluster": "pages",
       "label": "MyPage.tsx",
       "sub": "src/app/pages/MyPage.tsx",
-      "path": "src/app/pages/MyPage.tsx:14",
+      "path": "src/app/pages/MyPage.tsx:16",
       "role": "사용자가 직접 방문하는 페이지 단위 화면입니다.",
       "plain": "사이트 방문자가 실제로 보는 한 화면입니다.",
       "notes": [
-        "line:14, first exported symbol or module entry",
+        "line:16, first exported symbol or module entry",
         "cluster:pages"
       ],
       "tag": [
@@ -2661,11 +3096,11 @@
       "cluster": "pages",
       "label": "NewsPage.tsx",
       "sub": "src/app/pages/NewsPage.tsx",
-      "path": "src/app/pages/NewsPage.tsx:14",
+      "path": "src/app/pages/NewsPage.tsx:28",
       "role": "사용자가 직접 방문하는 페이지 단위 화면입니다.",
       "plain": "사이트 방문자가 실제로 보는 한 화면입니다.",
       "notes": [
-        "line:14, first exported symbol or module entry",
+        "line:28, first exported symbol or module entry",
         "cluster:pages"
       ],
       "tag": [
@@ -2700,11 +3135,11 @@
       "cluster": "pages",
       "label": "NoticePage.tsx",
       "sub": "src/app/pages/NoticePage.tsx",
-      "path": "src/app/pages/NoticePage.tsx:12",
+      "path": "src/app/pages/NoticePage.tsx:14",
       "role": "사용자가 직접 방문하는 페이지 단위 화면입니다.",
       "plain": "사이트 방문자가 실제로 보는 한 화면입니다.",
       "notes": [
-        "line:12, first exported symbol or module entry",
+        "line:14, first exported symbol or module entry",
         "cluster:pages"
       ],
       "tag": [
@@ -2720,11 +3155,11 @@
       "cluster": "pages",
       "label": "PostDetailPage.tsx",
       "sub": "src/app/pages/PostDetailPage.tsx",
-      "path": "src/app/pages/PostDetailPage.tsx:122",
+      "path": "src/app/pages/PostDetailPage.tsx:59",
       "role": "사용자가 직접 방문하는 페이지 단위 화면입니다.",
       "plain": "사이트 방문자가 실제로 보는 한 화면입니다.",
       "notes": [
-        "line:122, first exported symbol or module entry",
+        "line:59, first exported symbol or module entry",
         "cluster:pages"
       ],
       "tag": [
@@ -2740,11 +3175,11 @@
       "cluster": "pages",
       "label": "PrivacyPolicyPage.tsx",
       "sub": "src/app/pages/PrivacyPolicyPage.tsx",
-      "path": "src/app/pages/PrivacyPolicyPage.tsx:80",
+      "path": "src/app/pages/PrivacyPolicyPage.tsx:95",
       "role": "사용자가 직접 방문하는 페이지 단위 화면입니다.",
       "plain": "사이트 방문자가 실제로 보는 한 화면입니다.",
       "notes": [
-        "line:80, first exported symbol or module entry",
+        "line:95, first exported symbol or module entry",
         "cluster:pages"
       ],
       "tag": [
@@ -2759,11 +3194,11 @@
       "cluster": "pages",
       "label": "ResourcesPage.tsx",
       "sub": "src/app/pages/ResourcesPage.tsx",
-      "path": "src/app/pages/ResourcesPage.tsx:10",
+      "path": "src/app/pages/ResourcesPage.tsx:12",
       "role": "사용자가 직접 방문하는 페이지 단위 화면입니다.",
       "plain": "사이트 방문자가 실제로 보는 한 화면입니다.",
       "notes": [
-        "line:10, first exported symbol or module entry",
+        "line:12, first exported symbol or module entry",
         "cluster:pages"
       ],
       "tag": [
@@ -2779,11 +3214,11 @@
       "cluster": "pages",
       "label": "SearchPage.tsx",
       "sub": "src/app/pages/SearchPage.tsx",
-      "path": "src/app/pages/SearchPage.tsx:36",
+      "path": "src/app/pages/SearchPage.tsx:34",
       "role": "사용자가 직접 방문하는 페이지 단위 화면입니다.",
       "plain": "사이트 방문자가 실제로 보는 한 화면입니다.",
       "notes": [
-        "line:36, first exported symbol or module entry",
+        "line:34, first exported symbol or module entry",
         "cluster:pages"
       ],
       "tag": [
@@ -2818,11 +3253,11 @@
       "cluster": "pages",
       "label": "TermsOfUsePage.tsx",
       "sub": "src/app/pages/TermsOfUsePage.tsx",
-      "path": "src/app/pages/TermsOfUsePage.tsx:75",
+      "path": "src/app/pages/TermsOfUsePage.tsx:91",
       "role": "사용자가 직접 방문하는 페이지 단위 화면입니다.",
       "plain": "사이트 방문자가 실제로 보는 한 화면입니다.",
       "notes": [
-        "line:75, first exported symbol or module entry",
+        "line:91, first exported symbol or module entry",
         "cluster:pages"
       ],
       "tag": [
@@ -2930,6 +3365,25 @@
       "dead": false
     },
     {
+      "id": "src-hooks-useauthgate",
+      "cluster": "hooks",
+      "label": "useAuthGate.ts",
+      "sub": "src/hooks/useAuthGate.ts",
+      "path": "src/hooks/useAuthGate.ts:3",
+      "role": "컴포넌트에서 재사용하는 상태와 부수효과 로직입니다.",
+      "plain": "src/hooks/useAuthGate.ts 파일이 앱의 한 부분을 담당합니다.",
+      "notes": [
+        "line:3, first exported symbol or module entry",
+        "cluster:hooks"
+      ],
+      "tag": [
+        "overview",
+        "all"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
       "id": "src-hooks-useblogimportadmin",
       "cluster": "hooks",
       "label": "useBlogImportAdmin.ts",
@@ -2946,6 +3400,25 @@
         "all",
         "admin",
         "posts"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
+      "id": "src-hooks-useboardaccess",
+      "cluster": "hooks",
+      "label": "useBoardAccess.ts",
+      "sub": "src/hooks/useBoardAccess.ts",
+      "path": "src/hooks/useBoardAccess.ts:3",
+      "role": "컴포넌트에서 재사용하는 상태와 부수효과 로직입니다.",
+      "plain": "src/hooks/useBoardAccess.ts 파일이 앱의 한 부분을 담당합니다.",
+      "notes": [
+        "line:3, first exported symbol or module entry",
+        "cluster:hooks"
+      ],
+      "tag": [
+        "overview",
+        "all"
       ],
       "critical": false,
       "dead": false
@@ -3032,11 +3505,11 @@
       "cluster": "hooks",
       "label": "useTracker.ts",
       "sub": "src/hooks/useTracker.ts",
-      "path": "src/hooks/useTracker.ts:5",
+      "path": "src/hooks/useTracker.ts:6",
       "role": "컴포넌트에서 재사용하는 상태와 부수효과 로직입니다.",
       "plain": "src/hooks/useTracker.ts 파일이 앱의 한 부분을 담당합니다.",
       "notes": [
-        "line:5, first exported symbol or module entry",
+        "line:6, first exported symbol or module entry",
         "cluster:hooks"
       ],
       "tag": [
@@ -3413,6 +3886,25 @@
       "dead": false
     },
     {
+      "id": "src-utils-uuid",
+      "cluster": "utils",
+      "label": "uuid.ts",
+      "sub": "src/utils/uuid.ts",
+      "path": "src/utils/uuid.ts:1",
+      "role": "도메인 값을 계산하거나 변환하는 순수 보조 모듈입니다.",
+      "plain": "src/utils/uuid.ts 파일이 앱의 한 부분을 담당합니다.",
+      "notes": [
+        "line:1, first exported symbol or module entry",
+        "cluster:utils"
+      ],
+      "tag": [
+        "overview",
+        "all"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
       "id": "ef-admin-auth",
       "cluster": "edge",
       "label": "adminAuth.ts",
@@ -3437,11 +3929,11 @@
       "cluster": "edge",
       "label": "cors.ts",
       "sub": "supabase/functions/_shared/cors.ts",
-      "path": "supabase/functions/_shared/cors.ts:8",
+      "path": "supabase/functions/_shared/cors.ts:10",
       "role": "Supabase Edge Function 런타임에서 서버 권한 작업을 처리합니다.",
       "plain": "브라우저가 직접 할 수 없는 민감한 서버 작업을 대신 수행하는 파일입니다.",
       "notes": [
-        "line:8, first exported symbol or module entry",
+        "line:10, first exported symbol or module entry",
         "cluster:edge"
       ],
       "tag": [
@@ -3611,6 +4103,25 @@
       "dead": true
     },
     {
+      "id": "supabase-functions-delete-own-account",
+      "cluster": "edge",
+      "label": "delete-own-account/index.ts",
+      "sub": "DEAD, zero importers",
+      "path": "supabase/functions/delete-own-account/index.ts:1",
+      "role": "Supabase Edge Function 런타임에서 서버 권한 작업을 처리합니다.",
+      "plain": "브라우저가 직접 할 수 없는 민감한 서버 작업을 대신 수행하는 파일입니다.",
+      "notes": [
+        "line:1, first exported symbol or module entry",
+        "cluster:edge"
+      ],
+      "tag": [
+        "overview",
+        "all"
+      ],
+      "critical": false,
+      "dead": true
+    },
+    {
       "id": "ef-delete",
       "cluster": "edge",
       "label": "delete-user/index.ts",
@@ -3645,6 +4156,26 @@
         "overview",
         "all",
         "pii"
+      ],
+      "critical": false,
+      "dead": true
+    },
+    {
+      "id": "supabase-functions-external-news-preview",
+      "cluster": "edge",
+      "label": "external-news-preview/index.ts",
+      "sub": "DEAD, zero importers",
+      "path": "supabase/functions/external-news-preview/index.ts:1",
+      "role": "Supabase Edge Function 런타임에서 서버 권한 작업을 처리합니다.",
+      "plain": "브라우저가 직접 할 수 없는 민감한 서버 작업을 대신 수행하는 파일입니다.",
+      "notes": [
+        "line:1, first exported symbol or module entry",
+        "cluster:edge"
+      ],
+      "tag": [
+        "overview",
+        "all",
+        "posts"
       ],
       "critical": false,
       "dead": true
@@ -3685,6 +4216,26 @@
       "tag": [
         "overview",
         "all"
+      ],
+      "critical": false,
+      "dead": true
+    },
+    {
+      "id": "supabase-functions-office-hour-admin-applications",
+      "cluster": "edge",
+      "label": "office-hour-admin-applications/index.ts",
+      "sub": "DEAD, zero importers",
+      "path": "supabase/functions/office-hour-admin-applications/index.ts:1",
+      "role": "Supabase Edge Function 런타임에서 서버 권한 작업을 처리합니다.",
+      "plain": "브라우저가 직접 할 수 없는 민감한 서버 작업을 대신 수행하는 파일입니다.",
+      "notes": [
+        "line:1, first exported symbol or module entry",
+        "cluster:edge"
+      ],
+      "tag": [
+        "overview",
+        "all",
+        "admin"
       ],
       "critical": false,
       "dead": true
@@ -3768,6 +4319,26 @@
       "dead": true
     },
     {
+      "id": "supabase-functions-trigger-company-news-crawl",
+      "cluster": "edge",
+      "label": "trigger-company-news-crawl/index.ts",
+      "sub": "DEAD, zero importers",
+      "path": "supabase/functions/trigger-company-news-crawl/index.ts:1",
+      "role": "Supabase Edge Function 런타임에서 서버 권한 작업을 처리합니다.",
+      "plain": "브라우저가 직접 할 수 없는 민감한 서버 작업을 대신 수행하는 파일입니다.",
+      "notes": [
+        "line:1, first exported symbol or module entry",
+        "cluster:edge"
+      ],
+      "tag": [
+        "overview",
+        "all",
+        "posts"
+      ],
+      "critical": false,
+      "dead": true
+    },
+    {
       "id": "ef-update-role",
       "cluster": "edge",
       "label": "update-user-role/index.ts",
@@ -3783,6 +4354,25 @@
         "overview",
         "all",
         "auth"
+      ],
+      "critical": false,
+      "dead": true
+    },
+    {
+      "id": "supabase-functions-update-user-status",
+      "cluster": "edge",
+      "label": "update-user-status/index.ts",
+      "sub": "DEAD, zero importers",
+      "path": "supabase/functions/update-user-status/index.ts:1",
+      "role": "Supabase Edge Function 런타임에서 서버 권한 작업을 처리합니다.",
+      "plain": "브라우저가 직접 할 수 없는 민감한 서버 작업을 대신 수행하는 파일입니다.",
+      "notes": [
+        "line:1, first exported symbol or module entry",
+        "cluster:edge"
+      ],
+      "tag": [
+        "overview",
+        "all"
       ],
       "critical": false,
       "dead": true
@@ -3810,8 +4400,108 @@
       ]
     },
     {
+      "from": "app",
+      "to": "src-app-boardcategoriescontext",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-boardcategoriescontext",
+      "to": "supabase-client",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-boardcategoriescontext",
+      "to": "types",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
       "from": "src-app-components-aboutsection",
-      "to": "src-app-components-window-program-windowprogramtimeline",
+      "to": "lang-ctx",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-aboutsection",
+      "to": "theme-ctx",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-aboutsection",
+      "to": "src-app-content-aroundxbrandinfo",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-aboutsection",
+      "to": "src-app-utils-sectiontheme",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-aboutsection",
+      "to": "src-app-components-aboutvaluecard",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-aboutsection",
+      "to": "src-app-components-homesectionstyles",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-aboutvaluecard",
+      "to": "src-app-utils-sectiontheme",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-aboutvaluecard",
+      "to": "src-app-components-homesectionstyles",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -3844,6 +4534,46 @@
     {
       "from": "auth-route",
       "to": "supabase-client",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-boardaccessgate",
+      "to": "supabase-client",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-boardaccessgate",
+      "to": "src-hooks-useboardaccess",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-changguprogramtimelinesection",
+      "to": "src-app-components-changgu-program-changguprogramintro",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-changguprogramtimelinesection",
+      "to": "src-app-components-changgu-program-changguprogramtimeline",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -3943,16 +4673,6 @@
     },
     {
       "from": "consulting-modal",
-      "to": "src-lib-layers",
-      "kind": "normal",
-      "label": "import",
-      "tag": [
-        "all",
-        "overview"
-      ]
-    },
-    {
-      "from": "consulting-modal",
       "to": "types",
       "kind": "normal",
       "label": "import",
@@ -3974,6 +4694,16 @@
     {
       "from": "consulting-modal",
       "to": "src-app-components-programconfirmationcard",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "consulting-modal",
+      "to": "src-app-components-modalshell",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -4043,6 +4773,16 @@
     },
     {
       "from": "src-app-components-eventsection",
+      "to": "src-utils-postthumbnail",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-eventsection",
       "to": "types",
       "kind": "normal",
       "label": "import",
@@ -4074,6 +4814,26 @@
     {
       "from": "src-app-components-eventsection",
       "to": "src-app-components-homesectionstyles",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-externalnewscard",
+      "to": "types",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-externalnewscard",
+      "to": "src-app-components-ui-badge",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -4182,8 +4942,18 @@
       ]
     },
     {
+      "from": "header-section",
+      "to": "src-app-boardcategoriescontext",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
       "from": "src-app-components-herosection",
-      "to": "src-app-content-windowprograminfo",
+      "to": "src-app-content-changguprograminfo",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -4282,6 +5052,86 @@
       ]
     },
     {
+      "from": "src-app-components-immersionpanel",
+      "to": "theme-ctx",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-immersionpanel",
+      "to": "supabase-client",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-immersionpanel",
+      "to": "consulting-modal",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-immersionpanel",
+      "to": "src-app-components-ui-skeleton",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-immersionpanel",
+      "to": "types",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-immersionpanel",
+      "to": "src-app-components-contentliststyles",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-immersionpanel",
+      "to": "src-hooks-useauthgate",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-immersionpanel",
+      "to": "src-app-constants-consultingcategories",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
       "from": "src-app-components-loadingspinner",
       "to": "theme-ctx",
       "kind": "normal",
@@ -4293,7 +5143,7 @@
     },
     {
       "from": "src-app-components-mediasection",
-      "to": "supabase-client",
+      "to": "src-utils-publicpostpreviews",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -4354,7 +5204,27 @@
     },
     {
       "from": "src-app-components-mediasection",
+      "to": "src-app-components-ui-button",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-mediasection",
       "to": "src-app-components-homesectionstyles",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-modalshell",
+      "to": "src-lib-layers",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -4365,16 +5235,6 @@
     {
       "from": "src-app-components-noticeresourcesection",
       "to": "src-app-utils-sectiontheme",
-      "kind": "normal",
-      "label": "import",
-      "tag": [
-        "all",
-        "overview"
-      ]
-    },
-    {
-      "from": "src-app-components-noticeresourcesection",
-      "to": "supabase-client",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -4515,6 +5375,126 @@
       ]
     },
     {
+      "from": "src-app-components-officehourapplymodal",
+      "to": "supabase-client",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-officehourapplymodal",
+      "to": "types",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-officehourapplymodal",
+      "to": "src-app-constants-officehours",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-officehourapplymodal",
+      "to": "src-app-components-programconfirmationcard",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-officehourapplymodal",
+      "to": "src-app-components-modalshell",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-officehourpanel",
+      "to": "theme-ctx",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-officehourpanel",
+      "to": "supabase-client",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-officehourpanel",
+      "to": "src-app-components-ui-skeleton",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-officehourpanel",
+      "to": "types",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-officehourpanel",
+      "to": "src-app-constants-officehours",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-officehourpanel",
+      "to": "src-app-components-officehourapplymodal",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-officehourpanel",
+      "to": "src-hooks-useauthgate",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
       "from": "src-app-components-programconfirmationcard",
       "to": "src-app-components-ui-button",
       "kind": "normal",
@@ -4556,12 +5536,13 @@
     },
     {
       "from": "src-app-components-resourcesection",
-      "to": "supabase-client",
+      "to": "src-utils-publicpostpreviews",
       "kind": "normal",
       "label": "import",
       "tag": [
         "all",
-        "overview"
+        "overview",
+        "posts"
       ]
     },
     {
@@ -4725,8 +5706,8 @@
       ]
     },
     {
-      "from": "src-app-components-windowprogramtimelinesection",
-      "to": "src-app-components-window-program-windowprogramintro",
+      "from": "src-app-components-wildcardroute",
+      "to": "src-app-navigation-mainmenu",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -4735,8 +5716,18 @@
       ]
     },
     {
-      "from": "src-app-components-windowprogramtimelinesection",
-      "to": "src-app-components-window-program-windowprogramtimeline",
+      "from": "src-app-components-wildcardroute",
+      "to": "src-app-pages-comingsoonpage",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-wildcardroute",
+      "to": "src-app-pages-notfoundpage",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -4784,6 +5775,36 @@
         "overview",
         "admin",
         "posts"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-adminboardmanagement",
+      "to": "supabase-client",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-adminboardmanagement",
+      "to": "theme-ctx",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-adminboardmanagement",
+      "to": "types",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
       ]
     },
     {
@@ -4849,6 +5870,128 @@
     {
       "from": "src-app-components-admin-admincompaniesmanagement",
       "to": "types",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-admincompanynewsmanagement",
+      "to": "supabase-client",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-admincompanynewsmanagement",
+      "to": "theme-ctx",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-admincompanynewsmanagement",
+      "to": "src-app-components-apppagination",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-admincompanynewsmanagement",
+      "to": "src-app-components-searchinput",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-admincompanynewsmanagement",
+      "to": "src-app-components-admin-architecture-constants",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-admincompanynewsmanagement",
+      "to": "src-app-components-contentliststyles",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-admincompanynewsmanagement",
+      "to": "src-app-components-ui-badge",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-admincompanynewsmanagement",
+      "to": "src-app-components-ui-button",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-admincompanynewsmanagement",
+      "to": "src-app-components-admin-architecture-types",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-admincompanynewsmanagement",
+      "to": "types",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-adminconfirmmodal",
+      "to": "src-lib-layers",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-adminconfirmmodal",
+      "to": "theme-ctx",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -4970,6 +6113,16 @@
       ]
     },
     {
+      "from": "src-app-components-admin-admindashboard",
+      "to": "src-app-boardcategoriescontext",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
       "from": "admin-events-mgmt",
       "to": "src-app-components-ui-badge",
       "kind": "normal",
@@ -5028,6 +6181,109 @@
       "tag": [
         "all",
         "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-adminexternalnewsmanagement",
+      "to": "supabase-client",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-adminexternalnewsmanagement",
+      "to": "theme-ctx",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-adminexternalnewsmanagement",
+      "to": "src-app-components-apppagination",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-adminexternalnewsmanagement",
+      "to": "src-app-components-searchinput",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-adminexternalnewsmanagement",
+      "to": "src-app-components-contentliststyles",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-adminexternalnewsmanagement",
+      "to": "src-app-components-ui-badge",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-adminexternalnewsmanagement",
+      "to": "src-app-components-ui-button",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-adminexternalnewsmanagement",
+      "to": "types",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-adminexternalnewsmanagement",
+      "to": "src-app-components-admin-adminconfirmmodal",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-adminexternalnewsmanagement",
+      "to": "src-app-components-admin-externalnewspreviewcomposer",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin",
+        "posts"
       ]
     },
     {
@@ -5101,6 +6357,66 @@
       ]
     },
     {
+      "from": "src-app-components-admin-adminofficehourmanagement",
+      "to": "theme-ctx",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-adminofficehourmanagement",
+      "to": "supabase-client",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-adminofficehourmanagement",
+      "to": "src-utils-schedulefields",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-adminofficehourmanagement",
+      "to": "src-app-components-contentliststyles",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-adminofficehourmanagement",
+      "to": "src-app-constants-officehours",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-adminofficehourmanagement",
+      "to": "types",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
       "from": "src-app-components-admin-adminpostcreate",
       "to": "theme-ctx",
       "kind": "normal",
@@ -5119,6 +6435,16 @@
         "all",
         "overview",
         "admin"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-adminpostcreate",
+      "to": "src-app-boardcategoriescontext",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
       ]
     },
     {
@@ -5164,6 +6490,26 @@
     },
     {
       "from": "src-app-components-admin-adminpostcreate",
+      "to": "types",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-adminpostcreate",
+      "to": "event-utils",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-adminpostcreate",
       "to": "src-app-components-admin-adminpostmodal",
       "kind": "normal",
       "label": "import",
@@ -5172,6 +6518,17 @@
         "overview",
         "admin",
         "posts"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-adminpostcreate",
+      "to": "src-app-components-admin-eventformconfigeditor",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
       ]
     },
     {
@@ -5245,6 +6602,16 @@
         "all",
         "overview",
         "admin"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-adminpostmanage",
+      "to": "src-app-boardcategoriescontext",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
       ]
     },
     {
@@ -5410,6 +6777,177 @@
       "tag": [
         "all",
         "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-eventformconfigeditor",
+      "to": "types",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-eventformconfigeditor",
+      "to": "event-utils",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-eventformconfigeditor",
+      "to": "src-app-components-ui-button",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-externalnewsdrafteditor",
+      "to": "theme-ctx",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-externalnewsdrafteditor",
+      "to": "src-app-components-admin-externalnewstypes",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin",
+        "posts"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-externalnewspreviewcard",
+      "to": "theme-ctx",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-externalnewspreviewcard",
+      "to": "src-app-components-admin-externalnewstypes",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin",
+        "posts"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-externalnewspreviewcard",
+      "to": "types",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-externalnewspreviewcomposer",
+      "to": "supabase-client",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-externalnewspreviewcomposer",
+      "to": "types",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-externalnewspreviewcomposer",
+      "to": "src-app-components-admin-adminconfirmmodal",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-externalnewspreviewcomposer",
+      "to": "src-app-components-ui-badge",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-externalnewspreviewcomposer",
+      "to": "src-app-components-ui-button",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-externalnewspreviewcomposer",
+      "to": "src-app-components-admin-externalnewsdrafteditor",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin",
+        "posts"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-externalnewspreviewcomposer",
+      "to": "src-app-components-admin-externalnewspreviewcard",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin",
+        "posts"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-externalnewspreviewcomposer",
+      "to": "src-app-components-admin-externalnewstypes",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin",
+        "posts"
       ]
     },
     {
@@ -5746,6 +7284,46 @@
         "all",
         "overview",
         "admin"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-externalnewstypes",
+      "to": "types",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-changgu-program-changguprogramintro",
+      "to": "src-app-content-changguprograminfo",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-changgu-program-changguprogramintro",
+      "to": "lang-ctx",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-changgu-program-changguprogramtimeline",
+      "to": "src-app-components-changgu-program-timelinedata",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
       ]
     },
     {
@@ -6319,28 +7897,8 @@
       ]
     },
     {
-      "from": "src-app-components-window-program-windowprogramintro",
-      "to": "src-app-content-windowprograminfo",
-      "kind": "normal",
-      "label": "import",
-      "tag": [
-        "all",
-        "overview"
-      ]
-    },
-    {
-      "from": "src-app-components-window-program-windowprogramintro",
-      "to": "lang-ctx",
-      "kind": "normal",
-      "label": "import",
-      "tag": [
-        "all",
-        "overview"
-      ]
-    },
-    {
-      "from": "src-app-components-window-program-windowprogramtimeline",
-      "to": "src-app-components-window-program-timelinedata",
+      "from": "src-app-constants-officehours",
+      "to": "types",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -6422,7 +7980,17 @@
       ]
     },
     {
-      "from": "src-app-pages-aroundxwindowprogrampage",
+      "from": "src-app-pages-aroundxchangguprogrampage",
+      "to": "src-app-components-changguprogramtimelinesection",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-pages-aroundxchangguprogrampage",
       "to": "page-shell",
       "kind": "normal",
       "label": "import",
@@ -6432,17 +8000,7 @@
       ]
     },
     {
-      "from": "src-app-pages-aroundxwindowprogrampage",
-      "to": "src-app-components-windowprogramtimelinesection",
-      "kind": "normal",
-      "label": "import",
-      "tag": [
-        "all",
-        "overview"
-      ]
-    },
-    {
-      "from": "src-app-pages-aroundxwindowprogrampage",
+      "from": "src-app-pages-aroundxchangguprogrampage",
       "to": "theme-ctx",
       "kind": "normal",
       "label": "import",
@@ -6452,88 +8010,8 @@
       ]
     },
     {
-      "from": "src-app-pages-blogpage",
-      "to": "page-shell",
-      "kind": "normal",
-      "label": "import",
-      "tag": [
-        "all",
-        "overview"
-      ]
-    },
-    {
-      "from": "src-app-pages-blogpage",
-      "to": "theme-ctx",
-      "kind": "normal",
-      "label": "import",
-      "tag": [
-        "all",
-        "overview"
-      ]
-    },
-    {
-      "from": "src-app-pages-blogpage",
-      "to": "supabase-client",
-      "kind": "normal",
-      "label": "import",
-      "tag": [
-        "all",
-        "overview"
-      ]
-    },
-    {
-      "from": "src-app-pages-blogpage",
-      "to": "src-app-components-loadingspinner",
-      "kind": "normal",
-      "label": "import",
-      "tag": [
-        "all",
-        "overview"
-      ]
-    },
-    {
-      "from": "src-app-pages-blogpage",
-      "to": "src-utils-file",
-      "kind": "normal",
-      "label": "import",
-      "tag": [
-        "all",
-        "overview"
-      ]
-    },
-    {
-      "from": "src-app-pages-blogpage",
-      "to": "src-utils-text",
-      "kind": "normal",
-      "label": "import",
-      "tag": [
-        "all",
-        "overview"
-      ]
-    },
-    {
-      "from": "src-app-pages-blogpage",
-      "to": "types",
-      "kind": "normal",
-      "label": "import",
-      "tag": [
-        "all",
-        "overview"
-      ]
-    },
-    {
-      "from": "src-app-pages-blogpage",
-      "to": "src-app-components-contentliststyles",
-      "kind": "normal",
-      "label": "import",
-      "tag": [
-        "all",
-        "overview"
-      ]
-    },
-    {
-      "from": "src-app-pages-blogpage",
-      "to": "src-app-components-apppagination",
+      "from": "src-app-pages-comingsoonpage",
+      "to": "src-app-navigation-mainmenu",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -6554,6 +8032,16 @@
     {
       "from": "src-app-pages-companiespage",
       "to": "page-shell",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-pages-companiespage",
+      "to": "src-app-components-boardaccessgate",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -6622,8 +8110,98 @@
       ]
     },
     {
+      "from": "src-app-pages-companiespage",
+      "to": "theme-ctx",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-pages-companiespage",
+      "to": "src-hooks-useauthgate",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-pages-companynewspage",
+      "to": "page-shell",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-pages-companynewspage",
+      "to": "supabase-client",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-pages-companynewspage",
+      "to": "src-app-components-loadingspinner",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-pages-companynewspage",
+      "to": "src-app-components-apppagination",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-pages-companynewspage",
+      "to": "src-app-components-ui-badge",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-pages-companynewspage",
+      "to": "types",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
       "from": "consulting-page",
       "to": "page-shell",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "consulting-page",
+      "to": "src-app-components-boardaccessgate",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -6653,18 +8231,7 @@
     },
     {
       "from": "consulting-page",
-      "to": "consulting-modal",
-      "kind": "normal",
-      "label": "import",
-      "tag": [
-        "all",
-        "overview",
-        "consulting"
-      ]
-    },
-    {
-      "from": "consulting-page",
-      "to": "src-app-components-ui-skeleton",
+      "to": "src-app-components-immersionpanel",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -6674,7 +8241,7 @@
     },
     {
       "from": "consulting-page",
-      "to": "types",
+      "to": "src-app-components-officehourpanel",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -6690,17 +8257,6 @@
       "tag": [
         "all",
         "overview"
-      ]
-    },
-    {
-      "from": "consulting-page",
-      "to": "src-app-constants-consultingcategories",
-      "kind": "normal",
-      "label": "import",
-      "tag": [
-        "all",
-        "overview",
-        "consulting"
       ]
     },
     {
@@ -6745,16 +8301,6 @@
     },
     {
       "from": "event-apply",
-      "to": "src-app-components-admin-advancedthumbnaileditor",
-      "kind": "normal",
-      "label": "import",
-      "tag": [
-        "all",
-        "overview"
-      ]
-    },
-    {
-      "from": "event-apply",
       "to": "src-app-constants-contact",
       "kind": "normal",
       "label": "import",
@@ -6796,16 +8342,6 @@
     {
       "from": "event-apply",
       "to": "types",
-      "kind": "normal",
-      "label": "import",
-      "tag": [
-        "all",
-        "overview"
-      ]
-    },
-    {
-      "from": "event-apply",
-      "to": "src-utils-file",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -6876,6 +8412,26 @@
     },
     {
       "from": "src-app-pages-eventarchivepage",
+      "to": "src-app-components-boardaccessgate",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-pages-eventarchivepage",
+      "to": "src-app-boardcategoriescontext",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-pages-eventarchivepage",
       "to": "theme-ctx",
       "kind": "normal",
       "label": "import",
@@ -6935,6 +8491,26 @@
       ]
     },
     {
+      "from": "src-app-pages-eventarchivepage",
+      "to": "types",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-pages-eventarchivepage",
+      "to": "src-utils-mediapost",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
       "from": "events-page",
       "to": "supabase-client",
       "kind": "normal",
@@ -6957,6 +8533,26 @@
     {
       "from": "events-page",
       "to": "page-shell",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "events-page",
+      "to": "src-app-components-boardaccessgate",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "events-page",
+      "to": "src-app-boardcategoriescontext",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -6997,6 +8593,16 @@
     {
       "from": "events-page",
       "to": "src-utils-file",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "events-page",
+      "to": "src-utils-postthumbnail",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -7127,6 +8733,26 @@
     },
     {
       "from": "src-app-pages-faqpage",
+      "to": "src-app-components-boardaccessgate",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-pages-faqpage",
+      "to": "src-app-boardcategoriescontext",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-pages-faqpage",
       "to": "theme-ctx",
       "kind": "normal",
       "label": "import",
@@ -7178,6 +8804,26 @@
     {
       "from": "founders-club",
       "to": "page-shell",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "founders-club",
+      "to": "src-app-components-boardaccessgate",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "founders-club",
+      "to": "src-app-components-modalshell",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -7276,6 +8922,16 @@
       ]
     },
     {
+      "from": "founders-club",
+      "to": "src-hooks-useauthgate",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
       "from": "login-page",
       "to": "page-shell",
       "kind": "normal",
@@ -7337,6 +8993,26 @@
     },
     {
       "from": "src-app-pages-mediapage",
+      "to": "src-app-components-boardaccessgate",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-pages-mediapage",
+      "to": "src-app-boardcategoriescontext",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-pages-mediapage",
       "to": "theme-ctx",
       "kind": "normal",
       "label": "import",
@@ -7347,7 +9023,7 @@
     },
     {
       "from": "src-app-pages-mediapage",
-      "to": "supabase-client",
+      "to": "src-utils-publicpostpreviews",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -7439,6 +9115,16 @@
     },
     {
       "from": "mypage",
+      "to": "src-lib-layers",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "mypage",
       "to": "supabase-client",
       "kind": "normal",
       "label": "import",
@@ -7518,6 +9204,16 @@
       ]
     },
     {
+      "from": "mypage",
+      "to": "src-app-constants-officehours",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
       "from": "src-app-pages-newspage",
       "to": "supabase-client",
       "kind": "normal",
@@ -7530,6 +9226,26 @@
     {
       "from": "src-app-pages-newspage",
       "to": "page-shell",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-pages-newspage",
+      "to": "src-app-components-boardaccessgate",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-pages-newspage",
+      "to": "src-app-boardcategoriescontext",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -7599,6 +9315,27 @@
       ]
     },
     {
+      "from": "src-app-pages-newspage",
+      "to": "src-app-components-externalnewscard",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "posts"
+      ]
+    },
+    {
+      "from": "src-app-pages-newspage",
+      "to": "types",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
       "from": "notice-page",
       "to": "src-utils-publicpostpreviews",
       "kind": "normal",
@@ -7612,6 +9349,26 @@
     {
       "from": "notice-page",
       "to": "page-shell",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "notice-page",
+      "to": "src-app-components-boardaccessgate",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "notice-page",
+      "to": "src-app-boardcategoriescontext",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -7741,16 +9498,6 @@
     },
     {
       "from": "post-detail",
-      "to": "src-lib-layers",
-      "kind": "normal",
-      "label": "import",
-      "tag": [
-        "all",
-        "overview"
-      ]
-    },
-    {
-      "from": "post-detail",
       "to": "types",
       "kind": "normal",
       "label": "import",
@@ -7761,7 +9508,7 @@
     },
     {
       "from": "post-detail",
-      "to": "src-hooks-useboardtagpresets",
+      "to": "src-utils-urlsecurity",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -7771,7 +9518,7 @@
     },
     {
       "from": "post-detail",
-      "to": "src-utils-urlsecurity",
+      "to": "src-utils-uuid",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -7812,27 +9559,6 @@
     },
     {
       "from": "post-detail",
-      "to": "src-utils-postthumbnail",
-      "kind": "normal",
-      "label": "import",
-      "tag": [
-        "all",
-        "overview",
-        "posts"
-      ]
-    },
-    {
-      "from": "post-detail",
-      "to": "src-app-components-admin-advancedthumbnaileditor",
-      "kind": "normal",
-      "label": "import",
-      "tag": [
-        "all",
-        "overview"
-      ]
-    },
-    {
-      "from": "post-detail",
       "to": "src-app-components-contentliststyles",
       "kind": "normal",
       "label": "import",
@@ -7842,38 +9568,8 @@
       ]
     },
     {
-      "from": "post-detail",
-      "to": "src-utils-schedulefields",
-      "kind": "normal",
-      "label": "import",
-      "tag": [
-        "all",
-        "overview"
-      ]
-    },
-    {
-      "from": "src-app-pages-privacypolicypage",
-      "to": "src-app-components-ui-badge",
-      "kind": "normal",
-      "label": "import",
-      "tag": [
-        "all",
-        "overview"
-      ]
-    },
-    {
       "from": "src-app-pages-privacypolicypage",
       "to": "page-shell",
-      "kind": "normal",
-      "label": "import",
-      "tag": [
-        "all",
-        "overview"
-      ]
-    },
-    {
-      "from": "src-app-pages-privacypolicypage",
-      "to": "src-app-constants-contact",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -7893,12 +9589,33 @@
     },
     {
       "from": "src-app-pages-resourcespage",
-      "to": "supabase-client",
+      "to": "src-app-components-boardaccessgate",
       "kind": "normal",
       "label": "import",
       "tag": [
         "all",
         "overview"
+      ]
+    },
+    {
+      "from": "src-app-pages-resourcespage",
+      "to": "src-app-boardcategoriescontext",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-pages-resourcespage",
+      "to": "src-utils-publicpostpreviews",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "posts"
       ]
     },
     {
@@ -8003,27 +9720,7 @@
     },
     {
       "from": "src-app-pages-termsofusepage",
-      "to": "src-app-components-ui-badge",
-      "kind": "normal",
-      "label": "import",
-      "tag": [
-        "all",
-        "overview"
-      ]
-    },
-    {
-      "from": "src-app-pages-termsofusepage",
       "to": "page-shell",
-      "kind": "normal",
-      "label": "import",
-      "tag": [
-        "all",
-        "overview"
-      ]
-    },
-    {
-      "from": "src-app-pages-termsofusepage",
-      "to": "src-app-constants-contact",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -8093,6 +9790,16 @@
     },
     {
       "from": "routes",
+      "to": "src-app-pages-companynewspage",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "routes",
       "to": "events-page",
       "kind": "normal",
       "label": "import",
@@ -8134,16 +9841,6 @@
     {
       "from": "routes",
       "to": "src-app-pages-mediapage",
-      "kind": "normal",
-      "label": "import",
-      "tag": [
-        "all",
-        "overview"
-      ]
-    },
-    {
-      "from": "routes",
-      "to": "src-app-pages-blogpage",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -8253,7 +9950,7 @@
     },
     {
       "from": "routes",
-      "to": "src-app-pages-notfoundpage",
+      "to": "src-app-components-wildcardroute",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -8323,7 +10020,7 @@
     },
     {
       "from": "routes",
-      "to": "src-app-pages-aroundxwindowprogrampage",
+      "to": "src-app-pages-aroundxchangguprogrampage",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -8402,8 +10099,38 @@
       ]
     },
     {
+      "from": "src-hooks-useauthgate",
+      "to": "supabase-client",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
       "from": "src-hooks-useblogimportadmin",
       "to": "supabase-client",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-hooks-useboardaccess",
+      "to": "supabase-client",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-hooks-useboardaccess",
+      "to": "types",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -8465,6 +10192,16 @@
     {
       "from": "use-tracker",
       "to": "supabase-client",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "use-tracker",
+      "to": "src-utils-uuid",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -8755,6 +10492,26 @@
       ]
     },
     {
+      "from": "supabase-functions-delete-own-account",
+      "to": "supabase-functions-shared-cors",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "supabase-functions-delete-own-account",
+      "to": "supabase-functions-shared-errorlogger",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
       "from": "ef-delete",
       "to": "supabase-functions-shared-cors",
       "kind": "normal",
@@ -8806,6 +10563,36 @@
     },
     {
       "from": "ef-encrypt",
+      "to": "supabase-functions-shared-errorlogger",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "supabase-functions-external-news-preview",
+      "to": "supabase-functions-shared-cors",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "supabase-functions-external-news-preview",
+      "to": "ef-admin-auth",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "supabase-functions-external-news-preview",
       "to": "supabase-functions-shared-errorlogger",
       "kind": "normal",
       "label": "import",
@@ -8856,6 +10643,37 @@
       ]
     },
     {
+      "from": "supabase-functions-office-hour-admin-applications",
+      "to": "supabase-functions-shared-cors",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "supabase-functions-office-hour-admin-applications",
+      "to": "ef-admin-auth",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
+      ]
+    },
+    {
+      "from": "supabase-functions-office-hour-admin-applications",
+      "to": "supabase-functions-shared-errorlogger",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
       "from": "supabase-functions-reset-mfa",
       "to": "supabase-functions-shared-cors",
       "kind": "normal",
@@ -8986,6 +10804,36 @@
       ]
     },
     {
+      "from": "supabase-functions-trigger-company-news-crawl",
+      "to": "supabase-functions-shared-cors",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "supabase-functions-trigger-company-news-crawl",
+      "to": "ef-admin-auth",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "supabase-functions-trigger-company-news-crawl",
+      "to": "supabase-functions-shared-errorlogger",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
       "from": "ef-update-role",
       "to": "supabase-functions-shared-cors",
       "kind": "normal",
@@ -9018,6 +10866,36 @@
     {
       "from": "ef-update-role",
       "to": "supabase-functions-shared-mfa",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "supabase-functions-update-user-status",
+      "to": "supabase-functions-shared-cors",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "supabase-functions-update-user-status",
+      "to": "ef-admin-auth",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "supabase-functions-update-user-status",
+      "to": "supabase-functions-shared-errorlogger",
       "kind": "normal",
       "label": "import",
       "tag": [

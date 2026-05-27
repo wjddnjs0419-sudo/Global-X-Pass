@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   generateBlogDraft: (payload) => ipcRenderer.invoke("blog-ai:generate", payload),
   reviseBlogDraft: (payload) => ipcRenderer.invoke("blog-ai:revise", payload),
   readQaRuns: () => ipcRenderer.invoke("qa:read-runs"),
+  readCompanyNewsRuns: () => ipcRenderer.invoke("company-news:read-runs"),
   triggerQaRun: (suite) => ipcRenderer.invoke("qa:trigger-run", suite),
   runVisibleQa: (suite) => ipcRenderer.invoke("qa:run-visible", suite),
   getQaCredentialsStatus: () => ipcRenderer.invoke("qa-credentials:get-status"),

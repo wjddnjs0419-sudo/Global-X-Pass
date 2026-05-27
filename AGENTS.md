@@ -12,10 +12,11 @@ Every complex task must follow this exact lifecycle. Do not skip steps.
 2.  **User Review (Wait for Feedback):** Stop and ask the user to review `PLAN.md`. The user will provide feedback via comments inside `PLAN.md`.
 3.  **Iterative Revision:** Read the comments in `PLAN.md`, update the plan, and repeat until the user gives explicit approval to "Implement".
 4.  **Surgical Execution:** Follow the final `PLAN.md`. Implement sub-tasks one by one. Verify with `npm run validate` and any task-specific checks at each step.
-5.  **Final Reporting:** Once complete, summarize all changes, technical decisions, and usage notes in a `RESULT.md` file. `RESULT.md`는 현재 또는 바로 직전 세션의 핫 컨텍스트만 유지하고, 과거 작업 기록은 `RESULT_ARCHIVE.md`에 누적한다.
-6.  **PLAN Lifecycle, Compaction & Cleanup:** 구현과 `npm run validate`가 끝난 승인 계획은 `PLAN.md`에서 `[Done]` 단일 행으로 축약한다. `PLAN.md`에 `[Done]` 항목이 10개를 넘으면 가장 오래된 완료 항목부터 영구 삭제해 활성/예정 작업만 남긴다.
-7.  **Zero-Human Validation Loop:** 코드 수정 후에는 반드시 `npm run validate`를 실행하고, 타입/린트/빌드 에러가 발생하면 사용자 개입을 기다리지 말고 에이전트가 스스로 로그를 분석해 수정·재검증을 반복한다.
-8.  **Ratchet Principle:** 에이전트가 스스로 해결한 빌드/린트 오류나 치명적 실수는 재발 방지를 위해 `GEMINI.md`의 `## 🚫 Anti-Patterns & Lessons Learned` 섹션에 1줄 금지 조항으로 기록한다.
+5.  **UI Cleanup Sweep:** UI 수정 작업은 최종 검증 직전에 반드시 이전 구현 찌꺼기 감사를 수행한다. 더 이상 필요 없는 state, handler, effect, modal, form, fallback 렌더링, 직접 저장/삭제/업로드 경로, 낡은 route/query 진입점을 제거한다. 단, 현재 UX에서 필요한 기능 진입점(예: 어드민 수정 버튼, 권한 게이트, 정상 저장/삭제 affordance)은 삭제하지 말고 새 표준 경로로 재연결한다.
+6.  **Final Reporting:** Once complete, summarize all changes, technical decisions, and usage notes in a `RESULT.md` file. `RESULT.md`는 현재 또는 바로 직전 세션의 핫 컨텍스트만 유지하고, 과거 작업 기록은 `RESULT_ARCHIVE.md`에 누적한다.
+7.  **PLAN Lifecycle, Compaction & Cleanup:** 구현과 `npm run validate`가 끝난 승인 계획은 `PLAN.md`에서 `[Done]` 단일 행으로 축약한다. `PLAN.md`에 `[Done]` 항목이 10개를 넘으면 가장 오래된 완료 항목부터 영구 삭제해 활성/예정 작업만 남긴다.
+8.  **Zero-Human Validation Loop:** 코드 수정 후에는 반드시 `npm run validate`를 실행하고, 타입/린트/빌드 에러가 발생하면 사용자 개입을 기다리지 말고 에이전트가 스스로 로그를 분석해 수정·재검증을 반복한다.
+9.  **Ratchet Principle:** 에이전트가 스스로 해결한 빌드/린트 오류나 치명적 실수는 재발 방지를 위해 `GEMINI.md`의 `## 🚫 Anti-Patterns & Lessons Learned` 섹션에 1줄 금지 조항으로 기록한다.
 
 ## Commands
 

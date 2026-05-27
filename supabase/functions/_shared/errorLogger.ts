@@ -10,9 +10,11 @@ export type EfNodeId =
   | "ef-update-role"
   | "ef-bulk"
   | "ef-consulting"
+  | "ef-office-hour"
   | "ef-founders"
   | "ef-blog-sync"
-  | "ef-change-password";
+  | "ef-change-password"
+  | "ef-external-news-preview";
 
 export type Severity = "low" | "medium" | "high" | "critical";
 

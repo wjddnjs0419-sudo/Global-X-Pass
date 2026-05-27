@@ -7,10 +7,10 @@ import { ArchitectureInboxPanel } from "./architecture/ArchitectureInboxPanel";
 import { ArchitectureMapSidebar, NodeSidebar } from "./architecture/ArchitectureSidebars";
 import { OperationsSidebar } from "./architecture/opsPipeline";
 import { computeArchitectureMapDiff, type ArchitectureMapDiff } from "./architecture/mapDiff";
-import { ACTIVE_ISSUE_STATUSES, BLOG_AI_DEFAULT_PROFILE_PATH, BLOG_AI_DEFAULT_SAMPLE_COUNT, FILTERS, FLOATING_BELL_DRAG_THRESHOLD, FLOATING_BELL_SIZE, FLOATING_PANEL_EDGE_MARGIN, FLOATING_PANEL_GAP, FLOATING_PANEL_MAX_HEIGHT, FLOATING_PANEL_MIN_HEIGHT, FLOATING_PANEL_WIDTH, NAVER_BLOG_SYNC_WORKFLOW_URL, QA_SUITES, SEVERITY_COLOR, SEVERITY_RANK, STATUS_META, VISIBLE_ISSUE_STATUSES, WINDOW_OPTIONS } from "./architecture/constants";
-import { extractCodeLocation, formatTime, formatTriggerSource, getBlogIncidentSeverity, getBlogRunSummary, getClusterPalette, getClusterStroke, getFallbackNodePosition, getNodeStatus, getQaIncidentSeverity, getQaOperationalRun, getSearchTokens, highestStatus, isBlogRunTerminal, MAP_LAYOUT, MAP_VIEWBOX_PADDING, STATIC_MAP_SCALE, visibleForFilter } from "./architecture/mapUtils";
+import { ACTIVE_ISSUE_STATUSES, BLOG_AI_DEFAULT_PROFILE_PATH, BLOG_AI_DEFAULT_SAMPLE_COUNT, COMPANY_NEWS_CRAWL_DEFAULT_OPTIONS, FILTERS, FLOATING_BELL_DRAG_THRESHOLD, FLOATING_BELL_SIZE, FLOATING_PANEL_EDGE_MARGIN, FLOATING_PANEL_GAP, FLOATING_PANEL_MAX_HEIGHT, FLOATING_PANEL_MIN_HEIGHT, FLOATING_PANEL_WIDTH, NAVER_BLOG_SYNC_WORKFLOW_URL, QA_SUITES, SEVERITY_COLOR, SEVERITY_RANK, STATUS_META, VISIBLE_ISSUE_STATUSES, WINDOW_OPTIONS } from "./architecture/constants";
+import { extractCodeLocation, formatTime, formatTriggerSource, getBlogIncidentSeverity, getBlogRunSummary, getClusterPalette, getClusterStroke, getCompanyNewsOperationalRun, getFallbackNodePosition, getNodeStatus, getQaIncidentSeverity, getQaOperationalRun, getSearchTokens, highestStatus, isBlogRunTerminal, MAP_LAYOUT, MAP_VIEWBOX_PADDING, STATIC_MAP_SCALE, visibleForFilter } from "./architecture/mapUtils";
 import { clamp, clampFloatingBellPosition, getDefaultFloatingBellPosition, readStoredBellPosition, readStoredInboxState, readStoredMapSnapshot, writeStoredBellPosition, writeStoredInboxState, writeStoredMapSnapshot } from "./architecture/storage";
-import type { ArchitectureInboxItem, ArchitectureMap, BlogAiAnalyzeResult, BlogAiDraft, BlogAiGenerateResult, BlogAiGenerateSuccess, BlogAiInputMode, BlogAiReviseResult, BlogImportRun, BlogSyncResult, ClusterBounds, ErrorIssue, ErrorLog, FilterId, FloatingAnchorPosition, MapNode, NodeStatus, PositionedNode, QaCredentialsInput, QaRun, QaRunsResult, QaRunTracker, QaSuiteId, QaTriggerResult, QaVisibleResult, Severity, SidebarTab } from "./architecture/types";
+import type { ArchitectureInboxItem, ArchitectureMap, BlogAiAnalyzeResult, BlogAiDraft, BlogAiGenerateResult, BlogAiGenerateSuccess, BlogAiInputMode, BlogAiReviseResult, BlogImportRun, BlogSyncResult, ClusterBounds, CompanyNewsCrawlOptions, CompanyNewsRun, CompanyNewsRunsResult, CompanyNewsRunTracker, CompanyNewsTriggerResult, ErrorIssue, ErrorLog, FilterId, FloatingAnchorPosition, MapNode, NodeStatus, PositionedNode, QaCredentialsInput, QaRun, QaRunsResult, QaRunTracker, QaSuiteId, QaTriggerResult, QaVisibleResult, Severity, SidebarTab } from "./architecture/types";
 
 declare global {
   interface Window {
@@ -22,6 +22,7 @@ declare global {
       generateBlogDraft: (payload: { inputMode: BlogAiInputMode; articleUrl?: string; articleText?: string; profilePath?: string }) => Promise<BlogAiGenerateResult>;
       reviseBlogDraft: (payload: { articleText: string; draft: BlogAiDraft; instruction: string; profilePath?: string }) => Promise<BlogAiReviseResult>;
       readQaRuns: () => Promise<QaRunsResult>;
+      readCompanyNewsRuns: () => Promise<CompanyNewsRunsResult>;
       triggerQaRun: (suite: QaSuiteId) => Promise<QaTriggerResult>;
       runVisibleQa: (suite: QaSuiteId) => Promise<QaVisibleResult>;
       getQaCredentialsStatus: () => Promise<{ ok: boolean; connected: boolean }>;
@@ -56,6 +57,7 @@ export function LiveArchitectureMap() {
   const didPan = useRef(false);
   const qaPollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const blogPollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const companyNewsPollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [isPanning, setIsPanning] = useState(false);
   const ASIDE_MIN = 220;
   const ASIDE_MAX = 600;
@@ -97,6 +99,14 @@ export function LiveArchitectureMap() {
   const [blogSyncLoading, setBlogSyncLoading] = useState(false);
   const [blogSyncResult, setBlogSyncResult] = useState<BlogSyncResult | null>(null);
   const [blogSyncError, setBlogSyncError] = useState<string | null>(null);
+  const [companyNewsCrawlOptions, setCompanyNewsCrawlOptions] = useState<CompanyNewsCrawlOptions>(COMPANY_NEWS_CRAWL_DEFAULT_OPTIONS);
+  const [companyNewsRuns, setCompanyNewsRuns] = useState<CompanyNewsRun[]>([]);
+  const [companyNewsLoading, setCompanyNewsLoading] = useState(false);
+  const [companyNewsError, setCompanyNewsError] = useState<string | null>(null);
+  const [companyNewsRunTracker, setCompanyNewsRunTracker] = useState<CompanyNewsRunTracker | null>(null);
+  const [companyNewsTriggerLoading, setCompanyNewsTriggerLoading] = useState(false);
+  const [companyNewsTriggerMessage, setCompanyNewsTriggerMessage] = useState<string | null>(null);
+  const [companyNewsTriggerError, setCompanyNewsTriggerError] = useState<string | null>(null);
   const [blogAiInputMode, setBlogAiInputMode] = useState<BlogAiInputMode>("url");
   const [blogAiArticleUrl, setBlogAiArticleUrl] = useState("");
   const [blogAiArticleText, setBlogAiArticleText] = useState("");
@@ -141,6 +151,30 @@ export function LiveArchitectureMap() {
       setQaError(`${result.error}.${tokenHint}`);
     }
     setQaLoading(false);
+  };
+
+  const loadCompanyNewsRuns = async ({ silent = false }: { silent?: boolean } = {}) => {
+    if (!window.electronAPI?.readCompanyNewsRuns) {
+      setCompanyNewsError("아키텍처 앱에서만 참여기업 뉴스 Actions 상태를 불러올 수 있습니다.");
+      return null;
+    }
+    if (!silent) setCompanyNewsLoading(true);
+    setCompanyNewsError(null);
+    const result = await window.electronAPI.readCompanyNewsRuns();
+    if (result.ok === true) {
+      setCompanyNewsRuns(result.runs);
+      if (!silent) setCompanyNewsLoading(false);
+      return result.runs;
+    }
+
+    const tokenHint = result.statusCode === 404
+      ? " company-news-crawl.yml이 아직 GitHub main 브랜치에 없거나, GitHub token에 repo/actions 권한이 부족할 수 있습니다."
+      : result.needsToken
+      ? " GitHub token 연결 또는 fallback env가 필요합니다."
+      : "";
+    setCompanyNewsError(`${result.error}.${tokenHint}`);
+    if (!silent) setCompanyNewsLoading(false);
+    return null;
   };
 
   const loadBlogRuns = async ({ silent = false }: { silent?: boolean } = {}) => {
@@ -221,6 +255,13 @@ export function LiveArchitectureMap() {
     }
   };
 
+  const stopCompanyNewsPolling = () => {
+    if (companyNewsPollingRef.current !== null) {
+      clearInterval(companyNewsPollingRef.current);
+      companyNewsPollingRef.current = null;
+    }
+  };
+
   const startQaPolling = (tracker: QaRunTracker) => {
     stopQaPolling();
     let tick = 0;
@@ -259,6 +300,25 @@ export function LiveArchitectureMap() {
         }
       })();
     }, 8000);
+  };
+
+  const startCompanyNewsPolling = (tracker: CompanyNewsRunTracker) => {
+    stopCompanyNewsPolling();
+    let tick = 0;
+    companyNewsPollingRef.current = setInterval(() => {
+      tick += 1;
+      void (async () => {
+        const runs = await loadCompanyNewsRuns({ silent: true });
+        if (!runs) {
+          stopCompanyNewsPolling();
+          return;
+        }
+        const trackedRun = getCompanyNewsOperationalRun(runs, tracker);
+        if ((trackedRun && (trackedRun.status === "completed" || Boolean(trackedRun.conclusion))) || tick >= 100) {
+          stopCompanyNewsPolling();
+        }
+      })();
+    }, 6000);
   };
 
   const triggerQaRun = async (suite: QaSuiteId) => {
@@ -343,6 +403,38 @@ export function LiveArchitectureMap() {
       startBlogPolling(result.run.id);
     }
     setBlogSyncLoading(false);
+  };
+
+  const triggerCompanyNewsCrawl = async () => {
+    const requestedAt = new Date().toISOString();
+    setCompanyNewsTriggerLoading(true);
+    setCompanyNewsTriggerMessage(null);
+    setCompanyNewsTriggerError(null);
+    setCompanyNewsError(null);
+
+    const { data, error } = await supabase.functions.invoke<CompanyNewsTriggerResult>("trigger-company-news-crawl", {
+      body: companyNewsCrawlOptions,
+    });
+
+    setCompanyNewsTriggerLoading(false);
+
+    if (error || !data?.dispatched) {
+      const detail = data?.dispatchError || data?.error || error?.message;
+      const message = detail
+        ? `기업 뉴스 수집 요청에 실패했습니다. ${detail}`
+        : "기업 뉴스 수집 요청에 실패했습니다. 잠시 후 다시 시도해 주세요.";
+      setCompanyNewsTriggerError(message);
+      logSupabaseFailure("architecture-map", "trigger_manual_company_news_crawl", error ?? new Error(detail ?? message));
+      return;
+    }
+
+    const nextTracker = { requestedAt };
+    setCompanyNewsRunTracker(nextTracker);
+    setCompanyNewsTriggerMessage(
+      `기업 뉴스 수집 워크플로우를 실행했습니다. ${companyNewsCrawlOptions.batchSize}개사 × ${companyNewsCrawlOptions.resultsPerCompany}개 기준으로 GitHub Actions를 dispatch했습니다.`,
+    );
+    await loadCompanyNewsRuns();
+    startCompanyNewsPolling(nextTracker);
   };
 
   const analyzeBlogStyle = async () => {
@@ -466,9 +558,11 @@ export function LiveArchitectureMap() {
 
   useEffect(() => {
     void loadQaRuns();
+    void loadCompanyNewsRuns();
     return () => {
       stopQaPolling();
       stopBlogPolling();
+      stopCompanyNewsPolling();
     };
   }, []);
 
@@ -1228,6 +1322,14 @@ export function LiveArchitectureMap() {
               syncLoading={blogSyncLoading}
               syncResult={blogSyncResult}
               syncError={blogSyncError}
+              companyNewsTriggerLoading={companyNewsTriggerLoading}
+              companyNewsTriggerMessage={companyNewsTriggerMessage}
+              companyNewsTriggerError={companyNewsTriggerError}
+              companyNewsRuns={companyNewsRuns}
+              companyNewsRunTracker={companyNewsRunTracker}
+              companyNewsLoading={companyNewsLoading}
+              companyNewsError={companyNewsError}
+              companyNewsCrawlOptions={companyNewsCrawlOptions}
               blogAiInputMode={blogAiInputMode}
               blogAiArticleUrl={blogAiArticleUrl}
               blogAiArticleText={blogAiArticleText}
@@ -1261,6 +1363,8 @@ export function LiveArchitectureMap() {
               onTriggerQaRun={() => { void triggerQaRun(selectedQaSuite); }}
               onRunVisibleQa={() => { void runVisibleQa(selectedQaSuite); }}
               onTriggerBlogSync={() => { void triggerBlogSync(); }}
+              onCompanyNewsCrawlOptionsChange={(patch) => setCompanyNewsCrawlOptions((current) => ({ ...current, ...patch }))}
+              onTriggerCompanyNewsCrawl={() => { void triggerCompanyNewsCrawl(); }}
               onAnalyzeBlogStyle={() => { void analyzeBlogStyle(); }}
               onGenerateBlogDraft={() => { void generateBlogDraft(); }}
               onReviseBlogDraft={() => { void reviseBlogDraft(); }}
