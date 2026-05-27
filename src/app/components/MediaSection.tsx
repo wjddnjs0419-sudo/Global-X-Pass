@@ -10,7 +10,9 @@ import {
 } from "../constants/mediaCategories";
 import { getThumbnailImageStyle, resolvePostThumbnail } from "../../utils/postThumbnail";
 import { getSectionTheme } from "../utils/sectionTheme";
+import { Button } from "./ui/button";
 import {
+  getHomeSectionCtaPillClass,
   HOME_SECTION_BODY_STYLE,
   HOME_SECTION_HEADER_GAP,
   HOME_SECTION_MAX_WIDTH,
@@ -180,6 +182,16 @@ export function MediaSection({ isDark = false }: MediaSectionProps) {
           >
             Global X Pass가 직접 전하는 리포트와 인사이트를 확인하세요
           </p>
+          {!loading && (
+            <div style={{ display: "flex", justifyContent: "center", marginTop: 20 }}>
+              <Button variant="outline" shape="pill" size="sm" asChild className={getHomeSectionCtaPillClass(isDark, "green")}>
+                <Link to="/insights">
+                  인사이트 전체보기
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="ml-1"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+                </Link>
+              </Button>
+            </div>
+          )}
         </div>
 
         {loading ? (
