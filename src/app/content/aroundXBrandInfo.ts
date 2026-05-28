@@ -23,7 +23,7 @@ export const AROUND_X_BRAND_INFO = {
     en: "Crossing borders, Creating Futures.",
   },
   description: {
-    ko: "Around X는 글로벌 지향성, 협업, 연결, 확장성을 시각적으로 담아낸 브랜드입니다.\n사람과 조직, 기회와 시장을 유기적으로 잇고 더 넓은 가능성으로 확장합니다.",
+    ko: "Around X는 글로벌 지향성, 협업, 연결, 확장성을 담아낸 브랜드입니다.\n사람과 조직, 기회와 시장을 유기적으로 잇고 더 넓은 가능성으로 확장합니다.",
     en: "Around X visualizes global orientation, collaboration, connection, and scalability. It links people, organizations, opportunities, and markets into a broader future of growth.",
   },
   values: [

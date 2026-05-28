@@ -6,7 +6,7 @@ export const CATEGORIES = [
   { id: "resources",      label: "자료실" },
   { id: "media",          label: "미디어" },
   { id: "faq",            label: "FAQ" },
-  { id: "expenses",       label: "사업비 자료실 (비공개)" },
+  { id: "expenses",       label: "사업비 자료실" },
 ];
 
 export const CATEGORY_COLOR: Record<string, { color: string; bg: string; bgDark: string }> = {
