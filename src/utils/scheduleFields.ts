@@ -1,4 +1,16 @@
 export const STRUCTURED_LOCATION_SEPARATOR = " | ";
+const WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"] as const;
+
+type EventDateSource = {
+  event_start_at?: string | null;
+  event_date?: string | null;
+};
+
+type EventLocationSource = {
+  venue_name?: string | null;
+  venue_address?: string | null;
+  location?: string | null;
+};
 
 export const pad2 = (value: string | number) => String(value).padStart(2, "0");
 
@@ -15,6 +27,33 @@ export const composeStructuredLocation = (name: string, address: string) =>
 
 export const formatStructuredLocation = (value?: string | null, fallback = "장소 미정") => {
   const { name, address } = parseStructuredLocation(value);
+  const display = [name, address].filter(Boolean).join(", ");
+  return display || fallback;
+};
+
+export const parseEventLocationParts = (source?: EventLocationSource | null) => {
+  const venueName = source?.venue_name?.trim() ?? "";
+  const venueAddress = source?.venue_address?.trim() ?? "";
+  if (venueName || venueAddress) {
+    return {
+      name: venueName,
+      address: venueAddress,
+    };
+  }
+  return parseStructuredLocation(source?.location);
+};
+
+export const composeEventLocationValue = (
+  venueName: string,
+  venueAddress: string,
+  legacyLocation?: string | null,
+) => {
+  const structured = composeStructuredLocation(venueName, venueAddress);
+  return structured || legacyLocation?.trim() || "";
+};
+
+export const formatEventLocation = (source?: EventLocationSource | null, fallback = "장소 미정") => {
+  const { name, address } = parseEventLocationParts(source);
   const display = [name, address].filter(Boolean).join(", ");
   return display || fallback;
 };
@@ -71,6 +110,15 @@ export const composeLocalDateTimeIso = (
   return date.toISOString();
 };
 
+const formatKoreanDateTime = (date: Date, includeTime = true) => {
+  const year = date.getFullYear();
+  const month = pad2(date.getMonth() + 1);
+  const day = pad2(date.getDate());
+  const weekday = WEEKDAY_LABELS[date.getDay()];
+  const time = includeTime ? ` ${pad2(date.getHours())}:${pad2(date.getMinutes())}` : "";
+  return `${year}.${month}.${day} (${weekday})${time}`;
+};
+
 export const parseDateTimeParts = (value?: string | null) => {
   if (!value) return { year: "", month: "", day: "", hour: "", minute: "00" };
 
@@ -84,6 +132,79 @@ export const parseDateTimeParts = (value?: string | null) => {
     hour: pad2(date.getHours()),
     minute: pad2(date.getMinutes()),
   };
+};
+
+export const composeEventDisplayDate = (
+  year: string,
+  month: string,
+  day: string,
+  hour: string,
+  minute: string,
+) => {
+  if (!year || !month || !day || !hour || !minute) return "";
+  const date = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute));
+  if (Number.isNaN(date.getTime())) return "";
+  return formatKoreanDateTime(date);
+};
+
+export const parseLegacyEventDateParts = (value?: string | null) => {
+  const trimmed = value?.trim() ?? "";
+  if (!trimmed) return { year: "", month: "", day: "", hour: "", minute: "" };
+
+  const matched = trimmed.match(
+    /(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})(?:\s*\([^)]+\))?(?:\s+(\d{1,2})(?::|시)\s*(\d{1,2})?)?/,
+  );
+
+  if (!matched) return { year: "", month: "", day: "", hour: "", minute: "" };
+
+  const [, year, month, day, hour = "", minute = ""] = matched;
+  return {
+    year,
+    month: pad2(month),
+    day: pad2(day),
+    hour: hour ? pad2(hour) : "",
+    minute: hour ? pad2(minute || "00") : "",
+  };
+};
+
+export const parseEventDateParts = (source?: EventDateSource | null) => {
+  const isoParts = parseDateTimeParts(source?.event_start_at);
+  if (isoParts.year) {
+    return isoParts;
+  }
+  return parseLegacyEventDateParts(source?.event_date);
+};
+
+export const formatEventStartAt = (value?: string | null, fallback = "") => {
+  if (!value) return fallback;
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return fallback;
+
+  return formatKoreanDateTime(date);
+};
+
+export const formatEventDate = (source?: EventDateSource | null, fallback = "일시 미정") => {
+  const structured = formatEventStartAt(source?.event_start_at);
+  if (structured) return structured;
+  const legacy = source?.event_date?.trim();
+  return legacy || fallback;
+};
+
+export const formatEventMonthDay = (source?: EventDateSource | null, fallback = "미정") => {
+  if (source?.event_start_at) {
+    const date = new Date(source.event_start_at);
+    if (!Number.isNaN(date.getTime())) {
+      return `${date.getMonth() + 1}.${date.getDate()}`;
+    }
+  }
+
+  const legacy = parseLegacyEventDateParts(source?.event_date);
+  if (legacy.month && legacy.day) {
+    return `${Number(legacy.month)}.${Number(legacy.day)}`;
+  }
+
+  return fallback;
 };
 
 export const formatLocalDateTime = (value?: string | null, fallback = "") => {

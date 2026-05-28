@@ -66,24 +66,42 @@ export function LoginPage() {
       .eq("id", data.user!.id)
       .single();
 
-    // Check MFA (aal2 requirement)
-    const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-    const { data: factors } = await supabase.auth.mfa.listFactors();
-    const { verifiedTotpFactor } = getTotpFactorSnapshot(factors);
-
-    if (profile?.role === "admin" && aalData?.nextLevel === "aal2" && aalData?.currentLevel !== "aal2" && verifiedTotpFactor) {
-      // Admin with MFA enrolled but not yet verified this session — show OTP challenge
-      setMfaFactorId(verifiedTotpFactor.id);
-      setTempProfile(profile);
-      setLoading(false);
-      return;
+    // MFA 우회 토글이 활성·미만료면 OTP 챌린지·factor 등록 강제 및 MFA API 호출 자체를 모두 skip
+    let mfaBypassed = false;
+    if (profile?.role === "admin") {
+      const { data: bypassed } = await supabase.rpc("is_admin_mfa_bypassed");
+      mfaBypassed = bypassed === true;
     }
 
-    if (profile?.role === "admin" && !verifiedTotpFactor) {
-      // Admin without a verified factor — force enrollment or recovery before granting access
-      sessionStorage.setItem("mfa_setup_required", "true");
-      navigate("/mypage");
-      return;
+    if (!mfaBypassed && profile?.role === "admin") {
+      // Check MFA (aal2 requirement) — bypass 비활성 admin만
+      const { data: aalData, error: aalError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      const { data: factors, error: factorsError } = await supabase.auth.mfa.listFactors();
+
+      // MFA API 호출 실패 → admin은 fail-close (로그인 거부)
+      if (aalError || factorsError || !aalData || !factors) {
+        await supabase.auth.signOut();
+        alert("관리자 인증 상태를 확인할 수 없어 로그인을 중단했습니다. 잠시 후 다시 시도해 주세요.");
+        setLoading(false);
+        return;
+      }
+
+      const { verifiedTotpFactor } = getTotpFactorSnapshot(factors);
+
+      if (aalData.nextLevel === "aal2" && aalData.currentLevel !== "aal2" && verifiedTotpFactor) {
+        // Admin with MFA enrolled but not yet verified this session — show OTP challenge
+        setMfaFactorId(verifiedTotpFactor.id);
+        setTempProfile(profile);
+        setLoading(false);
+        return;
+      }
+
+      if (!verifiedTotpFactor) {
+        // Admin without a verified factor — force enrollment or recovery before granting access
+        sessionStorage.setItem("mfa_setup_required", "true");
+        navigate("/mypage");
+        return;
+      }
     }
 
     alert("환영합니다! 로그인이 완료되었습니다.");

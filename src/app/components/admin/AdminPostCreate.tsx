@@ -39,6 +39,7 @@ import {
 } from "../../constants/mediaCategories";
 import { useMediaCategories } from "../../../hooks/useMediaCategories";
 import {
+  createDefaultThumbnailCrop,
   getPostThumbnailCandidates,
   getPostThumbnailAspect,
   getThumbnailCandidates,
@@ -46,22 +47,36 @@ import {
   uploadThumbnailIfDataUrl,
 } from "../../../utils/postThumbnail";
 import {
+  composeEventDisplayDate,
+  composeEventLocationValue,
   composeLocalDateTimeIso,
   getDayOptions,
   getDaysInMonth,
   getHourOptions,
+  getTenMinuteOptions,
   getMinuteOptions,
   getMonthOptions,
   getYearOptions,
   parseDateTimeParts,
+  parseEventDateParts,
+  parseEventLocationParts,
 } from "../../../utils/scheduleFields";
 import { AdvancedThumbnailEditor } from "./AdvancedThumbnailEditor";
 
 const ReactQuill = lazy(() => import('react-quill'));
+type MediaDetailCoverAspect = "540/675" | "1/1";
+
+const getMediaDetailCoverAspectFromCrop = (crop?: ThumbnailCrop | null): MediaDetailCoverAspect =>
+  crop?.aspect === "1/1" ? "1/1" : "540/675";
 
 type EventMeta = {
-  event_date: string;
-  location: string;
+  event_date_y: string;
+  event_date_m: string;
+  event_date_d: string;
+  event_time_h: string;
+  event_time_minute: string;
+  location_name: string;
+  location_address: string;
   event_status: string;
   capacity: string;
   application_deadline_y: string;
@@ -73,8 +88,13 @@ type EventMeta = {
 };
 
 const EMPTY_META: EventMeta = {
-  event_date: "",
-  location: "",
+  event_date_y: "",
+  event_date_m: "",
+  event_date_d: "",
+  event_time_h: "",
+  event_time_minute: "",
+  location_name: "",
+  location_address: "",
   event_status: "접수예정",
   capacity: "",
   application_deadline_y: "",
@@ -108,11 +128,15 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
   const [thumbnailCrop, setThumbnailCrop] = useState<ThumbnailCrop | null>(null);
+  const [thumbnailCropCover, setThumbnailCropCover] = useState<ThumbnailCrop | null>(null);
+  const [mediaDetailCoverAspect, setMediaDetailCoverAspect] = useState<MediaDetailCoverAspect>("540/675");
   const [pendingThumbnailFile, setPendingThumbnailFile] = useState<File | null>(null);
   // true = 썸네일 파일이 에디터 직접 업로드(standalone, files[]에 미존재) / false = 기존 첨부에서 선택(candidate, files[]에 존재)
   const thumbnailFromUploadRef = useRef(false);
   const [fileObjectUrls, setFileObjectUrls] = useState<string[]>([]);
+  const [mediaCoverObjectUrl, setMediaCoverObjectUrl] = useState<string | null>(null);
   const [eventMeta, setEventMeta]         = useState<EventMeta>(EMPTY_META);
+  const [legacyEventDateFallback, setLegacyEventDateFallback] = useState("");
   const [eventFormConfig, setEventFormConfig] = useState<EventFormConfig>(() => cleanEventFormConfig(null));
   const [isPublic, setIsPublic]           = useState(true);
   const [loading, setLoading]             = useState(false);
@@ -149,17 +173,18 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
 
   const inputStyle = { padding: "12px 16px", borderRadius: 10, background: inputBg, border: `1px solid ${border}`, color: textMain, outline: "none", boxSizing: "border-box" as const };
   const isArchiveVideoType = category === "events-archive" && isVideoArchiveTag(eventMeta.tags);
-  const supportsManualThumbnail = category === "events" || category === "news" || category === "events-archive" || category === "media";
+  const supportsGenericThumbnailEditor = category === "events" || category === "news" || category === "events-archive";
+  const usesThumbnailState = supportsGenericThumbnailEditor || category === "media";
   const requiresExternalMediaUrl = category === "media"
     ? isWideMediaCategory(resolveMediaCategoryId(eventMeta.tags))
     : isArchiveVideoType;
   const thumbnailAspect = getPostThumbnailAspect(category, eventMeta.tags);
   const thumbnailCandidates = useMemo(() => {
-    if (!supportsManualThumbnail) return [];
-    const candidateContent = (category === "media" && isWideMediaCategory(eventMeta.tags)) || isArchiveVideoType
+    if (!supportsGenericThumbnailEditor) return [];
+    const candidateContent = isArchiveVideoType
       ? serializeMediaMeta(content, { externalUrl: normalizeMediaExternalUrl(mediaMeta.externalUrl) })
       : content;
-    const base = category === "media" || isArchiveVideoType
+    const base = isArchiveVideoType
       ? getPostThumbnailCandidates({
         category,
         content: candidateContent,
@@ -172,7 +197,7 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
       .map((url, i) => ({ url, label: `새 첨부 이미지 ${i + 1}`, source: "attachment" as const }))
       .filter(c => !existingUrls.has(c.url));
     return [...base, ...fileCandidates];
-  }, [category, content, eventMeta.tags, existingImages, supportsManualThumbnail, fileObjectUrls, mediaMeta.externalUrl]);
+  }, [category, content, eventMeta.tags, existingImages, supportsGenericThumbnailEditor, fileObjectUrls, isArchiveVideoType, mediaMeta.externalUrl]);
   const deadlineYears = useMemo(() => {
     const years = getYearOptions();
     return eventMeta.application_deadline_y && !years.includes(eventMeta.application_deadline_y)
@@ -186,25 +211,64 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
   );
   const deadlineHours = useMemo(() => getHourOptions(), []);
   const deadlineMinutes = useMemo(() => getMinuteOptions(), []);
+  const eventYears = useMemo(() => {
+    const years = getYearOptions();
+    return eventMeta.event_date_y && !years.includes(eventMeta.event_date_y)
+      ? [eventMeta.event_date_y, ...years]
+      : years;
+  }, [eventMeta.event_date_y]);
+  const eventMonths = useMemo(() => getMonthOptions(), []);
+  const eventDays = useMemo(
+    () => getDayOptions(eventMeta.event_date_y, eventMeta.event_date_m),
+    [eventMeta.event_date_m, eventMeta.event_date_y]
+  );
+  const eventHours = useMemo(() => getHourOptions(), []);
+  const eventMinutes = useMemo(() => getTenMinuteOptions(), []);
 
   // editingPost가 바뀔 때 폼 상태 동기화
   useEffect(() => {
     if (editingPost) {
       boardVisibilityRequestRef.current += 1;
       const deadlineParts = parseDateTimeParts(editingPost.application_deadline);
+      const eventDateParts = parseEventDateParts({
+        event_start_at: editingPost.event_start_at,
+        event_date: editingPost.event_date,
+      });
+      const eventLocationParts = parseEventLocationParts({
+        venue_name: editingPost.venue_name,
+        venue_address: editingPost.venue_address,
+        location: editingPost.location,
+      });
+      const hasCompleteStructuredEventDate =
+        !!eventDateParts.year &&
+        !!eventDateParts.month &&
+        !!eventDateParts.day &&
+        !!eventDateParts.hour &&
+        !!eventDateParts.minute;
+      const legacyEventDate =
+        !hasCompleteStructuredEventDate && typeof editingPost.event_date === "string"
+          ? editingPost.event_date.trim()
+          : "";
       setCategory(editingPost.category || "notice");
       setTitle(editingPost.title || "");
       setContent(editingPost.content || "");
       setExistingImages(editingPost.image_url ? editingPost.image_url.split(',') : []);
       setThumbnailUrl(editingPost.thumbnail_url || null);
       setThumbnailCrop(editingPost.thumbnail_crop || null);
+      setThumbnailCropCover(editingPost.thumbnail_crop_cover || null);
+      setMediaDetailCoverAspect(getMediaDetailCoverAspectFromCrop(editingPost.thumbnail_crop_cover));
       setFiles([]);
       setMediaCoverFile(null);
       setMediaAttachmentFiles([]);
       setMediaMeta(parseMediaMeta(editingPost.content || ""));
       setEventMeta({
-        event_date:      editingPost.event_date || "",
-        location:        editingPost.location || "",
+        event_date_y:    eventDateParts.year,
+        event_date_m:    eventDateParts.month,
+        event_date_d:    eventDateParts.day,
+        event_time_h:    eventDateParts.hour,
+        event_time_minute: eventDateParts.hour ? eventDateParts.minute : "",
+        location_name:   eventLocationParts.name,
+        location_address: eventLocationParts.address,
         event_status:    editingPost.event_status || "접수예정",
         capacity:        editingPost.capacity != null ? String(editingPost.capacity) : "",
         application_deadline_y: deadlineParts.year,
@@ -214,6 +278,7 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
         application_deadline_minute: deadlineParts.minute,
         tags:            editingPost.category === "media" ? resolveMediaCategoryId(editingPost.tags) || "" : editingPost.tags || "",
       });
+      setLegacyEventDateFallback(legacyEventDate);
       setEventFormConfig(cleanEventFormConfig(editingPost.event_form_config));
       setIsPublic(editingPost.is_public ?? true);
     } else {
@@ -223,26 +288,33 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
       setExistingImages([]);
       setThumbnailUrl(null);
       setThumbnailCrop(null);
+      setThumbnailCropCover(null);
+      setMediaDetailCoverAspect("540/675");
       setFiles([]);
       setMediaCoverFile(null);
       setMediaAttachmentFiles([]);
       setMediaMeta(EMPTY_MEDIA_META);
       setEventMeta(EMPTY_META);
+      setLegacyEventDateFallback("");
       setEventFormConfig(cleanEventFormConfig(null));
       setIsPublic(true);
     }
   }, [editingPost?.id]);
 
   useEffect(() => {
-    if (!supportsManualThumbnail) {
+    if (!usesThumbnailState) {
       if (thumbnailUrl !== null) setThumbnailUrl(null);
       if (thumbnailCrop !== null) setThumbnailCrop(null);
+      if (thumbnailCropCover !== null) setThumbnailCropCover(null);
       return;
     }
-    if (category !== "events" && thumbnailCrop !== null) {
+    if (category !== "events" && category !== "media" && thumbnailCrop !== null) {
       setThumbnailCrop(null);
     }
-  }, [category, supportsManualThumbnail, thumbnailCrop, thumbnailUrl]);
+    if (category !== "events" && category !== "media" && thumbnailCropCover !== null) {
+      setThumbnailCropCover(null);
+    }
+  }, [category, thumbnailCrop, thumbnailCropCover, thumbnailUrl, usesThumbnailState]);
 
   // expenses 카테고리는 정책상 항상 비공개. 다른 카테고리에서 expenses 로 바꾸면 isPublic 강제 false.
   useEffect(() => {
@@ -286,6 +358,16 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
     setPendingThumbnailFile(prev => (prev && !thumbnailFromUploadRef.current && !files.includes(prev) ? null : prev));
     return () => urls.forEach(url => URL.revokeObjectURL(url));
   }, [files]);
+
+  useEffect(() => {
+    if (!mediaCoverFile) {
+      setMediaCoverObjectUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(mediaCoverFile);
+    setMediaCoverObjectUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [mediaCoverFile]);
 
   const imageHandler = useCallback(() => {
     const input = document.createElement('input');
@@ -361,6 +443,9 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
       return;
     }
     setMediaCoverFile(file);
+    setThumbnailUrl(null);
+    setThumbnailCrop(null);
+    setThumbnailCropCover(null);
     e.target.value = "";
   };
 
@@ -383,6 +468,25 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
   const handleSubmitClick = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !content || content === "<p><br></p>") return alert("제목과 내용을 입력해주세요.");
+    if (category === "events") {
+      const hasAnyEventDateInput = [
+        eventMeta.event_date_y,
+        eventMeta.event_date_m,
+        eventMeta.event_date_d,
+        eventMeta.event_time_h,
+        eventMeta.event_time_minute,
+      ].some(Boolean);
+      const hasCompleteEventDateInput =
+        !!eventMeta.event_date_y &&
+        !!eventMeta.event_date_m &&
+        !!eventMeta.event_date_d &&
+        !!eventMeta.event_time_h &&
+        !!eventMeta.event_time_minute;
+
+      if (hasAnyEventDateInput && !hasCompleteEventDateInput && !legacyEventDateFallback) {
+        return alert("행사 일시를 모두 선택해주세요.");
+      }
+    }
     if (category === "media") {
       const currentCoverUrl = existingImages.find(isImage);
       const mediaCategoryId = resolveMediaCategoryId(eventMeta.tags);
@@ -467,23 +571,34 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
       }
 
       const finalImageUrl = imageUrls.length > 0 ? imageUrls.join(',') : null;
-      const supportsFinalThumbnail = category === "events" || category === "news" || category === "events-archive" || category === "media";
+      const supportsFinalThumbnail = category === "events" || category === "news" || category === "events-archive";
       let pendingThumbResolved: string | null = thumbnailUrl;
       if (pendingThumbnailFile && supportsFinalThumbnail) {
         const uploadedUrl = await uploadFile(pendingThumbnailFile);
         pendingThumbResolved = uploadedUrl ?? null;
       }
       const resolvedThumbnailUrl = await uploadThumbnailIfDataUrl(pendingThumbResolved);
+      const portraitMediaCoverUrl = category === "media" && !isFinalMediaWideType
+        ? imageUrls.find(isImage) ?? null
+        : null;
       const thumbnailPayload = category === "events"
         ? {
           thumbnail_url: resolvedThumbnailUrl?.trim() || null,
           thumbnail_crop: resolvedThumbnailUrl?.trim() ? thumbnailCrop : null,
+          thumbnail_crop_cover: resolvedThumbnailUrl?.trim() ? thumbnailCropCover : null,
         }
+        : category === "media"
+          ? {
+            thumbnail_url: portraitMediaCoverUrl,
+            thumbnail_crop: portraitMediaCoverUrl ? thumbnailCrop ?? createDefaultThumbnailCrop("540/675") : null,
+            thumbnail_crop_cover: portraitMediaCoverUrl && mediaDetailCoverAspect === "1/1" ? createDefaultThumbnailCrop("1/1") : null,
+          }
         : getThumbnailSavePayload({
           supportsManualThumbnail: supportsFinalThumbnail,
           nextThumbnailUrl: resolvedThumbnailUrl,
           previousThumbnailUrl: editingPost?.thumbnail_url,
           previousThumbnailCrop: editingPost?.thumbnail_crop,
+          previousThumbnailCropCover: editingPost?.thumbnail_crop_cover,
         });
       const applicationDeadline = composeLocalDateTimeIso(
         eventMeta.application_deadline_y,
@@ -492,8 +607,38 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
         eventMeta.application_deadline_h,
         eventMeta.application_deadline_minute,
       );
+      const eventStartAt = composeLocalDateTimeIso(
+        eventMeta.event_date_y,
+        eventMeta.event_date_m,
+        eventMeta.event_date_d,
+        eventMeta.event_time_h,
+        eventMeta.event_time_minute,
+      );
+      const eventDateDisplay = composeEventDisplayDate(
+        eventMeta.event_date_y,
+        eventMeta.event_date_m,
+        eventMeta.event_date_d,
+        eventMeta.event_time_h,
+        eventMeta.event_time_minute,
+      );
+      const eventLocation = composeEventLocationValue(
+        eventMeta.location_name,
+        eventMeta.location_address,
+        editingPost?.location,
+      );
       const extraFields = category === 'events'
-        ? { event_date: eventMeta.event_date || null, location: eventMeta.location || null, event_status: eventMeta.event_status || null, application_deadline: applicationDeadline, capacity: eventMeta.capacity ? Number(eventMeta.capacity) : null, tags: eventMeta.tags || null, event_form_config: cleanEventFormConfig(eventFormConfig) }
+        ? {
+          event_start_at: eventStartAt,
+          event_date: eventDateDisplay || legacyEventDateFallback || null,
+          venue_name: eventMeta.location_name.trim() || null,
+          venue_address: eventMeta.location_address.trim() || null,
+          location: eventLocation || null,
+          event_status: eventMeta.event_status || null,
+          application_deadline: applicationDeadline,
+          capacity: eventMeta.capacity ? Number(eventMeta.capacity) : null,
+          tags: eventMeta.tags || null,
+          event_form_config: cleanEventFormConfig(eventFormConfig),
+        }
         : ['events-archive', 'notice', 'news', 'media'].includes(category)
           ? { tags: category === 'media' ? finalMediaCategoryId : eventMeta.tags || null }
           : {};
@@ -518,6 +663,7 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
   const selectedTag = eventMeta.tags?.trim() ?? "";
   const selectedMediaCategoryId = resolveMediaCategoryId(eventMeta.tags);
   const isMediaWideType = isWideMediaCategory(selectedMediaCategoryId);
+  const showLegacyEventDateNotice = category === "events" && !!legacyEventDateFallback;
   const existingMediaCoverUrl = category === "media" ? existingImages.find(isImage) : null;
   const existingMediaAttachmentUrls = category === "media" ? existingImages.filter(url => url !== existingMediaCoverUrl) : [];
   const normalizedMediaUrl = normalizeMediaExternalUrl(mediaMeta.externalUrl);
@@ -584,7 +730,7 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
   );
 
   const renderThumbnailPicker = () => {
-    if (!supportsManualThumbnail) return null;
+    if (!supportsGenericThumbnailEditor) return null;
 
     return (
       <AdvancedThumbnailEditor
@@ -595,6 +741,10 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
         cropOutputMode={category === "events" ? "metadata" : "dataUrl"}
         onCropApply={({ url, crop, file }) => {
           if (category !== "events") return;
+          // 같은 원본 1장 정책: thumbnail_url이 바뀌면 cover crop은 의미를 잃으므로 reset.
+          if (url !== thumbnailUrl) {
+            setThumbnailCropCover(null);
+          }
           setThumbnailUrl(url);
           setThumbnailCrop(crop);
           if (file) {
@@ -606,24 +756,36 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
           const imgFiles = files.filter(isBrowserSafeImageFile);
           const idx = fileObjectUrls.indexOf(url);
           if (idx >= 0) {
-            // 기존 첨부를 썸네일로 선택
+            // 기존 첨부 blob을 썸네일로 선택
             setPendingThumbnailFile(imgFiles[idx] ?? null);
             thumbnailFromUploadRef.current = false;
+          } else if (!url.startsWith("blob:")) {
+            // 원격 public URL 후보 선택(콘텐츠/첨부 이미지) — stale pendingThumbnailFile 제거.
+            // 미제거 시 저장 시점에 stale 파일을 재업로드해 첨부 중복 적재 회귀.
+            setPendingThumbnailFile(null);
+            thumbnailFromUploadRef.current = false;
           }
-          // idx < 0: 이미 적용된 standalone 썸네일 재크롭 — 기존 pendingThumbnailFile 유지
+          // idx < 0 && blob: → 이미 적용된 standalone 썸네일 재크롭, 기존 pendingThumbnailFile 유지
         }}
         onChange={(url) => {
+          if (url !== thumbnailUrl) {
+            setThumbnailCropCover(null);
+          }
           setThumbnailUrl(url);
           if (category === "events" && !url) {
             setThumbnailCrop(null);
           }
           if (url && fileObjectUrls.includes(url)) {
-            // 기존 첨부를 썸네일로 선택
+            // 기존 첨부 blob을 썸네일로 선택
             const imgFiles = files.filter(isBrowserSafeImageFile);
             setPendingThumbnailFile(imgFiles[fileObjectUrls.indexOf(url)] ?? null);
             thumbnailFromUploadRef.current = false;
           } else if (!url || url.startsWith("data:")) {
             // 해제 또는 dataUrl 모드(미디어/뉴스): 업로드 파일 불필요
+            setPendingThumbnailFile(null);
+            thumbnailFromUploadRef.current = false;
+          } else if (!url.startsWith("blob:")) {
+            // 원격 public URL 후보 선택 — stale pendingThumbnailFile 제거(첨부 중복 적재 회귀 방지).
             setPendingThumbnailFile(null);
             thumbnailFromUploadRef.current = false;
           }
@@ -633,11 +795,67 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
     );
   };
 
+  // 행사 신청 상단(풀폭×~192px) 전용 cover crop 편집기.
+  // 같은 thumbnail_url을 공유하면서 별도 crop 좌표(thumbnail_crop_cover)만 따로 잡는다.
+  // 미설정 시 렌더에서는 thumbnail_crop으로 fallback.
+  const renderCoverThumbnailPicker = () => {
+    if (category !== "events" || !thumbnailUrl) return null;
+
+    return (
+      <AdvancedThumbnailEditor
+        aspect="4/1"
+        candidates={[]}
+        value={thumbnailUrl}
+        valueCrop={thumbnailCropCover ?? thumbnailCrop}
+        cropOutputMode="metadata"
+        singleImageMode
+        hideClearAction
+        onChange={() => {
+          // URL 변경 금지 — 같은 원본을 공유하므로 첫 에디터에서만 변경 가능.
+        }}
+        onCropApply={({ crop }) => {
+          setThumbnailCropCover(crop);
+        }}
+        title="행사 신청 상단 썸네일 (와이드 영역)"
+        statusLabel="별도 지정됨"
+        emptyStatusLabel="목록 썸네일 좌표 재사용"
+        appliedLabel="신청 상단 와이드 영역"
+      />
+    );
+  };
+
+  const renderMediaListThumbnailPicker = () => {
+    const sourceUrl = mediaCoverObjectUrl ?? existingMediaCoverUrl;
+    if (category !== "media" || isMediaWideType || !sourceUrl) return null;
+
+    return (
+      <AdvancedThumbnailEditor
+        aspect="540/675"
+        candidates={[]}
+        value={sourceUrl}
+        valueCrop={thumbnailCrop}
+        cropOutputMode="metadata"
+        singleImageMode
+        hideClearAction
+        onChange={() => {
+          // 표지 원본은 표지 이미지 업로드/삭제 흐름에서만 바꾼다.
+        }}
+        onCropApply={({ crop }) => {
+          setThumbnailCrop(crop);
+        }}
+        title="목록 썸네일 범위"
+        statusLabel="범위 지정됨"
+        emptyStatusLabel="기본 중앙 crop"
+        appliedLabel="인사이트 목록 썸네일"
+      />
+    );
+  };
+
   const renderMediaTypePicker = () => (
     <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "14px 18px", background: panelBg, border: `1px solid ${labelBorder}`, borderRadius: 14 }}>
       <div>
         <p style={{ margin: 0, fontWeight: 800, fontSize: 13, color: textMain }}>미디어 유형 <span style={{ fontWeight: 500, color: textMuted, fontSize: 12 }}>(고정 유형 / 표시명만 수정 가능)</span></p>
-        <p style={{ margin: "6px 0 0", fontSize: 12, color: textMuted, lineHeight: 1.5 }}>유형 ID는 레이아웃 비율을 결정합니다. 리포트 계열은 세로 표지, 팟캐스트/영상/인터뷰는 16:9로 표시됩니다.</p>
+        <p style={{ margin: "6px 0 0", fontSize: 12, color: textMuted, lineHeight: 1.5 }}>유형 ID는 기본 레이아웃을 결정합니다. 리포트 계열 목록은 540:675, 상세 좌측 표지만 1:1을 선택할 수 있습니다.</p>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 }}>
@@ -663,7 +881,7 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
                   </span>
                 </div>
                 <div style={{ marginTop: 8, color: textMuted, fontSize: 11, fontWeight: 700 }}>
-                  {item.shape === "wide" ? "16:9 자동 썸네일" : "세로 표지 540x675"}
+                  {item.shape === "wide" ? "16:9 자동 썸네일" : "목록 540:675 / 상세 1:1 선택"}
                 </div>
               </button>
 
@@ -689,7 +907,7 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
 
       {selectedMediaCategoryId && (
         <div style={{ fontSize: 12, color: textMuted }}>
-          선택됨: <strong style={{ color: textMain }}>{mediaCategories.find((c) => c.id === selectedMediaCategoryId)?.label ?? selectedMediaCategoryId}</strong> · 썸네일 비율 {getMediaCategoryAspectRatio(selectedMediaCategoryId)}
+          선택됨: <strong style={{ color: textMain }}>{mediaCategories.find((c) => c.id === selectedMediaCategoryId)?.label ?? selectedMediaCategoryId}</strong> · 목록 비율 {isMediaWideType ? getMediaCategoryAspectRatio(selectedMediaCategoryId) : "540:675"}
         </div>
       )}
     </div>
@@ -780,29 +998,163 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
 
         {renderThumbnailPicker()}
 
+        {renderCoverThumbnailPicker()}
+
         {renderExternalMediaLinkEditor()}
 
         {category === "events" && (
           <>
             <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "16px 18px", background: panelBg, border: `1px solid ${labelBorder}`, borderRadius: 14 }}>
               <p style={{ margin: 0, fontWeight: 750, fontSize: 14, color: textMain }}>행사 상세 정보</p>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                {[
-                  { label: "상태", render: () => (
-                    <select style={{ ...inputStyle, fontSize: 14 }} value={eventMeta.event_status} onChange={e => setEventMeta(m => ({ ...m, event_status: e.target.value }))}>
-                      <option value="접수예정">접수예정</option><option value="접수중">접수중</option><option value="마감임박">마감임박</option><option value="마감">마감</option>
-                    </select>
-                  )},
-                  { label: "일시 (예: 2026.05.08 (목) 18:00)", render: () => <input style={{ ...inputStyle, fontSize: 14 }} placeholder="2026.05.08 (목) 18:00" value={eventMeta.event_date} onChange={e => setEventMeta(m => ({ ...m, event_date: e.target.value }))} /> },
-                  { label: "장소", render: () => <input style={{ ...inputStyle, fontSize: 14 }} placeholder="서울 강남 NCF 센터" value={eventMeta.location} onChange={e => setEventMeta(m => ({ ...m, location: e.target.value }))} /> },
-                  { label: "정원 (명)", render: () => <input type="number" min={0} style={{ ...inputStyle, fontSize: 14 }} placeholder="200" value={eventMeta.capacity} onChange={e => setEventMeta(m => ({ ...m, capacity: e.target.value }))} /> },
-                ].map(({ label, render }) => (
-                  <div key={label} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: textMuted }}>{label}</label>
-                    {render()}
-                  </div>
-                ))}
+              <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 10 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: textMuted }}>상태</label>
+                  <select style={{ ...inputStyle, fontSize: 14 }} value={eventMeta.event_status} onChange={e => setEventMeta(m => ({ ...m, event_status: e.target.value }))}>
+                    <option value="접수예정">접수예정</option>
+                    <option value="접수중">접수중</option>
+                    <option value="마감임박">마감임박</option>
+                    <option value="마감">마감</option>
+                  </select>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: textMuted }}>정원 (명)</label>
+                  <input type="number" min={0} style={{ ...inputStyle, fontSize: 14 }} placeholder="200" value={eventMeta.capacity} onChange={e => setEventMeta(m => ({ ...m, capacity: e.target.value }))} />
+                </div>
               </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 10 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: textMuted }}>장소 이름</label>
+                  <input
+                    style={{ ...inputStyle, fontSize: 14 }}
+                    placeholder="예: NCF 라운지"
+                    value={eventMeta.location_name}
+                    onChange={e => setEventMeta(m => ({ ...m, location_name: e.target.value }))}
+                  />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: textMuted }}>주소 또는 링크</label>
+                  <input
+                    style={{ ...inputStyle, fontSize: 14 }}
+                    placeholder="예: 서울 강남구 ... / Zoom 링크"
+                    value={eventMeta.location_address}
+                    onChange={e => setEventMeta(m => ({ ...m, location_address: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: textMuted }}>행사 날짜</label>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <select
+                      style={{ ...inputStyle, flex: 2, fontSize: 14 }}
+                      value={eventMeta.event_date_y}
+                      onChange={e => {
+                        setLegacyEventDateFallback("");
+                        setEventMeta(m => ({
+                          ...m,
+                          event_date_y: e.target.value,
+                          event_date_d: Number(m.event_date_d) > getDaysInMonth(e.target.value, m.event_date_m) ? "" : m.event_date_d,
+                        }));
+                      }}
+                    >
+                      <option value="">년</option>
+                      {eventYears.map(year => <option key={year} value={year}>{year}년</option>)}
+                    </select>
+                    <select
+                      style={{ ...inputStyle, flex: 1, fontSize: 14 }}
+                      value={eventMeta.event_date_m}
+                      onChange={e => {
+                        const month = e.target.value;
+                        setLegacyEventDateFallback("");
+                        setEventMeta(m => ({
+                          ...m,
+                          event_date_m: month,
+                          event_date_d: Number(m.event_date_d) > getDaysInMonth(m.event_date_y, month) ? "" : m.event_date_d,
+                        }));
+                      }}
+                    >
+                      <option value="">월</option>
+                      {eventMonths.map(month => <option key={month} value={month}>{Number(month)}월</option>)}
+                    </select>
+                    <select
+                      style={{ ...inputStyle, flex: 1, fontSize: 14 }}
+                      value={eventMeta.event_date_d}
+                      onChange={e => {
+                        setLegacyEventDateFallback("");
+                        setEventMeta(m => ({ ...m, event_date_d: e.target.value }));
+                      }}
+                    >
+                      <option value="">일</option>
+                      {eventDays.map(day => <option key={day} value={day}>{Number(day)}일</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: textMuted }}>행사 시간</label>
+                  <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                    <select
+                      style={{ ...inputStyle, flex: 1, fontSize: 14 }}
+                      value={eventMeta.event_time_h}
+                      onChange={e => {
+                        const hour = e.target.value;
+                        setLegacyEventDateFallback("");
+                        setEventMeta(m => ({
+                          ...m,
+                          event_time_h: hour,
+                          event_time_minute: hour ? (m.event_time_minute || "00") : "",
+                        }));
+                      }}
+                    >
+                      <option value="">시</option>
+                      {eventHours.map(hour => <option key={hour} value={hour}>{hour}시</option>)}
+                    </select>
+                    <span style={{ color: textMuted, fontWeight: 700 }}>:</span>
+                    <select
+                      style={{ ...inputStyle, flex: 1, fontSize: 14 }}
+                      value={eventMeta.event_time_minute}
+                      onChange={e => {
+                        setLegacyEventDateFallback("");
+                        setEventMeta(m => ({
+                          ...m,
+                          event_time_minute: m.event_time_h ? e.target.value : "",
+                        }));
+                      }}
+                    >
+                      <option value="">분</option>
+                      {eventMinutes.map(minute => <option key={minute} value={minute}>{minute}분</option>)}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {showLegacyEventDateNotice && (
+                <div style={{ fontSize: 12, color: textMuted, lineHeight: 1.5 }}>
+                  기존 저장값을 구조화해 읽지 못했습니다. 현재 값: <strong style={{ color: textMain }}>{legacyEventDateFallback}</strong>
+                  {" "}이번 저장에서는 이 값을 유지하고, 새 드롭다운을 모두 선택하면 구조화된 행사 일시로 교체됩니다.
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  setLegacyEventDateFallback("");
+                  setEventMeta(m => ({
+                    ...m,
+                    event_date_y: "",
+                    event_date_m: "",
+                    event_date_d: "",
+                    event_time_h: "",
+                    event_time_minute: "",
+                  }));
+                }}
+                style={{ alignSelf: "flex-start", border: "none", background: "transparent", color: textMuted, fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0 }}
+              >
+                행사 일시 비우기
+              </button>
+
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 <label style={{ fontSize: 12, fontWeight: 600, color: textMuted }}>신청 마감일시 (선택)</label>
                 <div className="grid grid-cols-2 sm:grid-cols-5" style={{ gap: 8 }}>
@@ -844,7 +1196,37 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
             <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: 18, background: panelBg, border: `1px solid ${labelBorder}`, borderRadius: 14 }}>
               <div>
                 <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: textMain }}>표지 이미지</p>
-                <p style={{ margin: "6px 0 0", fontSize: 12, color: textMuted, lineHeight: 1.5 }}>미디어 목록 썸네일과 상세 좌측 표지로 사용됩니다.</p>
+                <p style={{ margin: "6px 0 0", fontSize: 12, color: textMuted, lineHeight: 1.5 }}>목록과 홈은 세로형 540:675로 표시되고, 아래에서 썸네일 범위를 직접 지정할 수 있습니다.</p>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: textMuted }}>상세 좌측 표지 비율</p>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {([
+                    { value: "540/675", label: "세로형 540:675" },
+                    { value: "1/1", label: "정사각형 1:1" },
+                  ] as const).map((option) => {
+                    const isSelected = mediaDetailCoverAspect === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setMediaDetailCoverAspect(option.value)}
+                        style={{
+                          padding: "8px 12px",
+                          borderRadius: 10,
+                          border: `1px solid ${isSelected ? labelBorder : border}`,
+                          background: isSelected ? selectedBg : inputBg,
+                          color: isSelected ? textMain : textMuted,
+                          fontSize: 12,
+                          fontWeight: isSelected ? 800 : 700,
+                          cursor: "pointer",
+                        }}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
               {existingMediaCoverUrl && (
                 <div style={{ display: "flex", gap: 12, alignItems: "center", padding: 12, background: inputBg, border: `1px solid ${border}`, borderRadius: 12 }}>
@@ -858,14 +1240,26 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
               {mediaCoverFile && (
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: 12, background: inputBg, border: `1px solid ${border}`, borderRadius: 12 }}>
                   <span style={{ color: textMain, fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{mediaCoverFile.name}</span>
-                  <button type="button" onClick={() => setMediaCoverFile(null)} style={{ border: `1px solid ${deleteBorder}`, background: deleteBg, color: "var(--color-brand-red)", padding: "5px 9px", borderRadius: 8, cursor: "pointer", fontWeight: 800, fontSize: 12 }}>취소</button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMediaCoverFile(null);
+                      setThumbnailCrop(editingPost?.thumbnail_crop ?? null);
+                      setThumbnailCropCover(editingPost?.thumbnail_crop_cover ?? null);
+                      setMediaDetailCoverAspect(getMediaDetailCoverAspectFromCrop(editingPost?.thumbnail_crop_cover));
+                    }}
+                    style={{ border: `1px solid ${deleteBorder}`, background: deleteBg, color: "var(--color-brand-red)", padding: "5px 9px", borderRadius: 8, cursor: "pointer", fontWeight: 800, fontSize: 12 }}
+                  >
+                    취소
+                  </button>
                 </div>
               )}
               <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 112, padding: "22px 18px", background: "var(--color-surface-card)", border: `2px dashed ${labelBorder}`, borderRadius: 14, cursor: "pointer", color: textMain, gap: 8 }}>
                 <input type="file" accept="image/*" onChange={handleMediaCoverChange} style={{ display: "none" }} />
                 <span style={{ fontWeight: 800, color: textMain }}>+ 표지 이미지 선택</span>
-                <span style={{ fontSize: 12, color: textMuted, textAlign: "center" }}>리포트 표지는 540x675, 영상형은 16:9 권장</span>
+                <span style={{ fontSize: 12, color: textMuted, textAlign: "center" }}>정사각형 원본도 목록에서는 아래 crop 범위 기준으로 표시됩니다.</span>
               </label>
+              {renderMediaListThumbnailPicker()}
             </div>
 
             {!isMediaWideType && (

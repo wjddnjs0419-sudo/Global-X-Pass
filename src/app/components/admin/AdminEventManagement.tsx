@@ -6,6 +6,7 @@ import { Button } from "../ui/button";
 import { supabase } from "../../../lib/supabaseClient";
 import type { EventApplication, Post } from "../../../lib/types";
 import { EVENT_APPLICATION_STATUS, mergeEventFormConfig } from "../../../utils/eventApplication";
+import { formatEventDate } from "../../../utils/scheduleFields";
 import { AppPagination } from "../AppPagination";
 
 type SubTab = "overview" | "participants" | "history";
@@ -326,7 +327,7 @@ export function AdminEventManagement() {
             return (
               <div key={event.id} style={{ background: card, border: `1px solid ${border}`, borderRadius: 16, padding: 18, textDecoration: "none", display: "flex", flexDirection: "column", gap: 8 }}>
                 <Link to={`/events/${event.id}/apply`} style={{ color: textMain, fontSize: 14, lineHeight: 1.4, fontWeight: 800, textDecoration: "none" }}>{event.title}</Link>
-                <span style={{ color: textMuted, fontSize: 12 }}>{event.event_date || "일시 미정"}</span>
+                <span style={{ color: textMuted, fontSize: 12 }}>{formatEventDate(event, "일시 미정")}</span>
                 <span style={{ alignSelf: "flex-start", color: textMuted, background: labelBg, border: `1px solid ${labelBorder}`, borderRadius: 8, padding: "4px 8px", fontSize: 12, fontWeight: 800 }}>
                   확정 {counts.accepted}명{remaining != null ? ` · 잔여 ${remaining}석` : ""}
                 </span>

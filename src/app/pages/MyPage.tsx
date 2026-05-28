@@ -11,7 +11,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "../components/ui/input-ot
 import { EVENT_APPLICATION_STATUS } from "../../utils/eventApplication";
 import { sanitizeSvgMarkup } from "../../utils/htmlSecurity";
 import { challengeAndPersistTotpVerification, getTotpFactorSnapshot } from "../../utils/mfa";
-import { formatStructuredLocation } from "../../utils/scheduleFields";
+import { formatEventDate, formatEventLocation, formatStructuredLocation } from "../../utils/scheduleFields";
 import { getStatusPillStyle } from "../components/contentListStyles";
 import { formatOfficeHourMonth, getOfficeHourStatusConfig } from "../constants/officeHours";
 
@@ -151,7 +151,7 @@ export function MyPage() {
   const fetchEventApplications = async (userId: string) => {
     const { data: eventData } = await supabase
       .from("event_applications")
-      .select("*, posts(title, event_date, location, event_status)")
+      .select("*, posts(title, event_start_at, event_date, venue_name, venue_address, location, event_status)")
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
     setEventApplications(eventData || []);
@@ -241,29 +241,29 @@ export function MyPage() {
     const fetchUserAndProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        alert("로그인이 필요한 페이지입니다.");
-        navigate("/login");
-      } else {
-        setUser({ id: user.id, email: user.email ?? undefined });
-        const { data, error } = await supabase.functions.invoke('decrypt-own-profile');
-        if (error) {
-          console.error("내 프로필 복호화 오류:", error.message);
-        } else if (data) {
-          setProfile(data as Profile);
-        }
         setProfileLoaded(true);
+        return;
+      }
 
-        // MFA Factor check
-        await syncMfaState();
+      setUser({ id: user.id, email: user.email ?? undefined });
+      const { data, error } = await supabase.functions.invoke('decrypt-own-profile');
+      if (error) {
+        console.error("내 프로필 복호화 오류:", error.message);
+      } else if (data) {
+        setProfile(data as Profile);
+      }
+      setProfileLoaded(true);
 
-        if (data?.role !== "admin") {
-          await Promise.all([
-            fetchConsultingReservations(user.id),
-            fetchOfficeHourApplications(user.id),
-            fetchClubApplications(user.id),
-            fetchEventApplications(user.id),
-          ]);
-        }
+      // MFA Factor check
+      await syncMfaState();
+
+      if (data?.role !== "admin") {
+        await Promise.all([
+          fetchConsultingReservations(user.id),
+          fetchOfficeHourApplications(user.id),
+          fetchClubApplications(user.id),
+          fetchEventApplications(user.id),
+        ]);
       }
     };
     fetchUserAndProfile();
@@ -924,8 +924,8 @@ export function MyPage() {
                   )}
                   <div>
                     <div style={{ fontWeight: 700, color: textMain, fontSize: 14, marginBottom: 4 }}>{event?.title}</div>
-                    <div style={{ fontSize: 12, color: textMuted }}>{event?.event_date ?? "일시 미정"}</div>
-                    <div style={{ fontSize: 12, color: textMuted, marginTop: 3 }}>{formatStructuredLocation(event?.location)}</div>
+                    <div style={{ fontSize: 12, color: textMuted }}>{formatEventDate(event, "일시 미정")}</div>
+                    <div style={{ fontSize: 12, color: textMuted, marginTop: 3 }}>{formatEventLocation(event)}</div>
                   </div>
                   {statusPill(cfg)}
                 </div>

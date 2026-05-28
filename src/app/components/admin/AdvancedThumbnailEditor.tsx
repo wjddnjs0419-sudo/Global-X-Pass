@@ -28,6 +28,7 @@ interface AdvancedThumbnailEditorProps {
   appliedLabel?: string;
   emptyText?: string;
   singleImageMode?: boolean;
+  hideClearAction?: boolean;
 }
 
 interface SourceImage {
@@ -121,11 +122,16 @@ const createDefaultCropRect = (imageAspect: number, targetAspect: number): CropR
   }, imageAspect, targetAspect);
 };
 
-const cropRectToThumbnailCrop = (rect: CropRect, aspect: ThumbnailAspect): ThumbnailCrop => ({
+const cropRectToThumbnailCrop = (
+  rect: CropRect,
+  aspect: ThumbnailAspect,
+  sourceAspect?: number,
+): ThumbnailCrop => ({
   x: clamp(rect.x + rect.width / 2, 0, 100),
   y: clamp(rect.y + rect.height / 2, 0, 100),
   zoom: clamp(100 / rect.width, 1, 3),
   aspect,
+  sourceAspect,
 });
 
 const thumbnailCropToRect = (crop: ThumbnailCrop, imageAspect: number, targetAspect: number): CropRect => {
@@ -175,6 +181,7 @@ export function AdvancedThumbnailEditor({
   appliedLabel = "현재 적용된 대표 썸네일",
   emptyText = "본문 이미지 또는 업로드 이미지가 여기에 표시됩니다.",
   singleImageMode = false,
+  hideClearAction = false,
 }: AdvancedThumbnailEditorProps) {
   const { isDark } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -226,11 +233,13 @@ export function AdvancedThumbnailEditor({
       ? "행사 아카이브 카드 비율 16:10"
       : aspect === "7/1"
         ? "행사 신청 배너 비율 7:1"
-        : aspect === "16/9"
-          ? "미디어 와이드 비율 16:9"
-          : aspect === "540/675"
-            ? "미디어 표지 비율 540:675"
-            : "정사각형 비율 1:1";
+        : aspect === "4/1"
+          ? "행사 신청 상단 비율 4:1"
+          : aspect === "16/9"
+            ? "미디어 와이드 비율 16:9"
+            : aspect === "540/675"
+              ? "미디어 표지 비율 540:675"
+              : "정사각형 비율 1:1";
 
   useEffect(() => () => {
     if (uploadedSource?.objectUrl) URL.revokeObjectURL(uploadedSource.objectUrl);
@@ -395,7 +404,11 @@ export function AdvancedThumbnailEditor({
     setApplying(true);
     try {
       if (cropOutputMode === "metadata") {
-        const metadataCrop = cropRectToThumbnailCrop(activeRect, aspect);
+        const metadataCrop = cropRectToThumbnailCrop(
+          activeRect,
+          aspect,
+          imageSize.width / imageSize.height,
+        );
         onChange(modalSource.url);
         onCropApply?.({ url: modalSource.url, crop: metadataCrop, file: modalSource.file });
         if (singleImageMode) clearUploadedSource();
@@ -462,7 +475,7 @@ export function AdvancedThumbnailEditor({
               cursor: "pointer",
             }}
           >
-            <span style={{ display: "block", width: 96, aspectRatio: toCssAspectRatio(aspect), overflow: "hidden", borderRadius: 9, background: panelBg }}>
+            <span style={{ position: "relative", display: "block", width: 96, aspectRatio: toCssAspectRatio(aspect), overflow: "hidden", borderRadius: 9, background: panelBg }}>
               <img src={appliedSource.url} alt="" style={getThumbnailImageStyle(valueCrop)} />
             </span>
             <span className="min-w-0">
@@ -470,19 +483,21 @@ export function AdvancedThumbnailEditor({
               <span className="mt-1 block text-[11px] font-bold" style={{ color: textMuted }}>클릭하면 현재 이미지를 다시 수정합니다.</span>
             </span>
           </button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label="현재 적용 이미지 해제"
-            onClick={event => {
-              event.stopPropagation();
-              clearSelectedImage();
-            }}
-            className="absolute right-2 top-2 h-8 w-8 rounded-full"
-          >
-            <X aria-hidden="true" />
-          </Button>
+          {!hideClearAction && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label="현재 적용 이미지 해제"
+              onClick={event => {
+                event.stopPropagation();
+                clearSelectedImage();
+              }}
+              className="absolute right-2 top-2 h-8 w-8 rounded-full"
+            >
+              <X aria-hidden="true" />
+            </Button>
+          )}
         </div>
       )}
 

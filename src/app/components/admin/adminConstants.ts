@@ -4,7 +4,7 @@ export const CATEGORIES = [
   { id: "events",         label: "행사" },
   { id: "events-archive", label: "행사 아카이브" },
   { id: "resources",      label: "자료실" },
-  { id: "media",          label: "미디어" },
+  { id: "media",          label: "인사이트" },
   { id: "faq",            label: "FAQ" },
   { id: "expenses",       label: "사업비 자료실" },
 ];

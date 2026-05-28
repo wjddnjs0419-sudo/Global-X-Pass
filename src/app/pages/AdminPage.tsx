@@ -8,6 +8,8 @@ import { LAYERS } from "../../lib/layers";
 import { HeaderSection } from "../components/HeaderSection";
 import { NotificationBell } from "../components/admin/NotificationBell";
 import { AdminSidebar } from "../components/admin/AdminSidebar";
+import { AdminMfaBypassBanner } from "../components/admin/AdminMfaBypassBanner";
+import { AdminMfaBypassPanel } from "../components/admin/AdminMfaBypassPanel";
 
 const AdminDashboard = lazy(() => import('../components/admin/AdminDashboard'));
 const AdminUserManagement = lazy(() => import('../components/admin/AdminUserManagement'));
@@ -38,7 +40,7 @@ const getStoredAdminTab = (): TabId => {
 
 export default function AdminPage() {
   const { isDark } = useTheme();
-  const { isAdmin, loading: adminLoading, mfaRequired, mfaEnrolled } = useAdmin();
+  const { isAdmin, loading: adminLoading, mfaRequired, mfaEnrolled, isSuperAdmin, mfaBypass, refreshBypassState } = useAdmin();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -162,8 +164,19 @@ export default function AdminPage() {
         <AdminSidebar activeTab={activeTab} onTabChange={handleTabChange} adminEmail={adminEmail} />
 
         <main style={{ flex: 1, minWidth: 0, padding: "clamp(24px, 5vw, 40px) clamp(18px, 4vw, 44px) 72px" }}>
+          <AdminMfaBypassBanner bypass={mfaBypass} isSuperAdmin={isSuperAdmin} />
+
           {activeTab === "dashboard" && (
             <Suspense fallback={<DashSk />}>
+              {isSuperAdmin && (
+                <div style={{ marginBottom: 24 }}>
+                  <AdminMfaBypassPanel
+                    isSuperAdmin={isSuperAdmin}
+                    bypass={mfaBypass}
+                    onChanged={refreshBypassState}
+                  />
+                </div>
+              )}
               <AdminDashboard refreshKey={dashRefreshKey} />
             </Suspense>
           )}

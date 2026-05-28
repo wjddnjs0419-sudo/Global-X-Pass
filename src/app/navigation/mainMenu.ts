@@ -73,10 +73,7 @@ const MAIN_MENU_BY_KEY: Record<MenuKey, MainMenu> = {
   },
 };
 
-const DESKTOP_MAIN_MENU_ORDER: MenuKey[] = ["resources", "programs", "news", "support", "aroundX"];
-const SIDEBAR_MAIN_MENU_ORDER: MenuKey[] = ["resources", "programs", "aroundX", "news", "support"];
+const MAIN_MENU_ORDER: MenuKey[] = ["resources", "programs", "news", "support", "aroundX"];
 
-const resolveMenus = (order: MenuKey[]) => order.map((key) => MAIN_MENU_BY_KEY[key]);
-
-export const DESKTOP_MAIN_MENUS = resolveMenus(DESKTOP_MAIN_MENU_ORDER);
-export const SIDEBAR_MAIN_MENUS = resolveMenus(SIDEBAR_MAIN_MENU_ORDER);
+export const DESKTOP_MAIN_MENUS = MAIN_MENU_ORDER.map((key) => MAIN_MENU_BY_KEY[key]);
+export const SIDEBAR_MAIN_MENUS = DESKTOP_MAIN_MENUS;

@@ -8,7 +8,10 @@ import {
   isPortraitMediaCategory,
   isWideMediaCategory,
 } from "../constants/mediaCategories";
-import { getThumbnailImageStyle, resolvePostThumbnail } from "../../utils/postThumbnail";
+import {
+  getThumbnailImageStyle,
+  resolvePostThumbnail,
+} from "../../utils/postThumbnail";
 import { getSectionTheme } from "../utils/sectionTheme";
 import { Button } from "./ui/button";
 import {

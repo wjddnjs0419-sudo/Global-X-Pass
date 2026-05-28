@@ -22,5 +22,8 @@ To minimize token usage, you **MUST** use the **Grep-first** principle. Instead 
 -   **Validate**: Always run `npm run validate` after changes.
 -   **No Hardcoding**: Strictly follow the No-Hardcode mandate in `docs/AGENT_RULES.md`.
 
+## 🚫 Anti-Patterns & Lessons Learned
+- 운영 빌드에서 query/localStorage 플래그로 상세 진단 `console.log`를 재활성화하지 말 것. 첨부 URL, 게시물 식별자, 본문 진단 정보는 개발 모드에서만 최소 요약값으로 제한한다.
+
 ---
 *Refer to `RESULT_ARCHIVE.md` for older session history if needed.*

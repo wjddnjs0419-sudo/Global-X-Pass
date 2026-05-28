@@ -11,7 +11,7 @@ import { cleanText } from "../../utils/text";
 import { isImage } from "../../utils/file";
 import { getThumbnailImageStyle, resolvePostThumbnail } from "../../utils/postThumbnail";
 import { EVENT_STATUS_CONFIG, getEffectiveEventStatus, getEventRemaining, isEventApplicationOpen } from "../../utils/eventApplication";
-import { formatLocalDateTime, formatStructuredLocation } from "../../utils/scheduleFields";
+import { formatEventDate, formatEventLocation, formatLocalDateTime } from "../../utils/scheduleFields";
 import { getFilterTabStyle, getMutedLabelStyle, getStatusPillStyle } from "../components/contentListStyles";
 import { AppPagination } from "../components/AppPagination";
 import { logSupabaseFailure } from "../../lib/uxTelemetry";
@@ -188,7 +188,7 @@ export function EventsPage() {
                     <div className="flex flex-col gap-2.5">
                       <div>
                         <p className="m-0 text-[11px] font-bold tracking-wide mb-1" style={{ color: "var(--color-text-muted)" }}>일시</p>
-                        <p className="m-0 text-sm font-semibold leading-snug" style={{ color: "var(--color-text-primary)" }}>{post.event_date || "일시 미정"}</p>
+                        <p className="m-0 text-sm font-semibold leading-snug" style={{ color: "var(--color-text-primary)" }}>{formatEventDate(post, "일시 미정")}</p>
                       </div>
                       <div>
                         <p className="m-0 text-[11px] font-bold tracking-wide mb-1" style={{ color: "var(--color-text-muted)" }}>신청 마감</p>
@@ -196,7 +196,7 @@ export function EventsPage() {
                       </div>
                       <div>
                         <p className="m-0 text-[11px] font-bold tracking-wide mb-1" style={{ color: "var(--color-text-muted)" }}>장소</p>
-                        <p className="m-0 text-sm font-semibold leading-snug" style={{ color: "var(--color-text-primary)" }}>{formatStructuredLocation(post.location)}</p>
+                        <p className="m-0 text-sm font-semibold leading-snug" style={{ color: "var(--color-text-primary)" }}>{formatEventLocation(post)}</p>
                       </div>
                       <div>
                         <p className="m-0 text-[11px] font-bold tracking-wide mb-1" style={{ color: "var(--color-text-muted)" }}>정원</p>

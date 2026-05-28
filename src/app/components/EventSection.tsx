@@ -3,8 +3,8 @@ import { Link, useNavigate } from "react-router";
 import { getSectionTheme } from "../utils/sectionTheme";
 import { fetchPublicPostPreviews } from "../../utils/publicPostPreviews";
 import { cleanText } from "../../utils/text";
-import { formatStructuredLocation } from "../../utils/scheduleFields";
-import { resolvePostThumbnail } from "../../utils/postThumbnail";
+import { formatEventDate, formatEventLocation, formatEventMonthDay } from "../../utils/scheduleFields";
+import { getThumbnailImageStyle, resolvePostThumbnail } from "../../utils/postThumbnail";
 import type { Post } from "../../lib/types";
 import { Button } from "./ui/button";
 import { Skeleton } from "./ui/skeleton";
@@ -40,11 +40,13 @@ export function EventSection({ isDark = false }: EventSectionProps) {
 
   if (!loading && events.length === 0) return null;
 
-  const displayDate = featured
-    ? (featured.event_date || new Date(featured.created_at).toLocaleDateString("ko-KR"))
-    : "";
-  const displayLocation = formatStructuredLocation(featured?.location, "NCF 오피스");
-  const featuredThumbnailUrl = featured ? resolvePostThumbnail(featured).url : null;
+  const displayDate = featured ? formatEventDate(featured, "일시 미정") : "";
+  const displayLocation = formatEventLocation(featured, "장소 미정");
+  const featuredThumbnail = featured ? resolvePostThumbnail(featured) : null;
+  const featuredThumbnailUrl = featuredThumbnail?.url ?? null;
+  const featuredHeroCrop = featuredThumbnail
+    ? (featuredThumbnail.coverCrop ?? featuredThumbnail.crop)
+    : null;
   const hasUpcoming = upcomingEvents.length > 0;
 
   const featuredInner = featured ? (
@@ -196,15 +198,16 @@ export function EventSection({ isDark = false }: EventSectionProps) {
                   {featuredThumbnailUrl && (
                     <div
                       aria-hidden="true"
-                      className="w-full min-[640px]:w-[44%] shrink-0"
-                      style={{
-                        backgroundImage: `url(${featuredThumbnailUrl})`,
-                        backgroundSize: "cover",
-                        backgroundPosition: "center",
-                        minHeight: "200px",
-                        alignSelf: "stretch",
-                      }}
-                    />
+                      className="w-full min-[640px]:w-[44%] shrink-0 relative overflow-hidden"
+                      style={{ minHeight: "200px", alignSelf: "stretch" }}
+                    >
+                      <img
+                        src={featuredThumbnailUrl}
+                        alt=""
+                        className="absolute inset-0"
+                        style={getThumbnailImageStyle(featuredHeroCrop)}
+                      />
+                    </div>
                   )}
                   <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", padding: "clamp(22px, 5vw, 36px)" }}>
                     {featuredInner}
@@ -216,7 +219,7 @@ export function EventSection({ isDark = false }: EventSectionProps) {
               {hasUpcoming && (
                 <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
                   {upcomingEvents.map((ev) => {
-                    const date = new Date(ev.created_at);
+                    const monthDay = formatEventMonthDay(ev, "미정");
                     return (
                       <div
                         key={ev.id}
@@ -233,7 +236,7 @@ export function EventSection({ isDark = false }: EventSectionProps) {
                       >
                         <div style={{ flexShrink: 0, width: "80px" }}>
                           <div style={{ fontSize: "12px", fontWeight: 800, color: th.mutedText, marginBottom: "2px" }}>
-                            {date.getMonth() + 1}.{date.getDate()}
+                            {monthDay}
                           </div>
                           <div style={{ fontSize: "10px", fontWeight: 800, color: th.mutedText, letterSpacing: "0.04em" }}>EVENT</div>
                         </div>

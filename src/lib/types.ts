@@ -70,13 +70,17 @@ export interface Post {
   image_url: string | null;
   thumbnail_url?: string | null;
   thumbnail_crop?: ThumbnailCrop | null;
+  thumbnail_crop_cover?: ThumbnailCrop | null;
   created_at: string;
   updated_at?: string | null;
   views: number;
   allowed_group_id?: string | null;
   // event fields
   status?: string | null;
+  event_start_at?: string | null;
   event_date?: string | null;
+  venue_name?: string | null;
+  venue_address?: string | null;
   location?: string | null;
   event_status?: string | null;
   application_deadline?: string | null;
@@ -113,7 +117,8 @@ export interface ThumbnailCrop {
   x: number;
   y: number;
   zoom: number;
-  aspect: '7/1' | '16/10' | '16/9' | '10/9' | '1/1' | '540/675';
+  aspect: '7/1' | '4/1' | '16/10' | '16/9' | '10/9' | '1/1' | '540/675';
+  sourceAspect?: number;
 }
 
 export interface EventFormConfig {

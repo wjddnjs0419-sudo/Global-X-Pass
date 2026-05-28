@@ -148,7 +148,7 @@ export function NewsPage() {
       >
         <div
           className="w-full h-[180px] sm:w-[200px] sm:h-auto sm:self-stretch shrink-0 flex items-center justify-center"
-          style={{ background: "var(--color-bg-overlay)", overflow: "hidden" }}
+          style={{ position: "relative", background: "var(--color-bg-overlay)", overflow: "hidden" }}
         >
           {thumbnailVisible ? (
             <img

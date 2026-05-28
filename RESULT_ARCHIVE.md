@@ -1,3 +1,45 @@
+## 2026-05-28 홈 진입 시 간헐적 `/mypage` 강제 이동 + 로그인 필요 alert 루프 차단
+
+- 남아 있던 예전 세션 때문에 홈 진입 중 잠깐 `/mypage`로 튄 뒤 `로그인이 필요한 페이지입니다.` alert가 반복되던 루프를 차단했다.
+- `/mypage`를 `AuthRoute` 보호 라우트로 감싸고, `AuthRoute`가 `onAuthStateChange()`까지 구독하게 바꿔 현재 페이지 체류 중 sign-out도 즉시 반영되게 했다.
+- `RootLayout`에 `staleSessionChecked`를 추가해 stale session 정리가 끝나기 전엔 관리자 MFA 강제 이동이 일어나지 않게 했다.
+- `MyPage`의 비로그인 `alert + navigate("/login")` 분기를 제거해 라우트 가드에 인증 책임을 일원화했다.
+- 검증: `npm run validate` ✅
+
+---
+
+## 2026-05-28 행사 신청 상단 와이드 crop 미리보기/실제 렌더 불일치 보정
+
+- 행사 신청 페이지 상단 커버를 어드민 `신청 상단 와이드 영역` crop 에디터와 동일한 `4:1` 비율로 렌더되게 맞췄다.
+- `EventApplicationPage.tsx`에서 상단 커버 컨테이너를 고정 높이 대신 `aspectRatio: toCssAspectRatio(EVENT_COVER_THUMBNAIL_ASPECT)`로 바꿨다.
+- 저장된 `thumbnail_crop_cover` 좌표, 어드민 미리보기(`1600x400`), 실제 `/events/:id/apply` 상단 커버가 같은 비율 규칙을 공유하게 했다.
+- 사용하지 않게 된 `--size-event-application-cover-height` 토큰을 `theme.css`에서 제거했다.
+- 검증: `npm run validate` ✅, Chrome visible QA로 행사 신청 페이지 상단 커버 확인 ✅
+
+---
+
+## 2026-05-28 상세 페이지 첨부 패널화 + 디버그 콘솔 하드닝
+
+- 상세 페이지 첨부파일은 더 이상 본문 박스 안에서 세로로 누적되지 않는다.
+- 첨부 진입점은 회색 메타 영역 우측에 텍스트+아이콘 형태로 배치되고, 다건 목록은 해당 위치에 붙는 플로팅 패널로 열린다.
+- `PostDetailPage`에 `AttachmentPopover`를 도입해 단일 첨부는 실제 파일명으로 직접 열고, 다건 첨부는 `첨부파일 N개` 토글로 연다.
+- 플로팅 패널은 앵커 기준 위치, `max-height`, 내부 스크롤, 바깥 클릭/ESC 닫기, 모바일 폭 안전 범위를 적용했다.
+- 패널 내부 파일 리스트는 카드/배지형 박스를 제거하고 텍스트 중심 + 하이라이트 언더라인만 남기도록 정리했다.
+- `Naver Import Debug` 로그는 `import.meta.env.DEV`에서만 동작하게 제한했고, 첨부 URL/본문 snippet/이미지 src 같은 민감 원문은 제외한 요약 진단만 남긴다.
+- `GEMINI.md`의 `## 🚫 Anti-Patterns & Lessons Learned`에 운영 빌드에서 query/localStorage 플래그로 상세 진단 `console.log`를 재활성화하지 말라는 금지 조항을 추가했다.
+- 검증: `npm run validate` ✅, visible 모바일 QA(`360px`)에서 토글 닫힘/열림 overflow 없음 확인 ✅
+
+---
+
+## 2026-05-28 인사이트 상세 표지 1:1 선택 분리 + 상세명 정정
+
+- 상세 페이지 헤더를 `BoardCategoriesContext` 라벨/설명 기반으로 바꿔 `media → 인사이트` 라벨 변경이 상세에도 반영되게 했다.
+- 세로형 인사이트 목록/홈은 `540:675` 고정 + `thumbnail_crop` 직접 범위 지정 경로를 유지하고, 상세 좌측 표지만 `thumbnail_crop_cover.aspect === "1/1"`일 때 정사각형으로 렌더되도록 분리했다.
+- 어드민 표지 영역에 `목록 썸네일 범위`(540:675 crop)와 `상세 좌측 표지 비율`(540:675 / 1:1) 토글을 분리했다.
+- 검증: `npm run validate` ✅, Playwright `/`, `/insights`, 첫 상세 클릭 콘솔 smoke ✅
+
+---
+
 ## 2026-05-28 홈 공지·행사 섹션 빈 공간 해결
 
 - 공지사항 섹션에서 공지 1개가 컬럼 전체 높이로 stretch되던 원인(`flex:1`, `flex:"1 1 0"`)을 제거해 자연 높이로 위부터 쌓이도록 수정했다.
@@ -2809,3 +2851,13 @@ Electron 아키텍처 맵 앱에 admin+AAL2 로그인 오버레이와 런타임 
 ## 검증
 - `npm run validate` ✅
 - 외부 Naver 자격 증명이 필요한 실제 크롤링 실행은 당시 수행하지 않았다.
+
+# RESULT ARCHIVE ADDENDUM: 어드민 MFA 우회 토글 (시한제, super admin only) (2026-05-28)
+
+## 상태
+행사 운영 중 일반 어드민의 OTP 피로를 줄이기 위해 super admin만 켤 수 있는 시한제 MFA 우회 토글을 추가했다. `admin_mfa_bypass` 단일 row, `is_admin_mfa_bypassed()` 함수, `is_admin()` 패치, 전용 Edge Function 2개, `useAdmin`/`LoginPage`/Admin UI 배너와 토글 카드가 함께 동작한다. 활성 시 DB RLS, Edge Function AAL2 가드, 로그인 OTP 챌린지, 프론트 admin gate가 같은 상태를 참조한다.
+
+## 검증
+- `npm run validate` ✅ ×3
+- 마이그레이션 `20260528045339_admin_mfa_bypass_toggle.sql` 원격 적용 및 관련 Edge Function 배포 확인
+- super admin 활성화 후 다른 어드민이 OTP 없이 `/admin` 진입하는 실 테스트 확인

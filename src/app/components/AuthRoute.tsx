@@ -10,14 +10,23 @@ export function AuthRoute() {
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const syncSession = (session: unknown) => {
       if (!mounted) return;
       setAuthenticated(Boolean(session));
       setLoading(false);
+    };
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      syncSession(session);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      syncSession(session);
     });
 
     return () => {
       mounted = false;
+      subscription.unsubscribe();
     };
   }, []);
 

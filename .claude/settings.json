@@ -11,7 +11,15 @@
       "Bash(npm run *)",
       "Bash(find src *)",
       "Bash(grep -rln \"post_categories\" src/app/components/admin/)",
-      "mcp__plugin_supabase_supabase__list_edge_functions"
+      "mcp__plugin_supabase_supabase__list_edge_functions",
+      "Bash(cp /tmp/gxp-smoke.mjs ./.gxp-smoke.mjs)",
+      "Bash(rm -f ./.gxp-smoke.mjs)",
+      "Bash(awk '/^## Done/{f=1;next} /^## Future/{f=0} f && /^- \\\\[Done\\\\]/{c++} END{print \"상단 Done 섹션:\", c, \"개\"}' PLAN.md)",
+      "Bash(awk '/^## Future/{f=1} f && /^- \\\\[Done\\\\]/{c++} END{print c, \"개 \\(구조 오류\\)\"}' PLAN.md)"
+    ],
+    "additionalDirectories": [
+      "/tmp",
+      "/private/tmp"
     ]
   },
   "enabledPlugins": {

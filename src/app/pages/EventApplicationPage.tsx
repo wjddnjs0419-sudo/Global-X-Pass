@@ -13,8 +13,13 @@ import { useAdmin } from "../../hooks/useAdmin";
 import type { EventApplication, Post, Profile } from "../../lib/types";
 import { sanitizeRichHtml } from "../../utils/htmlSecurity";
 import { EVENT_STATUS_CONFIG, getEffectiveEventStatus, getEventRemaining, isEventApplicationOpen, mergeEventFormConfig } from "../../utils/eventApplication";
-import { getThumbnailImageStyle, resolvePostThumbnail } from "../../utils/postThumbnail";
-import { formatLocalDateTime, formatStructuredLocation } from "../../utils/scheduleFields";
+import {
+  EVENT_COVER_THUMBNAIL_ASPECT,
+  getThumbnailImageStyle,
+  resolvePostThumbnail,
+  toCssAspectRatio,
+} from "../../utils/postThumbnail";
+import { formatEventDate, formatEventLocation, formatLocalDateTime } from "../../utils/scheduleFields";
 
 type FormState = {
   company_tech: string;
@@ -90,7 +95,8 @@ export function EventApplicationPage() {
   const representativeThumbnail = useMemo(() => resolvePostThumbnail(post ?? {}), [post]);
   const representativeImage = representativeThumbnail.url;
   const renderedEventContent = post?.content || "";
-  const displayLocation = useMemo(() => formatStructuredLocation(post?.location, ""), [post?.location]);
+  const displayDate = useMemo(() => formatEventDate(post, "일시 미정"), [post]);
+  const displayLocation = useMemo(() => formatEventLocation(post, "장소 미정"), [post]);
   const capacity = post?.capacity ?? null;
   const remaining = post ? getEventRemaining(post, acceptedCount) : null;
   const effectiveEventStatus = post ? getEffectiveEventStatus(post, acceptedCount) : post?.event_status ?? "";
@@ -242,9 +248,17 @@ export function EventApplicationPage() {
           </button>
           <section>
             <div style={{ background: "var(--color-surface-card)", border: "1px solid var(--color-border-soft)", borderRadius: "var(--radius-event-application-card)", overflow: "hidden" }}>
-              <div style={{ position: "relative", height: "var(--size-event-application-cover-height)", overflow: "hidden", flexShrink: 0, background: "var(--color-bg-elevated)" }}>
+              <div
+                style={{
+                  position: "relative",
+                  aspectRatio: toCssAspectRatio(EVENT_COVER_THUMBNAIL_ASPECT),
+                  overflow: "hidden",
+                  flexShrink: 0,
+                  background: "var(--color-bg-elevated)",
+                }}
+              >
                 {representativeImage ? (
-                  <img src={representativeImage} alt="" style={{ ...getThumbnailImageStyle(representativeThumbnail.crop), position: "absolute", inset: 0 }} />
+                  <img src={representativeImage} alt="" style={getThumbnailImageStyle(representativeThumbnail.coverCrop ?? representativeThumbnail.crop)} />
                 ) : (
                   <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-text-muted)" }}>
                     대표이미지 없음
@@ -258,9 +272,9 @@ export function EventApplicationPage() {
                 </div>
                 <h2 style={{ margin: 0, color: "var(--color-text-primary)", fontSize: "var(--text-event-application-title)", fontWeight: "var(--weight-black)", lineHeight: "var(--leading-event-application-title)" }}>{post.title}</h2>
                 <div style={{ display: "grid", gap: "var(--space-event-application-compact-inline)", color: "var(--color-text-muted)", fontSize: "var(--text-event-application-body)" }}>
-                  {post.event_date && <span style={{ display: "flex", gap: "var(--space-xs)", alignItems: "center" }}><CalendarDays size={16} />{post.event_date}</span>}
+                  <span style={{ display: "flex", gap: "var(--space-xs)", alignItems: "center" }}><CalendarDays size={16} />{displayDate}</span>
                   {post.application_deadline && <span style={{ display: "flex", gap: "var(--space-xs)", alignItems: "center" }}><Ban size={16} />신청 마감 {formatLocalDateTime(post.application_deadline)}</span>}
-                  {displayLocation && <span style={{ display: "flex", gap: "var(--space-xs)", alignItems: "center" }}><MapPin size={16} />{displayLocation}</span>}
+                  <span style={{ display: "flex", gap: "var(--space-xs)", alignItems: "center" }}><MapPin size={16} />{displayLocation}</span>
                   {remaining != null && <span style={{ display: "flex", gap: "var(--space-xs)", alignItems: "center" }}><Users size={16} />잔여 {remaining}석</span>}
                 </div>
                 <div className={isDark ? "quill-dark" : "quill-light"} style={{ marginBottom: 0 }}>

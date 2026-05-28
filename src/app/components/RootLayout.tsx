@@ -1,5 +1,5 @@
 import { Outlet, useNavigate, useLocation, Navigate } from "react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useTheme } from "../ThemeContext";
 import { HeaderSection } from "./HeaderSection";
 import { FooterSection } from "./FooterSection";
@@ -18,6 +18,7 @@ export function RootLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin, loading: adminLoading, mfaRequired, mfaEnrolled } = useAdmin();
+  const [staleSessionChecked, setStaleSessionChecked] = useState(false);
 
   useTracker();
   const { warningVisible, extendSession, logout } = useIdleLogout();
@@ -65,22 +66,36 @@ export function RootLayout() {
   // 재방문 시 30분 이상 지났으면 자동 로그아웃
   useEffect(() => {
     const STALE_MS = 30 * 60 * 1000;
+    let mounted = true;
+
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) return;
+      if (!mounted) return;
+      if (!session) {
+        setStaleSessionChecked(true);
+        return;
+      }
       const last = localStorage.getItem("gxp_last_active");
       if (last && Date.now() - parseInt(last) > STALE_MS) {
         supabase.auth.signOut().then(() => {
           localStorage.removeItem("gxp_last_active");
-          navigate("/");
+          if (!mounted) return;
+          setStaleSessionChecked(true);
+          navigate("/", { replace: true });
         });
+        return;
       }
+      setStaleSessionChecked(true);
     });
+
+    return () => {
+      mounted = false;
+    };
   }, [navigate]);
 
   const isAdminPage = location.pathname.startsWith("/admin");
   const isDesignSystem = location.pathname === "/design-system";
   const isMfaSetupPage = location.pathname === "/mypage";
-  const adminMfaEnrollmentLocked = !adminLoading && isAdmin && !mfaEnrolled;
+  const adminMfaEnrollmentLocked = staleSessionChecked && !adminLoading && isAdmin && !mfaEnrolled;
 
   useEffect(() => {
     if (!adminMfaEnrollmentLocked || isMfaSetupPage) return;

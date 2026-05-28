@@ -49,7 +49,7 @@ export const router = createBrowserRouter([
       { path: "faq", Component: FaqPage },
       { path: "login", Component: LoginPage },
       { path: "signup", Component: SignupPage },
-      { path: "mypage", Component: MyPage },
+      { path: "mypage", Component: AuthRoute, children: [{ index: true, Component: MyPage }] },
       { path: "search", Component: SearchPage },
       { path: "update-password", Component: UpdatePasswordPage },
       { path: "admin", Component: AdminRoute, children: [{ index: true, Component: AdminPage }] },

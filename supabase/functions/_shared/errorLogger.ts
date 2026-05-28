@@ -14,7 +14,10 @@ export type EfNodeId =
   | "ef-founders"
   | "ef-blog-sync"
   | "ef-change-password"
-  | "ef-external-news-preview";
+  | "ef-external-news-preview"
+  | "ef-update-status"
+  | "ef-toggle-mfa-bypass"
+  | "ef-get-mfa-bypass-state";
 
 export type Severity = "low" | "medium" | "high" | "critical";
 

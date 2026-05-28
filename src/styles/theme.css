@@ -81,7 +81,6 @@
   --shadow-dialog: 0 20px 40px rgba(0, 0, 0, 0.20);
   --shadow-media-cover: 0 14px 28px rgba(0, 0, 0, 0.24);
   --size-media-cover-portrait: 160px;  /* 레포트형 표지 이미지 최대 너비 */
-  --size-event-application-cover-height: clamp(128px, 18vw, 192px);
   --size-event-application-row-min: 46px;
   --size-event-application-action-sm: 26px;
   --size-event-application-action-md: 30px;

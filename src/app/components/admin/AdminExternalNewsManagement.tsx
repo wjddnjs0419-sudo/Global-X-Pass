@@ -175,7 +175,7 @@ export default function AdminExternalNewsManagement() {
 
       <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "flex-start" }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: textMain }}>언론보도 목록</h2>
+          <h2 className="text-[20px] sm:text-[24px]" style={{ margin: 0, fontWeight: 800, color: textMain }}>언론보도 목록</h2>
           <p style={{ margin: "6px 0 0", fontSize: 13, color: textMuted }}>
             저장된 초안과 게시된 언론보도를 관리합니다. 게시 상태가 아닌 항목은 공개 페이지에 보이지 않습니다.
           </p>
@@ -223,7 +223,6 @@ export default function AdminExternalNewsManagement() {
             value={searchTerm}
             onChange={setSearchTerm}
             placeholder="제목 · 요약 · 출처 · 링크 검색"
-            className="max-w-[420px]"
           />
         </div>
 
@@ -260,8 +259,8 @@ export default function AdminExternalNewsManagement() {
           ))
         ) : items.length === 0 ? (
           <div
+            className="px-6 py-10 sm:p-[60px]"
             style={{
-              padding: "60px",
               textAlign: "center",
               color: textMuted,
               background: card,
@@ -277,11 +276,11 @@ export default function AdminExternalNewsManagement() {
             return (
               <div
                 key={item.id}
+                className="p-4 sm:p-5"
                 style={{
                   background: card,
                   border: `1px solid ${border}`,
                   borderRadius: 18,
-                  padding: 20,
                   display: "flex",
                   flexDirection: "column",
                   gap: 12,

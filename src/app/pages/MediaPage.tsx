@@ -8,7 +8,10 @@ import { fetchPublicPostPreviews } from "../../utils/publicPostPreviews";
 import { LoadingSpinner, ErrorMessage } from "../components/LoadingSpinner";
 import type { Post } from "../../lib/types";
 import { getFilterTabStyle } from "../components/contentListStyles";
-import { getThumbnailImageStyle, resolvePostThumbnail } from "../../utils/postThumbnail";
+import {
+  getThumbnailImageStyle,
+  resolvePostThumbnail,
+} from "../../utils/postThumbnail";
 import {
   getMediaCategoryAspectRatio,
   getMediaCategoryLabel,
@@ -89,7 +92,7 @@ export function MediaPage() {
             }}
           >
             <p style={{ margin: 0, fontSize: 16, fontWeight: 800, lineHeight: 1.7, color: "var(--color-text-primary)" }}>아직 등록된 인사이트 콘텐츠가 없습니다.</p>
-            <p style={{ margin: "8px 0 0", fontSize: 13, lineHeight: 1.6 }}>관리자에서 미디어 카테고리 게시물을 등록하면 이곳에 표시됩니다.</p>
+            <p style={{ margin: "8px 0 0", fontSize: 13, lineHeight: 1.6 }}>관리자에서 인사이트 게시물을 등록하면 이곳에 표시됩니다.</p>
           </div>
         ) : (
           <>

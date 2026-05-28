@@ -343,20 +343,20 @@ export function EventArchivePage() {
                           event.currentTarget.style.transform = "translateY(0)";
                         }}
                       >
-                        <div
-                          style={{
-                            position: "relative",
-                            width: "100%",
-                            aspectRatio: "16 / 9",
-                            background: "var(--color-skeleton-bg)",
-                            borderRadius: 12,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            overflow: "hidden",
-                            boxShadow: "var(--shadow-media-cover)",
-                          }}
-                        >
+                            <div
+                              style={{
+                                position: "relative",
+                                width: "100%",
+                                aspectRatio: "16 / 9",
+                                background: "var(--color-skeleton-bg)",
+                                borderRadius: 12,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                overflow: "hidden",
+                                boxShadow: "var(--shadow-media-cover)",
+                              }}
+                            >
                           {hasImage ? (
                             <img
                               src={thumbnail.url ?? ""}
