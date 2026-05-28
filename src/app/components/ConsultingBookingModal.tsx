@@ -126,7 +126,7 @@ export function ConsultingBookingModal({ consultant, isDark, onClose }: Props) {
                   loadingLabel: "취소 중...",
                   loading: canceling,
                   variant: "destructive",
-                  icon: <Ban size="var(--size-event-application-icon-md)" />,
+                  icon: <Ban size={16} />,
                   onClick: handleCancelReservation,
                 },
                 { label: "내 신청 내역 보기", to: "/mypage" },

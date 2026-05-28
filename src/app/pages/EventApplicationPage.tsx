@@ -242,9 +242,9 @@ export function EventApplicationPage() {
           </button>
           <section>
             <div style={{ background: "var(--color-surface-card)", border: "1px solid var(--color-border-soft)", borderRadius: "var(--radius-event-application-card)", overflow: "hidden" }}>
-              <div style={{ height: "var(--size-event-application-cover-height)", background: "var(--color-bg-elevated)" }}>
+              <div style={{ position: "relative", height: "var(--size-event-application-cover-height)", overflow: "hidden", flexShrink: 0, background: "var(--color-bg-elevated)" }}>
                 {representativeImage ? (
-                  <img src={representativeImage} alt="" style={getThumbnailImageStyle(representativeThumbnail.crop)} />
+                  <img src={representativeImage} alt="" style={{ ...getThumbnailImageStyle(representativeThumbnail.crop), position: "absolute", inset: 0 }} />
                 ) : (
                   <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-text-muted)" }}>
                     대표이미지 없음
@@ -258,10 +258,10 @@ export function EventApplicationPage() {
                 </div>
                 <h2 style={{ margin: 0, color: "var(--color-text-primary)", fontSize: "var(--text-event-application-title)", fontWeight: "var(--weight-black)", lineHeight: "var(--leading-event-application-title)" }}>{post.title}</h2>
                 <div style={{ display: "grid", gap: "var(--space-event-application-compact-inline)", color: "var(--color-text-muted)", fontSize: "var(--text-event-application-body)" }}>
-                  {post.event_date && <span style={{ display: "flex", gap: "var(--space-xs)", alignItems: "center" }}><CalendarDays size="var(--size-event-application-icon-md)" />{post.event_date}</span>}
-                  {post.application_deadline && <span style={{ display: "flex", gap: "var(--space-xs)", alignItems: "center" }}><Ban size="var(--size-event-application-icon-md)" />신청 마감 {formatLocalDateTime(post.application_deadline)}</span>}
-                  {displayLocation && <span style={{ display: "flex", gap: "var(--space-xs)", alignItems: "center" }}><MapPin size="var(--size-event-application-icon-md)" />{displayLocation}</span>}
-                  {remaining != null && <span style={{ display: "flex", gap: "var(--space-xs)", alignItems: "center" }}><Users size="var(--size-event-application-icon-md)" />잔여 {remaining}석</span>}
+                  {post.event_date && <span style={{ display: "flex", gap: "var(--space-xs)", alignItems: "center" }}><CalendarDays size={16} />{post.event_date}</span>}
+                  {post.application_deadline && <span style={{ display: "flex", gap: "var(--space-xs)", alignItems: "center" }}><Ban size={16} />신청 마감 {formatLocalDateTime(post.application_deadline)}</span>}
+                  {displayLocation && <span style={{ display: "flex", gap: "var(--space-xs)", alignItems: "center" }}><MapPin size={16} />{displayLocation}</span>}
+                  {remaining != null && <span style={{ display: "flex", gap: "var(--space-xs)", alignItems: "center" }}><Users size={16} />잔여 {remaining}석</span>}
                 </div>
                 <div className={isDark ? "quill-dark" : "quill-light"} style={{ marginBottom: 0 }}>
                   <div
@@ -304,7 +304,7 @@ export function EventApplicationPage() {
                             loadingLabel: "취소 중...",
                             loading: submitting,
                             variant: "destructive" as const,
-                            icon: <Ban size="var(--size-event-application-icon-md)" />,
+                            icon: <Ban size={16} />,
                             onClick: handleCancelApplication,
                           },
                         ]
@@ -370,7 +370,7 @@ export function EventApplicationPage() {
                   </div>
 
                   <Button type="button" size="lg" onClick={handleSubmit} disabled={submitting || !isApplicationOpen} className="w-full bg-[var(--color-accent-green)] hover:brightness-110">
-                    <Send size="var(--size-event-application-icon-md)" />
+                    <Send size={16} />
                     {!isApplicationOpen ? (effectiveEventStatus === "접수예정" ? "접수 예정" : "신청 마감") : submitting ? "제출 중..." : "신청 제출"}
                   </Button>
                 </div>

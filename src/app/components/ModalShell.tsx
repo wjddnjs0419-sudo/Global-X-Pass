@@ -37,7 +37,7 @@ export function ModalShell({ onClose, children, showCloseButton = false, maxWidt
       <div style={{ position: "relative", background: "var(--color-bg-elevated)", borderRadius: 24, padding: "36px 32px", width: "100%", maxWidth, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 24px 60px rgba(0,0,0,0.25)" }}>
         {showCloseButton && (
           <button type="button" aria-label="모달 닫기" onClick={onClose} style={modalCloseButtonStyle}>
-            <X size="var(--size-event-application-icon-md, 18px)" />
+            <X size={16} />
           </button>
         )}
         {children}

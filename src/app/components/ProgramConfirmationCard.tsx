@@ -69,7 +69,7 @@ export function ProgramConfirmationCard({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: "var(--space-event-application-centered-gap, 14px)", padding }}>
-      <CheckCircle2 size="var(--size-event-application-action-lg, 52px)" color="var(--color-accent-green)" />
+      <CheckCircle2 size={48} color="var(--color-accent-green)" />
       <h3 style={{ margin: 0, color: "var(--color-text-primary)", fontSize: "var(--text-event-application-heading, 24px)", fontWeight: "var(--weight-black, 900)" }}>
         {title}
       </h3>

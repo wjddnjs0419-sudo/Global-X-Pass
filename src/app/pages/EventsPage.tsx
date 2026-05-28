@@ -104,7 +104,7 @@ export function EventsPage() {
               return (
                 <div
                   key={post.id}
-                  className="rounded-3xl overflow-hidden flex flex-col sm:flex-row sm:min-h-[220px] transition-all duration-200 hover:-translate-y-0.5"
+                  className="rounded-3xl overflow-hidden flex flex-col sm:flex-row sm:min-h-[220px] transition-all duration-200 hover:-translate-y-0.5 isolate"
                   style={{
                     background: "var(--color-surface-card)",
                     border: "1px solid var(--color-border-soft)",
@@ -114,15 +114,17 @@ export function EventsPage() {
                   {/* Thumbnail */}
                   <div
                     className="relative overflow-hidden w-full sm:w-[260px] shrink-0 h-52 sm:h-auto sm:self-stretch"
-                    style={{ background: "var(--color-img-placeholder)" }}
+                    style={{ background: "var(--color-img-placeholder)", contain: "paint", zIndex: 0 }}
                   >
                     {thumbnailUrl ? (
-                      <img
-                        src={thumbnailUrl}
-                        alt=""
-                        className="absolute inset-0 block"
-                        style={getThumbnailImageStyle(resolvedThumbnail.url ? resolvedThumbnail.crop : null)}
-                      />
+                      <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
+                        <img
+                          src={thumbnailUrl}
+                          alt=""
+                          className="absolute inset-0 block"
+                          style={getThumbnailImageStyle(resolvedThumbnail.url ? resolvedThumbnail.crop : null)}
+                        />
+                      </div>
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -134,8 +136,8 @@ export function EventsPage() {
 
                   {/* Center: content */}
                   <div
-                    className="flex-1 min-w-0 p-6 sm:p-6 flex flex-col gap-3 overflow-hidden"
-                    style={{ borderRight: "1px solid var(--color-border-soft)" }}
+                    className="relative flex-1 min-w-0 p-6 sm:p-6 flex flex-col gap-3 overflow-hidden"
+                    style={{ borderRight: "1px solid var(--color-border-soft)", zIndex: 1, background: "var(--color-surface-card)" }}
                   >
                     {/* Status + type badges */}
                     <div className="flex flex-wrap gap-2">

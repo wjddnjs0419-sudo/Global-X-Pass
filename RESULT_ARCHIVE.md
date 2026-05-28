@@ -1,3 +1,11 @@
+## 2026-05-28 홈 공지·행사 섹션 빈 공간 해결
+
+- 공지사항 섹션에서 공지 1개가 컬럼 전체 높이로 stretch되던 원인(`flex:1`, `flex:"1 1 0"`)을 제거해 자연 높이로 위부터 쌓이도록 수정했다.
+- 행사 소식 섹션은 우측 목록이 0개일 때 대표 카드를 풀폭 가로 hero로 렌더하고, 우측 빈 칼럼을 만들지 않도록 분기했다.
+- 검증: `npm run validate` ✅ ×2, Codex 리뷰 BLOCKING 0, 홈 `/` 브라우저 smoke(공지/행사 섹션, 콘솔 에러 0) ✅
+
+---
+
 ## 2026-05-27 게시판 3단계 접근 모델(public/gated/private) + 특수 페이지 통합
 
 - `post_categories`에 `access_level`(public/gated/private)+`kind`(board/page) 추가. `is_public`은 트리거로 access_level과 동기화(RLS `posts_select_public_by_flag` 호환).

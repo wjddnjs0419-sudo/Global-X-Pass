@@ -1,28 +1,30 @@
-# RESULT: 홈 공지·행사 섹션 빈 공간 해결 (2026-05-28)
+# RESULT: 행사 신청/목록 썸네일 겹침 + 아이콘 확대 수정 (2026-05-28)
 
 ## 현재 상태
 
-- **증상**: 메인페이지 게시물이 적어 ①공지사항 섹션은 공지 1개가 컬럼 전체 높이로 stretch되어 세로 중앙 거대 카드처럼 보이고, ②행사 소식 섹션은 공개 행사 1개(=대표 1개, 우측 목록 0개)일 때 2단 grid의 우측 절반이 통째로 비어 보임.
-- **결과**: 두 섹션 모두 "위부터/꽉 차게" 채워지도록 수정. 라이브 데이터(행사 1·공지 1) 기준 빈 공간 해소 확인.
+- **증상**: 행사 신청 상세 모바일에서 대표 썸네일이 상태/본문 영역과 겹쳐 보이고, `/events` PC 카드에서는 대표 이미지가 본문 경계를 넘어 제목 앞부분을 덮는 현상이 있었다.
+- **추가 증상**: VS Code/브라우저 환경에서 행사 신청 상세의 `CalendarDays`, `Ban` 등 lucide 아이콘이 거대하게 렌더됐다.
+- **결과**: 대표 이미지 crop 확대는 각 썸네일 영역 내부에서만 보이도록 고정했고, lucide 아이콘은 CSS var 문자열 size 대신 숫자 size로 정리했다.
 
 ## 변경 내용
 
 | 대상 | 변경 |
 |---|---|
-| `NoticeResourceSection.tsx` 공지 컬럼 | grid 두 컬럼이 동일 높이로 stretch되는데 공지 컨테이너 `flex:1` + 각 `NoticeRow`/로딩 스켈레톤 `flex:"1 1 0"`이 1개 행을 컬럼 전체로 늘리던 원인 제거. stretch 3곳 삭제 → `minHeight:74` 자연 높이로 위부터 쌓임 |
-| `EventSection.tsx` 적응형 레이아웃 | 대표 카드 콘텐츠(badge/제목·설명/footer)를 `featuredInner` 변수로 추출해 두 레이아웃 공유. `hasUpcoming = upcomingEvents.length > 0` 분기 |
-| ↳ 우측 목록 0개(`!hasUpcoming`) | 대표 카드를 풀폭 가로 hero로 렌더(썸네일 패널 좌 `min-[640px]:flex-row` + 내용 우), 우측 목록 div 미렌더 → 빈 우측 절반 제거 |
-| ↳ 1개+(`hasUpcoming`) | 기존 2단(대표 `height:100%` + 우측 목록) 그대로 유지 |
-| ↳ grid 클래스 | `loading || hasUpcoming`일 때만 `min-[900px]:grid-cols-2`, 아니면 1단. 로딩 스켈레톤은 2단 유지 |
+| `EventApplicationPage.tsx` | 상단 대표 이미지 부모에 `position: relative`, `overflow: hidden`, `flexShrink: 0`을 추가하고 이미지를 `absolute inset:0`으로 고정해 crop 확대가 상태 배지/본문 영역으로 넘어오지 못하게 했다. |
+| `theme.css` | 행사 신청 대표 이미지 높이를 `clamp(128px, 18vw, 192px)`로 보정해 모바일에서도 썸네일 영역이 너무 얇아지지 않게 했다. |
+| `EventsPage.tsx` | 카드 썸네일에 내부 clipping layer와 `contain: paint`를 추가하고, 본문 칼럼은 `relative zIndex:1` + 카드 배경으로 분리해 확대된 이미지가 제목 위로 그려질 경로를 차단했다. |
+| 신청/확인 UI 아이콘 | `size="var(--size-event-application-icon-md)"`와 유사한 lucide 패턴을 `size={16}` 또는 `size={48}` 숫자 값으로 교체했다. 대상: `EventApplicationPage`, `ProgramConfirmationCard`, `ModalShell`, `ConsultingBookingModal`, `FoundersClubPage`. |
 
 ## 검증 결과
 
-- `npm run validate` ✅ ×2 (tsc + eslint --max-warnings=0 + vite build + 프론트 시크릿 23개).
-- Codex 리뷰 2건(공지·행사 각 1회) **BLOCKING 0** — 회귀/다크모드/반응형(640·900px) 부작용 없음. 잔여 리스크는 모바일 col 모드 footer 시각 완성도(비블로킹).
-- 브라우저 `/` 홈 smoke(Playwright): 공지 섹션 캡처(공지 1행 상단 정렬·자료실 4그리드 정상), 행사 섹션 캡처(풀폭 가로 hero), 콘솔 에러 0 육안 확인 ✅.
+- `npm run validate` ✅ (tsc + eslint --max-warnings=0 + vite build + 프론트 시크릿 23개).
+- 잔여 `size="var(--size-event-application...)` 패턴 검색 결과 없음 ✅.
+- Playwright `/events` 375px 모바일 smoke ✅: 카드 `flexDirection: column`, 썸네일 하단과 본문 상단 간격 `0px`, 겹침 없음.
+- Playwright `/events` 1438px 데스크톱 smoke ✅: 썸네일 `contain: paint`, 본문 `zIndex:1`/배경 적용, 콘솔 에러 0.
+- `/events/:id/apply` 직접 브라우저 smoke는 현재 세션이 로그인 상태가 아니라 `/login`으로 리디렉트되어 미실행. 대신 해당 페이지의 원인 코드 경로(`EventApplicationPage` 커버 clipping, lucide size)를 소스와 validate로 확인했다.
 
 ## 미실행 / 후속
 
-- 프론트만 변경 — Supabase 마이그레이션 변경 없음(sync 영향 없음).
-- 미커밋 잔여: `.claude/settings.json`(이번 스모크 임시 권한)·`src/generated/architectureMap.json`(생성물 1줄) — 기능 커밋서 제외.
-- **Pending Approval 유지**: 게시판 gated 일관 적용 미커밋분 Codex 재리뷰는 별건(PLAN.md 참고).
+- 프론트 UI/CSS 수정만 수행 — Supabase 마이그레이션 변경 없음.
+- 작업 전부터 있던 미커밋 변경(`.DS_Store`, `.claude/settings.json`, 일부 content/generated 파일, `0`)은 이번 수정 대상이 아니므로 건드리지 않았다.
+- Pending Approval 유지: 게시판 gated 일관 적용 미커밋분 Codex 재리뷰는 별건으로 남아 있다.

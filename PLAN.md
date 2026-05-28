@@ -8,6 +8,8 @@
 
 ## Done
 
+- [Done] 행사 신청/목록 썸네일 영역 겹침 + 아이콘 확대 수정 (2026-05-28) — 신청 상세 커버 부모에 `position:relative`/`overflow:hidden` clipping을 추가하고 커버 높이를 `clamp(128px,18vw,192px)`로 보정. `/events` 목록 카드는 썸네일 내부 clip layer+`contain:paint`, 본문 `relative zIndex:1`/배경으로 확대 crop 이미지가 제목을 덮지 못하게 분리. lucide `size="var(...)"` 패턴은 행사/신청 관련 UI에서 숫자 size로 교체해 VS Code/브라우저 아이콘 확대를 방지. `npm run validate` ✅, Playwright `/events` 375px/1438px smoke ✅, 신청 상세 직접 smoke는 로그인 보호로 미실행(소스 경로 확인). 상세 RESULT.md.
+
 - [Done] 홈 공지·행사 섹션 빈 공간 해결 (2026-05-28) — 메인 게시물이 적을 때 ①공지사항: 공지 1개가 컬럼 전체로 stretch되던 원인(공지 컨테이너 `flex:1` + NoticeRow·스켈레톤 `flex:"1 1 0"`) 3곳 제거 → `minHeight:74` 자연 높이로 위부터 쌓임. ②행사 소식: 대표 콘텐츠를 `featuredInner`로 추출하고 `hasUpcoming`(우측목록>0) 적응형 분기 — 0개면 풀폭 가로 hero(썸네일 좌 `min-[640px]:flex-row`+내용 우, 우측 빈칸 제거), 1개+면 기존 2단. grid는 `loading||hasUpcoming`일 때만 2단. 라이브(행사1·공지1) 빈칸 해소. 프론트만(마이그 무). `npm run validate` ✅, Codex 2건 BLOCKING 0, 브라우저 `/` smoke(공지·행사 섹션 캡처 육안+콘솔 0) ✅. 상세 RESULT.md.
 
 - [Done] 행사 목록 썸네일 2버그 수정 (2026-05-28) — ①`/events` 카드 대표 썸네일이 영역 밖 거대 표시+카드 높이 폭발: 데스크톱 `sm:h-auto sm:self-stretch` flex 행에서 img `height:100%`가 부모 높이 미확정으로 원본 비율 펼쳐지던 순환 의존 → `EventsPage` 컨테이너 `relative overflow-hidden`+img `absolute inset-0`로 해소. ②어드민 행사 대표 썸네일 업로드 시 하단 첨부에 자동 중복적재: `onCropApply`가 업로드 파일을 `pendingThumbnailFile`+`files[]` 이중 보관 → 저장 시 events 분기가 `files` 전체를 `image_url`로 올리던 게 원인 → `files` push 제거 + `thumbnailFromUploadRef`로 standalone/candidate 출처 구분, `[files]`이펙트·`onCropApply`·`onChange`·저장 업로드 가드(`&& supportsFinalThumbnail`) 정합. media(aspectRatio+dataUrl)/news/events-archive 무관 확인. `npm run validate` ✅×2, Codex 2회(1차 Change2 needs-fix 4건→재작업→2차 4건 RESOLVED·SAFE-TO-COMMIT). 상세 RESULT.md.
@@ -25,12 +27,6 @@
 - [Done] 홈 인사이트 문구 정리 + 프로그램 태그 모바일 높이 보정 (2026-05-27) — `MediaSection`의 홈 노출 텍스트를 `우리 인사이트` 기준으로 정리하고, 에러/빈 상태/캐러셀 접근성 라벨/fallback `INSIGHT` 표기를 함께 맞췄다. `ProgramSection`은 태그 래퍼 `alignItems/alignContent`와 칩 `inline-flex + alignSelf + lineHeight`를 보정해 모바일에서 키워드 박스가 행 높이에 늘어나는 현상을 막았다. `npm run validate` ✅, 홈 `/` 브라우저 heading smoke ✅
 
 - [Done] 홈 About 섹션 미니멀 재정렬 (2026-05-27) — 승인된 재기획 기준대로 과한 Around X 전용 배경/그라데이션/브랜드 배지/키워드 칩/반복 색상 장식을 제거하고, `homeSectionStyles.ts` + `getSectionTheme()` 기반의 기존 홈 섹션 문법으로 재정렬했다. 반복 가치 카드는 신규 `AboutValueCard`로 분리했고, 아이콘은 `AdminSidebar`의 16px `currentColor` 선형 스타일을 참고했다. `npm run validate` ✅, 홈 `/` 데스크톱·모바일·다크·EN 브라우저 smoke ✅
-
-- [Done] 홈 About 섹션을 Around X 브랜드 소개로 전환 (2026-05-27) — 홈 `AboutSection`을 창구 프로그램 타임라인 대신 `Around X` 브랜드 소개로 교체했다. `Logo.png` 워드마크를 재사용하고, `Around X Purple (#8264FF) → Around X Blue (#0073FF)` 그라데이션 토큰과 4가지 핵심 가치(글로벌 지향성·협업·연결·확장성)를 홈 첫 소개 블록에 반영했다. `/` 홈 브라우저 smoke 확인 ✅, `npm run validate` ✅
-
-- [Done] 중복 UI / 구식 편집 경로 정리 감사 후속 (2026-05-27) — `EventApplicationPage`의 예전 관리자 인라인 편집기(`adminEditing`/`adminDraft`/`handleAdminSave`)와 직접 `posts.update()` 저장 경로를 삭제해 행사 편집 진입을 `/post/:id?edit=1` + `AdminPostCreate`로 단일화. 홈 `EventSection` 대표 행사 배경은 `resolvePostThumbnail()` 사용으로 새 대표 이미지 저장소를 반영. `AdminDashboard` 인기 게시물 라벨은 `post_categories` 동적 라벨 우선으로 전환. `categoryStore.ts`는 `useBoardTagPresets()`의 DB 로딩 전 정적 fallback으로 사용 중이라 유지. `npm run validate` ✅
-
-- [Done] 행사 대표 이미지 업로드/수정/삭제 + 행사 수정 UI 단일화 (2026-05-27) — events 대표 이미지를 `thumbnail_url` 원본 URL + `thumbnail_crop` JSON으로 저장하도록 확장. `EventFormConfigEditor` 신규 추가로 신청서 질문/문구(`event_form_config`)를 어드민 게시물 작성/수정에서 함께 관리. `/events`와 행사 신청 상단 이미지는 `resolvePostThumbnail()` 우선 렌더. 상세 수정은 `AdminPostCreate` 위임, 행사관리/신청 페이지 편집 버튼은 게시물 편집 경로로 연결. `npm run validate` ✅, 인앱 브라우저 `/events` smoke ✅
 
 ## Future / 추후 수정
 
@@ -85,15 +81,3 @@ supabase secrets set GROQ_API_KEY=...
 - [ ] Discord Slash Commands 등록 스크립트 (`scripts/register-discord-commands.mjs`)
 - [ ] Discord Developer Portal → Interactions Endpoint URL 입력
 - [ ] `npm run validate` + 전체 배포 검증
-
----
-
-- [Done] 어드민 사이드바 그룹 재정리 — 콘텐츠/자동화 분리 (2026-05-27) — `AdminSidebar.tsx` `SECTIONS`에서 과밀했던 `콘텐츠` 6개를 직접 편집형 `콘텐츠` 3(게시물 작성·관리·게시판) + 외부 수집형 신설 `자동화` 3(블로그 동기화·기업 뉴스·언론보도)으로 분리. 정적 배열 재구성만 — TabId/렌더/라우팅/DB 무변경. `npm run validate` ✅, Codex 블로킹 없음(중복/누락 tab id 없음, 12개 전부 AdminPage 렌더)
-
-- [Done] 블로그 게시판 완전 삭제 + 어드민 카테고리 드롭다운 동적화 (2026-05-27) — "지웠다"는 인식과 달리 blog는 코드·DB에 그대로 남아 있었음(공개 네비에서만 숨김). 마이그 `20260527030134`로 posts(category=blog) 10개·board_tag_presets 6행·post_categories blog 행 삭제. 프론트 표면 제거(BlogPage/`/blog` 라우트·adminConstants `CATEGORIES`/`CATEGORY_COLOR`·categoryStore `BOARD_PRESETS`·CommunitySection·SearchPage 데모·PostDetailPage 테마/매핑). 근본 원인이던 하드코딩 `CATEGORIES`↔동적 `post_categories` 불일치는 `BoardCategoriesContext.useBoardCategoryList()`를 추가해 AdminPostCreate/AdminPostManage 드롭다운을 동적화(`categoryOptions = boardList.length ? boardList : CATEGORIES`)로 해소. 네이버 블로그 크롤링 자동화(sync-naver-blog 등)는 적재처가 news/events-archive라 의도적 보존. `npm run validate` ✅, 원격 DB 0/0/0 ✅, Codex 블로킹 없음, migration sync 정렬 완료
-
-- [Done] 언론보도 링크 원클릭 등록 자동 메타데이터화 (2026-05-27) — `/news` 언론보도를 `링크 입력 -> 미리보기 -> 초안 저장 -> 게시 승인` 승인형 워크플로우로 개편. Naver 검색 API는 쓰지 않고, `supabase/functions/external-news-preview`에서 URL 직접 fetch + OG/HTML/JSON-LD 메타 추출 + SSRF 방지 가드를 구현했다. `AdminExternalNewsManagement`는 목록/필터와 새 `ExternalNewsPreviewComposer`로 분리했고, `ExternalNewsPreviewCard`/`ExternalNewsDraftEditor`를 추가해 기존 스타일과 공용 컴포넌트를 재사용했다. `external_news_items`는 새 테이블 없이 기존 `draft | published` 상태만 재사용한다. `npm run validate` ✅
-
-- [Done] 파운더스클럽 참여사 직접 세션 등록 + 어드민 승인 (2026-05-27) — `/founders`에 participant `세션 등록하기` 버튼/모달(전 항목 필수) 추가. 세션은 `pending`으로 생성→어드민이 `승인`(recruiting)/`반려`(rejected). 허위 등록 방지는 participant 역할 게이트(`is_founders_session_host()`)+세션 승인 이중. `founders_club_sessions.created_by`·status(`pending`/`rejected`) 확장, pending/rejected 가시성 제한(작성자·admin), 미승인 세션 신청 차단 가드, 호스트 본인 세션 삭제 정책, 승인 시 등록자 자동참가 트리거(마이그 `013726`/`015126`/`020631`). 등록 모달은 공용 `ModalShell`/`getModalFieldStyle` 재사용. 관리자 패널 직접 생성(즉시 모집중)은 유지. Codex 3회 반영(🔴 stale SELECT 정책 노출, 🟡 가드 FOR UPDATE, 🟡 fontFamily). `npm run validate` ✅, migration sync 정렬 완료
-
-- [Done] 1:1 컨설팅 → 온라인 이머젼 / 오피스아워 분리 (2026-05-26) — `/consulting`을 상단 탭 2개로 분리. 온라인 이머젼은 기존 전문가 선택형 그대로(`ImmersionPanel` 추출), 오피스아워는 전문가 비노출 + 6~12월 월별 모집(정원 제한, `FOR UPDATE` 정원 트리거) + 관리자 매칭. 신규 테이블 `office_hour_months`/`office_hour_applications`, 잔여좌석 RPC, edge function `office-hour-admin-applications`(프로필 복호화) 배포. 관리자 `오피스아워 관리` 탭(월별 정원/신청 매칭). 상태 라벨·색상은 `officeHours.ts`, 모달 셸은 `ModalShell.tsx`로 공용화. Codex 리뷰 반영(🔴 INSERT 상태 우회 차단, 🟡 로더 에러 처리). `npm run validate` ✅, migration sync 정렬 완료

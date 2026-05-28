@@ -505,7 +505,7 @@ export function FoundersClubPage() {
             {appliedId === applyTarget.id ? (
               <>
                 <button type="button" aria-label="모달 닫기" onClick={closeApplyModal} style={modalCloseButtonStyle}>
-                  <X size="var(--size-event-application-icon-md, 18px)" />
+                  <X size={16} />
                 </button>
                 <ProgramConfirmationCard
                   title={applyCancelled ? "예약이 취소되었습니다." : "Founder's Club 참여가 확정되었습니다."}
@@ -522,7 +522,7 @@ export function FoundersClubPage() {
                           loadingLabel: "취소 중...",
                           loading: cancelingApplication,
                           variant: "destructive",
-                          icon: <Ban size="var(--size-event-application-icon-md)" />,
+                          icon: <Ban size={16} />,
                           onClick: handleCancelAppliedApplication,
                         },
                         { label: "내 신청 내역 보기", to: "/mypage" },
