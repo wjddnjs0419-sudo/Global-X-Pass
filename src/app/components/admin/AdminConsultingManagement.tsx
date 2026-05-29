@@ -3,7 +3,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { X } from "lucide-react";
 import { supabase } from "../../../lib/supabaseClient";
 import { encodeFilename } from "../../../utils/file";
-import { isDataImageUrl } from "../../../utils/postThumbnail";
+import { isDataImageUrl } from "../../../utils/thumbnail/parser";
 import {
   composeIsoDate,
   composeStructuredLocation,
@@ -40,7 +40,7 @@ type ConsultingReservationRow = {
   slot_id: string;
   user_id: string;
   description: string;
-  status: "pending" | "confirmed" | "rejected" | "cancelled";
+  status: "pending" | "confirmed" | "rejected" | "cancelled_by_user" | "cancelled_by_admin";
   admin_note: string | null;
   created_at: string;
   consulting_slots?: {
@@ -329,20 +329,31 @@ export function AdminConsultingManagement() {
     if (selectedConsultant) fetchSlots(selectedConsultant);
   };
 
-  const handleUpdateReservation = async (id: string, status: "cancelled", note: string) => {
+  const handleUpdateReservation = async (id: string, status: "confirmed" | "rejected" | "cancelled_by_admin", note: string) => {
     setLoading(true);
     const { error } = await supabase.from("consulting_reservations").update({ status, admin_note: note || null }).eq("id", id);
     if (error) alert("처리 실패: " + error.message);
-    else {
-      const res = reservations.find(r => r.id === id);
-      if (res?.slot_id) await supabase.from("consulting_slots").update({ status: "available" }).eq("id", res.slot_id);
-      fetchReservations();
-    }
+    else fetchReservations();
+    setLoading(false);
+  };
+
+  const handleDeleteReservation = async (id: string) => {
+    if (!window.confirm("종결된 신청 row를 삭제하시겠습니까?")) return;
+    setLoading(true);
+    const { error } = await supabase.from("consulting_reservations").delete().eq("id", id);
+    if (error) alert("삭제 실패: " + error.message);
+    else fetchReservations();
     setLoading(false);
   };
 
   const statusBadge = (s: string) => {
-    const cfg = { pending: { label: "대기", color: "var(--color-brand-yellow)" }, confirmed: { label: "확정", color: "var(--color-brand-green)" }, rejected: { label: "거절", color: "var(--color-brand-red)" }, cancelled: { label: "취소", color: "var(--color-neutral)" } }[s] ?? { label: s, color: "var(--color-text-muted)" };
+    const cfg = {
+      pending:            { label: "승인 대기",   color: "var(--color-brand-yellow)" },
+      confirmed:          { label: "확정",        color: "var(--color-brand-green)" },
+      rejected:           { label: "거절",        color: "var(--color-brand-red)" },
+      cancelled_by_user:  { label: "취소(본인)",  color: "var(--color-neutral)" },
+      cancelled_by_admin: { label: "취소(관리자)", color: "var(--color-neutral)" },
+    }[s] ?? { label: s, color: "var(--color-text-muted)" };
     return <span style={getStatusPillStyle(cfg.color)}>{cfg.label}</span>;
   };
 
@@ -367,7 +378,7 @@ export function AdminConsultingManagement() {
 
       <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
         {(["consultants", "slots", "reservations", "categories"] as SubTab[]).map(t => (
-          <button key={t} onClick={() => setSubTab(t)} style={{ padding: "10px 20px", borderRadius: 12, background: subTab === t ? selectedBg : "transparent", color: subTab === t ? textMain : textMuted, fontWeight: 750, cursor: "pointer", border: `1px solid ${subTab === t ? labelBorder : border}` } as any}>
+          <button key={t} onClick={() => setSubTab(t)} style={{ padding: "10px 20px", borderRadius: 12, background: subTab === t ? selectedBg : "transparent", color: subTab === t ? textMain : textMuted, fontWeight: 750, cursor: "pointer", border: `1px solid ${subTab === t ? labelBorder : border}` }}>
             {{ consultants: "전문가 관리", slots: "슬롯 관리", reservations: "예약 관리", categories: "카테고리" }[t]}
           </button>
         ))}
@@ -622,7 +633,7 @@ export function AdminConsultingManagement() {
           {reservations.length === 0 ? (
             <div style={{ textAlign: "center", padding: "60px", color: textMuted }}>접수된 예약이 없습니다.</div>
           ) : reservations.map(r => (
-            <ReservationCard key={r.id} r={r} card={card} border={border} textMain={textMain} textMuted={textMuted} inputStyle={inputStyle} statusBadge={statusBadge} loading={loading} onUpdate={handleUpdateReservation} labelBg={labelBg} labelBorder={labelBorder} deleteBg={deleteBg} deleteBorder={deleteBorder} />
+            <ReservationCard key={r.id} r={r} card={card} border={border} textMain={textMain} textMuted={textMuted} inputStyle={inputStyle} statusBadge={statusBadge} loading={loading} onUpdate={handleUpdateReservation} onDelete={handleDeleteReservation} labelBg={labelBg} labelBorder={labelBorder} deleteBg={deleteBg} deleteBorder={deleteBorder} />
           ))}
         </div>
       )}
@@ -717,14 +728,15 @@ interface ReservationCardProps {
   inputStyle: CSSProperties;
   statusBadge: (s: string) => ReactNode;
   loading: boolean;
-  onUpdate: (id: string, status: "cancelled", note: string) => Promise<void>;
+  onUpdate: (id: string, status: "confirmed" | "rejected" | "cancelled_by_admin", note: string) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
   labelBg: string;
   labelBorder: string;
   deleteBg: string;
   deleteBorder: string;
 }
 
-function ReservationCard({ r, card, border, textMain, textMuted, inputStyle, statusBadge, loading, onUpdate, labelBg, labelBorder, deleteBg, deleteBorder }: ReservationCardProps) {
+function ReservationCard({ r, card, border, textMain, textMuted, inputStyle, statusBadge, loading, onUpdate, onDelete, labelBg, labelBorder, deleteBg, deleteBorder }: ReservationCardProps) {
   const [note, setNote] = useState(r.admin_note || "");
   const slot = r.consulting_slots;
   const consultant = slot?.consultants;
@@ -750,10 +762,27 @@ function ReservationCard({ r, card, border, textMain, textMuted, inputStyle, sta
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <input style={inputStyle} placeholder="관리자 메모 (선택)" value={note} onChange={e => setNote(e.target.value)} />
           <div className="flex flex-wrap gap-2 md:justify-end">
-            <button type="button" disabled={loading} onClick={() => onUpdate(r.id, "cancelled", note)} style={{ minWidth: 82, height: 32, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "0 12px", borderRadius: 10, border: `1px solid ${deleteBorder}`, background: deleteBg, color: "var(--color-brand-red)", fontSize: 13, fontWeight: 800, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.55 : 1 }}>
+            {r.status === "pending" && (
+              <>
+                <button type="button" disabled={loading} onClick={() => onUpdate(r.id, "confirmed", note)} style={{ minWidth: 82, height: 32, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "0 12px", borderRadius: 10, border: `1px solid ${labelBorder}`, background: labelBg, color: "var(--color-brand-green)", fontSize: 13, fontWeight: 800, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.55 : 1 }}>
+                  승인
+                </button>
+                <button type="button" disabled={loading} onClick={() => onUpdate(r.id, "rejected", note)} style={{ minWidth: 82, height: 32, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "0 12px", borderRadius: 10, border: `1px solid ${deleteBorder}`, background: deleteBg, color: "var(--color-brand-red)", fontSize: 13, fontWeight: 800, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.55 : 1 }}>
+                  거절
+                </button>
+              </>
+            )}
+            <button type="button" disabled={loading} onClick={() => onUpdate(r.id, "cancelled_by_admin", note)} style={{ minWidth: 82, height: 32, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "0 12px", borderRadius: 10, border: `1px solid ${deleteBorder}`, background: deleteBg, color: "var(--color-brand-red)", fontSize: 13, fontWeight: 800, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.55 : 1 }}>
               <X size={14} />취소
             </button>
           </div>
+        </div>
+      )}
+      {(r.status === "rejected" || r.status === "cancelled_by_user" || r.status === "cancelled_by_admin") && (
+        <div className="flex flex-wrap gap-2 md:justify-end">
+          <button type="button" disabled={loading} onClick={() => onDelete(r.id)} style={{ minWidth: 82, height: 32, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "0 12px", borderRadius: 10, border: `1px solid ${deleteBorder}`, background: deleteBg, color: "var(--color-brand-red)", fontSize: 13, fontWeight: 800, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.55 : 1 }}>
+            <X size={14} />삭제
+          </button>
         </div>
       )}
       {r.admin_note && <div style={{ fontSize: 13, color: textMuted }}>메모: {r.admin_note}</div>}

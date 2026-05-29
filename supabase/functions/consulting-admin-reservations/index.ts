@@ -10,7 +10,7 @@ type ReservationRow = {
   slot_id: string;
   user_id: string;
   description: string;
-  status: "pending" | "confirmed" | "rejected" | "cancelled";
+  status: "pending" | "confirmed" | "rejected" | "cancelled_by_user" | "cancelled_by_admin";
   admin_note: string | null;
   created_at: string;
   consulting_slots?: unknown;

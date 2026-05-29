@@ -227,7 +227,7 @@ export function HeroSection() {
     return () => cancelAnimationFrame(animFrameRef.current);
   }, [animate]);
 
-  const handleCoreClick = (e: React.MouseEvent) => {
+  const handleCoreClick = (e: React.SyntheticEvent) => {
     e.stopPropagation();
     setExpanded((prev) => {
       const next = !prev;
@@ -237,7 +237,7 @@ export function HeroSection() {
     });
   };
 
-  const handleNodeClick = (e: React.MouseEvent, id: string) => {
+  const handleNodeClick = (e: React.SyntheticEvent, id: string) => {
     e.stopPropagation();
     setActiveNode((prev) => {
       if (prev === id) { isAutoRotatingRef.current = !expanded; return null; }
@@ -305,7 +305,7 @@ export function HeroSection() {
           <div className="brand-orbit z-[2]" style={{ width: `${INNER_ORBIT}px`, height: `${INNER_ORBIT}px` }} />
           <div className="brand-orbit z-[2] opacity-15" style={{ width: `${OUTER_ORBIT}px`, height: `${OUTER_ORBIT}px`, animationDirection: "reverse", animationDuration: "25s" }} />
 
-          <div className="core-ring relative z-[100] cursor-pointer rounded-full border-[1.5px] border-[rgba(255,255,255,0.18)] backdrop-blur-[8px]" role="button" tabIndex={0} onClick={handleCoreClick} onKeyDown={(e) => { if(e.key === 'Enter' || e.key === ' ') handleCoreClick(e as any); }} style={{ width: `${CORE}px`, height: `${CORE}px`, background: "radial-gradient(circle at 35% 35%, rgba(66,133,244,0.25), rgba(10,15,30,0.8))" }} />
+          <div className="core-ring relative z-[100] cursor-pointer rounded-full border-[1.5px] border-[rgba(255,255,255,0.18)] backdrop-blur-[8px]" role="button" tabIndex={0} onClick={handleCoreClick} onKeyDown={(e) => { if(e.key === 'Enter' || e.key === ' ') handleCoreClick(e); }} style={{ width: `${CORE}px`, height: `${CORE}px`, background: "radial-gradient(circle at 35% 35%, rgba(66,133,244,0.25), rgba(10,15,30,0.8))" }} />
 
           <div className="absolute border border-dashed border-[rgba(255,255,255,0.13)] rounded-full pointer-events-none" style={{ width: `${INNER_ORBIT}px`, height: `${INNER_ORBIT}px` }} />
           <div className="orbit-light-inner" style={{ width: `${INNER_ORBIT}px`, height: `${INNER_ORBIT}px` }} />
@@ -315,8 +315,8 @@ export function HeroSection() {
           {nodeData.map((node) => {
             const isActive = activeNode === node.id;
             return (
-              <div key={node.id} role="button" tabIndex={0} ref={(el) => { nodeRefs.current[node.id] = el; }} onClick={(e) => handleNodeClick(e, node.id)} onKeyDown={(e) => { if(e.key === 'Enter' || e.key === ' ') handleNodeClick(e as any, node.id); }} className={`absolute cursor-pointer will-change-transform ${isActive ? "z-[150]" : "z-[20]"}`} style={{ width: `${NODE}px`, height: `${NODE}px`, left: `calc(50% - ${NODE / 2}px)`, top: `calc(50% - ${NODE / 2}px)` }}>
-                <div className={`w-full h-full rounded-full flex items-center justify-center backdrop-blur-[6px] transition-all duration-[550ms] ease-[cubic-bezier(0.34,1.56,0.64,1)] ${isActive ? "bg-[rgba(255,255,255,0.15)] border-[1.5px] border-white shadow-[0_0_28px_rgba(255,255,255,0.35)] scale-[1.18]" : "bg-[rgba(25,28,38,0.85)] border border-[rgba(255,255,255,0.22)] shadow-none scale-100"}`}>
+              <div key={node.id} role="button" tabIndex={0} ref={(el) => { nodeRefs.current[node.id] = el; }} onClick={(e) => handleNodeClick(e, node.id)} onKeyDown={(e) => { if(e.key === 'Enter' || e.key === ' ') handleNodeClick(e, node.id); }} className={`absolute cursor-pointer will-change-transform ${isActive ? "z-[150]" : "z-[20]"}`} style={{ width: `${NODE}px`, height: `${NODE}px`, left: `calc(50% - ${NODE / 2}px)`, top: `calc(50% - ${NODE / 2}px)` }}>
+                <div className={`w-full h-full rounded-full flex items-center justify-center transition-all duration-[550ms] ease-[cubic-bezier(0.34,1.56,0.64,1)] ${isActive ? "bg-[rgba(255,255,255,0.15)] border-[1.5px] border-white shadow-[0_0_28px_rgba(255,255,255,0.35)] scale-[1.18]" : "bg-[rgba(25,28,38,0.85)] border border-[rgba(255,255,255,0.22)] shadow-none scale-100"}`}>
                   <span className={`text-white flex items-center justify-center ${isActive ? "opacity-100" : "opacity-[0.82]"}`} style={{ width: `${ICON}px`, height: `${ICON}px` }}>{node.icon}</span>
                 </div>
                 <span className="absolute left-1/2 -translate-x-1/2 text-[#e2e2e3] whitespace-nowrap font-bold tracking-[-0.02em]" style={{ top: `${NODE + 12}px`, fontSize: `${Math.max(11, 16 * scale)}px`, textShadow: "0 1px 6px rgba(0,0,0,0.8)" }}>
@@ -324,7 +324,7 @@ export function HeroSection() {
                 </span>
 
                 {!isMobile && (
-                  <div onClick={(e) => e.stopPropagation()} className={`absolute top-1/2 bg-[rgba(14,18,28,0.82)] border border-[rgba(255,255,255,0.14)] rounded-[20px] transition-all duration-400 ease backdrop-blur-[24px] text-left z-[200] shadow-[0_24px_48px_rgba(0,0,0,0.65)] flex flex-col gap-[10px] ${isActive ? "-translate-y-1/2 translate-x-0 opacity-100 pointer-events-auto" : "-translate-y-1/2 -translate-x-[15px] opacity-0 pointer-events-none"}`} style={{ left: `calc(100% + ${16 * scale}px)`, width: `${Math.min(300, windowWidth * 0.28)}px`, padding: `${22 * scale}px` }}>
+                  <div onClick={(e) => e.stopPropagation()} className={`absolute top-1/2 bg-[rgba(14,18,28,0.88)] border border-[rgba(255,255,255,0.14)] rounded-[20px] transition-all duration-400 ease backdrop-blur-[14px] text-left z-[200] shadow-[0_24px_48px_rgba(0,0,0,0.65)] flex flex-col gap-[10px] ${isActive ? "-translate-y-1/2 translate-x-0 opacity-100 pointer-events-auto" : "-translate-y-1/2 -translate-x-[15px] opacity-0 pointer-events-none"}`} style={{ left: `calc(100% + ${16 * scale}px)`, width: `${Math.min(300, windowWidth * 0.28)}px`, padding: `${22 * scale}px` }}>
                     <CardContent node={node} scale={scale} onNavigate={navigate} />
                   </div>
                 )}
@@ -334,7 +334,7 @@ export function HeroSection() {
         </div>
 
         {isMobile && activeNodeData && (
-          <div className="absolute bottom-[24px] left-1/2 -translate-x-1/2 w-[calc(100%-48px)] max-w-[400px] z-[300] bg-[rgba(14,18,28,0.88)] border border-[rgba(255,255,255,0.14)] p-[22px] rounded-[20px] backdrop-blur-[24px] shadow-[0_24px_48px_rgba(0,0,0,0.7)] flex flex-col gap-[10px] animate-[fadeSlideUp_0.35s_ease_forwards]" onClick={(e) => e.stopPropagation()}>
+          <div className="absolute bottom-[24px] left-1/2 -translate-x-1/2 w-[calc(100%-48px)] max-w-[400px] z-[300] bg-[rgba(14,18,28,0.92)] border border-[rgba(255,255,255,0.14)] p-[22px] rounded-[20px] backdrop-blur-[14px] shadow-[0_24px_48px_rgba(0,0,0,0.7)] flex flex-col gap-[10px] animate-[fadeSlideUp_0.35s_ease_forwards]" onClick={(e) => e.stopPropagation()}>
             <CardContent node={activeNodeData} scale={1} onNavigate={navigate} />
           </div>
         )}

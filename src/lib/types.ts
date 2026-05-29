@@ -159,7 +159,7 @@ export interface EventApplication {
   speaker_question: string | null;
   privacy_consent: boolean;
   answers?: Record<string, string> | null;
-  status: 'pending' | 'accepted' | 'rejected' | 'cancelled';
+  status: 'pending' | 'accepted' | 'rejected' | 'cancelled_by_user' | 'cancelled_by_admin';
   admin_note: string | null;
   created_at: string;
   updated_at: string;
@@ -223,7 +223,7 @@ export interface ConsultingReservation {
   slot_id: string;
   user_id: string;
   description: string;
-  status: 'pending' | 'confirmed' | 'rejected' | 'cancelled';
+  status: 'pending' | 'confirmed' | 'rejected' | 'cancelled_by_user' | 'cancelled_by_admin';
   admin_note: string | null;
   created_at: string;
 }
@@ -300,7 +300,7 @@ export interface FoundersClubApplication {
   session_id: string;
   user_id: string;
   message: string | null;
-  status: 'pending' | 'accepted' | 'rejected' | 'cancelled';
+  status: 'pending' | 'accepted' | 'rejected' | 'cancelled_by_user' | 'cancelled_by_admin';
   created_at: string;
 }
 

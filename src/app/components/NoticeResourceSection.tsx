@@ -181,7 +181,7 @@ function SectionHeader({
 
   return (
     <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: HOME_SECTION_HEADER_GAP, gap: "12px", flexWrap: "wrap", minWidth: 0 }}>
-      <h2 style={{ ...HOME_SECTION_TITLE_STYLE_COMPACT, color: "var(--color-text-primary)" }}>
+      <h2 className="text-ink" style={HOME_SECTION_TITLE_STYLE_COMPACT}>
         {title}
       </h2>
       <Button

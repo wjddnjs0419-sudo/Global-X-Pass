@@ -35,12 +35,12 @@ export function StandardPostView({ post, model, isDark, textMain, textMuted, bor
       </div>
       <div className="rounded-[var(--radius-md)] p-[var(--space-md)]" style={{ background: card, border: `1px solid ${border}`, boxShadow: "var(--shadow-card-subtle)" }}>
         {post.category === "events-archive" && isArchiveVideoType && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)", marginBottom: "var(--space-lg)" }}>
-            <div style={{ width: "100%", aspectRatio: "16 / 9", borderRadius: "var(--radius-md)", overflow: "hidden", boxShadow: "var(--shadow-media-cover)", background: "var(--color-skeleton-bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div className="flex flex-col gap-4 mb-6">
+            <div className="bg-skeleton w-full aspect-video rounded-[var(--radius-md)] overflow-hidden flex items-center justify-center" style={{ boxShadow: "var(--shadow-media-cover)" }}>
               {archiveVideoThumbnailUrl ? (
-                <img src={archiveVideoThumbnailUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                <img src={archiveVideoThumbnailUrl} alt="" className="w-full h-full object-cover block" />
               ) : (
-                <span style={{ fontSize: 13, color: textMuted }}>자동 썸네일 없음</span>
+                <span className="text-[13px]" style={{ color: textMuted }}>자동 썸네일 없음</span>
               )}
             </div>
             {eventArchiveMeta.externalUrl && (
@@ -48,7 +48,8 @@ export function StandardPostView({ post, model, isDark, textMain, textMuted, bor
                 href={eventArchiveMeta.externalUrl}
                 target="_blank"
                 rel="noreferrer noopener"
-                style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: "var(--space-xs)", fontSize: 13, padding: "var(--space-xs) var(--space-md)", borderRadius: "var(--radius-sm)", textDecoration: "none", fontWeight: 700, color: "var(--color-bg-base)", background: "var(--color-accent-green)" }}
+                className="text-surface-base self-start inline-flex items-center gap-2 text-[13px] py-2 px-4 rounded-lg no-underline font-bold"
+                style={{ background: "var(--color-accent-green)" }}
               >
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
                 외부 링크 열기

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ExternalLink, RefreshCw, Trash2 } from "lucide-react";
 import { supabase } from "../../../lib/supabaseClient";
 import { useTheme } from "../../ThemeContext";
@@ -8,6 +8,7 @@ import { getFilterTabStyle } from "../contentListStyles";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import type { ExternalNewsItem } from "../../../lib/types";
+import { useDebouncedValue } from "../../../hooks/useDebounce";
 import { AdminConfirmModal } from "./AdminConfirmModal";
 import { ExternalNewsPreviewComposer } from "./ExternalNewsPreviewComposer";
 
@@ -42,21 +43,24 @@ export default function AdminExternalNewsManagement() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebouncedValue(searchTerm, 300);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [editingItem, setEditingItem] = useState<ExternalNewsItem | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ExternalNewsItem | null>(null);
   const [savingIds, setSavingIds] = useState<Set<string>>(new Set());
+  const activeFetchRef = useRef(0);
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(totalCount / PAGE_SIZE)), [totalCount]);
 
   const fetchItems = useCallback(async () => {
+    const fetchId = ++activeFetchRef.current;
     setLoading(true);
     setFetchError(null);
 
     const from = (currentPage - 1) * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
-    const queryText = sanitizeSearch(searchTerm);
+    const queryText = sanitizeSearch(debouncedSearchTerm);
 
     let query = supabase
       .from("external_news_items")
@@ -75,6 +79,8 @@ export default function AdminExternalNewsManagement() {
       .order("published_at", { ascending: false })
       .order("created_at", { ascending: false });
 
+    if (fetchId !== activeFetchRef.current) return;
+
     if (error) {
       setFetchError(error.message);
       setItems([]);
@@ -85,7 +91,7 @@ export default function AdminExternalNewsManagement() {
     }
 
     setLoading(false);
-  }, [currentPage, searchTerm, statusFilter]);
+  }, [currentPage, debouncedSearchTerm, statusFilter]);
 
   useEffect(() => {
     fetchItems();
@@ -93,7 +99,7 @@ export default function AdminExternalNewsManagement() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter]);
+  }, [debouncedSearchTerm, statusFilter]);
 
   useEffect(() => {
     setCurrentPage((page) => Math.min(page, totalPages));

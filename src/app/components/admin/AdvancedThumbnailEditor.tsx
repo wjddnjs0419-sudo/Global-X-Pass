@@ -7,12 +7,12 @@ import { isBrowserSafeImageFile } from "../../../utils/file";
 import {
   getThumbnailAspectNumber,
   getThumbnailOutputSize,
-  getThumbnailImageStyle,
   toCssAspectRatio,
   type ThumbnailAspect,
   type ThumbnailCandidate,
   type ThumbnailCrop,
-} from "../../../utils/postThumbnail";
+} from "../../../utils/thumbnail/parser";
+import { getThumbnailImageStyle } from "../../../utils/thumbnail/renderer";
 
 interface AdvancedThumbnailEditorProps {
   aspect: ThumbnailAspect;

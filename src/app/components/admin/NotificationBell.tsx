@@ -2,8 +2,19 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "../../../lib/supabaseClient";
 import { LAYERS } from "../../../lib/layers";
 
+type ActivityLogRow = {
+  id: string;
+  action: string;
+  created_at: string;
+  user_name: string | null;
+  user_email: string | null;
+  email: string | null;
+  new_data: { title?: string | null } | null;
+  old_data: { title?: string | null } | null;
+};
+
 export function NotificationBell({ isDark }: { isDark: boolean }) {
-  const [logs, setLogs] = useState<any[]>([]);
+  const [logs, setLogs] = useState<ActivityLogRow[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const isOpenRef = useRef(isOpen);
@@ -16,7 +27,7 @@ export function NotificationBell({ isDark }: { isDark: boolean }) {
   useEffect(() => {
     const fetchLogs = async () => {
       const { data } = await supabase.from('activity_logs').select('*').order('created_at', { ascending: false }).limit(30);
-      if (data) setLogs(data);
+      if (data) setLogs(data as ActivityLogRow[]);
     };
     fetchLogs();
 
@@ -26,7 +37,7 @@ export function NotificationBell({ isDark }: { isDark: boolean }) {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'activity_logs' },
         (payload) => {
-          setLogs((prev) => [payload.new, ...prev].slice(0, 30));
+          setLogs((prev) => [payload.new as ActivityLogRow, ...prev].slice(0, 30));
           if (!isOpenRef.current) {
             setUnreadCount((prev) => prev + 1);
           }

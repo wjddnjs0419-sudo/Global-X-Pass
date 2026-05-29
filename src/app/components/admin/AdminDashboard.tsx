@@ -4,6 +4,7 @@ import { useTheme } from "../../ThemeContext";
 import { CATEGORIES, getLocalDateString } from "./adminConstants";
 import { supabase } from "../../../lib/supabaseClient";
 import { useBoardCategoryLabels } from "../../BoardCategoriesContext";
+import type { Post } from "../../../lib/types";
 
 interface AdminDashboardProps {
   refreshKey: number;
@@ -18,7 +19,7 @@ export function AdminDashboard({ refreshKey }: AdminDashboardProps) {
   const [stats, setStats] = useState({ views: 0, posts: 0, visitors: 0 });
   const [chartPeriod, setChartPeriod] = useState<7 | 30>(7);
   const [chartData, setChartData] = useState<{ fullDate: string; label: string; views: number; cumulative: number }[]>([]);
-  const [topPosts, setTopPosts] = useState<any[]>([]);
+  const [topPosts, setTopPosts] = useState<Post[]>([]);
 
   const card     = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
   const border   = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
@@ -44,7 +45,7 @@ export function AdminDashboard({ refreshKey }: AdminDashboardProps) {
     ]);
     const uv = new Set(vd?.map(x => x.visitor_id)).size;
     setStats({ views: v || 0, posts: p || 0, visitors: uv });
-    if (posts) setTopPosts([...posts].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5));
+    if (posts) setTopPosts([...(posts as Post[])].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5));
     await fetchChartData(chartPeriod);
     setLoading(false);
   };

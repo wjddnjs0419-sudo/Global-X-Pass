@@ -8,10 +8,8 @@ import {
   isPortraitMediaCategory,
   isWideMediaCategory,
 } from "../constants/mediaCategories";
-import {
-  getThumbnailImageStyle,
-  resolvePostThumbnail,
-} from "../../utils/postThumbnail";
+import { resolvePostThumbnail } from "../../utils/thumbnail/parser";
+import { getThumbnailImageStyle } from "../../utils/thumbnail/renderer";
 import { getSectionTheme } from "../utils/sectionTheme";
 import { Button } from "./ui/button";
 import {
@@ -411,10 +409,10 @@ function SectionNotice({
         background: isDark ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.82)",
       }}
     >
-      <p style={{ margin: 0, color: "var(--color-text-primary)", fontSize: 15, fontWeight: 850 }}>
+      <p className="text-ink m-0" style={{ fontSize: 15, fontWeight: 850 }}>
         {title}
       </p>
-      <p style={{ margin: "8px 0 0", color: "var(--color-text-muted)", fontSize: 13 }}>
+      <p className="text-ink-muted text-[13px]" style={{ margin: "8px 0 0" }}>
         {description}
       </p>
     </div>

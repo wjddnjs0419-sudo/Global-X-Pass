@@ -471,6 +471,29 @@ html:not(.dark) {
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* =============================================
+   P3 — Design System Bridge (Tailwind v4 utilities)
+   GXP 디자인 토큰을 Tailwind 유틸리티 클래스로 노출.
+   shadcn/ui 기본 토큰(@theme inline above)과 충돌하지 않는
+   신규 alias 이름만 사용. var() 참조 형태로 다크/라이트 모드 자동 추종.
+============================================= */
+@theme inline {
+  /* surfaces */
+  --color-surface-base:   var(--color-bg-base);        /* bg-surface-base */
+  --color-card-glass:     var(--color-surface-card);   /* bg-card-glass */
+  --color-skeleton:       var(--color-skeleton-bg);    /* bg-skeleton */
+  /* borders */
+  --color-soft:           var(--color-border-soft);    /* border-soft */
+  --color-subtle:         var(--color-border-subtle);  /* border-subtle */
+  /* text (ink namespace — shadcn text-primary/secondary/muted 미충돌) */
+  --color-ink:            var(--color-text-primary);   /* text-ink */
+  --color-ink-secondary:  var(--color-text-secondary); /* text-ink-secondary */
+  --color-ink-muted:      var(--color-text-muted);     /* text-ink-muted */
+  /* 주의: accent 색(blue/green/ncf) 및 ncf-badge는 :root 토큰 이름과 동일해
+     @theme inline에서 alias 시 자기참조 루프가 발생할 수 있어 의도적으로 제외.
+     2단계에서 인라인 스타일로 var(--color-accent-*) 직접 참조 유지. */
+}
+
 /* Always-dark surface: blog featured card has a dark image overlay regardless of theme */
 .blog-featured-card {
   --color-text-primary:        #ffffff;
@@ -555,5 +578,16 @@ html:not(.dark) {
     font-size: var(--text-body);
     font-weight: var(--weight-regular);
     line-height: var(--leading-normal);
+  }
+}
+
+/* Edge/저사양 GPU 합성 비용 회피 — 접근성 설정 또는 모션 감소 선호 시 backdrop-filter 비활성. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

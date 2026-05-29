@@ -46,31 +46,16 @@ export function ConsultingBookingModal({ consultant, isDark, onClose }: Props) {
 
     const { data: reservation, error } = await supabase
       .from("consulting_reservations")
-      .insert({ slot_id: selectedSlot, user_id: user.id, description: description.trim(), status: "confirmed" })
+      .insert({ slot_id: selectedSlot, user_id: user.id, description: description.trim(), status: "pending" })
       .select("id")
       .single();
     if (error) {
-      if (error.code === "23505") {
-        alert("이미 다른 분이 예약한 시간입니다. 다른 시간대를 선택해주세요.");
+      const msg = error.message ?? "";
+      if (error.code === "23505" || msg.includes("consulting slot is not available")) {
+        alert("이미 다른 분이 신청한 시간입니다. 다른 시간대를 선택해주세요.");
       } else {
-        alert("예약 중 오류가 발생했습니다. 다시 시도해주세요.");
+        alert("신청 중 오류가 발생했습니다. 다시 시도해주세요.");
       }
-      setLoading(false);
-      return;
-    }
-
-    const { data: updatedSlots } = await supabase
-      .from("consulting_slots")
-      .update({ status: "booked" })
-      .eq("id", selectedSlot)
-      .eq("status", "available")
-      .select("id");
-
-    if (!updatedSlots || updatedSlots.length === 0) {
-      if (reservation?.id) {
-        await supabase.from("consulting_reservations").update({ status: "cancelled" }).eq("id", reservation.id);
-      }
-      alert("이미 다른 분이 예약한 슬롯입니다. 다른 시간을 선택해주세요.");
       setLoading(false);
       return;
     }
@@ -83,12 +68,12 @@ export function ConsultingBookingModal({ consultant, isDark, onClose }: Props) {
 
   const handleCancelReservation = async () => {
     if (!bookedReservationId) return;
-    if (!window.confirm("컨설팅 예약을 취소하시겠습니까?")) return;
+    if (!window.confirm("컨설팅 신청을 취소하시겠습니까?")) return;
 
     setCanceling(true);
     const { error } = await supabase
       .from("consulting_reservations")
-      .update({ status: "cancelled" })
+      .update({ status: "cancelled_by_user" })
       .eq("id", bookedReservationId);
 
     if (error) {
@@ -112,8 +97,8 @@ export function ConsultingBookingModal({ consultant, isDark, onClose }: Props) {
     <ModalShell onClose={onClose} showCloseButton={done}>
       {done ? (
         <ProgramConfirmationCard
-          title={bookingCancelled ? "예약이 취소되었습니다." : "컨설팅 예약이 확정되었습니다."}
-          description={bookingCancelled ? "다시 예약이 필요하면 새로운 슬롯을 선택해주세요." : "예약 안내는 등록된 이메일로 공유드리겠습니다."}
+          title={bookingCancelled ? "신청이 취소되었습니다." : "컨설팅 신청이 접수되었습니다."}
+          description={bookingCancelled ? "다시 신청이 필요하면 새로운 슬롯을 선택해주세요." : "관리자 승인 후 확정 안내를 이메일로 보내드리겠습니다."}
           padding="20px 0"
           actions={bookingCancelled
             ? [
@@ -122,7 +107,7 @@ export function ConsultingBookingModal({ consultant, isDark, onClose }: Props) {
               ]
             : [
                 {
-                  label: "예약 취소",
+                  label: "신청 취소",
                   loadingLabel: "취소 중...",
                   loading: canceling,
                   variant: "destructive",
@@ -185,7 +170,7 @@ export function ConsultingBookingModal({ consultant, isDark, onClose }: Props) {
             disabled={loading || !selectedSlot || !description.trim()}
             style={{ width: "100%", padding: "14px", borderRadius: 12, border: "none", background: "var(--color-accent-blue)", color: "var(--color-on-primary)", fontWeight: 800, cursor: "pointer", fontSize: 15, opacity: !selectedSlot || !description.trim() ? 0.5 : 1 }}
           >
-            {loading ? "예약 중..." : "컨설팅 예약 확정하기"}
+            {loading ? "신청 중..." : "컨설팅 신청하기"}
           </button>
         </>
       )}

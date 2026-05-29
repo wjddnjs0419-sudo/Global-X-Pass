@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { PageShell } from "../components/PageShell";
 import { useTheme } from "../ThemeContext";
 import { supabase } from "../../lib/supabaseClient";
+import type { User } from "@supabase/supabase-js";
 import { cleanText } from "../../utils/text";
 import { Skeleton } from "../components/ui/skeleton";
 import type { Post } from "../../lib/types";
@@ -10,7 +11,7 @@ import type { Post } from "../../lib/types";
 export function ExpensesPage() {
   const { isDark } = useTheme();
   const navigate = useNavigate();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [posts, setPosts] = useState<Post[]>([]);

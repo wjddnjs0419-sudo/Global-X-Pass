@@ -37,7 +37,7 @@ type ApplicationCounts = {
 type FoundersClubApplicationRow = {
   id: string;
   user_id: string;
-  status: "pending" | "accepted" | "rejected" | "cancelled";
+  status: "pending" | "accepted" | "rejected" | "cancelled_by_user" | "cancelled_by_admin";
   message: string | null;
   created_at: string;
   profile: DecryptedProfile | null;
@@ -179,7 +179,7 @@ export function AdminFoundersClubManagement() {
     if (selectedSession?.id === id) setSelectedSession(null);
   };
 
-  const handleUpdateApplication = async (id: string, status: "cancelled") => {
+  const handleUpdateApplication = async (id: string, status: "accepted" | "rejected" | "cancelled_by_admin") => {
     setLoading(true);
     const { error } = await supabase.from("founders_club_applications").update({ status }).eq("id", id);
     if (error) alert("처리 실패: " + error.message);
@@ -205,10 +205,11 @@ export function AdminFoundersClubManagement() {
   };
 
   const appStatusCfg: Record<string, { label: string; color: string }> = {
-    pending:  { label: "대기",   color: "var(--color-brand-yellow)" },
-    accepted: { label: "확정",   color: "var(--color-accent-green)" },
-    rejected: { label: "거절",   color: "var(--color-brand-red)" },
-    cancelled: { label: "취소", color: "var(--color-neutral)" },
+    pending:            { label: "승인 대기",   color: "var(--color-brand-yellow)" },
+    accepted:           { label: "확정",        color: "var(--color-accent-green)" },
+    rejected:           { label: "거절",        color: "var(--color-brand-red)" },
+    cancelled_by_user:  { label: "취소(본인)",  color: "var(--color-neutral)" },
+    cancelled_by_admin: { label: "취소(관리자)", color: "var(--color-neutral)" },
   };
 
   const Badge = ({ status, cfg }: { status: string; cfg: Record<string, { label: string; color: string }> }) => {
@@ -238,7 +239,7 @@ export function AdminFoundersClubManagement() {
 
       <div style={{ display: "flex", gap: "8px" }}>
         {(["sessions", "applications"] as SubTab[]).map(t => (
-          <button key={t} onClick={() => setSubTab(t)} style={{ padding: "10px 20px", borderRadius: 12, border: `1px solid ${subTab === t ? labelBorder : border}`, background: subTab === t ? selectedBg : "transparent", color: subTab === t ? textMain : textMuted, fontWeight: 750, cursor: "pointer" } as any}>
+          <button key={t} onClick={() => setSubTab(t)} style={{ padding: "10px 20px", borderRadius: 12, border: `1px solid ${subTab === t ? labelBorder : border}`, background: subTab === t ? selectedBg : "transparent", color: subTab === t ? textMain : textMuted, fontWeight: 750, cursor: "pointer" }}>
             {{ sessions: "세션 관리", applications: "참여자 관리" }[t]}
           </button>
         ))}
@@ -466,8 +467,18 @@ export function AdminFoundersClubManagement() {
                 <div style={{ fontSize: 12, color: textMuted, marginTop: 4 }}>{new Date(a.created_at).toLocaleString()}</div>
                 </div>
                 <div className="flex flex-wrap gap-2 md:min-w-[180px] md:justify-end">
+                  {a.status === "pending" && (
+                    <>
+                      <button type="button" disabled={loading} onClick={() => handleUpdateApplication(a.id, "accepted")} style={{ minWidth: 82, height: 32, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "0 12px", borderRadius: 10, border: `1px solid ${labelBorder}`, background: labelBg, color: "var(--color-brand-green)", fontSize: 13, fontWeight: 800, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.55 : 1 }}>
+                        승인
+                      </button>
+                      <button type="button" disabled={loading} onClick={() => handleUpdateApplication(a.id, "rejected")} style={{ minWidth: 82, height: 32, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "0 12px", borderRadius: 10, border: `1px solid ${deleteBorder}`, background: deleteBg, color: "var(--color-brand-red)", fontSize: 13, fontWeight: 800, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.55 : 1 }}>
+                        거절
+                      </button>
+                    </>
+                  )}
                   {(a.status === "pending" || a.status === "accepted") && (
-                    <button type="button" disabled={loading} onClick={() => handleUpdateApplication(a.id, "cancelled")} style={{ minWidth: 82, height: 32, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "0 12px", borderRadius: 10, border: `1px solid ${deleteBorder}`, background: deleteBg, color: "var(--color-brand-red)", fontSize: 13, fontWeight: 800, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.55 : 1 }}>
+                    <button type="button" disabled={loading} onClick={() => handleUpdateApplication(a.id, "cancelled_by_admin")} style={{ minWidth: 82, height: 32, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "0 12px", borderRadius: 10, border: `1px solid ${deleteBorder}`, background: deleteBg, color: "var(--color-brand-red)", fontSize: 13, fontWeight: 800, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.55 : 1 }}>
                       <X size={14} />취소
                     </button>
                   )}

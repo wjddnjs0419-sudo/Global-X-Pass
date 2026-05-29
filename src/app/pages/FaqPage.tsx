@@ -7,13 +7,14 @@ import { supabase } from "../../lib/supabaseClient";
 import { LoadingSpinner, ErrorMessage } from "../components/LoadingSpinner";
 import { CONTACT_EMAIL } from "../constants/contact";
 import { sanitizeRichHtml } from "../../utils/htmlSecurity";
+import type { Post } from "../../lib/types";
 import 'react-quill/dist/quill.snow.css';
 
 export function FaqPage() {
   const { isDark } = useTheme();
   const boardTitle = useBoardCategoryLabel("faq", "자주 묻는 질문");
   const boardSubtitle = useBoardCategoryDescription("faq", "궁금하신 점을 카테고리별로 빠르게 찾아보세요.");
-  const [posts, setPosts] = useState<any[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -32,7 +33,7 @@ export function FaqPage() {
         .eq('category', 'faq')
         .order('created_at', { ascending: false });
       if (error) setError(true);
-      else if (data) setPosts(data);
+      else if (data) setPosts(data as Post[]);
       setLoading(false);
     };
     fetchPosts();

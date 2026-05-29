@@ -26,7 +26,7 @@ export function LoginPage() {
   // MFA States
   const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
   const [otpCode, setOtpCode] = useState("");
-  const [tempProfile, setTempProfile] = useState<any>(null);
+  const [tempProfile, setTempProfile] = useState<{ role: string | null } | null>(null);
 
   const card = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
   const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";

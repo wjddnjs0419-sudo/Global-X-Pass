@@ -281,7 +281,7 @@ export function FoundersClubPage() {
     setCancelingApplication(true);
     const { error } = await supabase
       .from("founders_club_applications")
-      .update({ status: "cancelled" })
+      .update({ status: "cancelled_by_user" })
       .eq("id", appliedApplicationId);
 
     if (error) {
@@ -393,7 +393,7 @@ export function FoundersClubPage() {
               const alreadyApplied = !!s.user_application;
               const isHostOwn = !isAdmin && !!s.created_by && s.created_by === userId;
               const appStatus = s.user_application?.status;
-              const appColor = appStatus === "accepted" ? "var(--color-accent-green)" : appStatus === "rejected" ? "var(--color-brand-red)" : appStatus === "cancelled" ? "var(--color-neutral)" : "var(--color-warning)";
+              const appColor = appStatus === "accepted" ? "var(--color-accent-green)" : appStatus === "rejected" ? "var(--color-brand-red)" : appStatus === "cancelled_by_user" || appStatus === "cancelled_by_admin" ? "var(--color-neutral)" : "var(--color-warning)";
 
               return (
                 <div key={s.id} style={{ background: "var(--color-surface-card)", border: "1px solid var(--color-border-soft)", borderRadius: 20, padding: 28, boxShadow: "var(--shadow-card-rest)" }}>

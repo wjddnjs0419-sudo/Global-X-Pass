@@ -10,7 +10,7 @@ import { formatEventDate } from "../../../utils/scheduleFields";
 import { AppPagination } from "../AppPagination";
 
 type SubTab = "overview" | "participants" | "history";
-type HistoryStatusFilter = "all" | "rejected" | "cancelled";
+type HistoryStatusFilter = "all" | "rejected" | "cancelled_by_user" | "cancelled_by_admin";
 
 const PAGE_SIZE = 10;
 
@@ -45,13 +45,13 @@ export function AdminEventManagement() {
   );
 
   const participantApplications = useMemo(
-    () => eventFilteredApplications.filter(application => application.status === "accepted"),
+    () => eventFilteredApplications.filter(application => application.status === "pending" || application.status === "accepted"),
     [eventFilteredApplications]
   );
 
   const historyApplications = useMemo(
     () => eventFilteredApplications.filter(application =>
-      (application.status === "rejected" || application.status === "cancelled") &&
+      (application.status === "rejected" || application.status === "cancelled_by_user" || application.status === "cancelled_by_admin") &&
       (historyStatusFilter === "all" || application.status === historyStatusFilter)
     ),
     [eventFilteredApplications, historyStatusFilter]
@@ -145,10 +145,11 @@ export function AdminEventManagement() {
     if (application.status === status) return null;
 
     const actionCfg = {
-      accepted: { label: "확정", bg: selectedBg, border: labelBorder, color: textMain },
-      rejected: { label: "거절", bg: deleteBg, border: deleteBorder, color: "var(--color-brand-red)" },
-      cancelled: { label: "취소", bg: labelBg, border: labelBorder, color: textMuted },
-      pending: { label: "대기", bg: labelBg, border: labelBorder, color: textMuted },
+      accepted:           { label: "승인",        bg: selectedBg, border: labelBorder,  color: "var(--color-brand-green)" },
+      rejected:           { label: "거절",        bg: deleteBg,   border: deleteBorder, color: "var(--color-brand-red)" },
+      cancelled_by_admin: { label: "취소",        bg: deleteBg,   border: deleteBorder, color: "var(--color-brand-red)" },
+      cancelled_by_user:  { label: "취소(본인)",  bg: labelBg,    border: labelBorder,  color: textMuted },
+      pending:            { label: "승인 대기",   bg: labelBg,    border: labelBorder,  color: textMuted },
     }[status] ?? { label: status, bg: labelBg, border: labelBorder, color: textMuted };
 
     return (
@@ -196,7 +197,7 @@ export function AdminEventManagement() {
   const getBadgeVariant = (status: EventApplication["status"]) => {
     if (status === "accepted") return "green";
     if (status === "rejected") return "red";
-    if (status === "cancelled") return "secondary";
+    if (status === "cancelled_by_user" || status === "cancelled_by_admin") return "secondary";
     return "yellow";
   };
 
@@ -313,7 +314,8 @@ export function AdminEventManagement() {
             <select value={historyStatusFilter} onChange={e => setHistoryStatusFilter(e.target.value as HistoryStatusFilter)} style={selectStyle}>
               <option value="all">전체 상태</option>
               <option value="rejected">거절</option>
-              <option value="cancelled">취소</option>
+              <option value="cancelled_by_admin">취소(관리자)</option>
+              <option value="cancelled_by_user">취소(본인)</option>
             </select>
           )}
         </div>
@@ -346,7 +348,7 @@ export function AdminEventManagement() {
             <div style={{ padding: 60, textAlign: "center", color: textMuted, background: card, border: `1px solid ${border}`, borderRadius: 18 }}>확정된 참가자가 없습니다.</div>
           ) : (
             <>
-              {participantPageData.pageItems.map(application => renderApplicationCard(application, ["cancelled"]))}
+              {participantPageData.pageItems.map(application => renderApplicationCard(application, application.status === "pending" ? ["accepted", "rejected"] : ["cancelled_by_admin"]))}
               <AppPagination currentPage={participantPageData.currentPage} totalPages={participantPageData.totalPages} onPageChange={setParticipantPage} />
             </>
           )}

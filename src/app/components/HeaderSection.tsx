@@ -144,7 +144,7 @@ export function HeaderSection({ isDark = false }: HeaderSectionProps) {
   return (
     <>
       <header
-        className={`fixed top-0 left-0 right-0 h-[72px] px-[clamp(12px,3vw,32px)] font-['Pretendard',sans-serif] transition-colors duration-300 ease-out ${scrolled ? "backdrop-blur-[18px]" : ""}`}
+        className={`fixed top-0 left-0 right-0 h-[72px] px-[clamp(12px,3vw,32px)] font-['Pretendard',sans-serif] transition-colors duration-300 ease-out ${scrolled ? "backdrop-blur-[10px]" : ""}`}
         style={{ zIndex: LAYERS.header, background: headerBg, borderBottom: headerBorder }}
         onMouseLeave={() => setOpenMenu(null)}
       >
@@ -205,7 +205,7 @@ export function HeaderSection({ isDark = false }: HeaderSectionProps) {
                           desktopMenuButtonRefs.current[m.key]?.focus();
                         }
                       }}
-                      className="absolute left-1/2 top-[calc(100%+6px)] min-w-[160px] -translate-x-1/2 rounded-[14px] p-[8px] backdrop-blur-[20px]"
+                      className="absolute left-1/2 top-[calc(100%+6px)] min-w-[160px] -translate-x-1/2 rounded-[14px] p-[8px] backdrop-blur-[12px]"
                       style={{ background: "var(--header-dropdown-bg)", border: `1px solid ${menuBorder}`, boxShadow: "var(--header-dropdown-shadow)" }}
                     >
                       {m.items.map((it) => (

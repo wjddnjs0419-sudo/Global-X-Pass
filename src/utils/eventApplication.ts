@@ -36,12 +36,12 @@ export const normalizeEventCustomQuestions = (questions?: EventCustomQuestion[] 
     .filter(question => question.label.trim().length > 0);
 
 const normalizeCompletionTitle = (title: string) =>
-  ["신청이 접수되었습니다.", "참가가 확정되었습니다."].includes(title.trim())
+  ["신청이 접수되었습니다.", "참가가 확정되었습니다.", "행사 참가 신청이 접수되었습니다."].includes(title.trim())
     ? DEFAULT_EVENT_FORM_CONFIG.completionTitle
     : title;
 
 const normalizeCompletionMessage = (message: string) =>
-  message.includes("등록된 연락처")
+  message.includes("등록된 연락처") || message.trim() === "관리자 승인 후 확정 안내를 등록된 이메일로 보내드리겠습니다."
     ? DEFAULT_EVENT_FORM_CONFIG.completionMessage
     : message;
 
@@ -87,10 +87,11 @@ export const cleanEventFormConfig = (config?: EventFormConfig | null): EventForm
 };
 
 export const EVENT_APPLICATION_STATUS = {
-  pending: { label: "대기", color: "var(--color-brand-yellow)" },
+  pending: { label: "승인 대기", color: "var(--color-brand-yellow)" },
   accepted: { label: "확정", color: "var(--color-accent-green)" },
   rejected: { label: "거절", color: "var(--color-brand-red)" },
-  cancelled: { label: "취소", color: "var(--color-neutral)" },
+  cancelled_by_user: { label: "취소(본인)", color: "var(--color-neutral)" },
+  cancelled_by_admin: { label: "취소(관리자)", color: "var(--color-neutral)" },
 } as const;
 
 export const EVENT_STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {

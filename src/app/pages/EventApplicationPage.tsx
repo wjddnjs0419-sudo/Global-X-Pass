@@ -15,10 +15,10 @@ import { sanitizeRichHtml } from "../../utils/htmlSecurity";
 import { EVENT_STATUS_CONFIG, getEffectiveEventStatus, getEventRemaining, isEventApplicationOpen, mergeEventFormConfig } from "../../utils/eventApplication";
 import {
   EVENT_COVER_THUMBNAIL_ASPECT,
-  getThumbnailImageStyle,
   resolvePostThumbnail,
   toCssAspectRatio,
-} from "../../utils/postThumbnail";
+} from "../../utils/thumbnail/parser";
+import { getThumbnailImageStyle } from "../../utils/thumbnail/renderer";
 import { formatEventDate, formatEventLocation, formatLocalDateTime } from "../../utils/scheduleFields";
 
 type FormState = {
@@ -218,7 +218,7 @@ export function EventApplicationPage() {
     setSubmitting(true);
     const { data, error } = await supabase
       .from("event_applications")
-      .update({ status: "cancelled" })
+      .update({ status: "cancelled_by_user" })
       .eq("id", application.id)
       .select()
       .single();
@@ -302,10 +302,10 @@ export function EventApplicationPage() {
               )}
               {saved || application ? (
                 <ProgramConfirmationCard
-                  title={application?.status === "cancelled" ? "신청이 취소되었습니다." : config.completionTitle}
-                  description={application?.status === "cancelled" ? "재참가가 필요하면 운영자에게 문의해주세요." : config.completionMessage}
+                  title={application?.status === "cancelled_by_user" || application?.status === "cancelled_by_admin" ? "신청이 취소되었습니다." : config.completionTitle}
+                  description={application?.status === "cancelled_by_user" || application?.status === "cancelled_by_admin" ? "재참가가 필요하면 운영자에게 문의해주세요." : config.completionMessage}
                   actions={[
-                    ...(application?.status === "cancelled"
+                    ...(application?.status === "cancelled_by_user" || application?.status === "cancelled_by_admin"
                       ? [
                           { label: CONTACT_EMAIL, href: `mailto:${CONTACT_EMAIL}` },
                           { label: "문의 안내 보기", to: "/faq" },

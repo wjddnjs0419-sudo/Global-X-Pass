@@ -281,7 +281,7 @@ export function MyPage() {
     setLoading(true);
     const { error } = await supabase
       .from("consulting_reservations")
-      .update({ status: "cancelled" })
+      .update({ status: "cancelled_by_user" })
       .eq("id", reservation.id);
 
     if (error) {
@@ -315,7 +315,7 @@ export function MyPage() {
     setLoading(true);
     const { error } = await supabase
       .from("founders_club_applications")
-      .update({ status: "cancelled" })
+      .update({ status: "cancelled_by_user" })
       .eq("id", application.id);
 
     if (error) {
@@ -332,7 +332,7 @@ export function MyPage() {
     setLoading(true);
     const { error } = await supabase
       .from("event_applications")
-      .update({ status: "cancelled" })
+      .update({ status: "cancelled_by_user" })
       .eq("id", application.id);
 
     if (error) {
@@ -800,14 +800,15 @@ export function MyPage() {
               const slot = r.consulting_slots;
               const consultant = slot?.consultants;
               const statusCfg: Record<string, { label: string; color: string }> = {
-                pending:   { label: "대기", color: "var(--color-brand-yellow)" },
-                confirmed: { label: "확정",   color: "var(--color-accent-green)" },
-                rejected:  { label: "거절",   color: "var(--color-brand-red)" },
-                cancelled: { label: "취소",   color: "var(--color-neutral)" },
+                pending:            { label: "승인 대기",   color: "var(--color-brand-yellow)" },
+                confirmed:          { label: "확정",        color: "var(--color-accent-green)" },
+                rejected:           { label: "거절",        color: "var(--color-brand-red)" },
+                cancelled_by_user:  { label: "취소(본인)",  color: "var(--color-neutral)" },
+                cancelled_by_admin: { label: "취소(관리자)", color: "var(--color-neutral)" },
               };
               const cfg = statusCfg[r.status] ?? { label: r.status, color: "var(--color-text-muted)" };
               const canCancel = r.status === "pending" || r.status === "confirmed";
-              const canDelete = r.status === "cancelled" || r.status === "rejected";
+              const canDelete = r.status === "cancelled_by_user" || r.status === "cancelled_by_admin" || r.status === "rejected";
               return (
                 <div key={r.id} style={requestCardStyle}>
                   {canCancel && (
@@ -881,14 +882,15 @@ export function MyPage() {
             {clubApplications.map((a) => {
               const session = a.founders_club_sessions;
               const statusCfg: Record<string, { label: string; color: string }> = {
-                pending:   { label: "대기",  color: "var(--color-brand-yellow)" },
-                accepted:  { label: "확정",  color: "var(--color-accent-green)" },
-                rejected:  { label: "거절됨",  color: "var(--color-brand-red)" },
-                cancelled: { label: "취소",    color: "var(--color-neutral)" },
+                pending:            { label: "승인 대기",   color: "var(--color-brand-yellow)" },
+                accepted:           { label: "확정",        color: "var(--color-accent-green)" },
+                rejected:           { label: "거절됨",      color: "var(--color-brand-red)" },
+                cancelled_by_user:  { label: "취소(본인)",  color: "var(--color-neutral)" },
+                cancelled_by_admin: { label: "취소(관리자)", color: "var(--color-neutral)" },
               };
               const cfg = statusCfg[a.status] ?? { label: a.status, color: "var(--color-text-muted)" };
               const canCancel = a.status === "pending" || a.status === "accepted";
-              const canDelete = a.status === "cancelled" || a.status === "rejected";
+              const canDelete = a.status === "cancelled_by_user" || a.status === "cancelled_by_admin" || a.status === "rejected";
               return (
                 <div key={a.id} style={requestCardStyle}>
                   {canCancel && (
@@ -921,7 +923,7 @@ export function MyPage() {
               const event = a.posts;
               const cfg = EVENT_APPLICATION_STATUS[a.status as keyof typeof EVENT_APPLICATION_STATUS] ?? { label: a.status, color: "#888" };
               const canCancel = a.status === "pending" || a.status === "accepted";
-              const canDelete = a.status === "cancelled" || a.status === "rejected";
+              const canDelete = a.status === "cancelled_by_user" || a.status === "cancelled_by_admin" || a.status === "rejected";
               return (
                 <div key={a.id} style={requestCardStyle}>
                   {canCancel && (

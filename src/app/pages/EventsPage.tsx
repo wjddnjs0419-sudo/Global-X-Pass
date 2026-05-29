@@ -9,12 +9,14 @@ import { useTheme } from "../ThemeContext";
 import { LoadingSpinner, ErrorMessage } from "../components/LoadingSpinner";
 import { cleanText } from "../../utils/text";
 import { isImage } from "../../utils/file";
-import { getThumbnailImageStyle, resolvePostThumbnail } from "../../utils/postThumbnail";
+import { resolvePostThumbnail } from "../../utils/thumbnail/parser";
+import { getThumbnailImageStyle } from "../../utils/thumbnail/renderer";
 import { EVENT_STATUS_CONFIG, getEffectiveEventStatus, getEventRemaining, isEventApplicationOpen } from "../../utils/eventApplication";
 import { formatEventDate, formatEventLocation, formatLocalDateTime } from "../../utils/scheduleFields";
 import { getFilterTabStyle, getMutedLabelStyle, getStatusPillStyle } from "../components/contentListStyles";
 import { AppPagination } from "../components/AppPagination";
 import { logSupabaseFailure } from "../../lib/uxTelemetry";
+import type { Post } from "../../lib/types";
 
 const PAGE_SIZE = 10;
 
@@ -22,7 +24,7 @@ export function EventsPage() {
   const { isDark } = useTheme();
   const boardTitle = useBoardCategoryLabel("events", "행사");
   const boardSubtitle = useBoardCategoryDescription("events", "NCF에서 진행하는 다양한 이벤트와 프로그램을 확인해 보세요.");
-  const [posts, setPosts] = useState<any[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [activeTag, setActiveTag] = useState("전체");

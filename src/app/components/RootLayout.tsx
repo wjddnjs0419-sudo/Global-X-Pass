@@ -1,10 +1,11 @@
 import { Outlet, useNavigate, useLocation, Navigate } from "react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useTheme } from "../ThemeContext";
 import { HeaderSection } from "./HeaderSection";
 import { FooterSection } from "./FooterSection";
 import { DesignSystemPage } from "./DesignSystemPage";
 import { ErrorBoundary } from "./ErrorBoundary";
+import { LoadingSpinner } from "./LoadingSpinner";
 import { useTracker } from "../../hooks/useTracker";
 import { useAdmin } from "../../hooks/useAdmin";
 import { useIdleLogout } from "../../hooks/useIdleLogout";
@@ -113,7 +114,7 @@ export function RootLayout() {
             ? null
             : isDesignSystem
             ? (!adminLoading && isAdmin && !mfaRequired && mfaEnrolled ? <DesignSystemPage isDark={isDark} /> : (!adminLoading ? <Navigate to="/" replace /> : null))
-            : <Outlet />}
+            : <Suspense fallback={<LoadingSpinner />}><Outlet /></Suspense>}
         </ErrorBoundary>
       </main>
 

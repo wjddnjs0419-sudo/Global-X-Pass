@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ExternalLink, Play, RefreshCw, Trash2 } from "lucide-react";
 import { supabase } from "../../../lib/supabaseClient";
 import { useTheme } from "../../ThemeContext";
@@ -10,6 +10,7 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import type { CompanyNewsCrawlOptions, CompanyNewsTriggerResult } from "./architecture/types";
 import type { Article } from "../../../lib/types";
+import { useDebouncedValue } from "../../../hooks/useDebounce";
 
 const PAGE_SIZE = 20;
 
@@ -83,6 +84,7 @@ export default function AdminCompanyNewsManagement() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<ArticleStatusFilter>("pending");
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebouncedValue(searchTerm, 300);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [savingIds, setSavingIds] = useState<Set<string>>(new Set());
@@ -90,16 +92,18 @@ export default function AdminCompanyNewsManagement() {
   const [triggerLoading, setTriggerLoading] = useState(false);
   const [triggerMessage, setTriggerMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const [crawlOptions, setCrawlOptions] = useState<CompanyNewsCrawlOptions>(COMPANY_NEWS_CRAWL_DEFAULT_OPTIONS);
+  const activeFetchRef = useRef(0);
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(totalCount / PAGE_SIZE)), [totalCount]);
 
   const fetchArticles = useCallback(async () => {
+    const fetchId = ++activeFetchRef.current;
     setLoading(true);
     setFetchError(null);
 
     const from = (currentPage - 1) * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
-    const queryText = sanitizeSearch(searchTerm);
+    const queryText = sanitizeSearch(debouncedSearchTerm);
 
     let query = supabase
       .from("articles")
@@ -127,6 +131,8 @@ export default function AdminCompanyNewsManagement() {
 
     const { data, error, count } = await query;
 
+    if (fetchId !== activeFetchRef.current) return;
+
     if (error) {
       setFetchError(error.message);
       setArticles([]);
@@ -137,7 +143,7 @@ export default function AdminCompanyNewsManagement() {
     }
 
     setLoading(false);
-  }, [currentPage, searchTerm, statusFilter]);
+  }, [currentPage, debouncedSearchTerm, statusFilter]);
 
   useEffect(() => {
     fetchArticles();
@@ -145,7 +151,7 @@ export default function AdminCompanyNewsManagement() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilter, searchTerm]);
+  }, [statusFilter, debouncedSearchTerm]);
 
   useEffect(() => {
     setCurrentPage((page) => Math.min(page, totalPages));

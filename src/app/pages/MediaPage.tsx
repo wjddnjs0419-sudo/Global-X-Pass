@@ -8,10 +8,8 @@ import { fetchPublicPostPreviews } from "../../utils/publicPostPreviews";
 import { LoadingSpinner, ErrorMessage } from "../components/LoadingSpinner";
 import type { Post } from "../../lib/types";
 import { getFilterTabStyle } from "../components/contentListStyles";
-import {
-  getThumbnailImageStyle,
-  resolvePostThumbnail,
-} from "../../utils/postThumbnail";
+import { resolvePostThumbnail } from "../../utils/thumbnail/parser";
+import { getThumbnailImageStyle } from "../../utils/thumbnail/renderer";
 import {
   getMediaCategoryAspectRatio,
   getMediaCategoryLabel,

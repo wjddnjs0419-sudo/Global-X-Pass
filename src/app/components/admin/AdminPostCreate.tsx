@@ -43,9 +43,11 @@ import {
   getPostThumbnailCandidates,
   getPostThumbnailAspect,
   getThumbnailCandidates,
+} from "../../../utils/thumbnail/parser";
+import {
   getThumbnailSavePayload,
   uploadThumbnailIfDataUrl,
-} from "../../../utils/postThumbnail";
+} from "../../../utils/thumbnail/editor";
 import {
   composeEventDisplayDate,
   composeEventLocationValue,

@@ -1,8 +1,6 @@
-import type React from "react";
-import { isImage } from "./file";
-import { supabase } from "../lib/supabaseClient";
-import { isWideMediaCategory } from "../app/constants/mediaCategories";
-import { getExternalMediaThumbnailUrl, isVideoArchiveTag, parseMediaMeta } from "./mediaPost";
+import { isImage } from "../file";
+import { isWideMediaCategory } from "../../app/constants/mediaCategories";
+import { getExternalMediaThumbnailUrl, isVideoArchiveTag, parseMediaMeta } from "../mediaPost";
 
 export type ThumbnailAspect = "7/1" | "4/1" | "16/10" | "16/9" | "10/9" | "1/1" | "540/675";
 
@@ -147,43 +145,6 @@ export const normalizeThumbnailCrop = (
   };
 };
 
-const getPreciseThumbnailImageStyle = (crop: ThumbnailCrop): React.CSSProperties | null => {
-  if (!crop.sourceAspect || crop.zoom < 1) return null;
-
-  const targetAspect = getThumbnailAspectNumber(crop.aspect);
-  const verticalScale = targetAspect / crop.sourceAspect;
-
-  return {
-    position: "absolute",
-    left: `${50 - crop.x * crop.zoom}%`,
-    top: `${50 - crop.y * crop.zoom * verticalScale}%`,
-    right: "auto",
-    bottom: "auto",
-    width: `${crop.zoom * 100}%`,
-    height: `${crop.zoom * verticalScale * 100}%`,
-    maxWidth: "none",
-    display: "block",
-  };
-};
-
-export const getThumbnailImageStyle = (crop: ThumbnailCrop | null): React.CSSProperties => (
-  crop ? getPreciseThumbnailImageStyle(crop) ?? {
-    width: "100%",
-    height: "100%",
-    objectFit: "cover",
-    objectPosition: `${crop.x}% ${crop.y}%`,
-    transform: crop.zoom > 1 ? `scale(${crop.zoom})` : undefined,
-    transformOrigin: `${crop.x}% ${crop.y}%`,
-    display: "block",
-  } : {
-    width: "100%",
-    height: "100%",
-    objectFit: "cover",
-    objectPosition: "50% 50%",
-    display: "block",
-  }
-);
-
 export const extractImageUrlsFromHtml = (html: string): string[] => {
   if (!html) return [];
 
@@ -297,60 +258,5 @@ export const resolvePostThumbnail = (
     url: candidates[0]?.url ?? null,
     crop: null,
     coverCrop: null,
-  };
-};
-
-export async function uploadThumbnailIfDataUrl(url: string | null): Promise<string | null> {
-  if (!url || !isDataImageUrl(url)) return url;
-  const response = await fetch(url);
-  const blob = await response.blob();
-  const ext = blob.type === "image/jpeg" ? "jpg" : "png";
-  const fileName = `thumbnails/${Date.now()}-${Math.random().toString(36).slice(2, 9)}.${ext}`;
-  const { error } = await supabase.storage.from("images").upload(fileName, blob, { contentType: blob.type });
-  if (error) throw error;
-  return supabase.storage.from("images").getPublicUrl(fileName).data.publicUrl;
-}
-
-export const getThumbnailSavePayload = ({
-  supportsManualThumbnail,
-  nextThumbnailUrl,
-  previousThumbnailUrl,
-  previousThumbnailCrop,
-  previousThumbnailCropCover,
-}: {
-  supportsManualThumbnail: boolean;
-  nextThumbnailUrl: string | null | undefined;
-  previousThumbnailUrl?: string | null;
-  previousThumbnailCrop?: unknown;
-  previousThumbnailCropCover?: unknown;
-}) => {
-  if (!supportsManualThumbnail) {
-    return {
-      thumbnail_url: null,
-      thumbnail_crop: null,
-      thumbnail_crop_cover: null,
-    };
-  }
-
-  const trimmedNextThumbnailUrl = nextThumbnailUrl?.trim() || null;
-  if (!trimmedNextThumbnailUrl) {
-    return {
-      thumbnail_url: null,
-      thumbnail_crop: null,
-      thumbnail_crop_cover: null,
-    };
-  }
-
-  const trimmedPreviousThumbnailUrl = previousThumbnailUrl?.trim() || null;
-  const shouldPreservePreviousCrop = Boolean(
-    trimmedPreviousThumbnailUrl
-    && trimmedNextThumbnailUrl === trimmedPreviousThumbnailUrl
-    && !isDataImageUrl(trimmedNextThumbnailUrl),
-  );
-
-  return {
-    thumbnail_url: trimmedNextThumbnailUrl,
-    thumbnail_crop: shouldPreservePreviousCrop ? previousThumbnailCrop ?? null : null,
-    thumbnail_crop_cover: shouldPreservePreviousCrop ? previousThumbnailCropCover ?? null : null,
   };
 };

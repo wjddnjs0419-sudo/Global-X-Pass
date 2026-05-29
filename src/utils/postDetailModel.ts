@@ -16,7 +16,7 @@ import {
   resolvePostThumbnail,
   type ResolvedPostThumbnail,
   type ThumbnailCrop,
-} from "./postThumbnail";
+} from "./thumbnail/parser";
 import { isImage } from "./file";
 import { normalizePublicStorageUrl } from "./urlSecurity";
 import { buildNaverRenderModel } from "./htmlSecurity";

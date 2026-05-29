@@ -10,7 +10,7 @@ type ApplicationRow = {
   session_id: string;
   user_id: string;
   message: string | null;
-  status: "pending" | "accepted" | "rejected" | "cancelled";
+  status: "pending" | "accepted" | "rejected" | "cancelled_by_user" | "cancelled_by_admin";
   created_at: string;
 };
 
