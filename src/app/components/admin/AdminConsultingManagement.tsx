@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { X } from "lucide-react";
 import { supabase } from "../../../lib/supabaseClient";
 import { encodeFilename } from "../../../utils/file";
@@ -226,8 +227,11 @@ export function AdminConsultingManagement() {
       const { error } = await supabase.from("consultants").insert({ ...form, expertise, bio: form.bio || null, image_url: imageUrl });
       if (error) alert("생성 실패: " + error.message);
       else { setForm(emptyConsultantForm); fetchConsultants(); }
-    } catch (err: any) {
-      alert("프로필 사진 업로드 실패: " + (err?.message || "알 수 없는 오류"));
+    } catch (err: unknown) {
+      const message = typeof err === "object" && err !== null && "message" in err && typeof err.message === "string"
+        ? err.message
+        : "알 수 없는 오류";
+      alert("프로필 사진 업로드 실패: " + message);
     } finally {
       setLoading(false);
     }
@@ -270,8 +274,11 @@ export function AdminConsultingManagement() {
         cancelEditConsultant();
         fetchConsultants();
       }
-    } catch (err: any) {
-      alert("프로필 사진 업로드 실패: " + (err?.message || "알 수 없는 오류"));
+    } catch (err: unknown) {
+      const message = typeof err === "object" && err !== null && "message" in err && typeof err.message === "string"
+        ? err.message
+        : "알 수 없는 오류";
+      alert("프로필 사진 업로드 실패: " + message);
     } finally {
       setLoading(false);
     }
@@ -701,7 +708,23 @@ export function AdminConsultingManagement() {
   );
 }
 
-function ReservationCard({ r, card, border, textMain, textMuted, inputStyle, statusBadge, loading, onUpdate, labelBg, labelBorder, deleteBg, deleteBorder }: any) {
+interface ReservationCardProps {
+  r: ConsultingReservationRow;
+  card: string;
+  border: string;
+  textMain: string;
+  textMuted: string;
+  inputStyle: CSSProperties;
+  statusBadge: (s: string) => ReactNode;
+  loading: boolean;
+  onUpdate: (id: string, status: "cancelled", note: string) => Promise<void>;
+  labelBg: string;
+  labelBorder: string;
+  deleteBg: string;
+  deleteBorder: string;
+}
+
+function ReservationCard({ r, card, border, textMain, textMuted, inputStyle, statusBadge, loading, onUpdate, labelBg, labelBorder, deleteBg, deleteBorder }: ReservationCardProps) {
   const [note, setNote] = useState(r.admin_note || "");
   const slot = r.consulting_slots;
   const consultant = slot?.consultants;

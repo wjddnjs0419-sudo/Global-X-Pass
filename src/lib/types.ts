@@ -165,6 +165,21 @@ export interface EventApplication {
   updated_at: string;
 }
 
+export type EventApplicationWithPost = EventApplication & {
+  posts:
+    | Pick<
+        Post,
+        | 'title'
+        | 'event_start_at'
+        | 'event_date'
+        | 'venue_name'
+        | 'venue_address'
+        | 'location'
+        | 'event_status'
+      >
+    | null;
+};
+
 // ── RBAC ──────────────────────────────────────────────────────────
 export interface MemberGroup {
   id: string;
@@ -213,6 +228,14 @@ export interface ConsultingReservation {
   created_at: string;
 }
 
+export type ConsultingReservationWithSlot = ConsultingReservation & {
+  consulting_slots:
+    | (Pick<ConsultingSlot, 'slot_date' | 'slot_time' | 'location'> & {
+        consultants: Pick<Consultant, 'name' | 'category'> | null;
+      })
+    | null;
+};
+
 // ── 오피스아워 (월별 모집 + 관리자 매칭) ──────────────────────────
 export interface OfficeHourMonth {
   id: string;
@@ -246,6 +269,10 @@ export interface OfficeHourApplication {
   created_at: string;
 }
 
+export type OfficeHourApplicationWithMonth = OfficeHourApplication & {
+  office_hour_months: Pick<OfficeHourMonth, 'period_month'> | null;
+};
+
 // ── Founder's Club ────────────────────────────────────────────────
 export type FoundersClubSessionStatus =
   | 'pending'
@@ -276,6 +303,15 @@ export interface FoundersClubApplication {
   status: 'pending' | 'accepted' | 'rejected' | 'cancelled';
   created_at: string;
 }
+
+export type FoundersClubApplicationWithSession = FoundersClubApplication & {
+  founders_club_sessions:
+    | Pick<
+        FoundersClubSession,
+        'theme' | 'session_date' | 'session_time' | 'location' | 'status'
+      >
+    | null;
+};
 
 export interface Profile {
   id: string;

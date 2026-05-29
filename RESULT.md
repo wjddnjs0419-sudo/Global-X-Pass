@@ -1,55 +1,127 @@
-# RESULT: PostDetailPage SPOF 분해 5단계 — DetailHeader 추출 + 최종 슬림화 (2026-05-29)
+# RESULT: P2 코드 품질 4단계 — `editingPost` 타입 명시 (2026-05-29)
 
 ## 현재 상태
 
-- 4단계까지 렌더 분기 View 3종을 `src/app/pages/postDetail/` 폴더로 분리한 데 이어, 페이지에 잔존하던 **헤더 블록(뒤로/수정 버튼 18줄)** 을 `DetailHeader` 컴포넌트로 흡수.
-- 페이지에는 데이터 페칭(`usePostDetail`) + 파생 모델(`buildPostDetailModel`) + 라우팅 가드(loading/notFound/`?edit=1`) + `PageShell` 타이틀/서브타이틀 + 분기 선택만 잔존.
-- `PostDetailPage.tsx`: **99 → 82줄** (-17). 1~5단계 누적 **747 → 82줄** (-665, 약 89% 감축).
-- Codex 리뷰 1회로 6개 체크포인트 a~f 전부 PASS, 승인.
-- 5 카테고리 회귀 QA (notice/news/insights portrait/insights wide/events-archive 영상) 사용자 확인 ✅.
+- P2 (`any` 퇴출) **4단계 완료**, 전 4단계 종결.
+- 사전 분석으로 원안 `PostFormData` 신설 + zod/수동 검증 게이트 **불필요 판정**.
+- 변경 = 타입 별칭 직치환 4 hunks, 런타임 0변동.
+- `npm run validate` ✅.
+- Codex `/codex:rescue` 리뷰 예정.
+
+## 사전 분석 — PostFormData 불필요 판정
+
+원안: `editingPost: any` → `PostFormData` 폼 전용 인터페이스(모든 필드 optional + onSubmit 시 zod 또는 수동 검증).
+
+실제 코드 분석 결과:
+
+- `setEditingPost` 호출 3 소스 전부 `Post | null` 표현 가능
+  - `AdminPage.tsx:107` — `supabase.from("posts").select("*").eq(...).maybeSingle()` 응답
+  - `AdminPage.tsx:125` — `handleStartEdit(post: Post)` 인자 (3단계에서 `Post` 타입화 완료)
+  - `AdminPage.tsx:121/134/210` — `null`
+- `editingPost`는 **읽기 전용 DB row**. 폼 입력값 누적·갱신에 사용 안 함
+- 폼 state는 별도 useState 훅 16종이 보유:
+  - `category`/`title`/`content`/`files`/`existingImages`/`thumbnailUrl`/`thumbnailCrop`/`thumbnailCropCover`/`mediaDetailCoverAspect`/`pendingThumbnailFile`/`fileObjectUrls`/`eventMeta`/`legacyEventDateFallback`/`eventFormConfig`/`isPublic`/`mediaMeta`
+- `editingPost`는 `useEffect(..., [editingPost?.id])` 안에서 위 훅들에 **초기값을 주입하는 소스**일 뿐
+- `Post` 인터페이스가 이미 카테고리별 optional 필드 모두 보유(`event_start_at?`/`venue_*?`/`event_form_config?`/`thumbnail_crop_cover?`/`tags?` 등)
+
+→ `Post | null` 직치환으로 충분, 새 인터페이스 불필요.
 
 ## 변경 내용
 
-| 대상 | 변경 |
-|---|---|
-| `src/app/pages/postDetail/DetailHeader.tsx` (신규, 35줄) | 페이지 헤더 블록 흡수. props `{post, canRenderAdminControls, border, card}`. 내부에서 `useNavigate()` + `getBackLinkStyle` import. 뒤로 버튼: `post.category === "media" ? navigate("/insights") : navigate(-1)`. 수정 버튼: `canRenderAdminControls` true일 때만 노출, `navigate(\`/admin?editPostId=${post.id}\`)`. DOM은 `flex justify-between items-center mb-8` wrapper로 원본 byte-equal. `Post` 타입은 형제 View들과 일관되게 `../../../lib/types`에서 import. |
-| `src/app/pages/PostDetailPage.tsx` (99→82, -17) | 인라인 헤더 18줄 → `<DetailHeader post={post} canRenderAdminControls={canRenderAdminControls} border={border} card={card} />` 1줄. 미사용 import `getBackLinkStyle` 제거. `useNavigate`는 잔존(`useEffect`의 `?edit=1` 자동 리다이렉트에서 `navigate(replace:true)` 호출). |
+### `src/app/pages/AdminPage.tsx`
+
+| 라인 | Before | After |
+|---|---|---|
+| 77 | `useState<any \| null>(null)` | `useState<Post \| null>(null)` |
+| 107 | `setEditingPost(data)` | `setEditingPost(data as unknown as Post)` |
+
+- `Post` import는 3단계에서 이미 추가됨(`line 6: import type { Post } from "../../lib/types"`)
+- 107 캐스트는 3단계 supabase-js v2 nested join 추론 한계 회피 패턴 일관 적용. 여기서는 `select("*")`라 nested join은 아니지만 supabase-js 응답 타입이 `Record<string, unknown>` 계열로 좁혀지지 않아 동일 패턴 사용.
+
+### `src/app/components/admin/AdminPostCreate.tsx`
+
+| 라인 | Before | After |
+|---|---|---|
+| 29 | `import type { EventFormConfig, ThumbnailCrop }` | `import type { EventFormConfig, Post, ThumbnailCrop }` |
+| 109 | `editingPost: any \| null;` | `editingPost: Post \| null;` |
+
+- 본문 어디서도 mutation 없음(`editingPost.???`로 읽기만). optional 체인(`editingPost?.thumbnail_crop`, `editingPost?.id` 등) 보존.
+
+## 카테고리별 분기 UI 무변경 확인
+
+`editingPost` 타입 변경이 카테고리별 분기 로직에 영향 없음:
+
+- **events**: 일시(`event_start_at`/`event_date`) + 장소(`venue_name`/`venue_address`/`location`) + `event_form_config` 빌더 + `capacity`/`event_status` — 전부 `Post`의 optional 필드
+- **media**: `thumbnail_crop`(540:675 목록) + `thumbnail_crop_cover`(1:1 상세 토글) + `mediaMeta` 외부 URL — `Post`의 optional 필드
+- **events-archive** + 영상 태그: 외부 영상 URL — `mediaMeta` state 보유
+- **news**: 썸네일 편집기 — `Post.thumbnail_crop`
+- **일반(notice 등)**: 본문 + 첨부
+
+`Post`가 모든 optional 필드를 보유하므로 카테고리별 partial 데이터(events는 venue_*만 있고 thumbnail_crop_cover 없음 등)도 그대로 표현 가능.
 
 ## 호환 / 리스크 메모
 
-- **useNavigate 양쪽 호출**: 페이지(`useEffect` 자동 리다이렉트 1곳)와 DetailHeader(버튼 핸들러 2곳) 각각 `useNavigate()` 인스턴스를 가짐. React Router의 hook 인스턴스는 컴포넌트별 생성이 정상 패턴이라 부작용 없음. 페이지 측 `navigate` 사용처 1곳뿐이라 hook 제거는 불가.
-- **헤더 추출 byte-equal**: className/style/handler/onClick 콜백 시그니처 모두 원본 동일. 사용자 5 카테고리 QA에서 회귀 없음 확인.
-- **DetailHeader props 최소화**: `border`/`card`는 CSS variable 문자열 상수(`"var(--color-border-soft)"`/`"var(--color-surface-card)"`)라 향후 prop drilling 부담 시 DetailHeader 내부에서 직접 선언 가능. 현재는 페이지의 공통 토큰 변수와 통일 유지.
+- **런타임 동작 변경 0**: 타입 수준 변경만, 빌드 산출물 변동 검토 필요(diff stat).
+- **`as unknown as Post` 안전성**: `select("*")`는 `posts` 테이블 전 컬럼 반환 → `Post` 인터페이스와 shape 1:1. RLS 통과 row만 반환되므로 응답이 다른 row 타입일 위험 0.
+- **`null` 의미 보존**: `null` = 신규 모드 / 객체 = 수정 모드 분기 다수(`if (editingPost)`, `editingPost ? ... : ...`, `editingPost?.id` 등) — `Post | null`로 타이핑 후 동일 의미 유지.
+- **optional 체인 보존**: `editingPost?.thumbnail_crop`, `editingPost?.thumbnail_crop_cover`, `editingPost?.id`, `editingPost?.location`, `editingPost?.thumbnail_url` 등 전체 ⇒ `Post`의 optional 필드와 정합.
+- **zod/수동 검증 게이트 미도입**: 원안의 onSubmit 시 validation은 `editingPost`가 폼 state가 아니라 별건. onSubmit payload는 별도 useState 훅들이 보유 → 검증 필요 시 그 훅들 대상 별도 분석 작업.
 
 ## QA / 검증
 
-- `npm run validate` ✅ (`tsc --noEmit` + `eslint src/ --max-warnings=0` + `vite build` + `check:frontend-secrets`)
-- Codex 리뷰 (6 체크포인트 a~f, 1회):
-  - (a) Props 외부 의존 커버: **PASS**
-  - (b) onClick 핸들러 byte-equal: **PASS**
-  - (c) Post 타입 import 경로 형제 일관: **PASS**
-  - (d) 페이지에서 `getBackLinkStyle` 제거 + 타 사용처 0: **PASS**
-  - (e) `useNavigate` 양쪽 호출 정상 패턴: **PASS**
-  - (f) DOM/className/style byte-equal: **PASS**
-- 종합: 6/6 PASS, 변경 승인.
-- 사용자 브라우저 QA: notice/news/insights portrait/insights wide/events-archive 영상 5종 정상 동작 확인.
+- `npm run validate` ✅ (×3 — 초안 + 1차 픽스 + 2차 풀 가드 픽스)
+  - `tsc --noEmit` PASS
+  - `eslint src/ --max-warnings=0` PASS
+  - `vite build` PASS (1897 modules, dist/index 899kB — 3단계와 동일)
+  - `check:frontend-secrets` PASS (23 files)
+- **Codex `/codex:adversarial-review` 1차**: 4 PASS / 1 FAIL
+  - (a) mutation 누적 PASS — DB row read-only 입력 소비 확인
+  - (b) **FAIL** — `AdminPage.tsx:107` `data as unknown as Post` 이중 캐스트, `if (cancelled || !data) return;`만으로 shape 검증 불충분. 컬럼 한정 또는 런타임 가드 권고
+  - (c) optional 체인 PASS — `editingPost?.id`/`?.thumbnail_crop*` 등 보존
+  - (d) `if (editingPost)` 분기 PASS — null/객체 의미 동치
+  - (e) 카테고리별 UI PASS — events/media/events-archive/news 분기 무변경
+- **1차 FAIL 1차 픽스 (AdminPage.tsx:105-109)** — 3종 minimal 가드:
+  ```ts
+  if (typeof row.id !== "string" || typeof row.title !== "string" || typeof row.category !== "string") return;
+  ```
+- **Codex 2차 재FAIL**: (b) 부족 — `AdminPostCreate`가 `editingPost.content`(line 254), `editingPost.image_url`(line 255) 직접 소비. 면제 근거 부족, `Post` required 7종 전부 가드 필요.
+- **2차 픽스 (AdminPage.tsx:105-117)** — Post required 7종 풀 가드:
+  ```ts
+  if (
+    typeof row.id !== "string" ||
+    typeof row.title !== "string" ||
+    typeof row.content !== "string" ||
+    typeof row.category !== "string" ||
+    (row.image_url !== null && typeof row.image_url !== "string") ||
+    typeof row.created_at !== "string" ||
+    typeof row.views !== "number"
+  ) return;
+  setEditingPost(row as unknown as Post);
+  ```
+  `image_url`은 nullable(`string | null`)이므로 `null || string` 둘 다 허용.
+- **크롤 파이프라인 사전 영향 검증**:
+  - `scripts/import-blog-posts.mjs` — `posts` INSERT 시 `title`/`category`/`content: record.content`/`image_url: record.attachmentImageUrl || null`/`views: 0` 명시, `created_at` DB DEFAULT `now()` → 7종 전부 충족
+  - `scripts/crawl-company-news.mjs` — `articles` 테이블 전용, `posts` 무관
+  - `external-news-preview` EF — 미리보기만, DB write 없음
+  - `AdminPostCreate.tsx:650` 어드민 직접 작성 — `category`/`title`/`content`/`image_url` 명시 + `views`/`created_at` DB DEFAULT
+  - `posts.title`/`content`/`category` 컬럼 DB NOT NULL → 누락 INSERT는 DB 에러로 차단, 즉 DB row면 string 보장
+  - → 크롤 게시물(blog/news/insights/events-archive) 전부 풀 가드 통과 안전
+- **Codex 3차 (2026-05-29 최종)**: **5/5 PASS** 🎯
+  - (b) PASS — Post required 7종 가드 완비, shape 안전성 확보
+  - (b') PASS — 7종 좁힘 이후 `setEditingPost(row as unknown as Post)` 잔존 캐스트 안전
+  - (a) PASS — mutation 누적 없음 유지
+  - (c) PASS — optional chain 보존
+  - (d) PASS — 신규/수정 분기 동일
+  - (e) PASS — 카테고리 분기 UI 회귀 없음
+  - 코드 추가 수정 없음.
 
 ## 메모
 
-- 5단계 절감 -17줄. 1~5단계 누적 -665줄(89%↓).
-- 최종 구조:
-  ```
-  src/app/pages/PostDetailPage.tsx          82줄 (라우팅·분기 선택)
-    ├ src/hooks/usePostDetail.ts            데이터/접근제어/조회수
-    ├ src/utils/postDetailModel.ts          파생 상태 순수함수
-    ├ src/app/components/content/
-    │   ├ AttachmentPopover.tsx             첨부 패널
-    │   ├ PostBodyRenderer.tsx              quill+naver 본문 렌더
-    │   └ NaverImportDebugLogger.tsx        dev 콘솔 진단
-    └ src/app/pages/postDetail/
-        ├ DetailHeader.tsx                  뒤로/수정 버튼
-        ├ WideVideoPostView.tsx             인사이트 wide / events-archive 영상
-        ├ PortraitMediaPostView.tsx         인사이트 portrait
-        └ StandardPostView.tsx              일반 게시판
-  ```
-- PostDetailPage SPOF 분해 시리즈 종결. 후속 작업은 PLAN.md Pending(Codex 게시판 gated 일관 적용 재리뷰)으로.
+- diff stat: 2 파일 +11/-7 = 순증 4줄(Post import 1 + 시그니처 3).
+- P2 전 4단계 종결:
+  1. catch(err: any) → unknown 속성 가드 (2026-05-29 Codex PASS)
+  2. `ReservationCard` props 12개 → `ReservationCardProps` (2026-05-29 Codex PASS)
+  3. Supabase 응답 4 composite row + `Post` 적용 (2026-05-29 Codex 대기)
+  4. `editingPost: any | null` → `Post | null` (이번)
+- **종료 후 단계**: `.eslintrc` `@typescript-eslint/no-explicit-any: warn` 도입 → 신규 `any` 유입 차단(첫 단계 warn, 향후 error 승격 검토).
+- 다음 P3(인라인 스타일 → Tailwind/shadcn) 또는 P4(`postThumbnail.ts` 다이어트) 후보. PLAN.md Future 섹션 참조.

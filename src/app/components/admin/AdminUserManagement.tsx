@@ -255,8 +255,11 @@ export function AdminUserManagement({ refreshKey, adminId }: AdminUserManagement
         if (error) throw error;
         setBulkResult(data);
         await fetchUsers();
-      } catch (err: any) {
-        alert("CSV 처리 실패: " + err.message);
+      } catch (err: unknown) {
+        const message = typeof err === "object" && err !== null && "message" in err && typeof err.message === "string"
+          ? err.message
+          : "알 수 없는 오류";
+        alert("CSV 처리 실패: " + message);
       } finally {
         setCsvLoading(false);
         e.target.value = "";

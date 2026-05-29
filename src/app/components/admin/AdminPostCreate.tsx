@@ -26,7 +26,7 @@ import {
   type MediaMeta,
 } from "../../../utils/mediaPost";
 import { supabase } from "../../../lib/supabaseClient";
-import type { EventFormConfig, ThumbnailCrop } from "../../../lib/types";
+import type { EventFormConfig, Post, ThumbnailCrop } from "../../../lib/types";
 import { cleanEventFormConfig } from "../../../utils/eventApplication";
 import { AdminPostModal } from "./AdminPostModal";
 import { EventFormConfigEditor } from "./EventFormConfigEditor";
@@ -106,7 +106,7 @@ const EMPTY_META: EventMeta = {
 };
 
 interface AdminPostCreateProps {
-  editingPost: any | null;
+  editingPost: Post | null;
   onSaved: () => void;
   onCancelled: () => void;
 }
@@ -651,8 +651,11 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
         if (error) throw error;
       }
       onSaved();
-    } catch (err: any) {
-      alert("처리 중 오류가 발생했습니다!\n\n" + err.message);
+    } catch (err: unknown) {
+      const message = typeof err === "object" && err !== null && "message" in err && typeof err.message === "string"
+        ? err.message
+        : "알 수 없는 오류";
+      alert("처리 중 오류가 발생했습니다!\n\n" + message);
     } finally {
       setLoading(false);
       setShowSaveModal(false);

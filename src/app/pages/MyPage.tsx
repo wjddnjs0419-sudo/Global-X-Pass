@@ -6,7 +6,13 @@ import { createClient } from "@supabase/supabase-js";
 import { X, Trash2 } from "lucide-react";
 import { LAYERS } from "../../lib/layers";
 import { supabase, supabaseUrl, supabaseAnonKey } from "../../lib/supabaseClient";
-import type { Profile } from "../../lib/types";
+import type {
+  Profile,
+  ConsultingReservationWithSlot,
+  OfficeHourApplicationWithMonth,
+  FoundersClubApplicationWithSession,
+  EventApplicationWithPost,
+} from "../../lib/types";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "../components/ui/input-otp";
 import { EVENT_APPLICATION_STATUS } from "../../utils/eventApplication";
 import { sanitizeSvgMarkup } from "../../utils/htmlSecurity";
@@ -28,10 +34,10 @@ export function MyPage() {
   const [isVerified, setIsVerified] = useState(false);
   const [pwChangeMfaOtp, setPwChangeMfaOtp] = useState("");
   const [loading, setLoading] = useState(false);
-  const [consultingReservations, setConsultingReservations] = useState<any[]>([]);
-  const [officeHourApplications, setOfficeHourApplications] = useState<any[]>([]);
-  const [clubApplications, setClubApplications] = useState<any[]>([]);
-  const [eventApplications, setEventApplications] = useState<any[]>([]);
+  const [consultingReservations, setConsultingReservations] = useState<ConsultingReservationWithSlot[]>([]);
+  const [officeHourApplications, setOfficeHourApplications] = useState<OfficeHourApplicationWithMonth[]>([]);
+  const [clubApplications, setClubApplications] = useState<FoundersClubApplicationWithSession[]>([]);
+  const [eventApplications, setEventApplications] = useState<EventApplicationWithPost[]>([]);
 
   // 회원탈퇴 모달
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
@@ -127,7 +133,7 @@ export function MyPage() {
       .select("*, consulting_slots(slot_date, slot_time, location, consultants(name, category))")
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
-    setConsultingReservations(resData || []);
+    setConsultingReservations((resData ?? []) as unknown as ConsultingReservationWithSlot[]);
   };
 
   const fetchOfficeHourApplications = async (userId: string) => {
@@ -136,7 +142,7 @@ export function MyPage() {
       .select("*, office_hour_months(period_month)")
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
-    setOfficeHourApplications(data || []);
+    setOfficeHourApplications((data ?? []) as unknown as OfficeHourApplicationWithMonth[]);
   };
 
   const fetchClubApplications = async (userId: string) => {
@@ -145,7 +151,7 @@ export function MyPage() {
       .select("*, founders_club_sessions(theme, session_date, session_time, location, status)")
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
-    setClubApplications(clubData || []);
+    setClubApplications((clubData ?? []) as unknown as FoundersClubApplicationWithSession[]);
   };
 
   const fetchEventApplications = async (userId: string) => {
@@ -154,7 +160,7 @@ export function MyPage() {
       .select("*, posts(title, event_start_at, event_date, venue_name, venue_address, location, event_status)")
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
-    setEventApplications(eventData || []);
+    setEventApplications((eventData ?? []) as unknown as EventApplicationWithPost[]);
   };
 
   const syncMfaState = async () => {
@@ -269,7 +275,7 @@ export function MyPage() {
     fetchUserAndProfile();
   }, [navigate]);
 
-  const handleCancelConsultingReservation = async (reservation: any) => {
+  const handleCancelConsultingReservation = async (reservation: ConsultingReservationWithSlot) => {
     if (!window.confirm("컨설팅 신청을 취소하시겠습니까?")) return;
 
     setLoading(true);
@@ -286,7 +292,7 @@ export function MyPage() {
     setLoading(false);
   };
 
-  const handleCancelOfficeHourApplication = async (application: any) => {
+  const handleCancelOfficeHourApplication = async (application: OfficeHourApplicationWithMonth) => {
     if (!window.confirm("오피스아워 신청을 취소하시겠습니까?")) return;
 
     setLoading(true);
@@ -303,7 +309,7 @@ export function MyPage() {
     setLoading(false);
   };
 
-  const handleCancelClubApplication = async (application: any) => {
+  const handleCancelClubApplication = async (application: FoundersClubApplicationWithSession) => {
     if (!window.confirm("Founder's Club 신청을 취소하시겠습니까?")) return;
 
     setLoading(true);
@@ -320,7 +326,7 @@ export function MyPage() {
     setLoading(false);
   };
 
-  const handleCancelEventApplication = async (application: any) => {
+  const handleCancelEventApplication = async (application: EventApplicationWithPost) => {
     if (!window.confirm("행사 신청을 취소하시겠습니까?")) return;
 
     setLoading(true);
@@ -389,8 +395,11 @@ export function MyPage() {
       }
       alert("비밀번호가 성공적으로 변경되었습니다!");
       setOldPassword(""); setNewPassword(""); setIsVerified(false); setPwChangeMfaOtp("");
-    } catch (err: any) {
-      alert("비밀번호 변경 실패: " + (err.message ?? "알 수 없는 오류"));
+    } catch (err: unknown) {
+      const message = typeof err === "object" && err !== null && "message" in err && typeof err.message === "string"
+        ? err.message
+        : "알 수 없는 오류";
+      alert("비밀번호 변경 실패: " + message);
     }
     setLoading(false);
   };
@@ -473,8 +482,11 @@ export function MyPage() {
       if (data?.error) throw new Error(data.error);
       await supabase.auth.signOut();
       navigate("/");
-    } catch (err: any) {
-      alert("탈퇴 실패: " + (err.message ?? "알 수 없는 오류"));
+    } catch (err: unknown) {
+      const message = typeof err === "object" && err !== null && "message" in err && typeof err.message === "string"
+        ? err.message
+        : "알 수 없는 오류";
+      alert("탈퇴 실패: " + message);
       setIsDeletingAccount(false);
     }
   };
@@ -784,7 +796,7 @@ export function MyPage() {
         {profile?.role !== "admin" && consultingReservations.length > 0 && (
           <div className="w-full max-w-[500px] rounded-[20px] px-9 py-8 flex flex-col gap-4" style={{ background: card, border: `1px solid ${border}` }}>
             <h3 style={{ color: textMain, fontSize: 18, margin: 0 }}>나의 컨설팅 예약</h3>
-            {consultingReservations.map((r: any) => {
+            {consultingReservations.map((r) => {
               const slot = r.consulting_slots;
               const consultant = slot?.consultants;
               const statusCfg: Record<string, { label: string; color: string }> = {
@@ -824,7 +836,7 @@ export function MyPage() {
         {profile?.role !== "admin" && officeHourApplications.length > 0 && (
           <div className="w-full max-w-[500px] rounded-[20px] px-9 py-8 flex flex-col gap-4" style={{ background: card, border: `1px solid ${border}` }}>
             <h3 style={{ color: textMain, fontSize: 18, margin: 0 }}>나의 오피스아워 신청</h3>
-            {officeHourApplications.map((a: any) => {
+            {officeHourApplications.map((a) => {
               const periodMonth = a.office_hour_months?.period_month as string | undefined;
               const cfg = getOfficeHourStatusConfig(a.status);
               const canCancel = a.status === "pending" || a.status === "matched";
@@ -866,7 +878,7 @@ export function MyPage() {
         {profile?.role !== "admin" && clubApplications.length > 0 && (
           <div className="w-full max-w-[500px] rounded-[20px] px-9 py-8 flex flex-col gap-4" style={{ background: card, border: `1px solid ${border}` }}>
             <h3 style={{ color: textMain, fontSize: 18, margin: 0 }}>나의 Founder's Club 참여</h3>
-            {clubApplications.map((a: any) => {
+            {clubApplications.map((a) => {
               const session = a.founders_club_sessions;
               const statusCfg: Record<string, { label: string; color: string }> = {
                 pending:   { label: "대기",  color: "var(--color-brand-yellow)" },
@@ -905,7 +917,7 @@ export function MyPage() {
         {profile?.role !== "admin" && eventApplications.length > 0 && (
           <div className="w-full max-w-[500px] rounded-[20px] px-9 py-8 flex flex-col gap-4" style={{ background: card, border: `1px solid ${border}` }}>
             <h3 style={{ color: textMain, fontSize: 18, margin: 0 }}>나의 행사 참가</h3>
-            {eventApplications.map((a: any) => {
+            {eventApplications.map((a) => {
               const event = a.posts;
               const cfg = EVENT_APPLICATION_STATUS[a.status as keyof typeof EVENT_APPLICATION_STATUS] ?? { label: a.status, color: "#888" };
               const canCancel = a.status === "pending" || a.status === "accepted";

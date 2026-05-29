@@ -4,6 +4,7 @@ import { useTheme } from "../ThemeContext";
 import { supabase } from "../../lib/supabaseClient";
 import { useAdmin } from "../../hooks/useAdmin";
 import { LAYERS } from "../../lib/layers";
+import type { Post } from "../../lib/types";
 
 import { HeaderSection } from "../components/HeaderSection";
 import { NotificationBell } from "../components/admin/NotificationBell";
@@ -73,7 +74,7 @@ export default function AdminPage() {
   const [adminId, setAdminId]       = useState("");
 
   // 탭 간 게시물 편집 상태
-  const [editingPost, setEditingPost] = useState<any | null>(null);
+  const [editingPost, setEditingPost] = useState<Post | null>(null);
 
   // 자식 컴포넌트 re-fetch 트리거
   const [dashRefreshKey, setDashRefreshKey]   = useState(0);
@@ -103,7 +104,17 @@ export default function AdminPage() {
     const openEditingPost = async () => {
       const { data } = await supabase.from("posts").select("*").eq("id", editPostId).maybeSingle();
       if (cancelled || !data) return;
-      setEditingPost(data);
+      const row = data as Record<string, unknown>;
+      if (
+        typeof row.id !== "string" ||
+        typeof row.title !== "string" ||
+        typeof row.content !== "string" ||
+        typeof row.category !== "string" ||
+        (row.image_url !== null && typeof row.image_url !== "string") ||
+        typeof row.created_at !== "string" ||
+        typeof row.views !== "number"
+      ) return;
+      setEditingPost(row as unknown as Post);
       window.sessionStorage.setItem(ADMIN_ACTIVE_TAB_KEY, "create");
       setActiveTab("create");
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -120,7 +131,7 @@ export default function AdminPage() {
     if (tab !== "create") setEditingPost(null);
   };
 
-  const handleStartEdit = (post: any) => {
+  const handleStartEdit = (post: Post) => {
     setEditingPost(post);
     window.sessionStorage.setItem(ADMIN_ACTIVE_TAB_KEY, "create");
     setActiveTab("create");

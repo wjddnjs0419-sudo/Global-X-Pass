@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-28T16:52:41.130Z",
+  "generatedAt": "2026-05-29T01:49:31.011Z",
   "roots": [
     "src",
     "supabase/functions"
@@ -989,11 +989,11 @@
       "cluster": "admin",
       "label": "AdminConsultingManagement.tsx",
       "sub": "DEAD, zero importers",
-      "path": "src/app/components/admin/AdminConsultingManagement.tsx:81",
+      "path": "src/app/components/admin/AdminConsultingManagement.tsx:82",
       "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
       "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
       "notes": [
-        "line:81, first exported symbol or module entry",
+        "line:82, first exported symbol or module entry",
         "cluster:admin"
       ],
       "tag": [
@@ -1214,11 +1214,11 @@
       "cluster": "admin",
       "label": "AdminPostManage.tsx",
       "sub": "DEAD, zero importers",
-      "path": "src/app/components/admin/AdminPostManage.tsx:22",
+      "path": "src/app/components/admin/AdminPostManage.tsx:23",
       "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
       "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
       "notes": [
-        "line:22, first exported symbol or module entry",
+        "line:23, first exported symbol or module entry",
         "cluster:admin"
       ],
       "tag": [
@@ -2899,11 +2899,11 @@
       "cluster": "pages",
       "label": "AdminPage.tsx",
       "sub": "src/app/pages/AdminPage.tsx",
-      "path": "src/app/pages/AdminPage.tsx:39",
+      "path": "src/app/pages/AdminPage.tsx:40",
       "role": "사용자가 직접 방문하는 페이지 단위 화면입니다.",
       "plain": "사이트 방문자가 실제로 보는 한 화면입니다.",
       "notes": [
-        "line:39, first exported symbol or module entry",
+        "line:40, first exported symbol or module entry",
         "cluster:pages"
       ],
       "tag": [
@@ -3174,11 +3174,11 @@
       "cluster": "pages",
       "label": "MyPage.tsx",
       "sub": "src/app/pages/MyPage.tsx",
-      "path": "src/app/pages/MyPage.tsx:16",
+      "path": "src/app/pages/MyPage.tsx:22",
       "role": "사용자가 직접 방문하는 페이지 단위 화면입니다.",
       "plain": "사이트 방문자가 실제로 보는 한 화면입니다.",
       "notes": [
-        "line:16, first exported symbol or module entry",
+        "line:22, first exported symbol or module entry",
         "cluster:pages"
       ],
       "tag": [
@@ -3292,11 +3292,11 @@
       "cluster": "pages",
       "label": "ResourcesPage.tsx",
       "sub": "src/app/pages/ResourcesPage.tsx",
-      "path": "src/app/pages/ResourcesPage.tsx:12",
+      "path": "src/app/pages/ResourcesPage.tsx:13",
       "role": "사용자가 직접 방문하는 페이지 단위 화면입니다.",
       "plain": "사이트 방문자가 실제로 보는 한 화면입니다.",
       "notes": [
-        "line:12, first exported symbol or module entry",
+        "line:13, first exported symbol or module entry",
         "cluster:pages"
       ],
       "tag": [
@@ -6958,6 +6958,16 @@
       ]
     },
     {
+      "from": "src-app-components-admin-adminpostmanage",
+      "to": "types",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
       "from": "src-app-components-admin-adminpostmodal",
       "to": "theme-ctx",
       "kind": "normal",
@@ -8311,6 +8321,16 @@
     {
       "from": "admin-page",
       "to": "src-lib-layers",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "admin-page",
+      "to": "types",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -10039,6 +10059,16 @@
     {
       "from": "src-app-pages-resourcespage",
       "to": "src-app-components-apppagination",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-pages-resourcespage",
+      "to": "types",
       "kind": "normal",
       "label": "import",
       "tag": [

@@ -6,6 +6,7 @@
 
 - [ ] **Codex 재리뷰 재실행 — 게시판 gated 일관 적용 변경분 (미커밋)** — 미커밋 diff 누적: ①게시판 3단계 접근 모델(1차 리뷰 4건 반영 완료) ②gated 일관 적용 변경분 — 홈 4개 섹션 RPC 전환, AdminBoardManagement board gated 허용, 이머젼 anon RLS, 마이그 2건. `codex login` 정상화 후 `/codex:rescue`로 미커밋 diff 재리뷰 필요. 점검 포인트: (a) gated board 본문이 anon 직접 API로 노출 안 되는지(`posts_select_public_by_flag`=public만), (b) gated 목록 RPC(`list_public_post_previews`)가 본문 500자만 노출하는지, (c) `consultants_select_public`이 `is_active=true`만 노출하는지, (d) gated page 신청 INSERT가 anon 차단되는지.
 
+
 ## In Progress
 
 (없음 — PostDetailPage SPOF 분해 1~5단계 전부 종료, Done 섹션 참조)
@@ -41,6 +42,14 @@ src/app/pages/PostDetailPage.tsx          (~80줄, 라우팅·분기만)
 
 ## Done
 
+- [Done] P2 코드 품질 4단계 — `editingPost` 타입 명시 (2026-05-29, Codex 1차 1 FAIL→2차 1 FAIL→3차 5/5 PASS) — `editingPost: any | null` → `Post | null` 직치환. 사전 분석으로 PostFormData 신설 불필요 판정: `editingPost`는 DB row 읽기 전용 소스, 폼 state는 별도 useState 훅 16종이 보유. `setEditingPost` 3 소스 모두 `Post | null`로 표현 가능. 변경: `AdminPage.tsx:77` useState 제네릭, `:105-117` setter + 런타임 typeof 풀 가드(Post required 7종), `AdminPostCreate.tsx:29` Post import 추가, `:109` prop 시그니처. Codex 사이클: 1차 4 PASS / 1 FAIL((b) shape 검증 부족) → 3종 minimal 가드 픽스 → 2차 (b) 재FAIL((b') content/image_url 직접 소비 발견, 풀 가드 요구) → Post required 7종(id/title/content/category/image_url/created_at/views, image_url은 nullable 허용) typeof 풀 가드 픽스 → 3차 5/5 PASS. 크롤 파이프라인 사전 영향 검증: 네이버 블로그(`scripts/import-blog-posts.mjs`)는 posts INSERT 시 7종 전부 채움(content/image_url/views 명시, created_at DB DEFAULT), 기업뉴스(`scripts/crawl-company-news.mjs`)는 articles 테이블만 사용해 posts 무관, AdminPostCreate INSERT는 content/image_url 명시 → 전부 가드 통과 보장. 카테고리별 분기 UI(events 일시/장소, media 썸네일 1:1 토글, events-archive 영상 링크, news 썸네일 편집) 무변경. `npm run validate` ✅×3. diff stat 2 파일 +18/-7. P2 전 4단계 완료 → 종료 후 ESLint `no-explicit-any: warn` 도입 대기. 상세 RESULT.md.
+
+- [Done] P2 코드 품질 3단계 — Supabase 응답 타입 명시 (2026-05-29) — `src/lib/types.ts`에 4 composite row 타입(`ConsultingReservationWithSlot`/`OfficeHourApplicationWithMonth`/`FoundersClubApplicationWithSession`/`EventApplicationWithPost`) 추가. `MyPage.tsx` `useState<any[]>` ×4 → 각 row 타입, `(r/a: any)` map 콜백 ×4 → 추론, `handleCancel*(application: any)` ×4 → 각 row 타입; `setX((data ?? []) as unknown as Row[])` 패턴(supabase-js v2 nested join 추론 한계 회피). `AdminPostManage.tsx` `onStartEdit:(post:any)` props + `useState<any[]>` + `toggleFeatured/togglePublic(post:any)` 4곳 → `Post`. `AdminPage.handleStartEdit(post:any)` → `Post`. `ResourcesPage.tsx` `useState<any[]>` + `handleDownloadClick(post:any)` → `Post`. `editingPost: any | null` 2곳(AdminPage state line 77 + AdminPostCreate prop line 109)은 폼 partial 입력 흐름 → 4단계 `PostFormData` 이월. `npm run validate` ✅. diff stat 5 파일 +80/-29. Codex 리뷰 예정. 상세 RESULT.md.
+
+- [Done] P2 코드 품질 2단계 — `ReservationCard` props 인터페이스화 (2026-05-29) — `src/app/components/admin/AdminConsultingManagement.tsx:710` `ReservationCard({...}: any)` → `ReservationCardProps` 12개 prop 명시(`r: ConsultingReservationRow`, 색상 8종 `string`, `inputStyle: CSSProperties`, `statusBadge: (s:string)=>ReactNode`, `loading: boolean`, `onUpdate: (id:string, status:"cancelled", note:string)=>Promise<void>`). `import type { CSSProperties, ReactNode } from "react"` 추가. 호출부(line 624) 무변경. `npm run validate` ✅, Codex 5/5 PASS(호출부 prop 일치/ReactNode 적정/Promise<void> 정확/CSSProperties 호환/옵셔널 체인 일관). diff +17/-1. 잔여 P2: 3단계(Supabase 응답 타입), 4단계(editingPost). 상세 RESULT.md.
+
+- [Done] P2 코드 품질 1단계 — `catch (err: any)` → `unknown` 전환 (2026-05-29) — `AdminUserManagement.tsx:258`, `AdminConsultingManagement.tsx:229/276`, `AdminPostCreate.tsx:654`, `MyPage.tsx:392/479` 6곳을 `catch (err: unknown)` + `typeof err === "object" && err !== null && "message" in err && typeof err.message === "string" ? err.message : "알 수 없는 오류"` 속성 가드 패턴으로 전환. 초기 `instanceof Error` 가드를 Codex 권고로 속성 가드로 격상(supabase-js `PostgrestError`/`AuthError`/`FunctionsError` + plain object 에러 모두 포괄). 기존 fallback 문자열 동등 보존, `err.code`/`err.status` 사용처 0건 확인. `npm run validate` ✅, Codex `/codex:adversarial-review` 4/4 PASS. diff +24/-9. 잔여 P2 단계(`ReservationCard` props, supabase 응답 타입, `editingPost`) 대기. 상세 RESULT.md.
+
 - [Done] PostDetailPage SPOF 분해 5단계 — DetailHeader 추출 + 최종 슬림화 (2026-05-29) — 페이지 헤더 블록(뒤로/수정 버튼 18줄)을 `src/app/pages/postDetail/DetailHeader.tsx` 35줄로 흡수. props `{post, canRenderAdminControls, border, card}` + 내부 `useNavigate` + `getBackLinkStyle` import. `PostDetailPage.tsx` 99→82줄(-17). 미사용 `getBackLinkStyle` import 제거, `useNavigate`는 `useEffect` `?edit=1` 리다이렉트(`replace:true`) 1곳 잔존. 1~5단계 누적 747→82줄(-665, 89%↓). 최종 구조: 페이지(라우팅·분기) → `usePostDetail`(데이터) → `buildPostDetailModel`(파생) → `content/` 3 컴포넌트(첨부/본문/디버그) → `postDetail/` 4 컴포넌트(헤더 + 3 View). `npm run validate` ✅, Codex 6/6 PASS, 사용자 5카테고리(notice/news/insights portrait/insights wide/events-archive 영상) QA ✅. 상세 RESULT.md.
 
 - [Done] PostDetailPage SPOF 분해 4단계 — 렌더 분기 View 3종 분리 (2026-05-29) — wide-video/portrait-media/standard 인라인 JSX 3분기를 `src/app/pages/postDetail/{WideVideoPostView,PortraitMediaPostView,StandardPostView}.tsx` (97+98+76줄)로 흡수. View props 시그니처는 `{post, model, isDark, textMain, textMuted, border}` 공통 + Standard 만 `{card, contentRef}` 추가. `MEDIA_COLOR = "var(--color-accent-ncf)"` 상수는 Wide/Portrait 모듈에 동일 복제(Standard 미사용, 의도). 페이지에서 `getThumbnailImageStyle`/`getYouTubeVideoId`/`AttachmentPopover`/`PostBodyRenderer` import 제거(각 View가 직접 import). `isMediaLayout = post.category === "media" || isArchiveVideoType` 도출(`!post||!model` 가드 통과 후 사용으로 optional-chain 불필요). `PostDetailPage.tsx` 295→99줄 (-196). `npm run validate` ✅, Codex 8/8 PASS 승인. 상세 RESULT.md 아카이브.
@@ -74,11 +83,13 @@ src/app/pages/PostDetailPage.tsx          (~80줄, 라우팅·분기만)
 
 #### 🟠 Priority 2 — 타입 안정성 복원 (`any` 퇴출 작전)
 
-`any`가 깔린 상태에서는 TS 의미·리팩터링 토대 모두 약화. 추가 유입 차단까지 동반.
+`any`가 깔린 상태에서는 TS 의미·리팩터링 토대 모두 약화. 추가 유입 차단까지 동반. 위험 낮은 순으로 4단계 분할.
 
-- [ ] `AdminPostCreate` 및 관련 페이지의 `editingPost: any` → `Post | Partial<Post>` 또는 폼 전용 인터페이스(`PostFormData`)로 재정의
-- [ ] supabase 조회 결과의 암묵적 `any` 구간에 `.select<...>()` 제네릭 또는 `as Post` 타입 단언 명시
-- [ ] `.eslintrc`에 `@typescript-eslint/no-explicit-any: warn` 추가 — 신규 `any` 유입 차단(첫 단계는 warn, 향후 error 승격 검토)
+- [Done] **1단계** — `catch (err: any)` 6곳 → `unknown` + 속성 가드 패턴 (2026-05-29, Codex 4/4 PASS). Done 섹션 참조.
+- [Done] **2단계** — `ReservationCard` props 12개 → `ReservationCardProps` 인터페이스 (2026-05-29, Codex 5/5 PASS). Done 섹션 참조.
+- [Done] **3단계** — Supabase 응답 타입 4 row + Post 적용 (2026-05-29, Codex 대기). `src/lib/types.ts`에 `ConsultingReservationWithSlot`/`OfficeHourApplicationWithMonth`/`FoundersClubApplicationWithSession`/`EventApplicationWithPost` 4 composite 타입 추가, `MyPage.tsx` `any` 10곳(useState ×4 + map 콜백 ×4 + cancel 핸들러 ×4 중 4 슬롯) 제거, `AdminPostManage.tsx` 4곳 + `AdminPage.handleStartEdit` 1곳 → `Post`, `ResourcesPage.tsx` 2곳 → `Post`. `editingPost: any` 2곳(AdminPage state + AdminPostCreate prop)은 4단계 PostFormData 이월. Done 섹션 참조.
+- [Done] **4단계** — `editingPost: any | null` 2곳 → `Post | null` 직치환 (2026-05-29, Codex 대기). PostFormData 신설 불필요 판정(editingPost는 읽기 전용 DB row, 폼 state는 별도 useState 16개가 보유). `AdminPage.tsx:77` state + `:107` setter 캐스트 + `AdminPostCreate.tsx:109` prop + Post import. Done 섹션 참조.
+- [ ] **종료 후** — `.eslintrc`에 `@typescript-eslint/no-explicit-any: warn` 추가 — 신규 `any` 유입 차단(첫 단계는 warn, 향후 error 승격 검토)
 
 **점검 포인트(향후 Codex)**: (a) RPC/RLS 응답 shape이 실제 row 타입과 일치하는지 (b) supabase-js 응답 `null` 처리 보존 (c) `editingPost` 의 partial 폼 입력 흐름이 onSubmit 시 `Post` 보장 (validator/zod 합의)
 

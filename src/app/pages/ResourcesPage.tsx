@@ -8,6 +8,7 @@ import { LoadingSpinner, ErrorMessage } from "../components/LoadingSpinner";
 import { getFileNameFromUrl } from "../../utils/file";
 import { LAYERS } from "../../lib/layers";
 import { AppPagination } from "../components/AppPagination";
+import type { Post } from "../../lib/types";
 
 const PAGE_SIZE = 10;
 
@@ -15,7 +16,7 @@ export function ResourcesPage() {
   const boardTitle = useBoardCategoryLabel("resources", "자료실");
   const boardSubtitle = useBoardCategoryDescription("resources", "NCF와 Around X가 제공하는 필수 서식과 가이드 자료를 다운로드하세요.");
   const navigate = useNavigate();
-  const [posts, setPosts] = useState<any[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -45,7 +46,7 @@ export function ResourcesPage() {
     document.body.removeChild(link);
   };
 
-  const handleDownloadClick = (e: React.MouseEvent, post: any) => {
+  const handleDownloadClick = (e: React.MouseEvent, post: Post) => {
     e.stopPropagation();
     const files = post.image_url ? post.image_url.split(',').filter(Boolean) : [];
     if (files.length === 0) {

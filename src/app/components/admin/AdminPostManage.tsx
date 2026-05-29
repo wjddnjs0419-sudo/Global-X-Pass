@@ -5,10 +5,11 @@ import { CATEGORIES } from "./adminConstants";
 import { useBoardCategoryLabels, useBoardCategoryList } from "../../BoardCategoriesContext";
 import { supabase } from "../../../lib/supabaseClient";
 import { AdminPostModal } from "./AdminPostModal";
+import type { Post } from "../../../lib/types";
 
 interface AdminPostManageProps {
   refreshKey: number;
-  onStartEdit: (post: any) => void;
+  onStartEdit: (post: Post) => void;
   onDeleted: () => void;
 }
 
@@ -33,7 +34,7 @@ export function AdminPostManage({ refreshKey, onStartEdit, onDeleted }: AdminPos
   };
   const navigate = useNavigate();
 
-  const [posts, setPosts] = useState<any[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterCategory, setFilterCategory] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -61,7 +62,7 @@ export function AdminPostManage({ refreshKey, onStartEdit, onDeleted }: AdminPos
   const fetchPosts = useCallback(async () => {
     setLoading(true);
     const { data } = await supabase.from('posts').select('*').order('created_at', { ascending: false });
-    if (data) setPosts(data);
+    if (data) setPosts(data as unknown as Post[]);
     setLoading(false);
   }, []);
 
@@ -69,7 +70,7 @@ export function AdminPostManage({ refreshKey, onStartEdit, onDeleted }: AdminPos
 
   useEffect(() => { setCurrentPage(1); }, [searchTerm, filterCategory]);
 
-  const toggleFeatured = async (post: any) => {
+  const toggleFeatured = async (post: Post) => {
     const current = !!post.is_featured;
     if (!current) {
       await supabase.from('posts').update({ is_featured: false }).eq('category', post.category);
@@ -78,7 +79,7 @@ export function AdminPostManage({ refreshKey, onStartEdit, onDeleted }: AdminPos
     fetchPosts();
   };
 
-  const togglePublic = async (post: any) => {
+  const togglePublic = async (post: Post) => {
     if (post.category === "expenses") {
       alert("사업비 자료실(expenses)은 정책상 항상 비공개로 운영되며 공개 설정을 변경할 수 없습니다.");
       return;
