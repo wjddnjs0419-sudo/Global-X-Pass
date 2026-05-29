@@ -11,6 +11,18 @@
 
 (없음 — PostDetailPage SPOF 분해 1~5단계 전부 종료, Done 섹션 참조)
 
+## 급한 수정사항 (2026-05-29 QA 발견)
+
+> P2 4단계 완료 후 사용자 직접 QA 중 발견된 별건 이슈. P2 회귀 아님, 각 작업 분리 진행.
+
+- [Skipped] **1. 게시물 공개/비공개 의미 변경(B 정의=어드민만 열람)** — 사용자 의도 확인 후 진행했으나 **원복 결정**(이전으로 돌리자). 마이그 2건 net-zero(`20260529023556_posts_visibility_strict` + `20260529023916_posts_visibility_strict_revert` 원격 sync). UI 라벨도 net 무변동. 향후 재검토 시 PLAN 신설.
+
+- [ ] **2. 언론보도 검색 토글 중간 끊김 (디바운스 + race guard)** — 어드민→자동화→언론보도 관리 화면. `AdminExternalNewsManagement.tsx`(line 53-88 `fetchItems` deps `[currentPage, searchTerm, statusFilter]`, line 222-224 `SearchInput onChange={setSearchTerm}` 디바운스 없음) + `AdminCompanyNewsManagement.tsx`(line 96-140 동일 패턴, line 347-348 동일). 픽스: `useDebounce` 훅으로 `debouncedTerm` 분리 + race guard(`activeFetchRef`로 stale 응답 차단). 양쪽 동일 패턴 동시 적용. 점검: 빠른 타이핑 시 input 끊김/포커스 lost 0건, 응답 순서 역전으로 stale 화면 0건.
+
+- [ ] **3. 프로그램 자동 확정 모델 원복 (선착순 → 승인제)** — 큰 작업. `20260519120000_auto_confirm_program_applications.sql`가 consulting_reservations/event_applications/founders_club_applications를 first-come auto-confirm으로 전환한 상태. 사용자 의도: 신청→슬롯 점유(pending)→어드민 승인(confirmed)/거절(슬롯 복귀+row 잔존 또는 삭제) 흐름 복원. 어드민이 거절 슬롯 직접 삭제 가능해야 함. 영향: ①신규 마이그(DEFAULT pending 복귀 + RLS INSERT WITH CHECK 복구 + 거절 시 슬롯 status='available' 복귀 트리거 + 어드민 DELETE 권한) ②EF 2~3개 신설/수정(승인/거절 핸들러) ③UI 복구(마이페이지 상태 배지 + 어드민 승인/거절 버튼 4~5 화면) ④`npm run validate` + Codex 리뷰. 정책 결정 필요: (a) 거절 시 row 삭제 vs 잔존, (b) 신청자 취소 vs 어드민 취소 구분, (c) capacity 카운트 기준(accepted vs pending+accepted).
+
+
+
 ## PostDetailPage SPOF 분해 (완료, 1~5단계)
 
 > 750줄 단일 파일 SPOF였던 `src/app/pages/PostDetailPage.tsx`를 관심사별로 5단계에 걸쳐 해체 완료. 747→82줄(-665, 89%↓).
