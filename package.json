@@ -23,7 +23,9 @@
     "news:crawl": "node scripts/crawl-company-news.mjs",
     "news:crawl:dry-run": "node scripts/crawl-company-news.mjs --dry-run",
     "check:frontend-secrets": "node scripts/check-frontend-secrets.mjs",
-    "validate": "tsc --noEmit && eslint src/ --max-warnings=0 && vite build && npm run check:frontend-secrets"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "validate": "tsc --noEmit && eslint src/ --max-warnings=0 && vitest run && vite build && npm run check:frontend-secrets"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
@@ -102,7 +104,8 @@
     "tailwindcss": "4.1.12",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.43.0",
-    "vite": "6.4.2"
+    "vite": "6.4.2",
+    "vitest": "^4.1.7"
   },
   "peerDependencies": {
     "react": "18.3.1",
