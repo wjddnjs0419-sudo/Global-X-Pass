@@ -1,4 +1,68 @@
-# RESULT: useAdmin 권한 게이트 동시성/fail-closed 하드닝 (TDD) — 2026-05-30
+# RESULT: Founder's Club 신청 RLS 무한재귀 픽스 (TDD) — 2026-05-31
+
+## 배경
+신청 버튼 클릭 시 `infinite recursion detected in policy for relation "founders_club_applications"` 로 INSERT 전면 실패. non-admin 이 recruiting 세션에 실제 신청할 때만 발동해 표면화.
+
+## 근본원인
+`fc_applications_insert_own` INSERT 정책 WITH CHECK 가 정원 체크용 자기참조 서브쿼리를 포함:
+`EXISTS(... WHERE s.id=session_id AND s.status='recruiting' AND (SELECT count(*) FROM founders_club_applications fca WHERE fca.session_id=s.id AND fca.status IN ('pending','accepted')) < s.max_participants)`.
+INSERT 정책 평가 중 같은 테이블(`founders_club_applications`)을 재조회 → RLS 재귀. 잠복 `20260519120000_auto_confirm_program_applications`(정원 로직을 RLS에 박음)~, 이후 마이그들이 복붙 답습. 정원은 이미 BEFORE INSERT 트리거 `check_fcfs_capacity`(SECURITY DEFINER, `FOR UPDATE` 직렬화, off-by-one 기수정)가 강제 → RLS count 는 **중복**.
+
+## TDD (라이브 DB, 전부 트랜잭션 롤백 — 데이터 무변동)
+1. **RED** — 비관리자(`request.jwt.claims` sub 주입) recruiting 세션 INSERT → `infinite recursion detected` 재현 ✅(기대한 이유로 실패).
+2. **GREEN** — 멱등 마이그 적용 후 동일 INSERT → `status=accepted` 성공 ✅.
+3. **회귀1** — 정원 도달 시 트리거가 세션 `closed` 전환 → RLS의 `recruiting` 체크가 추가 신청 차단(RLS violation) ✅.
+4. **회귀2** — close된 세션 강제 recruiting 복귀(race 모사) 후 over-cap INSERT → 트리거 하드가드 `founders club capacity reached` 차단 ✅.
+
+## 수정
+- **마이그 `20260531091452_fc_applications_insert_remove_self_ref_recursion`** (멱등, `DROP POLICY IF EXISTS` 선행) — 자기참조 count 서브쿼리 제거, 나머지 가드 유지: `(select public.is_admin()) OR ((select auth.uid())=user_id AND status='accepted' AND EXISTS(select 1 from founders_club_sessions s where s.id=session_id and s.status='recruiting'))`. `to authenticated` 보존.
+- 라이브 적용(원격 버전 `20260531091452`) + 로컬 파일명 sync. 세션 상태 원복 확인(max 6, recruiting, apps 0).
+
+## 검증
+- **`npm run validate` ✅** (tsc+eslint+vitest+build+secret).
+- **Codex adversarial review 4 concern 전부 PASS** (OVERALL PASS): (1) 보안 — 트리거 위임일 뿐 신규 우회 없음, (2) 멱등 — drop-if-exists 수렴, (3) 회귀 — own/accepted/recruiting 가드 유지(count 만 제거), (4) race — 트리거 FOR UPDATE 직렬화로 신규 TOCTOU 없음.
+- **전부 미커밋.**
+
+---
+
+# (이전 작업) RESULT: 미커밋 대규모 업데이트 검증 + 브라우저 E2E Codex 이관 — 2026-05-30
+
+## 배경
+유저 요청: "무얼 업데이트했고, 모든 기능(어드민 회원관리·게시물 작성/수정·program 행사·컨설팅·Founder's Club 등록/신청)이 정상 작동하는지 확인." 직전 세션이 Codex 13라운드급 대규모 업데이트라 미커밋 변경의 무결성 확인이 핵심.
+
+## 검증한 변경 범위 (미커밋)
+- **마이그 4개**: `20260530013843`(RLS initplan 29건 `(select …)` 래핑 + 중복 permissive 33건 admin 흡수 통합, `is_admin`/`is_founders_session_host` STABLE), `20260530014545`(`count_distinct_visitors` RPC), `20260530020536`(post_categories update→is_admin), `20260530024536`(consulting_slots 직접 UPDATE admin 전용).
+- **코드 2파일**: `AdminDashboard.tsx`(`select *`→필요 컬럼만 + RPC 집계 + 실패 시 클라 폴백), `AdminUserManagement.tsx`(회원 카드 회사 뱃지).
+- 문서/`vite.config.ts`/생성물 다수.
+
+## 검증 방법 & 결과 (정적 + DB레벨)
+1. **`npm run validate` ✅** — tsc + eslint + **vitest 43** + build(quill 225kB 등 청크 정상) + frontend-secret scan(77 파일).
+2. **마이그 sync ✅** — `list_migrations` 원격에 4개 버전 존재, 로컬 파일명 일치.
+3. **라이브 RLS 정책 대조 ✅** — `pg_policies` 조회로 마이그 정의와 1:1 확인:
+   - profiles: select(admin OR 본인)/insert·update·delete admin.
+   - posts: insert·update·delete admin, select_auth + anon `posts_select_public_by_flag`. post_categories: update admin + select_all.
+   - event_applications / consulting_reservations / founders_club_applications: 본인+admin own 정책.
+   - consulting_slots: select_auth + insert·update·delete **admin 전용**(비관리자 직접 UPDATE 우회 제거).
+   - founders_club_sessions: select_auth + anon public + insert_host/delete_host/update_admin.
+4. **트리거 활성 ✅** (`pg_trigger`, 전부 `tgenabled='O'` + SECURITY DEFINER):
+   - consulting_reservations: book_slot / release_slot / guard_user_cancel.
+   - event_applications: sync_counts / guard_user_cancel / updated_at.
+   - founders_club_applications: guard_session_open / guard_user_cancel / fcfs_auto_close(`check_fcfs_capacity`).
+   - founders_club_sessions: auto_enroll_host.
+   - → 컨설팅 슬롯 booked 전환·FCFS 정원·세션 host 자동등록 모두 백엔드 강제 보장.
+5. **Advisor** — 성능: **GXP 테이블 경고 0**(WARN 전부 별도 앱 `date_planner_*`; profiles seq_scan 폭증 해소 확인). 보안: 신규 `count_distinct_visitors` 클린(`search_path=public` + SECURITY INVOKER → page_views_select_admin RLS 적용). 잔여 WARN(secdef 함수 anon/auth 노출 72, function_search_path_mutable 6, 버킷 listing 2, 누설PW 1)은 **전부 기존 항목, 이번 작업 회귀 아님**.
+
+## 결론
+**정적·DB레벨 전부 PASS.** 핵심 기능 5종의 권한·무결성 경로가 라이브 DB에 의도대로 반영됨. 깨진 경로 없음.
+
+## 브라우저 E2E — Codex 이관 (사용자 결정)
+- headed 브라우저로 사람 눈 실동작 확인은 **Codex가 수행**. 자격증명은 로컬 미보유(`QA_*` env 전부 unset, `.env.qa` 없음, GitHub Secrets는 로컬 재조회 불가) → 사용자/Codex가 env 주입.
+- 이관 가이드는 `PLAN.md` In Progress 항목(계정·하니스·플로우·주의) 참조. `tests/qa/*.spec.ts` 하니스 + `playwright.config.ts`(baseURL을 `localhost:5174`로 오버라이드).
+- **미커밋 유지** — Codex 리뷰/QA 범위 명확화 위해.
+
+---
+
+# (이전 작업) RESULT: useAdmin 권한 게이트 동시성/fail-closed 하드닝 (TDD) — 2026-05-30
 
 ## 현재 상태
 
