@@ -1,29 +1,32 @@
 # GEMINI.md - AI Agent Router (Gemini CLI)
 
-> **CRITICAL:** This file is automatically loaded by the Gemini CLI. It serves as a router to the full project documentation.
+> **CRITICAL:** Gemini CLI auto-loads this file. Routes to full project docs.
 
 ## 🚀 Efficient Bootstrap Sequence
-To minimize token usage, you **MUST** use the **Grep-first** principle. Instead of reading entire documents, use `grep_search` or `rg` to find relevant headers and sections first.
+Save tokens: **MUST** use **Grep-first**. Skip full reads at startup.
 
-1.  **Search Docs**: List headers in `docs/AGENT_RULES.md` and `docs/AGENT_ANTI_PATTERNS.md` to identify relevant sections.
-2.  **Recent Context**: Read `PLAN.md` (active tasks) and `RESULT.md` (latest state).
-3.  **Targeted Read**: Read only the identified documentation sections or source code lines using line-range reads.
+1.  **Search Docs**: `rg -n "^##|^###" docs/AGENT_RULES.md docs/AGENT_ANTI_PATTERNS.md` (Check latest rules).
+2.  **Recent Context Summary**: `rg -n "^##|^###" PLAN.md RESULT.md` (Quick view of active tasks & latest result).
+3.  **Targeted Read**: 
+    - Read `PLAN.md` `## In Progress` section only.
+    - Read `RESULT.md` (now pruned to latest task only).
+    - Skip `RESULT_ARCHIVE.md` unless researching history.
 
 ### Example Search:
-`rg -n "^##|^###" docs/AGENT_RULES.md docs/AGENT_ANTI_PATTERNS.md RESULT.md`
+`rg -n "^##|^###" docs/AGENT_RULES.md docs/AGENT_ANTI_PATTERNS.md RESULT.md PLAN.md`
 
 ## 💡 Quick Shortcuts
--   **`ㅎㅇ`**: Perform the full Bootstrap Sequence above.
--   **`종료`**: Verify session documentation (`PLAN.md`, `RESULT.md`), check Supabase migration sync, and prepare git commit/push.
+-   **`ㅎㅇ`**: Run full Bootstrap Sequence above.
+-   **`종료`**: `npm run diet` 실행(문서 압축), 세션 문서 검증, Supabase 마이그 sync, git 커밋/푸시 준비.
 
 ## ⚠️ Core Reminder
--   **Korean Only**: All communication must be in Korean.
--   **Plan Before Code**: Propose a plan and get explicit approval before editing.
--   **Validate**: Always run `npm run validate` after changes.
--   **No Hardcoding**: Strictly follow the No-Hardcode mandate in `docs/AGENT_RULES.md`.
+-   **Korean Only**: All comms Korean.
+-   **Plan Before Code**: Propose plan, get approval before edit.
+-   **Validate**: Run `npm run validate` after changes.
+-   **No Hardcoding**: Follow No-Hardcode mandate `docs/AGENT_RULES.md`.
 
 ## 🚫 Anti-Patterns & Lessons Learned
-- 운영 빌드에서 query/localStorage 플래그로 상세 진단 `console.log`를 재활성화하지 말 것. 첨부 URL, 게시물 식별자, 본문 진단 정보는 개발 모드에서만 최소 요약값으로 제한한다.
+- 운영 빌드 query/localStorage 플래그로 진단 `console.log` 재활성화 금지. 첨부 URL, 게시물 ID, 본문 진단은 개발 모드만, 최소 요약값 한정.
 
 ---
-*Refer to `RESULT_ARCHIVE.md` for older session history if needed.*
+*Older sessions: `RESULT_ARCHIVE.md`.*

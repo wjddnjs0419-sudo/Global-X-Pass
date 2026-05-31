@@ -85,7 +85,11 @@ export default defineConfig({
           if (id.includes('/recharts/') || id.includes('/d3-') || id.includes('/victory-')) return 'charts'
           if (id.includes('/@supabase/')) return 'supabase'
           if (id.includes('/react-router')) return 'router'
-          if (id.includes('/react-dom/') || id.includes('/scheduler/') || /\/react\/[^/]+\.js/.test(id)) return 'react-vendor'
+          if (
+            id.includes('/node_modules/react/') ||
+            id.includes('/node_modules/react-dom/') ||
+            id.includes('/node_modules/scheduler/')
+          ) return 'react-vendor'
           if (id.includes('/react-dnd') || id.includes('/dnd-core')) return 'dnd'
           if (id.includes('/react-slick') || id.includes('/slick-carousel')) return 'slick'
           if (id.includes('/lucide-react/') || id.includes('/react-day-picker/') || id.includes('/react-hook-form/')) return 'ui'

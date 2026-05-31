@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-29T07:00:26.595Z",
+  "generatedAt": "2026-05-31T11:42:35.494Z",
   "roots": [
     "src",
     "supabase/functions"
@@ -3523,15 +3523,55 @@
       "dead": true
     },
     {
+      "id": "src-hooks-admingate-test",
+      "cluster": "hooks",
+      "label": "adminGate.test.ts",
+      "sub": "DEAD, zero importers",
+      "path": "src/hooks/adminGate.test.ts:1",
+      "role": "컴포넌트에서 재사용하는 상태와 부수효과 로직입니다.",
+      "plain": "src/hooks/adminGate.test.ts 파일이 앱의 한 부분을 담당합니다.",
+      "notes": [
+        "line:1, first exported symbol or module entry",
+        "cluster:hooks"
+      ],
+      "tag": [
+        "overview",
+        "all",
+        "admin"
+      ],
+      "critical": false,
+      "dead": true
+    },
+    {
+      "id": "src-hooks-admingate",
+      "cluster": "hooks",
+      "label": "adminGate.ts",
+      "sub": "src/hooks/adminGate.ts",
+      "path": "src/hooks/adminGate.ts:1",
+      "role": "컴포넌트에서 재사용하는 상태와 부수효과 로직입니다.",
+      "plain": "src/hooks/adminGate.ts 파일이 앱의 한 부분을 담당합니다.",
+      "notes": [
+        "line:1, first exported symbol or module entry",
+        "cluster:hooks"
+      ],
+      "tag": [
+        "overview",
+        "all",
+        "admin"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
       "id": "use-admin",
       "cluster": "hooks",
       "label": "useAdmin.ts",
       "sub": "src/hooks/useAdmin.ts",
-      "path": "src/hooks/useAdmin.ts:3",
+      "path": "src/hooks/useAdmin.ts:17",
       "role": "컴포넌트에서 재사용하는 상태와 부수효과 로직입니다.",
       "plain": "src/hooks/useAdmin.ts 파일이 앱의 한 부분을 담당합니다.",
       "notes": [
-        "line:3, first exported symbol or module entry",
+        "line:17, first exported symbol or module entry",
         "cluster:hooks"
       ],
       "tag": [
@@ -10628,6 +10668,39 @@
       ]
     },
     {
+      "from": "src-hooks-admingate-test",
+      "to": "src-hooks-admingate",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
+      ]
+    },
+    {
+      "from": "src-hooks-admingate-test",
+      "to": "use-admin",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
+      ]
+    },
+    {
+      "from": "src-hooks-admingate",
+      "to": "use-admin",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
+      ]
+    },
+    {
       "from": "use-admin",
       "to": "supabase-client",
       "kind": "normal",
@@ -10645,6 +10718,17 @@
       "tag": [
         "all",
         "overview"
+      ]
+    },
+    {
+      "from": "use-admin",
+      "to": "src-hooks-admingate",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
       ]
     },
     {

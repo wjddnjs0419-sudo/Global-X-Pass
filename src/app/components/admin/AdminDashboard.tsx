@@ -37,14 +37,22 @@ export function AdminDashboard({ refreshKey }: AdminDashboardProps) {
 
   const fetchAll = async () => {
     setLoading(true);
-    const [{ count: v }, { count: p }, { data: vd }, { data: posts }] = await Promise.all([
-      supabase.from('page_views').select('*', { count: 'exact', head: true }),
-      supabase.from('posts').select('*', { count: 'exact', head: true }),
-      supabase.from('page_views').select('visitor_id'),
-      supabase.from('posts').select('*').order('created_at', { ascending: false }),
+    const [{ count: v }, { count: p }, { data: uvCount, error: uvErr }, { data: posts }] = await Promise.all([
+      supabase.from('page_views').select('id', { count: 'exact', head: true }),
+      supabase.from('posts').select('id', { count: 'exact', head: true }),
+      supabase.rpc('count_distinct_visitors'),
+      // 상위 게시물(조회수 5개)만 필요 → 본문(content) 등 미사용 컬럼 제외해 페이로드 최소화
+      supabase.from('posts').select('id, title, views, created_at, category').order('created_at', { ascending: false }),
     ]);
-    const uv = new Set(vd?.map(x => x.visitor_id)).size;
-    setStats({ views: v || 0, posts: p || 0, visitors: uv });
+    // RPC 미적용/권한 실패 시 0 으로 조용히 오염되지 않도록: 로깅 + 클라 distinct 폴백
+    // (평소엔 RPC 가 서버에서 집계 → 6천행 전송 회피, 실패할 때만 폴백으로 정확도 보존)
+    let visitors = (uvCount as number | null) || 0;
+    if (uvErr) {
+      console.error('방문자 수 집계 RPC 실패 → 클라 폴백(count_distinct_visitors):', uvErr.message);
+      const { data: vd } = await supabase.from('page_views').select('visitor_id');
+      visitors = new Set((vd ?? []).map((x: { visitor_id: string }) => x.visitor_id)).size;
+    }
+    setStats({ views: v || 0, posts: p || 0, visitors });
     if (posts) setTopPosts([...(posts as Post[])].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5));
     await fetchChartData(chartPeriod);
     setLoading(false);

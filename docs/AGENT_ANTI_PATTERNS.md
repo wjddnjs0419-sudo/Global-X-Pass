@@ -1,55 +1,55 @@
 # AGENT_ANTI_PATTERNS.md - Project Anti-Patterns & Lessons Learned
 
-> **CRITICAL:** This document tracks past mistakes, build failures, and architectural pitfalls to prevent recurrence. AI agents MUST review this list before implementing changes.
+> **CRITICAL:** Doc track past mistake, build fail, architecture pitfall. Stop recur. AI agent MUST review before change.
 
 ## 🚫 Anti-Patterns & Lessons Learned
-- [2026-05-28] **Undefined CSS Token Theme Drift:** 인라인 스타일에서 `var(--color-brand-strong)` 같은 **정의되지 않은** CSS 변수를 쓰지 말 것. `theme.css`에 없는 토큰은 fallback도 없으면 빈 값으로 평가돼, 라이트 모드에서 버튼 배경이 투명+흰 글자로 사라지거나 선택 상태 토글의 강조 테두리가 없어진다. primary 강조에는 실재 변수(`--color-accent-blue`, `--color-accent-blue-soft-bg`, `--color-accent-blue-hover`, `--color-on-primary`)만 사용하고, 새 토큰이 필요하면 `theme.css`의 `:root`와 `html:not(.dark)` 두 곳에 라이트/다크 대응값을 함께 정의할 것.
-- [2026-05-27] **UI Cleanup Overdelete:** UI 수정 후 찌꺼기를 제거할 때 현재 의도된 기능 진입점까지 삭제하지 말 것. 예전 state/handler/중복 UI/낡은 저장 경로는 제거하되, 관리자 수정 버튼처럼 현재 UX에 필요한 affordance는 새 표준 경로로 재연결해 보존한다.
-- [2026-05-22] **Company News Broad Keyword Intake:** 기업 뉴스 크롤러에서 회사명 없는 광범위 키워드(`AI`, `스타트업`, `투자` 등) 검색 결과를 그대로 저장하지 말 것. 회사명/강한 키워드 관련도 점수와 `matched_terms`를 계산해 기준 미달 기사는 저장 전 제외해야 한다.
-- [2026-05-19] **AI Draft Single-Pass Failure:** Gemini 블로그 초안 생성/수정에서 길이·제목 수·해시태그 검증을 1회 응답에만 의존하고 바로 실패시키지 말 것. 사용자 입력을 다시 받기 전에 직전 JSON 응답과 검증 실패 사유를 붙인 자동 보정 재생성 루프를 먼저 태워야 한다.
-- [2026-05-18] **QA Login Success Alert Misread:** Playwright 로그인 helper에서 `window.alert` 발생 자체를 실패로 단정하지 말 것. 이 프로젝트는 일반 유저 로그인 성공도 `alert("환영합니다! 로그인이 완료되었습니다.")`를 띄우므로, dialog 문구와 최종 URL/OTP 상태를 함께 판정해야 user-flow QA가 성공 직후 cleanup으로 잘못 빠지지 않는다.
-- [2026-05-15] **Architecture Deadcode Overdelete:** 아키텍처 맵의 `DEAD 코드`를 곧바로 삭제 대상으로 해석하지 말 것. lazy/dynamic import, 별도 HTML/Vite entry, `supabase.functions.invoke()` 문자열 호출, 배포된 Edge Function처럼 import 그래프 밖의 실행 경로를 먼저 확인해야 한다.
-- [2026-05-15] **IPC Result Narrowing Drift:** Electron bridge 결과 union은 renderer에서 `result.ok === true` / `result.ok !== true`처럼 명시적으로 분기할 것. 느슨한 truthy/falsy 체크에 기대면 `LiveArchitectureMap` 같은 TSX에서 에러 필드 narrowing이 깨져 빌드가 실패할 수 있다.
-- [2026-05-15] **Telemetry Source NodeId Drift:** `logSupabaseFailure()`/`logActionFailure()`의 source에는 임의 문자열을 넣지 말 것. `src/lib/errorLogger.ts`의 `NodeId` union에 등록된 노드 ID만 사용해야 `LiveArchitectureMap` 타입 검증과 이슈 배지가 깨지지 않는다.
-- [2026-05-15] **QA Secret Hardcode:** Playwright 테스트, 진단 스크립트, QA 운영 문서에 QA 계정/비밀번호/MFA 시크릿을 평문으로 커밋하지 말 것. 자동 QA 자격 증명은 `QA_ADMIN_*`/`QA_USER_*` 환경 변수 또는 GitHub Secrets로만 주입한다.
-- [2026-05-15] **Architecture App Validation Drift:** `architecture.html`/`LiveArchitectureMap` 같은 개인용 Electron 맵 UI를 수정할 때 `npm run validate`만으로 끝내지 말 것. Electron 앱은 `dist-architecture`와 패키징된 `.app`를 읽으므로 최소 `npm run map:build`, 패키지 사용 중이면 `npm run app:pack`까지 함께 검증해야 “코드는 바뀌었는데 앱은 그대로” 상태를 막을 수 있다.
-- [2026-05-14] 아이콘 컴포넌트를 `Map`, `Set`, `Date`처럼 전역 생성자와 같은 이름으로 import하지 말 것. TSX 파일 안의 `new Map<...>()` 같은 표준 타입 생성자까지 아이콘 컴포넌트로 shadowing되어 타입 오류가 연쇄 발생한다.
-- [2026-05-14] React 이벤트 핸들러에서 ref null 체크 후 비동기 state updater 안에서 `ref.current!`를 다시 읽지 말 것. updater 실행 전 다른 이벤트가 ref를 null로 만들 수 있으므로, 체크 직후 로컬 const 스냅샷을 사용한다.
-- **Hook Return Drift:** 큰 훅을 분해한 뒤 제거한 setter/field를 최종 return 객체에 남겨 타입 오류를 만들지 말 것. exported hook contract를 바꿀 때는 return shape와 호출부 destructuring을 한 묶음으로 검증할 것.
-- **PII Direct Query:** `profiles(name, email)`와 같이 PII 테이블을 직접 조인하여 화면에 렌더링하는 코드를 절대 작성하지 말 것. 반드시 `decrypt-profiles` 등 암호화 Edge Function을 사용할 것.
-- **Broad Lint Retrofit:** 기존 코드베이스 정리 없이 저장소 전체에 범용 ESLint recommended 규칙을 한 번에 켜지 말 것. 래칫은 목표 금지 규칙만 좁게 추가하거나 별도 정리 마이그레이션과 함께 도입할 것.
-- **Service-Role Gate:** `SUPABASE_SERVICE_ROLE_KEY`를 사용하는 Edge Function은 호출자 인증과 소유권/관리자 검증을 먼저 통과시키지 않은 채 외부에 열어두지 말 것.
-- **Focus Ring Cascade:** `focus-visible` 스타일을 인라인 `outline`이 덮어쓰는 구조로 두지 말고, 같은 cascade에서 처리하거나 필요 시 명시적으로 우선순위를 높여 실제 포커스 표시를 보장할 것.
-- **Public Documents Warning:** public `documents` 버킷에 올라가는 문서는 즉시 공개 URL이 생기므로, 첨부 UI에서 허용 형식 검증과 공개 경고를 함께 강제하지 않은 채 문서 업로드를 허용하지 말 것.
-- **Role Update Escape Hatch:** 관리자 UI만 서버 함수로 바꿔놓고 `public.profiles.role`의 직접 UPDATE 경로를 DB에서 막지 않은 상태로 두지 말 것. 우회 경로가 남으면 재인증 강제는 불완전하다.
-- **Edge Function Blind Error:** `supabase.functions.invoke()` 실패를 `error.message`의 generic `non-2xx` 문자열만 보여주는 상태로 두지 말 것. 응답 본문(JSON/text)을 파싱해 실제 서버 에러를 사용자와 디버깅 로그에 드러내야 한다.
-- **Global Category Store:** `categoryStore.ts`의 함수를 `boardId` 없이 호출하지 말 것. 단일 전역 키를 쓰면 게시판(notice·news·events·blog 등) 간 태그 풀이 공유되어 한 게시판의 태그 추가/삭제가 다른 게시판에 영향을 준다.
-- **Naver PostList Broad Scrape:** `PostList.naver` HTML 전체에서 `logNo=` 패턴을 긁으면 사이드바·공유버튼 등이 포함돼 실제 게시글보다 많이 추출된다. 반드시 `tagParam = '' || '...'` JS 변수를 우선 사용해 해당 페이지의 실제 게시글만 추출할 것.
-- **Naver PostView Date Drift:** `PostView.naver`의 `article:published_time` 메타태그와 `se_publishDate` span은 페이지 렌더링 시점 또는 최근 수정일을 반환할 수 있어 원본 발행일과 다를 수 있다. 발행일은 `PostList.naver` 카드 HTML에서 logNo 근처의 날짜 텍스트(`20XX. M. D`)를 추출하는 방식이 신뢰할 수 있는 유일한 소스이다.
-- **Import Update Missing created_at:** import `update` 페이로드에 `created_at`을 포함하지 않으면 날짜를 수정해도 DB에 반영되지 않는다. insert와 동일하게 update 페이로드에도 `created_at`을 항상 포함할 것.
-- **Heavy Crawler Edge Function:** 전체 Naver 카테고리 크롤링, 본문 파싱, 이미지 미러링을 한 Edge Function에 몰아넣지 말 것. Supabase Edge Function은 짧은 델타 확인/큐 적재에 쓰고, 긴 import 작업은 Node worker 또는 수동 스크립트로 분리한다.
-- **Image Mirror Hash Tail Slice:** 이미지 미러링 경로 해시에 URL의 base64 마지막 N자를 쓰지 말 것. 네이버 CDN URL은 `?type=w388` 같은 동일 suffix로 끝나 충돌이 발생한다. 반드시 `createHash('sha256').update(url).digest('hex')`로 전체 URL을 해시할 것.
-- **Naver SE Inline Style Override:** 네이버 SE 이관 콘텐츠를 `dangerouslySetInnerHTML`로 렌더링할 때 `font-family`/`color`/`font-size` inline style이 테마를 덮어쓴다. import 시 `stripDangerousStyleProps`로 제거하고, 렌더 래퍼에 `naver-se-content` 클래스를 적용할 것.
-- **Naver SE ImageStrip Layout:** `se-imageStrip-container`는 item inline width(`style="width:47%"`)가 있어도 `display:flex`가 없으면 세로로 나열된다. `index.css`에 `.naver-se-content .se-imageStrip-container { display: flex; }` 규칙이 있어야 가로 배치가 복원된다.
-- **Naver Import Detection Single Point:** `GXP_BLOG_IMPORT_META` 코멘트 하나만으로 Naver 이관 여부를 판별하지 말 것. 코멘트 시스템 도입 전 이관된 구버전 포스트에는 코멘트가 없으므로, `se-main-container` 같은 콘텐츠 구조 특징을 fallback으로 함께 확인해야 한다.
-- **Legacy Naver Reimport Blind Update:** `GXP_BLOG_IMPORT_META`가 없는 구버전 Naver 이관 글을 다시 가져올 때 `--update-existing`와 source URL 매칭만 믿고 재이관하지 말 것. 기존 레코드를 못 찾아 중복 insert가 날 수 있으므로 명시적 포스트 ID 대상 업데이트 경로를 사용해야 하고, 이미지 회귀를 막기 위해 `--mirror-images`도 함께 적용할 것.
-- **Naver Queue-Only Reimport Duplicate:** `blog_import_queue.existing_post_id`가 있는 Naver 이관 글은 content marker가 없어도 기존 글로 간주해야 한다. queue-backed 레거시 글을 source URL 매칭만으로 재이관하면 원본을 못 찾아 중복 insert가 발생하므로, queue의 `existing_post_id`를 update target으로 우선 사용한다.
-- **Naver Import Spacer Leak:** Naver SE 이관 HTML을 저장/렌더링할 때 inline `margin`/`padding`/`height` 계열 스타일과 zero-width spacer 문단을 그대로 두지 말 것. 뉴스레터/테이블형 본문은 이 값들 때문에 거대 여백이 생긴다.
-- **Naver Empty Component Spacer:** zero-width 문단만 제거하면 빈 `se-component se-text` 또는 빈 table spacer 래퍼가 남아 컴포넌트 margin으로 여백이 계속 생길 수 있다. 문단 제거 후 빈 SE 컴포넌트/빈 table row/component까지 함께 제거하거나 숨길 것.
-- **Naver Empty Paragraph Overreach:** empty paragraph 정규화를 `<[^>]+>\s*` 같은 broad 패턴 하나로 처리하지 말 것. `<p><span><img ... /></span></p>` 같은 image-only paragraph까지 빈 문단으로 오인해 뉴스/이벤트 상세의 본문 이미지가 전부 사라질 수 있다.
-- **Naver Broad Has Hide:** `.se-component:has(.se-module-text:empty)`처럼 broad `:has()` 숨김 규칙을 두지 말 것. 뉴스레터형 `se-table` 안의 빈 모듈 하나 때문에 상위 컴포넌트 전체가 `display:none` 되어 본문이 통째로 사라질 수 있다.
-- **Naver Import Thumbnail Duplication:** Naver 이관 글의 썸네일이 본문 첫 이미지와 같다면 `posts.image_url`에 같은 URL을 다시 저장하지 말 것. 카드 썸네일은 본문 첫 이미지를 fallback으로 쓸 수 있으므로, 중복 저장은 상세 페이지 첨부 이미지 중복의 원인이 된다.
-- **Board Access RLS:** `news`, `faq`, `events-archive` 상세는 `anon` SELECT를 허용한다. `notice`/`events`는 목록만 공개 preview RPC로 노출하고 상세(`/post/:id`, `/events/:id/apply`)는 로그인 필요다. `resources`/`media`/`blog`/`consulting`/`founders-club`은 로그인 필요, `expenses`는 `admin`/`participant`만 허용한다.
-- **Naver SE Pre-wrap Leak:** pretty-printed Naver SE HTML을 Quill 기본 `white-space: pre-wrap` 상태로 렌더링하지 말 것. 컴포넌트 사이 줄바꿈/들여쓰기가 실제 빈 줄로 렌더링되어 `se-horizontalLine` 주변과 본문 상단에 거대 여백이 생긴다.
-- **Naver ImageStrip Gap Injection:** `se-imageStrip-container`의 각 item width 합계가 이미 100%인 상태에서 별도 `gap`/margin을 추가하지 말 것. 네이버 원본 멀티 이미지 스트립이 줄바꿈되거나 가로 배치가 틀어진다.
-- **Naver Class Token False Positive:** `se-component` 같은 Naver class를 판별할 때 `\bse-component\b` 식 substring 정규식만 믿지 말 것. `se-component-content` 같은 wrapper까지 컴포넌트로 오인되어 canonical coverage/unknown block 진단이 왜곡된다. 반드시 공백 기준 class token 일치로 판별할 것.
-- **Naver Coverage Visual Blind Spot:** canonical coverage 100%를 시각 배치 완료로 오해하지 말 것.
-- **ThemeProvider Dark Class Missing:** `ThemeProvider`가 `isDark` 상태를 React context만으로 관리하고 `document.documentElement.classList.toggle("dark", isDark)`를 호출하지 않으면 Tailwind의 `dark:` 접두사 유틸리티가 전혀 동작하지 않는다. Button의 `text-foreground` 같은 CSS 변수 기반 색상이 항상 다크 모드 값(#ffffff)으로 고정되어 라이트 모드에서 흰 배경에 흰 텍스트가 된다. ThemeProvider에서 `document.documentElement.classList.toggle("dark", isDark)`를 반드시 함께 호출할 것.
-- **Blog Queue Admin UI Missing:** `blog_import_queue`의 pending 항목을 Supabase Dashboard에서 직접 SQL로 approve하지 말 것. Admin UI `/admin` → "블로그 이관 큐" 탭에서 태그 지정 후 승인 버튼을 사용할 것.
-- **RootLayout Path-Only Guard:** `RootLayout`에서 경로 문자열(`isDesignSystem` 등)만 보고 컴포넌트를 렌더링하지 말 것. `AdminRoute`를 우회해 비인가 사용자에게 페이지가 노출된다. 관리자 전용 렌더링은 반드시 `!adminLoading && isAdmin && !mfaRequired && mfaEnrolled` 조건을 함께 확인하고, 라우터 레벨에서도 `AdminRoute` children으로 이중 방어할 것.
-- **Admin Floating Nav MFA Gate:** `RootLayout`의 관리자 플로팅 nav를 `isAdmin`만으로 게이팅하면 MFA 미완료 관리자 세션에서도 nav가 노출된다. 반드시 `!adminLoading && isAdmin && !mfaRequired && mfaEnrolled` 전체 조건으로 렌더링할 것. `isAdmin` 자체에 aal2를 강제하면 `AdminRoute`의 MFA 리디렉트 흐름이 깨지므로, MFA 상태 확인은 UI 레이어에서 별도로 수행해야 한다.
-- **AdminRoute Loading Null:** `AdminRoute`에서 `loading` 중 `null`을 반환하면 DOM이 비어 타이밍으로 권한 상태 추론이 가능하다. `<Navigate to="/" replace />`는 초기 로드 시 관리자 진입을 차단하는 부작용이 있다. `<div aria-hidden style={{ visibility: "hidden" }} />`처럼 중립적인 빈 요소를 반환할 것.
-- **Trigger-Only Edge Function Confusion:** `sync-naver-blog` Edge Function은 `blog_import_runs`에 queued 행만 생성하고, 실제 크롤링·이관은 GitHub Actions가 처리한다. "즉시 이관 실행" 버튼은 GitHub Actions `workflow_dispatch`까지 연동되어 있으므로 `GITHUB_PAT` secret이 없으면 dispatch가 실패하고 03:00 KST 예약 처리로 fallback된다. `imageCollage(se-imageGroup)`처럼 block type은 분류됐어도 내부 layout marker/CSS가 없으면 원본 이미지 배치가 세로로 무너질 수 있으므로 대표 포스트 브라우저 확인을 병행한다.
-- **Inline Handle Union Type:** TSX에서 위치가 다른 핸들 객체 배열을 inline `as const`로 만들고 `top/right/bottom/left`를 바로 읽지 말 것. 선택 필드가 있는 명시 타입 배열로 분리해 union property 오류를 막는다.
-- **Korean IME onKeyDown Enter:** 한글 입력 필드에 `onKeyDown` + `e.key === "Enter"` 로 제출 로직을 연결하지 말 것. 한글 IME 조합 완료 이벤트와 충돌해 같은 동작이 두 번 실행된다. 반드시 전용 "추가"/"확인" 버튼의 `onClick`으로만 제출 처리할 것.
-- **Korean IME Value-Derived Key:** 한글 입력 중인 editable row/input의 React `key`에 현재 입력값을 포함하지 말 것. 값이 바뀔 때 input이 remount되어 IME 조합이 끊기고 한 글자씩만 입력되는 현상이 생긴다.
+- [2026-05-28] **Undefined CSS Token Theme Drift:** 인라인 스타일에서 `var(--color-brand-strong)` 같은 **미정의** CSS 변수 금지. `theme.css`에 없는 토큰은 fallback 없으면 빈 값→라이트 모드 버튼 배경 투명+흰 글자, 선택 토글 강조 테두리 사라짐. primary 강조엔 실재 변수(`--color-accent-blue`, `--color-accent-blue-soft-bg`, `--color-accent-blue-hover`, `--color-on-primary`)만 쓰고, 새 토큰 필요시 `theme.css`의 `:root`와 `html:not(.dark)` 양쪽에 라이트/다크 값 함께 정의.
+- [2026-05-27] **UI Cleanup Overdelete:** UI 수정 후 찌꺼기 제거할 때 현재 의도된 기능 진입점까지 삭제 금지. 옛 state/handler/중복 UI/낡은 저장 경로는 제거하되, 관리자 수정 버튼처럼 현재 UX 필요 affordance는 새 표준 경로로 재연결해 보존.
+- [2026-05-22] **Company News Broad Keyword Intake:** 기업 뉴스 크롤러에서 회사명 없는 광범위 키워드(`AI`, `스타트업`, `투자` 등) 결과 그대로 저장 금지. 회사명/강한 키워드 관련도 점수와 `matched_terms` 계산해 기준 미달 기사 저장 전 제외.
+- [2026-05-19] **AI Draft Single-Pass Failure:** Gemini 블로그 초안 생성/수정에서 길이·제목 수·해시태그 검증을 1회 응답에만 의존해 즉시 실패 금지. 사용자 재입력 전에 직전 JSON 응답+검증 실패 사유 붙인 자동 보정 재생성 루프 먼저 태움.
+- [2026-05-18] **QA Login Success Alert Misread:** Playwright 로그인 helper에서 `window.alert` 발생을 실패로 단정 금지. 일반 유저 로그인 성공도 `alert("환영합니다! 로그인이 완료되었습니다.")` 띄움→dialog 문구+최종 URL/OTP 상태 함께 판정해야 user-flow QA가 성공 직후 cleanup으로 잘못 안 빠짐.
+- [2026-05-15] **Architecture Deadcode Overdelete:** 아키텍처 맵 `DEAD 코드`를 즉시 삭제 대상으로 해석 금지. lazy/dynamic import, 별도 HTML/Vite entry, `supabase.functions.invoke()` 문자열 호출, 배포된 Edge Function 등 import 그래프 밖 실행 경로 먼저 확인.
+- [2026-05-15] **IPC Result Narrowing Drift:** Electron bridge 결과 union은 renderer에서 `result.ok === true` / `result.ok !== true`로 명시 분기. 느슨한 truthy/falsy 체크 의존시 `LiveArchitectureMap` 같은 TSX에서 에러 필드 narrowing 깨져 빌드 실패.
+- [2026-05-15] **Telemetry Source NodeId Drift:** `logSupabaseFailure()`/`logActionFailure()`의 source에 임의 문자열 금지. `src/lib/errorLogger.ts`의 `NodeId` union 등록 노드 ID만 써야 `LiveArchitectureMap` 타입 검증과 이슈 배지 안 깨짐.
+- [2026-05-15] **QA Secret Hardcode:** Playwright 테스트, 진단 스크립트, QA 운영 문서에 QA 계정/비밀번호/MFA 시크릿 평문 커밋 금지. 자동 QA 자격 증명은 `QA_ADMIN_*`/`QA_USER_*` 환경 변수 또는 GitHub Secrets로만 주입.
+- [2026-05-15] **Architecture App Validation Drift:** `architecture.html`/`LiveArchitectureMap` 같은 개인용 Electron 맵 UI 수정시 `npm run validate`만으로 끝내지 말 것. Electron 앱은 `dist-architecture`와 패키징 `.app` 읽음→최소 `npm run map:build`, 패키지 사용 중이면 `npm run app:pack`까지 검증해야 "코드 바뀜, 앱 그대로" 방지.
+- [2026-05-14] 아이콘 컴포넌트를 `Map`, `Set`, `Date` 등 전역 생성자 이름으로 import 금지. TSX 내 `new Map<...>()` 같은 표준 타입 생성자까지 아이콘에 shadowing되어 타입 오류 연쇄.
+- [2026-05-14] React 이벤트 핸들러에서 ref null 체크 후 비동기 state updater 안에서 `ref.current!` 재읽기 금지. updater 실행 전 다른 이벤트가 ref를 null로 만들 수 있음→체크 직후 로컬 const 스냅샷 사용.
+- **Hook Return Drift:** 큰 훅 분해 후 제거된 setter/field를 최종 return 객체에 남겨 타입 오류 만들지 말 것. exported hook contract 변경시 return shape와 호출부 destructuring 한 묶음으로 검증.
+- **PII Direct Query:** `profiles(name, email)` 같이 PII 테이블 직접 조인해 화면 렌더링 절대 금지. 반드시 `decrypt-profiles` 등 암호화 Edge Function 사용.
+- **Broad Lint Retrofit:** 기존 코드베이스 정리 없이 저장소 전체에 범용 ESLint recommended 규칙 한 번에 켜지 말 것. 래칫은 목표 금지 규칙만 좁게 추가 또는 별도 정리 마이그레이션과 함께 도입.
+- **Service-Role Gate:** `SUPABASE_SERVICE_ROLE_KEY` 쓰는 Edge Function은 호출자 인증+소유권/관리자 검증 통과 없이 외부 개방 금지.
+- **Focus Ring Cascade:** `focus-visible` 스타일을 인라인 `outline`이 덮어쓰는 구조 금지. 같은 cascade에서 처리 또는 명시 우선순위 상승으로 실제 포커스 표시 보장.
+- **Public Documents Warning:** public `documents` 버킷 업로드 문서는 즉시 공개 URL 생성→첨부 UI에서 허용 형식 검증+공개 경고 함께 강제 안 한 채 업로드 허용 금지.
+- **Role Update Escape Hatch:** 관리자 UI만 서버 함수로 바꾸고 `public.profiles.role` 직접 UPDATE 경로를 DB에서 막지 않은 상태 금지. 우회 경로 남으면 재인증 강제 불완전.
+- **Edge Function Blind Error:** `supabase.functions.invoke()` 실패를 `error.message`의 generic `non-2xx` 문자열만 보여주는 상태 금지. 응답 본문(JSON/text) 파싱해 실제 서버 에러를 사용자+디버깅 로그에 노출.
+- **Global Category Store:** `categoryStore.ts` 함수를 `boardId` 없이 호출 금지. 단일 전역 키 쓰면 게시판(notice·news·events·blog 등) 간 태그 풀 공유→한 게시판 태그 추가/삭제가 타 게시판 영향.
+- **Naver PostList Broad Scrape:** `PostList.naver` HTML 전체에서 `logNo=` 패턴 긁으면 사이드바·공유버튼 포함되어 실제 게시글보다 많이 추출. 반드시 `tagParam = '' || '...'` JS 변수 우선 사용해 해당 페이지 실제 게시글만 추출.
+- **Naver PostView Date Drift:** `PostView.naver`의 `article:published_time` 메타태그와 `se_publishDate` span은 페이지 렌더링 시점/최근 수정일 반환 가능→원본 발행일과 다를 수 있음. 발행일은 `PostList.naver` 카드 HTML에서 logNo 근처 날짜 텍스트(`20XX. M. D`) 추출이 유일 신뢰 소스.
+- **Import Update Missing created_at:** import `update` 페이로드에 `created_at` 미포함시 날짜 수정해도 DB 미반영. insert와 동일하게 update 페이로드에도 `created_at` 항상 포함.
+- **Heavy Crawler Edge Function:** 전체 Naver 카테고리 크롤링, 본문 파싱, 이미지 미러링을 한 Edge Function에 몰지 말 것. Supabase Edge Function은 짧은 델타 확인/큐 적재용, 긴 import 작업은 Node worker/수동 스크립트로 분리.
+- **Image Mirror Hash Tail Slice:** 이미지 미러링 경로 해시에 URL의 base64 마지막 N자 쓰지 말 것. 네이버 CDN URL은 `?type=w388` 같은 동일 suffix로 끝남→충돌. 반드시 `createHash('sha256').update(url).digest('hex')`로 전체 URL 해시.
+- **Naver SE Inline Style Override:** 네이버 SE 이관 콘텐츠를 `dangerouslySetInnerHTML`로 렌더링시 `font-family`/`color`/`font-size` inline style이 테마 덮어씀. import 시 `stripDangerousStyleProps`로 제거, 렌더 래퍼에 `naver-se-content` 클래스 적용.
+- **Naver SE ImageStrip Layout:** `se-imageStrip-container`는 item inline width(`style="width:47%"`) 있어도 `display:flex` 없으면 세로 나열. `index.css`에 `.naver-se-content .se-imageStrip-container { display: flex; }` 규칙 있어야 가로 배치 복원.
+- **Naver Import Detection Single Point:** `GXP_BLOG_IMPORT_META` 코멘트 하나만으로 Naver 이관 여부 판별 금지. 코멘트 시스템 도입 전 이관 구버전엔 코멘트 없음→`se-main-container` 같은 콘텐츠 구조 특징 fallback 함께 확인.
+- **Legacy Naver Reimport Blind Update:** `GXP_BLOG_IMPORT_META` 없는 구버전 Naver 이관 글 재가져올 때 `--update-existing`와 source URL 매칭만 믿고 재이관 금지. 기존 레코드 못 찾아 중복 insert 가능→명시 포스트 ID 대상 업데이트 경로 사용, 이미지 회귀 방지 위해 `--mirror-images`도 함께 적용.
+- **Naver Queue-Only Reimport Duplicate:** `blog_import_queue.existing_post_id` 있는 Naver 이관 글은 content marker 없어도 기존 글로 간주. queue-backed 레거시 글을 source URL 매칭만으로 재이관시 원본 못 찾아 중복 insert→queue의 `existing_post_id`를 update target으로 우선 사용.
+- **Naver Import Spacer Leak:** Naver SE 이관 HTML 저장/렌더링시 inline `margin`/`padding`/`height` 계열 스타일+zero-width spacer 문단 그대로 두지 말 것. 뉴스레터/테이블형 본문은 이 값 때문에 거대 여백.
+- **Naver Empty Component Spacer:** zero-width 문단만 제거하면 빈 `se-component se-text` 또는 빈 table spacer 래퍼 남아 컴포넌트 margin으로 여백 지속. 문단 제거 후 빈 SE 컴포넌트/빈 table row/component까지 함께 제거 또는 숨김.
+- **Naver Empty Paragraph Overreach:** empty paragraph 정규화를 `<[^>]+>\s*` 같은 broad 패턴 하나로 처리 금지. `<p><span><img ... /></span></p>` 같은 image-only paragraph까지 빈 문단 오인→뉴스/이벤트 상세 본문 이미지 전부 소실.
+- **Naver Broad Has Hide:** `.se-component:has(.se-module-text:empty)` 같은 broad `:has()` 숨김 규칙 금지. 뉴스레터형 `se-table` 안 빈 모듈 하나 때문에 상위 컴포넌트 전체 `display:none`→본문 통째 소실.
+- **Naver Import Thumbnail Duplication:** Naver 이관 글 썸네일이 본문 첫 이미지와 같으면 `posts.image_url`에 같은 URL 재저장 금지. 카드 썸네일은 본문 첫 이미지 fallback 사용 가능→중복 저장은 상세 페이지 첨부 이미지 중복 원인.
+- **Board Access RLS:** `news`, `faq`, `events-archive` 상세는 `anon` SELECT 허용. `notice`/`events`는 목록만 공개 preview RPC 노출, 상세(`/post/:id`, `/events/:id/apply`)는 로그인 필요. `resources`/`media`/`blog`/`consulting`/`founders-club`은 로그인 필요, `expenses`는 `admin`/`participant`만 허용.
+- **Naver SE Pre-wrap Leak:** pretty-printed Naver SE HTML을 Quill 기본 `white-space: pre-wrap` 상태로 렌더링 금지. 컴포넌트 사이 줄바꿈/들여쓰기가 실제 빈 줄로 렌더→`se-horizontalLine` 주변+본문 상단 거대 여백.
+- **Naver ImageStrip Gap Injection:** `se-imageStrip-container` 각 item width 합 이미 100%인 상태에서 별도 `gap`/margin 추가 금지. 네이버 원본 멀티 이미지 스트립 줄바꿈 또는 가로 배치 틀어짐.
+- **Naver Class Token False Positive:** `se-component` 같은 Naver class 판별시 `\bse-component\b` 식 substring 정규식만 믿지 말 것. `se-component-content` 같은 wrapper까지 컴포넌트 오인→canonical coverage/unknown block 진단 왜곡. 반드시 공백 기준 class token 일치로 판별.
+- **Naver Coverage Visual Blind Spot:** canonical coverage 100%를 시각 배치 완료로 오해 금지.
+- **ThemeProvider Dark Class Missing:** `ThemeProvider`가 `isDark`를 React context로만 관리하고 `document.documentElement.classList.toggle("dark", isDark)` 호출 안 하면 Tailwind `dark:` 접두사 유틸 전혀 동작 안 함. Button의 `text-foreground` 같은 CSS 변수 기반 색상이 항상 다크 모드 값(#ffffff) 고정→라이트 모드에 흰 배경+흰 텍스트. ThemeProvider에서 `document.documentElement.classList.toggle("dark", isDark)` 반드시 함께 호출.
+- **Blog Queue Admin UI Missing:** `blog_import_queue`의 pending 항목을 Supabase Dashboard에서 직접 SQL로 approve 금지. Admin UI `/admin` → "블로그 이관 큐" 탭에서 태그 지정 후 승인 버튼 사용.
+- **RootLayout Path-Only Guard:** `RootLayout`에서 경로 문자열(`isDesignSystem` 등)만 보고 컴포넌트 렌더링 금지. `AdminRoute` 우회→비인가 사용자에 페이지 노출. 관리자 전용 렌더링은 반드시 `!adminLoading && isAdmin && !mfaRequired && mfaEnrolled` 함께 확인, 라우터 레벨에서도 `AdminRoute` children으로 이중 방어.
+- **Admin Floating Nav MFA Gate:** `RootLayout`의 관리자 플로팅 nav를 `isAdmin`만으로 게이팅하면 MFA 미완료 관리자 세션에도 nav 노출. 반드시 `!adminLoading && isAdmin && !mfaRequired && mfaEnrolled` 전체 조건으로 렌더. `isAdmin` 자체에 aal2 강제하면 `AdminRoute` MFA 리디렉트 흐름 깨짐→MFA 상태 확인은 UI 레이어에서 별도 수행.
+- **AdminRoute Loading Null:** `AdminRoute`에서 `loading` 중 `null` 반환시 DOM 비어 타이밍으로 권한 상태 추론 가능. `<Navigate to="/" replace />`는 초기 로드시 관리자 진입 차단 부작용. `<div aria-hidden style={{ visibility: "hidden" }} />`처럼 중립 빈 요소 반환.
+- **Trigger-Only Edge Function Confusion:** `sync-naver-blog` Edge Function은 `blog_import_runs`에 queued 행만 생성, 실제 크롤링·이관은 GitHub Actions 처리. "즉시 이관 실행" 버튼은 GitHub Actions `workflow_dispatch` 연동→`GITHUB_PAT` secret 없으면 dispatch 실패하고 03:00 KST 예약 처리로 fallback. `imageCollage(se-imageGroup)`처럼 block type 분류돼도 내부 layout marker/CSS 없으면 원본 이미지 배치 세로로 무너짐→대표 포스트 브라우저 확인 병행.
+- **Inline Handle Union Type:** TSX에서 위치 다른 핸들 객체 배열을 inline `as const`로 만들고 `top/right/bottom/left` 바로 읽기 금지. 선택 필드 있는 명시 타입 배열로 분리해 union property 오류 방지.
+- **Korean IME onKeyDown Enter:** 한글 입력 필드에 `onKeyDown` + `e.key === "Enter"`로 제출 로직 연결 금지. 한글 IME 조합 완료 이벤트와 충돌→같은 동작 두 번 실행. 반드시 전용 "추가"/"확인" 버튼 `onClick`으로만 제출 처리.
+- **Korean IME Value-Derived Key:** 한글 입력 중 editable row/input의 React `key`에 현재 입력값 포함 금지. 값 바뀔 때 input remount→IME 조합 끊겨 한 글자씩만 입력됨.

@@ -7,8 +7,12 @@ playwright-report
 test-results
 .qa-debug-runs
 /architecture-*.js
+# 모든 .env류 기본 차단(.env.production/.env.deploy 등 비밀 누수 방지). 공유용 예시만 allowlist.
 .env
-.env.qa
+.env.*
+!.env.example
 .DS_Store
 *.local
 homepage_system_reference.md
+.vscode
+.claude/scheduled_tasks.lock

@@ -3,13 +3,13 @@
 **대상:** `docs/SENIOR_REVIEW_REPORT.md` (Gemini 시니어 리뷰)
 **작성:** Claude (개발 에이전트)
 **일자:** 2026-05-29
-**범위:** P2 타입 안정성·P3 컴포넌트 분해·P4 유틸 분리·PostDetailPage SPOF 해체 직후 코드베이스 실측 대조
+**범위:** P2 타입·P3 컴포넌트 분해·P4 유틸 분리·PostDetailPage SPOF 해체 직후 실측 대조
 
 ---
 
 ## 🧭 결론 한 줄
 
-> "뇌관 그대로" 프레이밍은 선정적. **4건 중 유효 지적 1.5건, 무효·과장 2.5건.** 인지·triage 완료된 defer 항목을 미인지 부채로 호도하고, 실측 없이 도메인 요구사항을 "오버스펙"으로 단정.
+> "뇌관 그대로" 프레이밍 선정적. **4건 중 유효 1.5, 무효·과장 2.5.** 인지·triage 완료 defer 항목을 미인지 부채로 호도, 실측 없이 도메인 요구를 "오버스펙"으로 단정.
 
 ---
 
@@ -17,20 +17,20 @@
 
 ### 실측
 
-- `src/app/components/*.tsx` 전체 `style={{` 출현 = **435건** (PLAN 137건은 7개 Section 한정 추정치).
-- 7개 Section 합산 실측: EventSection 30 + NoticeResourceSection 26 + MediaSection 22 + CommunitySection 20 + HeaderSection 19 + HeroSection 19 + NoticeSection 18 ≈ **154건** (PLAN 137과 일치 수준).
+- `src/app/components/*.tsx` 전체 `style={{` = **435건** (PLAN 137은 7개 Section 한정 추정).
+- 7개 Section 실측: EventSection 30 + NoticeResourceSection 26 + MediaSection 22 + CommunitySection 20 + HeaderSection 19 + HeroSection 19 + NoticeSection 18 ≈ **154건** (PLAN 137 수준 일치).
 
 ### 반박 포인트
 
-1. **중앙 통제 불가 주장은 거짓.** 인라인 대부분이 `style={{ color: "var(--color-accent-blue)" }}` 형태로 **`src/styles/theme.css` 단일 토큰**을 참조. 테마 변경 시 토큰 1곳만 수정.
-2. **Tailwind className과 병용**. AttachmentPopover만 봐도 `className="relative inline-flex"` + `style={{ maxWidth: "min(88vw, 300px)" }}` 혼합 — 정적은 Tailwind, 동적은 CSS 변수 인라인. 표준 패턴.
-3. **PLAN.md "Future / 선택 후속"에 명시 등재** (`섹션 깊은 layout 마이그레이션 (P3-extra)`). 인지·triage 완료된 부채. "근본적 실패"가 아니라 **의도적 defer**.
+1. **중앙 통제 불가 = 거짓.** 인라인 대부분 `style={{ color: "var(--color-accent-blue)" }}` 형태 → **`src/styles/theme.css` 단일 토큰** 참조. 테마 변경 시 토큰 1곳 수정.
+2. **Tailwind className 병용.** AttachmentPopover: `className="relative inline-flex"` + `style={{ maxWidth: "min(88vw, 300px)" }}` 혼합 — 정적 Tailwind, 동적 CSS 변수 인라인. 표준 패턴.
+3. **PLAN.md "Future / 선택 후속" 등재** (`섹션 깊은 layout 마이그레이션 (P3-extra)`). 인지·triage 완료 부채. "근본적 실패" 아님, **의도적 defer**.
 
 ### 유효 잔존
 
-- 정적 색/spacing은 Tailwind 클래스로 마이그 여지 있음. P3-extra 시리즈에서 다룰 작업.
+- 정적 색/spacing은 Tailwind 마이그 여지. P3-extra에서 처리.
 
-**판정: 사실 1, 무효 2.** 카운트만 맞고 결론은 과장.
+**판정: 사실 1, 무효 2.** 카운트만 맞고 결론 과장.
 
 ---
 
@@ -38,7 +38,7 @@
 
 ### 실측
 
-- `buildNaverRenderModel`: `src/utils/naverImportShared.js:449` (서버/클라 공유 모듈), `src/utils/htmlSecurity.ts:39`에서 re-export.
+- `buildNaverRenderModel`: `src/utils/naverImportShared.js:449` (서버/클라 공유), `src/utils/htmlSecurity.ts:39` re-export.
 - `getNaverImportDiagnostics`: `src/utils/htmlSecurity.ts:53` 정의.
 - 호출처: `src/utils/postDetailModel.ts:87` (`buildPostDetailModel` 내부), `src/app/components/content/NaverImportDebugLogger.tsx:19` (dev only).
 
@@ -156,8 +156,8 @@ useEffect(() => {
 
 ## 🎯 다음 액션 제안
 
-PLAN.md `Future / 선택 후속` 섹션의 우선순위 재평가만 수행, 본 보고서 단독으로 신규 리팩터 진입은 비추천. 사유: 미커밋 diff(승인제 원복 + P4 + 게시판 gated)가 Codex 재리뷰 대기 중 → 적층 금지.
+PLAN.md `Future / 선택 후속` 우선순위 재평가만 수행. 본 보고서 단독 신규 리팩터 진입 비추. 사유: 미커밋 diff(승인제 원복 + P4 + 게시판 gated)가 Codex 재리뷰 대기 → 적층 금지.
 
 ---
 
-*본 반박서는 실측·코드 인용 기반이며, 향후 리뷰 시 동일 주장 재발 시 본 문서 라인 인용으로 응대.*
+*본 반박서 = 실측·코드 인용 기반. 향후 동일 주장 재발 시 본 문서 라인 인용 응대.*

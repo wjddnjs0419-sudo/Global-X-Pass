@@ -98,6 +98,10 @@ jobs:
         QA_USER_PASSWORD: ${{ secrets.QA_USER_PASSWORD }}
         PW_QA_RECORD_REPLAY: "1"
         TEST_SUITE: ${{ inputs.test_suite }}
+        # playwright webServer가 preview:staging 빌드 시 사용. 둘 다 publishable(공개·노출 무해) staging 값.
+        # 프로덕션(yzbjvkifwinumytehxgf)·로컬 스택과 별개. PW_BASE_URL 미설정이라 webServer가 이 백엔드로 기동.
+        VITE_SUPABASE_URL: https://bgnkxavrwdwtbgvdmbvr.supabase.co
+        VITE_SUPABASE_ANON_KEY: sb_publishable_GLGcCsssx3JWcpeXA2PsRQ_RCJ5JNJ1
       run: |
         case "$TEST_SUITE" in
           smoke)

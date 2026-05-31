@@ -343,7 +343,12 @@ export function AdminUserManagement({ refreshKey, adminId }: AdminUserManagement
                           <strong style={{ color: textMain, fontSize: "17px" }}>{user.name || "이름 없음"}</strong>
                           {isSelf && <span style={{ fontSize: 12, fontWeight: 750, color: textMain, background: selectedBg, border: `1px solid ${labelBorder}`, padding: "3px 8px", borderRadius: 99 }}>본인</span>}
                         </div>
-                        <span style={{ color: textMuted, fontSize: "14px", marginTop: "4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email || "이메일 없음"}</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: "4px", minWidth: 0 }}>
+                          <span style={{ color: textMuted, fontSize: "14px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email || "이메일 없음"}</span>
+                          {user.company && (
+                            <span style={{ color: textMuted, fontSize: "13px", background: labelBg, border: `1px solid ${labelBorder}`, padding: "2px 8px", borderRadius: "7px", fontWeight: 700, whiteSpace: "nowrap" }}>{user.company}</span>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center" style={{ alignItems: "stretch" }}>
