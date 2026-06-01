@@ -12,7 +12,7 @@ import { supabase } from "../../lib/supabaseClient";
 import { useAdmin } from "../../hooks/useAdmin";
 import type { EventApplication, Post, Profile } from "../../lib/types";
 import { sanitizeRichHtml } from "../../utils/htmlSecurity";
-import { EVENT_STATUS_CONFIG, getEffectiveEventStatus, getEventRemaining, isEventApplicationOpen, mergeEventFormConfig } from "../../utils/eventApplication";
+import { EVENT_STATUS_CONFIG, findMissingRequiredAnswer, getEffectiveEventStatus, getEventRemaining, isEventApplicationOpen, mapLegacyAnswerColumns, mergeEventFormConfig, serializeEventAnswers } from "../../utils/eventApplication";
 import {
   EVENT_COVER_THUMBNAIL_ASPECT,
   resolvePostThumbnail,
@@ -27,10 +27,7 @@ type FormState = {
   position: string;
   email: string;
   phone: string;
-  expectation: string;
-  interests: string[];
-  speaker_question: string;
-  custom_answers: Record<string, string>;
+  custom_answers: Record<string, string | string[]>;
   privacy_consent: boolean;
 };
 
@@ -40,9 +37,6 @@ const EMPTY_FORM: FormState = {
   position: "",
   email: "",
   phone: "",
-  expectation: "",
-  interests: [],
-  speaker_question: "",
   custom_answers: {},
   privacy_consent: false,
 };
@@ -150,35 +144,30 @@ export function EventApplicationPage() {
   const updateField = (key: keyof FormState, value: string | boolean | string[]) =>
     setForm(prev => ({ ...prev, [key]: value }));
 
-  const toggleInterest = (option: string) => {
-    setForm(prev => ({
-      ...prev,
-      interests: prev.interests.includes(option)
-        ? prev.interests.filter(item => item !== option)
-        : [...prev.interests, option],
-    }));
-  };
-
-  const updateCustomAnswer = (questionId: string, value: string) =>
+  const updateCustomAnswer = (questionId: string, value: string | string[]) =>
     setForm(prev => ({ ...prev, custom_answers: { ...prev.custom_answers, [questionId]: value } }));
+
+  const toggleChoiceAnswer = (questionId: string, option: string) =>
+    setForm(prev => {
+      const current = prev.custom_answers[questionId];
+      const list = Array.isArray(current) ? current : [];
+      const next = list.includes(option) ? list.filter(item => item !== option) : [...list, option];
+      return { ...prev, custom_answers: { ...prev.custom_answers, [questionId]: next } };
+    });
 
   const handleSubmit = async () => {
     if (!post) return;
     if (!isApplicationOpen) return alert(effectiveEventStatus === "접수예정" ? "아직 접수 시작 전입니다." : "마감된 행사입니다.");
-    if (!form.company_tech.trim() || !form.applicant_name.trim() || !form.position.trim() || !form.email.trim() || !form.expectation.trim()) {
+    if (!form.company_tech.trim() || !form.applicant_name.trim() || !form.position.trim() || !form.email.trim()) {
       alert("필수 항목을 모두 입력해주세요.");
       return;
     }
-    if (form.interests.length === 0) return alert("관심 주제를 하나 이상 선택해주세요.");
-    const missingQuestion = config.customQuestions.find(question => question.required && !form.custom_answers[question.id]?.trim());
+    const missingQuestion = findMissingRequiredAnswer(config.customQuestions, form.custom_answers);
     if (missingQuestion) return alert(`필수 질문에 답변해주세요: ${missingQuestion.label}`);
     if (!form.privacy_consent) return alert("개인정보 수집 및 이용에 동의해주세요.");
 
-    const answers = config.customQuestions.reduce<Record<string, string>>((acc, question) => {
-      const answer = form.custom_answers[question.id]?.trim();
-      if (answer) acc[question.id] = answer;
-      return acc;
-    }, {});
+    const answers = serializeEventAnswers(config.customQuestions, form.custom_answers);
+    const legacyColumns = mapLegacyAnswerColumns(answers);
 
     setSubmitting(true);
     const { data, error } = await supabase
@@ -192,9 +181,7 @@ export function EventApplicationPage() {
         position: form.position.trim(),
         email: form.email.trim(),
         phone: form.phone.trim() || null,
-        expectation: form.expectation.trim(),
-        interests: form.interests,
-        speaker_question: form.speaker_question.trim() || null,
+        ...legacyColumns,
         answers,
         privacy_consent: form.privacy_consent,
       })
@@ -346,35 +333,45 @@ export function EventApplicationPage() {
                     </div>
                   </div>
 
-                  <div style={formCardStyle}>
-                    <strong style={{ color: "var(--color-text-primary)" }}>2. 관심 분야 & 참여 목적</strong>
-                    <textarea style={textareaStyle("var(--size-event-application-textarea-xl)")} value={form.expectation} onChange={e => updateField("expectation", e.target.value)} placeholder={requiredLabel(config.expectationLabel)} />
-                    <p style={{ margin: 0, color: "var(--color-text-muted)", fontSize: "var(--text-event-application-label)", fontWeight: "var(--weight-bold)" }}>{requiredLabel(config.interestsLabel)}</p>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-xs)" }}>
-                      {config.interestOptions.map(option => (
-                        <label key={option} style={{ display: "flex", gap: "var(--space-event-application-compact-inline)", alignItems: "center", color: "var(--color-text-primary)", fontSize: "var(--text-event-application-body)" }}>
-                          <input type="checkbox" checked={form.interests.includes(option)} onChange={() => toggleInterest(option)} />
-                          {option}
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div style={formCardStyle}>
-                    <strong style={{ color: "var(--color-text-primary)" }}>3. 사전 질문</strong>
-                    <textarea style={textareaStyle("var(--size-event-application-textarea-lg)")} value={form.speaker_question} onChange={e => updateField("speaker_question", e.target.value)} placeholder={config.speakerQuestionLabel} />
-                  </div>
-
-                  {config.customQuestions.map((question, index) => (
-                    <div key={question.id} style={formCardStyle}>
-                      <strong style={{ color: "var(--color-text-primary)" }}>{index + 4}. {question.label}{question.required ? " *" : ""}</strong>
-                      {question.type === "long_text" ? (
-                        <textarea style={textareaStyle("var(--size-event-application-textarea-lg)")} value={form.custom_answers[question.id] ?? ""} onChange={e => updateCustomAnswer(question.id, e.target.value)} placeholder={question.label} />
-                      ) : (
-                        <input style={input} value={form.custom_answers[question.id] ?? ""} onChange={e => updateCustomAnswer(question.id, e.target.value)} placeholder={question.label} />
-                      )}
-                    </div>
-                  ))}
+                  {config.customQuestions.map((question, index) => {
+                    const showCategory = !!question.category && question.category !== config.customQuestions[index - 1]?.category;
+                    const value = form.custom_answers[question.id];
+                    const selected = Array.isArray(value) ? value : [];
+                    return (
+                      <div key={question.id} style={formCardStyle}>
+                        {showCategory && <strong style={{ color: "var(--color-text-primary)" }}>{question.category}</strong>}
+                        <p style={{ margin: 0, color: "var(--color-text-muted)", fontSize: "var(--text-event-application-label)", fontWeight: "var(--weight-bold)" }}>
+                          {question.label}{question.required ? " *" : ""}
+                        </p>
+                        {question.type === "long_text" && (
+                          <textarea style={textareaStyle("var(--size-event-application-textarea-lg)")} value={typeof value === "string" ? value : ""} onChange={e => updateCustomAnswer(question.id, e.target.value)} placeholder={question.label} />
+                        )}
+                        {question.type === "short_text" && (
+                          <input style={input} value={typeof value === "string" ? value : ""} onChange={e => updateCustomAnswer(question.id, e.target.value)} placeholder={question.label} />
+                        )}
+                        {question.type === "single_choice" && (
+                          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-xs)" }}>
+                            {(question.options ?? []).map(option => (
+                              <label key={option} style={{ display: "flex", gap: "var(--space-event-application-compact-inline)", alignItems: "center", color: "var(--color-text-primary)", fontSize: "var(--text-event-application-body)" }}>
+                                <input type="radio" name={question.id} checked={typeof value === "string" && value === option} onChange={() => updateCustomAnswer(question.id, option)} />
+                                {option}
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                        {question.type === "multi_choice" && (
+                          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-xs)" }}>
+                            {(question.options ?? []).map(option => (
+                              <label key={option} style={{ display: "flex", gap: "var(--space-event-application-compact-inline)", alignItems: "center", color: "var(--color-text-primary)", fontSize: "var(--text-event-application-body)" }}>
+                                <input type="checkbox" checked={selected.includes(option)} onChange={() => toggleChoiceAnswer(question.id, option)} />
+                                {option}
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
 
                   <div style={{ ...formCardStyle, display: "block" }}>
                     <label style={{ display: "flex", gap: "var(--space-event-application-compact-inline)", alignItems: "flex-start", color: "var(--color-text-primary)", fontSize: "var(--text-event-application-body)", lineHeight: "var(--leading-normal)" }}>
