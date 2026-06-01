@@ -188,3 +188,40 @@ export const isEventApplicationOpen = (
   const status = getEffectiveEventStatus(post, acceptedCount);
   return status === "접수중" || status === "마감임박";
 };
+
+type AnswerMap = Record<string, string | string[]>;
+
+const isAnswered = (value: string | string[] | undefined): boolean =>
+  Array.isArray(value) ? value.length > 0 : Boolean(value?.trim());
+
+export const findMissingRequiredAnswer = (
+  questions: EventCustomQuestion[],
+  answers: AnswerMap,
+): EventCustomQuestion | null =>
+  questions.find(question => question.required && !isAnswered(answers[question.id])) ?? null;
+
+export const serializeEventAnswers = (
+  questions: EventCustomQuestion[],
+  answers: AnswerMap,
+): Record<string, string | string[]> =>
+  questions.reduce<Record<string, string | string[]>>((acc, question) => {
+    const value = answers[question.id];
+    if (!isAnswered(value)) return acc;
+    acc[question.id] = Array.isArray(value) ? value : value.trim();
+    return acc;
+  }, {});
+
+export const mapLegacyAnswerColumns = (answers: AnswerMap): {
+  expectation: string;
+  interests: string[];
+  speaker_question: string | null;
+} => {
+  const expectation = answers.legacy_expectation;
+  const interests = answers.legacy_interests;
+  const speaker = answers.legacy_speaker;
+  return {
+    expectation: typeof expectation === "string" ? expectation.trim() : "",
+    interests: Array.isArray(interests) ? interests : [],
+    speaker_question: typeof speaker === "string" && speaker.trim() ? speaker.trim() : null,
+  };
+};

@@ -1,5 +1,63 @@
 import { describe, expect, it } from "vitest";
-import { normalizeEventCustomQuestions, mergeEventFormConfig } from "./eventApplication";
+import {
+  normalizeEventCustomQuestions,
+  mergeEventFormConfig,
+  findMissingRequiredAnswer,
+  serializeEventAnswers,
+  mapLegacyAnswerColumns,
+} from "./eventApplication";
+
+const Q = {
+  text: { id: "t1", label: "주관식", type: "short_text" as const, required: true },
+  single: { id: "s1", label: "단일", type: "single_choice" as const, options: ["A", "B"], required: true },
+  multi: { id: "m1", label: "복수", type: "multi_choice" as const, options: ["X", "Y"], required: true },
+  optional: { id: "o1", label: "선택", type: "short_text" as const, required: false },
+};
+
+describe("findMissingRequiredAnswer", () => {
+  it("필수 주관식이 비면 해당 질문을 반환한다", () => {
+    expect(findMissingRequiredAnswer([Q.text], { t1: "  " })?.id).toBe("t1");
+  });
+  it("필수 복수선택이 빈 배열이면 반환한다", () => {
+    expect(findMissingRequiredAnswer([Q.multi], { m1: [] })?.id).toBe("m1");
+  });
+  it("모든 필수 답변이 차면 null을 반환한다", () => {
+    expect(findMissingRequiredAnswer([Q.text, Q.single, Q.multi], { t1: "답", s1: "A", m1: ["X"] })).toBeNull();
+  });
+  it("선택(비필수) 질문은 비어도 무시한다", () => {
+    expect(findMissingRequiredAnswer([Q.optional], {})).toBeNull();
+  });
+});
+
+describe("serializeEventAnswers", () => {
+  it("빈 답변은 제외하고 multi 배열은 보존한다", () => {
+    const answers = serializeEventAnswers([Q.text, Q.multi, Q.optional], { t1: "답", m1: ["X", "Y"], o1: "  " });
+    expect(answers).toEqual({ t1: "답", m1: ["X", "Y"] });
+  });
+  it("빈 multi 배열은 제외한다", () => {
+    expect(serializeEventAnswers([Q.multi], { m1: [] })).toEqual({});
+  });
+  it("저장 시 텍스트 앞뒤 공백을 제거한다", () => {
+    expect(serializeEventAnswers([Q.text], { t1: "  답  " })).toEqual({ t1: "답" });
+  });
+});
+
+describe("mapLegacyAnswerColumns", () => {
+  it("레거시 답변을 NOT NULL 컬럼 값으로 매핑한다", () => {
+    const cols = mapLegacyAnswerColumns({
+      legacy_expectation: "기대",
+      legacy_interests: ["A", "B"],
+      legacy_speaker: "질문",
+    });
+    expect(cols).toEqual({ expectation: "기대", interests: ["A", "B"], speaker_question: "질문" });
+  });
+  it("레거시 답변이 없으면 NOT NULL 기본값으로 채운다", () => {
+    expect(mapLegacyAnswerColumns({})).toEqual({ expectation: "", interests: [], speaker_question: null });
+  });
+  it("공백만 있는 사전질문 답변은 null로 처리한다", () => {
+    expect(mapLegacyAnswerColumns({ legacy_speaker: "   " }).speaker_question).toBeNull();
+  });
+});
 
 describe("normalizeEventCustomQuestions", () => {
   it("category와 options를 보존한다", () => {
