@@ -138,10 +138,14 @@ export interface EventFormConfig {
   customQuestions?: EventCustomQuestion[];
 }
 
+export type EventQuestionType = 'short_text' | 'long_text' | 'single_choice' | 'multi_choice';
+
 export interface EventCustomQuestion {
   id: string;
   label: string;
-  type: 'short_text' | 'long_text';
+  category?: string;
+  type: EventQuestionType;
+  options?: string[];
   required: boolean;
 }
 
@@ -158,7 +162,7 @@ export interface EventApplication {
   interests: string[];
   speaker_question: string | null;
   privacy_consent: boolean;
-  answers?: Record<string, string> | null;
+  answers?: Record<string, string | string[]> | null;
   status: 'pending' | 'accepted' | 'rejected' | 'cancelled_by_user' | 'cancelled_by_admin';
   admin_note: string | null;
   created_at: string;
