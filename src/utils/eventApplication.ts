@@ -1,3 +1,4 @@
+import { EVENT_QUESTION_TYPES } from "../lib/types";
 import type { EventCustomQuestion, EventFormConfig, Post } from "../lib/types";
 
 export const EVENT_LOW_REMAINING_RATIO = 0.2;
@@ -25,15 +26,34 @@ export const DEFAULT_EVENT_FORM_CONFIG: Required<EventFormConfig> = {
   customQuestions: [],
 };
 
+const isChoiceType = (type: EventCustomQuestion["type"]) =>
+  type === "single_choice" || type === "multi_choice";
+
+const normalizeQuestionType = (type: unknown): EventCustomQuestion["type"] =>
+  (EVENT_QUESTION_TYPES as readonly string[]).includes(type as string)
+    ? (type as EventCustomQuestion["type"])
+    : "short_text";
+
 export const normalizeEventCustomQuestions = (questions?: EventCustomQuestion[] | null): EventCustomQuestion[] =>
   (Array.isArray(questions) ? questions : [])
-    .map((question, index): EventCustomQuestion => ({
-      id: question.id || `question-${index + 1}`,
-      label: question.label?.trim() || "새 질문",
-      type: question.type === "long_text" ? "long_text" : "short_text",
-      required: Boolean(question.required),
-    }))
-    .filter(question => question.label.trim().length > 0);
+    .filter(question => (question.label?.trim() ?? "").length > 0)
+    .map((question, index): EventCustomQuestion => {
+      const type = normalizeQuestionType(question.type);
+      const base: EventCustomQuestion = {
+        id: question.id || `question-${index + 1}`,
+        label: question.label.trim(),
+        type,
+        required: Boolean(question.required),
+      };
+      const category = question.category?.trim();
+      if (category) base.category = category;
+      if (isChoiceType(type)) {
+        base.options = (Array.isArray(question.options) ? question.options : [])
+          .map(option => option.trim())
+          .filter(Boolean);
+      }
+      return base;
+    });
 
 const normalizeCompletionTitle = (title: string) =>
   ["신청이 접수되었습니다.", "참가가 확정되었습니다.", "행사 참가 신청이 접수되었습니다."].includes(title.trim())

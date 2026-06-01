@@ -138,7 +138,8 @@ export interface EventFormConfig {
   customQuestions?: EventCustomQuestion[];
 }
 
-export type EventQuestionType = 'short_text' | 'long_text' | 'single_choice' | 'multi_choice';
+export const EVENT_QUESTION_TYPES = ["short_text", "long_text", "single_choice", "multi_choice"] as const;
+export type EventQuestionType = (typeof EVENT_QUESTION_TYPES)[number];
 
 export interface EventCustomQuestion {
   id: string;
