@@ -31,6 +31,25 @@ export function EventFormConfigEditor({ value, onChange }: EventFormConfigEditor
     });
   };
 
+  const updateQuestionOption = (id: string, optionIndex: number, value: string) => {
+    const question = config.customQuestions.find(q => q.id === id);
+    if (!question) return;
+    const options = (question.options ?? []).map((opt, i) => (i === optionIndex ? value : opt));
+    updateQuestion(id, { options });
+  };
+
+  const addQuestionOption = (id: string) => {
+    const question = config.customQuestions.find(q => q.id === id);
+    if (!question) return;
+    updateQuestion(id, { options: [...(question.options ?? []), "새 선택지"] });
+  };
+
+  const removeQuestionOption = (id: string, optionIndex: number) => {
+    const question = config.customQuestions.find(q => q.id === id);
+    if (!question) return;
+    updateQuestion(id, { options: (question.options ?? []).filter((_, i) => i !== optionIndex) });
+  };
+
   const insertQuestion = (index: number) => {
     const next = [...config.customQuestions];
     next.splice(index, 0, createCustomQuestion());
@@ -39,20 +58,6 @@ export function EventFormConfigEditor({ value, onChange }: EventFormConfigEditor
 
   const removeQuestion = (id: string) => {
     updateConfig({ customQuestions: config.customQuestions.filter(question => question.id !== id) });
-  };
-
-  const updateInterestOption = (index: number, value: string) => {
-    updateConfig({
-      interestOptions: config.interestOptions.map((item, itemIndex) => itemIndex === index ? value : item),
-    });
-  };
-
-  const addInterestOption = () => {
-    updateConfig({ interestOptions: [...config.interestOptions, "새 선택지"] });
-  };
-
-  const removeInterestOption = (index: number) => {
-    updateConfig({ interestOptions: config.interestOptions.filter((_, itemIndex) => itemIndex !== index) });
   };
 
   const groupStyle: CSSProperties = {
@@ -147,58 +152,55 @@ export function EventFormConfigEditor({ value, onChange }: EventFormConfigEditor
       </div>
 
       <div style={groupStyle}>
-        <p style={titleStyle}>2. 관심 분야 & 참여 목적</p>
-        <input style={inputStyle} value={config.expectationLabel} onChange={event => updateConfig({ expectationLabel: event.currentTarget.value })} placeholder="참여 목적 질문" />
-        <input style={inputStyle} value={config.interestsLabel} onChange={event => updateConfig({ interestsLabel: event.currentTarget.value })} placeholder="관심 분야 질문" />
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {config.interestOptions.map((option, index) => (
-            <div key={`${option}-${index}`} style={rowStyle}>
-              <input
-                style={{ ...inputStyle, flex: 1, padding: "8px 10px" }}
-                value={option}
-                onChange={event => updateInterestOption(index, event.currentTarget.value)}
-                placeholder="선택지 이름"
-              />
-              <button type="button" aria-label="관심 분야 선택지 삭제" onClick={() => removeInterestOption(index)} style={deleteButtonStyle}>
-                <X size={15} />
-              </button>
-            </div>
-          ))}
-          <button type="button" aria-label="관심 분야 선택지 추가" onClick={addInterestOption} style={{ ...addButtonStyle, alignSelf: "center" }}>
-            <Plus size={17} />
-          </button>
-        </div>
-      </div>
-
-      <div style={groupStyle}>
-        <p style={titleStyle}>3. 사전 질문</p>
-        <input style={inputStyle} value={config.speakerQuestionLabel} onChange={event => updateConfig({ speakerQuestionLabel: event.currentTarget.value })} placeholder="사전 질문 문구" />
-      </div>
-
-      <div style={groupStyle}>
-        <p style={titleStyle}>4. 추가 질문</p>
-        <button type="button" aria-label="첫 번째 추가 질문 추가" onClick={() => insertQuestion(0)} style={{ ...addButtonStyle, alignSelf: "center" }}>
+        <p style={titleStyle}>질문</p>
+        <p style={{ margin: "-4px 0 4px", color: "var(--color-text-muted)", fontSize: 12 }}>
+          카테고리·유형을 자유롭게 편집하세요. 같은 카테고리는 신청서에서 하나의 묶음으로 표시됩니다.
+        </p>
+        <button type="button" aria-label="첫 번째 질문 추가" onClick={() => insertQuestion(0)} style={{ ...addButtonStyle, alignSelf: "center" }}>
           <Plus size={17} />
         </button>
         {config.customQuestions.map((question, index) => (
           <div key={question.id} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <div style={{ position: "relative", padding: "14px 46px 14px 14px", borderRadius: 12, border: "1px solid var(--color-border-soft)", background: "var(--color-field-bg)", display: "grid", gap: 10 }}>
-              <button type="button" aria-label="폼 질문 삭제" onClick={() => removeQuestion(question.id)} style={{ ...deleteButtonStyle, position: "absolute", top: 10, right: 10 }}>
+              <button type="button" aria-label="질문 삭제" onClick={() => removeQuestion(question.id)} style={{ ...deleteButtonStyle, position: "absolute", top: 10, right: 10 }}>
                 <X size={15} />
               </button>
-              <input style={inputStyle} value={question.label} onChange={event => updateQuestion(question.id, { label: event.currentTarget.value })} placeholder="질문 문구" />
               <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 10 }}>
+                <input style={inputStyle} value={question.category ?? ""} onChange={event => updateQuestion(question.id, { category: event.currentTarget.value })} placeholder="카테고리 (예: 참여 목적)" />
                 <select style={inputStyle} value={question.type} onChange={event => updateQuestion(question.id, { type: event.currentTarget.value as EventCustomQuestion["type"] })}>
                   <option value="short_text">짧은 답변</option>
                   <option value="long_text">긴 답변</option>
+                  <option value="single_choice">단일 선택</option>
+                  <option value="multi_choice">복수 선택</option>
                 </select>
-                <label style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--color-text-primary)", fontSize: 13, fontWeight: 700 }}>
-                  <input type="checkbox" checked={question.required} onChange={event => updateQuestion(question.id, { required: event.currentTarget.checked })} />
-                  필수 질문
-                </label>
               </div>
+              <input style={inputStyle} value={question.label} onChange={event => updateQuestion(question.id, { label: event.currentTarget.value })} placeholder="질문 문구" />
+              {(question.type === "single_choice" || question.type === "multi_choice") && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {(question.options ?? []).map((option, optionIndex) => (
+                    <div key={optionIndex} style={rowStyle}>
+                      <input
+                        style={{ ...inputStyle, flex: 1, padding: "8px 10px" }}
+                        value={option}
+                        onChange={event => updateQuestionOption(question.id, optionIndex, event.currentTarget.value)}
+                        placeholder="선택지 이름"
+                      />
+                      <button type="button" aria-label="선택지 삭제" onClick={() => removeQuestionOption(question.id, optionIndex)} style={deleteButtonStyle}>
+                        <X size={15} />
+                      </button>
+                    </div>
+                  ))}
+                  <button type="button" aria-label="선택지 추가" onClick={() => addQuestionOption(question.id)} style={{ ...addButtonStyle, alignSelf: "center" }}>
+                    <Plus size={17} />
+                  </button>
+                </div>
+              )}
+              <label style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--color-text-primary)", fontSize: 13, fontWeight: 700 }}>
+                <input type="checkbox" checked={question.required} onChange={event => updateQuestion(question.id, { required: event.currentTarget.checked })} />
+                필수 질문
+              </label>
             </div>
-            <button type="button" aria-label={`${index + 2}번째 추가 질문 추가`} onClick={() => insertQuestion(index + 1)} style={{ ...addButtonStyle, alignSelf: "center" }}>
+            <button type="button" aria-label={`${index + 2}번째 질문 추가`} onClick={() => insertQuestion(index + 1)} style={{ ...addButtonStyle, alignSelf: "center" }}>
               <Plus size={17} />
             </button>
           </div>
@@ -206,7 +208,7 @@ export function EventFormConfigEditor({ value, onChange }: EventFormConfigEditor
       </div>
 
       <div style={groupStyle}>
-        <p style={titleStyle}>5. 개인정보 동의 및 완료 안내</p>
+        <p style={titleStyle}>개인정보 동의 및 완료 안내</p>
         <textarea style={{ ...inputStyle, minHeight: 68, resize: "vertical" }} value={config.privacyConsentLabel} onChange={event => updateConfig({ privacyConsentLabel: event.currentTarget.value })} placeholder="개인정보 동의 문구" />
         <input style={inputStyle} value={config.completionTitle} onChange={event => updateConfig({ completionTitle: event.currentTarget.value })} placeholder="완료 제목" />
         <textarea style={{ ...inputStyle, minHeight: 68, resize: "vertical" }} value={config.completionMessage} onChange={event => updateConfig({ completionMessage: event.currentTarget.value })} placeholder="완료 안내" />
