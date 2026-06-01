@@ -27,6 +27,15 @@ describe("findMissingRequiredAnswer", () => {
   it("선택(비필수) 질문은 비어도 무시한다", () => {
     expect(findMissingRequiredAnswer([Q.optional], {})).toBeNull();
   });
+  it("필수라도 options 없는 choice는 검증에서 제외한다(데드락 방지)", () => {
+    const broken = { id: "b1", label: "선택지없음", type: "single_choice" as const, options: [], required: true };
+    expect(findMissingRequiredAnswer([broken], {})).toBeNull();
+  });
+  it("필수 multi_choice도 options가 비거나 undefined면 제외한다", () => {
+    const emptyMulti = { id: "b2", label: "빈복수", type: "multi_choice" as const, options: [], required: true };
+    const undefMulti = { id: "b3", label: "undef복수", type: "multi_choice" as const, required: true };
+    expect(findMissingRequiredAnswer([emptyMulti, undefMulti], {})).toBeNull();
+  });
 });
 
 describe("serializeEventAnswers", () => {
@@ -111,6 +120,13 @@ describe("normalizeEventCustomQuestions", () => {
     expect(result[0].options).toBeUndefined();
   });
 
+  it("choice options 중복 라벨을 제거한다", () => {
+    const result = normalizeEventCustomQuestions([
+      { id: "q8", label: "중복", type: "single_choice", options: ["A", " A ", "B", "B"], required: false },
+    ]);
+    expect(result[0].options).toEqual(["A", "B"]);
+  });
+
   it("빈 label 질문은 제외한다", () => {
     const result = normalizeEventCustomQuestions([
       { id: "q6", label: "   ", type: "short_text", required: false },
@@ -149,11 +165,26 @@ describe("mergeEventFormConfig 레거시 자동변환", () => {
     expect(merged.customQuestions.find(q => q.id === "legacy_speaker")?.type).toBe("long_text");
   });
 
-  it("customQuestions가 이미 있으면 시드하지 않는다", () => {
+  it("legacy id가 이미 있으면 시드하지 않는다", () => {
+    const merged = mergeEventFormConfig({
+      customQuestions: [
+        { id: "legacy_expectation", label: "기대", type: "long_text", required: true },
+        { id: "custom1", label: "내 질문", type: "short_text", required: false },
+      ],
+    });
+    expect(merged.customQuestions.map(q => q.id)).toEqual(["legacy_expectation", "custom1"]);
+  });
+
+  it("legacy id 없이 커스텀 질문만 있으면 legacy3을 앞에 시드한다", () => {
     const merged = mergeEventFormConfig({
       customQuestions: [{ id: "custom1", label: "내 질문", type: "short_text", required: false }],
     });
-    expect(merged.customQuestions.map(q => q.id)).toEqual(["custom1"]);
+    expect(merged.customQuestions.map(q => q.id)).toEqual([
+      "legacy_expectation",
+      "legacy_interests",
+      "legacy_speaker",
+      "custom1",
+    ]);
   });
 
   it("null config면 기본 템플릿 3질문을 시드한다", () => {

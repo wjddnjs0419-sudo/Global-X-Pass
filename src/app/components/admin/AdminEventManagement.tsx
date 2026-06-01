@@ -237,7 +237,18 @@ export function AdminEventManagement() {
             <div style={{ display: "grid", gap: 8 }}>
               {eventConfig.customQuestions.map(question => {
                 const answer = answers[question.id];
-                const text = Array.isArray(answer) ? answer.join(", ") : answer;
+                const hasAnswer = Array.isArray(answer) ? answer.length > 0 : Boolean(answer?.trim());
+                const legacyFallback = !hasAnswer
+                  ? question.id === "legacy_expectation"
+                    ? application.expectation
+                    : question.id === "legacy_interests"
+                      ? application.interests
+                      : question.id === "legacy_speaker"
+                        ? application.speaker_question
+                        : undefined
+                  : undefined;
+                const resolved = hasAnswer ? answer : legacyFallback;
+                const text = Array.isArray(resolved) ? resolved.join(", ") : resolved;
                 return (
                   <div key={question.id}>
                     <strong style={{ fontSize: 12 }}>{question.category ? `${question.category} · ` : ""}{question.label}</strong>

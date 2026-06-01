@@ -350,24 +350,32 @@ export function EventApplicationPage() {
                           <input style={input} value={typeof value === "string" ? value : ""} onChange={e => updateCustomAnswer(question.id, e.target.value)} placeholder={question.label} />
                         )}
                         {question.type === "single_choice" && (
-                          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-xs)" }}>
-                            {(question.options ?? []).map(option => (
-                              <label key={option} style={{ display: "flex", gap: "var(--space-event-application-compact-inline)", alignItems: "center", color: "var(--color-text-primary)", fontSize: "var(--text-event-application-body)" }}>
-                                <input type="radio" name={question.id} checked={typeof value === "string" && value === option} onChange={() => updateCustomAnswer(question.id, option)} />
-                                {option}
-                              </label>
-                            ))}
-                          </div>
+                          (question.options ?? []).length === 0 ? (
+                            <p style={{ margin: 0, color: "var(--color-text-muted)", fontSize: "var(--text-event-application-body)", fontStyle: "italic" }}>선택지 없음</p>
+                          ) : (
+                            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-xs)" }}>
+                              {(question.options ?? []).map(option => (
+                                <label key={option} style={{ display: "flex", gap: "var(--space-event-application-compact-inline)", alignItems: "center", color: "var(--color-text-primary)", fontSize: "var(--text-event-application-body)" }}>
+                                  <input type="radio" name={question.id} checked={typeof value === "string" && value === option} onChange={() => updateCustomAnswer(question.id, option)} />
+                                  {option}
+                                </label>
+                              ))}
+                            </div>
+                          )
                         )}
                         {question.type === "multi_choice" && (
-                          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-xs)" }}>
-                            {(question.options ?? []).map(option => (
-                              <label key={option} style={{ display: "flex", gap: "var(--space-event-application-compact-inline)", alignItems: "center", color: "var(--color-text-primary)", fontSize: "var(--text-event-application-body)" }}>
-                                <input type="checkbox" checked={selected.includes(option)} onChange={() => toggleChoiceAnswer(question.id, option)} />
-                                {option}
-                              </label>
-                            ))}
-                          </div>
+                          (question.options ?? []).length === 0 ? (
+                            <p style={{ margin: 0, color: "var(--color-text-muted)", fontSize: "var(--text-event-application-body)", fontStyle: "italic" }}>선택지 없음</p>
+                          ) : (
+                            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-xs)" }}>
+                              {(question.options ?? []).map(option => (
+                                <label key={option} style={{ display: "flex", gap: "var(--space-event-application-compact-inline)", alignItems: "center", color: "var(--color-text-primary)", fontSize: "var(--text-event-application-body)" }}>
+                                  <input type="checkbox" checked={selected.includes(option)} onChange={() => toggleChoiceAnswer(question.id, option)} />
+                                  {option}
+                                </label>
+                              ))}
+                            </div>
+                          )
                         )}
                       </div>
                     );

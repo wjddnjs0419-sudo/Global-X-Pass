@@ -48,9 +48,13 @@ export const normalizeEventCustomQuestions = (questions?: EventCustomQuestion[] 
       const category = question.category?.trim();
       if (category) base.category = category;
       if (isChoiceType(type)) {
-        base.options = (Array.isArray(question.options) ? question.options : [])
-          .map(option => option.trim())
-          .filter(Boolean);
+        base.options = Array.from(
+          new Set(
+            (Array.isArray(question.options) ? question.options : [])
+              .map(option => option.trim())
+              .filter(Boolean),
+          ),
+        );
       }
       return base;
     });
@@ -82,7 +86,10 @@ export const mergeEventFormConfig = (config?: EventFormConfig | null): Required<
   };
 
   const normalized = normalizeEventCustomQuestions(config?.customQuestions);
-  const customQuestions = normalized.length > 0 ? normalized : normalizeEventCustomQuestions(seedLegacyQuestions(base));
+  const hasLegacyId = normalized.some(question => question.id.startsWith("legacy_"));
+  const customQuestions = hasLegacyId
+    ? normalized
+    : [...normalizeEventCustomQuestions(seedLegacyQuestions(base)), ...normalized];
 
   const merged = { ...base, customQuestions };
 
@@ -194,11 +201,17 @@ type AnswerMap = Record<string, string | string[]>;
 const isAnswered = (value: string | string[] | undefined): boolean =>
   Array.isArray(value) ? value.length > 0 : Boolean(value?.trim());
 
+const isUnanswerableChoice = (question: EventCustomQuestion): boolean =>
+  isChoiceType(question.type) && (question.options?.length ?? 0) === 0;
+
 export const findMissingRequiredAnswer = (
   questions: EventCustomQuestion[],
   answers: AnswerMap,
 ): EventCustomQuestion | null =>
-  questions.find(question => question.required && !isAnswered(answers[question.id])) ?? null;
+  questions.find(
+    question =>
+      question.required && !isUnanswerableChoice(question) && !isAnswered(answers[question.id]),
+  ) ?? null;
 
 export const serializeEventAnswers = (
   questions: EventCustomQuestion[],
