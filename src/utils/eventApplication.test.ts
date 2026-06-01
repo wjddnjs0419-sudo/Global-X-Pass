@@ -5,6 +5,8 @@ import {
   findMissingRequiredAnswer,
   serializeEventAnswers,
   mapLegacyAnswerColumns,
+  getAdminActionStatuses,
+  isDeletableApplicationStatus,
 } from "./eventApplication";
 
 const Q = {
@@ -127,6 +129,23 @@ describe("normalizeEventCustomQuestions", () => {
     expect(result[0].options).toEqual(["A", "B"]);
   });
 
+  it("preserveDrafts면 빈 label 질문도 보존한다(편집 중 삭제 방지)", () => {
+    const result = normalizeEventCustomQuestions(
+      [{ id: "q1", label: "", type: "short_text", required: false }],
+      { preserveDrafts: true },
+    );
+    expect(result).toHaveLength(1);
+    expect(result[0].label).toBe("");
+  });
+
+  it("preserveDrafts면 choice 옵션을 trim·dedupe 없이 원본 보존한다", () => {
+    const result = normalizeEventCustomQuestions(
+      [{ id: "q9", label: "선택", type: "single_choice", options: ["새 선택지", "새 선택지", ""], required: false }],
+      { preserveDrafts: true },
+    );
+    expect(result[0].options).toEqual(["새 선택지", "새 선택지", ""]);
+  });
+
   it("빈 label 질문은 제외한다", () => {
     const result = normalizeEventCustomQuestions([
       { id: "q6", label: "   ", type: "short_text", required: false },
@@ -187,6 +206,23 @@ describe("mergeEventFormConfig 레거시 자동변환", () => {
     ]);
   });
 
+  it("preserveDrafts면 legacy 없는 커스텀 목록에 legacy3을 prepend하지 않는다(편집 WYSIWYG)", () => {
+    const merged = mergeEventFormConfig(
+      { customQuestions: [{ id: "custom1", label: "내 질문", type: "short_text", required: false }] },
+      { preserveDrafts: true },
+    );
+    expect(merged.customQuestions.map(q => q.id)).toEqual(["custom1"]);
+  });
+
+  it("preserveDrafts라도 질문이 비면 legacy3을 시드한다(브랜드뉴 템플릿)", () => {
+    const merged = mergeEventFormConfig({ customQuestions: [] }, { preserveDrafts: true });
+    expect(merged.customQuestions.map(q => q.id)).toEqual([
+      "legacy_expectation",
+      "legacy_interests",
+      "legacy_speaker",
+    ]);
+  });
+
   it("null config면 기본 템플릿 3질문을 시드한다", () => {
     const merged = mergeEventFormConfig(null);
     expect(merged.customQuestions.map(q => q.id)).toEqual([
@@ -194,5 +230,41 @@ describe("mergeEventFormConfig 레거시 자동변환", () => {
       "legacy_interests",
       "legacy_speaker",
     ]);
+  });
+});
+
+describe("getAdminActionStatuses", () => {
+  it("pending → 승인/거절/취소(관리자)", () => {
+    expect(getAdminActionStatuses("pending")).toEqual(["accepted", "rejected", "cancelled_by_admin"]);
+  });
+  it("accepted → 대기/거절/취소(관리자)", () => {
+    expect(getAdminActionStatuses("accepted")).toEqual(["pending", "rejected", "cancelled_by_admin"]);
+  });
+  it("rejected → 대기/승인 복원", () => {
+    expect(getAdminActionStatuses("rejected")).toEqual(["pending", "accepted"]);
+  });
+  it("cancelled_by_admin → 대기/승인 복원", () => {
+    expect(getAdminActionStatuses("cancelled_by_admin")).toEqual(["pending", "accepted"]);
+  });
+  it("cancelled_by_user → 대기/승인 복원", () => {
+    expect(getAdminActionStatuses("cancelled_by_user")).toEqual(["pending", "accepted"]);
+  });
+});
+
+describe("isDeletableApplicationStatus", () => {
+  it("rejected → 삭제 가능", () => {
+    expect(isDeletableApplicationStatus("rejected")).toBe(true);
+  });
+  it("cancelled_by_user → 삭제 가능", () => {
+    expect(isDeletableApplicationStatus("cancelled_by_user")).toBe(true);
+  });
+  it("cancelled_by_admin → 삭제 가능", () => {
+    expect(isDeletableApplicationStatus("cancelled_by_admin")).toBe(true);
+  });
+  it("pending → 삭제 불가", () => {
+    expect(isDeletableApplicationStatus("pending")).toBe(false);
+  });
+  it("accepted → 삭제 불가", () => {
+    expect(isDeletableApplicationStatus("accepted")).toBe(false);
   });
 });

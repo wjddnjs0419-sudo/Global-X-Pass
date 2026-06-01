@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Trash2 } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { supabase } from "../../../lib/supabaseClient";
 import type { EventApplication, Post } from "../../../lib/types";
-import { EVENT_APPLICATION_STATUS, mergeEventFormConfig } from "../../../utils/eventApplication";
+import { EVENT_APPLICATION_STATUS, getAdminActionStatuses, isDeletableApplicationStatus, mergeEventFormConfig } from "../../../utils/eventApplication";
 import { formatEventDate } from "../../../utils/scheduleFields";
 import { AppPagination } from "../AppPagination";
 
@@ -45,7 +45,10 @@ export function AdminEventManagement() {
   );
 
   const participantApplications = useMemo(
-    () => eventFilteredApplications.filter(application => application.status === "pending" || application.status === "accepted"),
+    () => eventFilteredApplications
+      .filter(application => application.status === "pending" || application.status === "accepted")
+      // fetch는 created_at 내림차순 → 참가자 목록은 먼저 신청한 순(오름차순)으로 재정렬, 순번 부여.
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
     [eventFilteredApplications]
   );
 
@@ -58,11 +61,12 @@ export function AdminEventManagement() {
   );
 
   const countsByEvent = useMemo(() => {
-    const map = new Map<string, { accepted: number; total: number }>();
+    const map = new Map<string, { accepted: number; pending: number; total: number }>();
     applications.forEach(application => {
-      const next = map.get(application.post_id) ?? { accepted: 0, total: 0 };
+      const next = map.get(application.post_id) ?? { accepted: 0, pending: 0, total: 0 };
       next.total += 1;
       if (application.status === "accepted") next.accepted += 1;
+      else if (application.status === "pending") next.pending += 1;
       map.set(application.post_id, next);
     });
     return map;
@@ -100,6 +104,22 @@ export function AdminEventManagement() {
       .eq("id", application.id);
     if (error) {
       alert(error.message.includes("event capacity reached") ? "정원이 마감되어 더 이상 확정할 수 없습니다." : "처리 실패: " + error.message);
+    } else {
+      await fetchData();
+    }
+    setUpdatingId(null);
+  };
+
+  const handleDelete = async (application: EventApplication) => {
+    if (!isDeletableApplicationStatus(application.status)) return;
+    if (!window.confirm(`${application.applicant_name} 신청을 영구 삭제할까요?\n복구할 수 없습니다.`)) return;
+    setUpdatingId(application.id);
+    const { error } = await supabase
+      .from("event_applications")
+      .delete()
+      .eq("id", application.id);
+    if (error) {
+      alert("삭제 실패: " + error.message);
     } else {
       await fetchData();
     }
@@ -175,21 +195,38 @@ export function AdminEventManagement() {
     );
   };
 
+  const renderDeleteButton = (application: EventApplication) => (
+    <button
+      key="delete"
+      type="button"
+      disabled={updatingId === application.id}
+      onClick={() => handleDelete(application)}
+      style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 99, border: `1px solid ${deleteBorder}`, background: deleteBg, color: "var(--color-brand-red)", fontSize: 12, fontWeight: 800, cursor: updatingId === application.id ? "not-allowed" : "pointer", opacity: updatingId === application.id ? 0.55 : 1 }}
+    >
+      <Trash2 size={13} />삭제
+    </button>
+  );
+
   const renderActionRow = (
     application: EventApplication,
     actionStatuses: EventApplication["status"][],
-    event?: Post
+    event?: Post,
+    deletable = false
   ) => {
     const actionItems = actionStatuses
       .filter(status => application.status !== status)
       .map(status => renderStatusButton(application, status));
+    const deleteButton = deletable && isDeletableApplicationStatus(application.status)
+      ? renderDeleteButton(application)
+      : null;
 
-    if (!event && actionItems.length === 0) return null;
+    if (!event && actionItems.length === 0 && !deleteButton) return null;
 
     return (
       <div className="flex flex-wrap gap-2 md:justify-end">
         {renderEditLink(event)}
         {actionItems}
+        {deleteButton}
       </div>
     );
   };
@@ -201,7 +238,7 @@ export function AdminEventManagement() {
     return "yellow";
   };
 
-  const renderApplicationCard = (application: EventApplication, actionStatuses: EventApplication["status"][]) => {
+  const renderApplicationCard = (application: EventApplication, actionStatuses: EventApplication["status"][], seq?: number, deletable = false) => {
     const event = eventById.get(application.post_id);
     const cfg = EVENT_APPLICATION_STATUS[application.status];
     const eventConfig = mergeEventFormConfig(event?.event_form_config);
@@ -210,13 +247,14 @@ export function AdminEventManagement() {
     const unknownAnswers = Object.entries(answers).filter(([questionId, answer]) => !knownAnswerIds.has(questionId) && String(answer).trim());
     const badgeVariant = getBadgeVariant(application.status);
     const createdDate = new Date(application.created_at).toLocaleDateString("ko-KR");
-    const actionRow = renderActionRow(application, actionStatuses, event);
+    const actionRow = renderActionRow(application, actionStatuses, event, deletable);
 
     return (
       <div key={application.id} style={{ background: card, border: `1px solid ${border}`, borderRadius: 16, padding: "20px 24px", display: "flex", flexDirection: "column", gap: 12 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 16, alignItems: "flex-start" }}>
           <div style={{ minWidth: 0, flex: "1 1 auto" }}>
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 6 }}>
+              {seq != null && <span style={{ color: textMuted, fontSize: 13, fontWeight: 800, minWidth: 22 }}>#{seq}</span>}
               <strong style={{ color: textMain, fontSize: 16 }}>{application.applicant_name}</strong>
               <span style={{ color: textMuted, fontSize: 13 }}>{application.company_tech}</span>
               <Badge variant={badgeVariant} shape="pill">{cfg.label}</Badge>
@@ -319,14 +357,14 @@ export function AdminEventManagement() {
       {subTab === "overview" && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {events.map(event => {
-            const counts = countsByEvent.get(event.id) ?? { accepted: 0, total: 0 };
+            const counts = countsByEvent.get(event.id) ?? { accepted: 0, pending: 0, total: 0 };
             const remaining = event.capacity == null ? null : Math.max(event.capacity - counts.accepted, 0);
             return (
               <div key={event.id} style={{ background: card, border: `1px solid ${border}`, borderRadius: 16, padding: 18, textDecoration: "none", display: "flex", flexDirection: "column", gap: 8 }}>
                 <Link to={`/events/${event.id}/apply`} style={{ color: textMain, fontSize: 14, lineHeight: 1.4, fontWeight: 800, textDecoration: "none" }}>{event.title}</Link>
                 <span style={{ color: textMuted, fontSize: 12 }}>{formatEventDate(event, "일시 미정")}</span>
                 <span style={{ alignSelf: "flex-start", color: textMuted, background: labelBg, border: `1px solid ${labelBorder}`, borderRadius: 8, padding: "4px 8px", fontSize: 12, fontWeight: 800 }}>
-                  확정 {counts.accepted}명{remaining != null ? ` · 잔여 ${remaining}석` : ""}
+                  확정 {counts.accepted}명 · 대기 {counts.pending}명{remaining != null ? ` · 잔여 ${remaining}석` : ""}
                 </span>
                 <Button asChild variant="outline" size="sm" className="mt-1 h-8 self-start rounded-[10px] px-3 text-[13px]">
                   <Link to={`/admin?editPostId=${event.id}`}><ExternalLink size={14} />게시물 편집</Link>
@@ -340,10 +378,10 @@ export function AdminEventManagement() {
       {subTab === "participants" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {participantApplications.length === 0 ? (
-            <div style={{ padding: 60, textAlign: "center", color: textMuted, background: card, border: `1px solid ${border}`, borderRadius: 18 }}>확정된 참가자가 없습니다.</div>
+            <div style={{ padding: 60, textAlign: "center", color: textMuted, background: card, border: `1px solid ${border}`, borderRadius: 18 }}>신청자가 없습니다.</div>
           ) : (
             <>
-              {participantPageData.pageItems.map(application => renderApplicationCard(application, application.status === "pending" ? ["accepted", "rejected"] : ["cancelled_by_admin"]))}
+              {participantPageData.pageItems.map((application, idx) => renderApplicationCard(application, getAdminActionStatuses(application.status), (participantPageData.currentPage - 1) * PAGE_SIZE + idx + 1))}
               <AppPagination currentPage={participantPageData.currentPage} totalPages={participantPageData.totalPages} onPageChange={setParticipantPage} />
             </>
           )}
@@ -356,7 +394,7 @@ export function AdminEventManagement() {
             <div style={{ padding: 60, textAlign: "center", color: textMuted, background: card, border: `1px solid ${border}`, borderRadius: 18 }}>처리된 신청 내역이 없습니다.</div>
           ) : (
             <>
-              {historyPageData.pageItems.map(application => renderApplicationCard(application, []))}
+              {historyPageData.pageItems.map(application => renderApplicationCard(application, getAdminActionStatuses(application.status), undefined, true))}
               <AppPagination currentPage={historyPageData.currentPage} totalPages={historyPageData.totalPages} onPageChange={setHistoryPage} />
             </>
           )}

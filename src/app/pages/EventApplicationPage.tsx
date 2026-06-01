@@ -5,6 +5,7 @@ import { Ban, CalendarDays, MapPin, Send, Users } from "lucide-react";
 import { PageShell } from "../components/PageShell";
 import { ProgramConfirmationCard } from "../components/ProgramConfirmationCard";
 import { Button } from "../components/ui/button";
+import { IMEInput, IMETextarea } from "../components/ui/ime-input";
 import { getBackLinkStyle, getMutedLabelStyle, getStatusPillStyle } from "../components/contentListStyles";
 import { CONTACT_EMAIL } from "../constants/contact";
 import { useTheme } from "../ThemeContext";
@@ -97,6 +98,18 @@ export function EventApplicationPage() {
   const statusCfg = EVENT_STATUS_CONFIG[effectiveEventStatus ?? ""] ?? null;
   const isApplicationOpen = post ? isEventApplicationOpen(post, acceptedCount) : false;
   const canCancelApplication = application?.status === "pending" || application?.status === "accepted";
+  const isCancelledApplication = application?.status === "cancelled_by_user" || application?.status === "cancelled_by_admin";
+  const isPendingApplication = application?.status === "pending";
+  const confirmationTitle = isCancelledApplication
+    ? "신청이 취소되었습니다."
+    : isPendingApplication
+      ? "신청이 접수되었습니다."
+      : config.completionTitle;
+  const confirmationDescription = isCancelledApplication
+    ? "재참가가 필요하면 운영자에게 문의해주세요."
+    : isPendingApplication
+      ? "관리자 승인 후 확정 안내를 등록된 이메일로 보내드리겠습니다."
+      : config.completionMessage;
 
   useEffect(() => {
     const init = async () => {
@@ -175,7 +188,7 @@ export function EventApplicationPage() {
       .insert({
         post_id: post.id,
         user_id: userId,
-        status: "accepted",
+        status: "pending",
         company_tech: form.company_tech.trim(),
         applicant_name: form.applicant_name.trim(),
         position: form.position.trim(),
@@ -194,7 +207,6 @@ export function EventApplicationPage() {
       return;
     }
     setApplication(data as EventApplication);
-    setAcceptedCount(prev => prev + 1);
     setSaved(true);
   };
 
@@ -289,10 +301,10 @@ export function EventApplicationPage() {
               )}
               {saved || application ? (
                 <ProgramConfirmationCard
-                  title={application?.status === "cancelled_by_user" || application?.status === "cancelled_by_admin" ? "신청이 취소되었습니다." : config.completionTitle}
-                  description={application?.status === "cancelled_by_user" || application?.status === "cancelled_by_admin" ? "재참가가 필요하면 운영자에게 문의해주세요." : config.completionMessage}
+                  title={confirmationTitle}
+                  description={confirmationDescription}
                   actions={[
-                    ...(application?.status === "cancelled_by_user" || application?.status === "cancelled_by_admin"
+                    ...(isCancelledApplication
                       ? [
                           { label: CONTACT_EMAIL, href: `mailto:${CONTACT_EMAIL}` },
                           { label: "문의 안내 보기", to: "/faq" },
@@ -322,14 +334,14 @@ export function EventApplicationPage() {
 
                   <div style={formCardStyle}>
                     <strong style={{ color: "var(--color-text-primary)" }}>1. 참가자 기본 정보</strong>
-                    <input style={input} value={form.company_tech} onChange={e => updateField("company_tech", e.target.value)} placeholder={requiredLabel(config.companyTechLabel)} />
+                    <IMEInput style={input} value={form.company_tech} onChange={e => updateField("company_tech", e.target.value)} placeholder={requiredLabel(config.companyTechLabel)} />
                     <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: "var(--space-event-application-grid-gap)" }}>
-                      <input style={input} value={form.applicant_name} onChange={e => updateField("applicant_name", e.target.value)} placeholder={requiredLabel(config.nameLabel)} />
-                      <input style={input} value={form.position} onChange={e => updateField("position", e.target.value)} placeholder={requiredLabel(config.positionLabel)} />
+                      <IMEInput style={input} value={form.applicant_name} onChange={e => updateField("applicant_name", e.target.value)} placeholder={requiredLabel(config.nameLabel)} />
+                      <IMEInput style={input} value={form.position} onChange={e => updateField("position", e.target.value)} placeholder={requiredLabel(config.positionLabel)} />
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: "var(--space-event-application-grid-gap)" }}>
-                      <input style={input} value={form.email} onChange={e => updateField("email", e.target.value)} placeholder={requiredLabel(config.emailLabel)} />
-                      <input style={input} value={form.phone} onChange={e => updateField("phone", e.target.value)} placeholder={config.phoneLabel} />
+                      <IMEInput style={input} value={form.email} onChange={e => updateField("email", e.target.value)} placeholder={requiredLabel(config.emailLabel)} />
+                      <IMEInput style={input} value={form.phone} onChange={e => updateField("phone", e.target.value)} placeholder={config.phoneLabel} />
                     </div>
                   </div>
 
@@ -339,15 +351,15 @@ export function EventApplicationPage() {
                     const selected = Array.isArray(value) ? value : [];
                     return (
                       <div key={question.id} style={formCardStyle}>
-                        {showCategory && <strong style={{ color: "var(--color-text-primary)" }}>{question.category}</strong>}
-                        <p style={{ margin: 0, color: "var(--color-text-muted)", fontSize: "var(--text-event-application-label)", fontWeight: "var(--weight-bold)" }}>
+                        {showCategory && <strong style={{ color: "var(--color-text-muted)", fontSize: "var(--text-event-application-category)", fontWeight: "var(--weight-semibold)" }}>{question.category}</strong>}
+                        <p style={{ margin: 0, color: "var(--color-text-primary)", fontSize: "var(--text-event-application-label)", fontWeight: "var(--weight-extrabold)" }}>
                           {question.label}{question.required ? " *" : ""}
                         </p>
                         {question.type === "long_text" && (
-                          <textarea style={textareaStyle("var(--size-event-application-textarea-lg)")} value={typeof value === "string" ? value : ""} onChange={e => updateCustomAnswer(question.id, e.target.value)} placeholder={question.label} />
+                          <IMETextarea style={textareaStyle("var(--size-event-application-textarea-lg)")} value={typeof value === "string" ? value : ""} onChange={e => updateCustomAnswer(question.id, e.target.value)} placeholder={question.label} />
                         )}
                         {question.type === "short_text" && (
-                          <input style={input} value={typeof value === "string" ? value : ""} onChange={e => updateCustomAnswer(question.id, e.target.value)} placeholder={question.label} />
+                          <IMEInput style={input} value={typeof value === "string" ? value : ""} onChange={e => updateCustomAnswer(question.id, e.target.value)} placeholder={question.label} />
                         )}
                         {question.type === "single_choice" && (
                           (question.options ?? []).length === 0 ? (

@@ -1,5 +1,5 @@
 import { EVENT_QUESTION_TYPES } from "../lib/types";
-import type { EventCustomQuestion, EventFormConfig, Post } from "../lib/types";
+import type { EventApplication, EventCustomQuestion, EventFormConfig, Post } from "../lib/types";
 
 export const EVENT_LOW_REMAINING_RATIO = 0.2;
 export const EVENT_DEADLINE_SOON_DAYS = 3;
@@ -34,30 +34,34 @@ const normalizeQuestionType = (type: unknown): EventCustomQuestion["type"] =>
     ? (type as EventCustomQuestion["type"])
     : "short_text";
 
-export const normalizeEventCustomQuestions = (questions?: EventCustomQuestion[] | null): EventCustomQuestion[] =>
-  (Array.isArray(questions) ? questions : [])
-    .filter(question => (question.label?.trim() ?? "").length > 0)
+// preserveDrafts: 관리자 편집기 전용. 입력 도중인 빈 label/옵션을 지우지 않고, trim·dedupe·필터를
+// 보류한다(매 키스트로크 정제가 질문/옵션을 삭제하던 회귀 방지). 저장·표시 경로는 strict(기본)로 정제.
+export const normalizeEventCustomQuestions = (
+  questions?: EventCustomQuestion[] | null,
+  options: { preserveDrafts?: boolean } = {},
+): EventCustomQuestion[] => {
+  const { preserveDrafts = false } = options;
+  return (Array.isArray(questions) ? questions : [])
+    .filter(question => preserveDrafts || (question.label?.trim() ?? "").length > 0)
     .map((question, index): EventCustomQuestion => {
       const type = normalizeQuestionType(question.type);
       const base: EventCustomQuestion = {
         id: question.id || `question-${index + 1}`,
-        label: question.label.trim(),
+        label: preserveDrafts ? (question.label ?? "") : question.label.trim(),
         type,
         required: Boolean(question.required),
       };
-      const category = question.category?.trim();
+      const category = preserveDrafts ? question.category : question.category?.trim();
       if (category) base.category = category;
       if (isChoiceType(type)) {
-        base.options = Array.from(
-          new Set(
-            (Array.isArray(question.options) ? question.options : [])
-              .map(option => option.trim())
-              .filter(Boolean),
-          ),
-        );
+        const rawOptions = Array.isArray(question.options) ? question.options : [];
+        base.options = preserveDrafts
+          ? [...rawOptions]
+          : Array.from(new Set(rawOptions.map(option => option.trim()).filter(Boolean)));
       }
       return base;
     });
+};
 
 const normalizeCompletionTitle = (title: string) =>
   ["신청이 접수되었습니다.", "참가가 확정되었습니다.", "행사 참가 신청이 접수되었습니다."].includes(title.trim())
@@ -75,7 +79,10 @@ const seedLegacyQuestions = (config: Required<EventFormConfig>): EventCustomQues
   { id: "legacy_speaker", label: config.speakerQuestionLabel, category: "사전 질문", type: "long_text", required: false },
 ];
 
-export const mergeEventFormConfig = (config?: EventFormConfig | null): Required<EventFormConfig> => {
+export const mergeEventFormConfig = (
+  config?: EventFormConfig | null,
+  options: { preserveDrafts?: boolean } = {},
+): Required<EventFormConfig> => {
   const base = {
     ...DEFAULT_EVENT_FORM_CONFIG,
     ...(config ?? {}),
@@ -85,11 +92,18 @@ export const mergeEventFormConfig = (config?: EventFormConfig | null): Required<
         : DEFAULT_EVENT_FORM_CONFIG.interestOptions,
   };
 
-  const normalized = normalizeEventCustomQuestions(config?.customQuestions);
+  const normalized = normalizeEventCustomQuestions(config?.customQuestions, options);
   const hasLegacyId = normalized.some(question => question.id.startsWith("legacy_"));
-  const customQuestions = hasLegacyId
-    ? normalized
-    : [...normalizeEventCustomQuestions(seedLegacyQuestions(base)), ...normalized];
+  // 편집기(preserveDrafts): 비었을 때만 legacy3 시드(브랜드뉴 템플릿). 기존 목록엔 prepend하지 않아
+  //   관리자가 legacy 질문을 지워도 매 입력마다 되살아나지 않게 한다(WYSIWYG).
+  // 표시/저장(strict): legacy id 없으면 legacy3 prepend로 옛 신청서 답변 호환 표시(Codex FAIL1).
+  const customQuestions = options.preserveDrafts
+    ? normalized.length > 0
+      ? normalized
+      : normalizeEventCustomQuestions(seedLegacyQuestions(base), options)
+    : hasLegacyId
+      ? normalized
+      : [...normalizeEventCustomQuestions(seedLegacyQuestions(base)), ...normalized];
 
   const merged = { ...base, customQuestions };
 
@@ -130,6 +144,32 @@ export const EVENT_APPLICATION_STATUS = {
   cancelled_by_user: { label: "취소(본인)", color: "var(--color-neutral)" },
   cancelled_by_admin: { label: "취소(관리자)", color: "var(--color-neutral)" },
 } as const;
+
+// 관리자 상태전이표(승인제 선별). 참가자/이력 카드 action 버튼 렌더 기준.
+export const getAdminActionStatuses = (
+  current: EventApplication["status"],
+): EventApplication["status"][] => {
+  switch (current) {
+    case "pending":
+      return ["accepted", "rejected", "cancelled_by_admin"];
+    case "accepted":
+      return ["pending", "rejected", "cancelled_by_admin"];
+    case "rejected":
+    case "cancelled_by_admin":
+    case "cancelled_by_user":
+      return ["pending", "accepted"];
+    default:
+      return [];
+  }
+};
+
+// 관리자 영구삭제 가능 여부. terminal 상태(거절/취소)만 허용 — RLS event_applications_delete_own_terminal과 일치.
+export const isDeletableApplicationStatus = (
+  status: EventApplication["status"],
+): boolean =>
+  status === "rejected" ||
+  status === "cancelled_by_user" ||
+  status === "cancelled_by_admin";
 
 export const EVENT_STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   "접수예정": { label: "접수예정", color: "var(--color-accent-blue)", bg: "var(--color-accent-blue-soft-bg)" },

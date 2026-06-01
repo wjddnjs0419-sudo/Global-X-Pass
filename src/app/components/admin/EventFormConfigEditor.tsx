@@ -1,8 +1,9 @@
 import { Plus, X } from "lucide-react";
-import type { CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 import type { EventCustomQuestion, EventFormConfig } from "../../../lib/types";
 import { cleanEventFormConfig, mergeEventFormConfig } from "../../../utils/eventApplication";
 import { Button } from "../ui/button";
+import { IMEInput, IMETextarea } from "../ui/ime-input";
 
 interface EventFormConfigEditorProps {
   value: EventFormConfig | null | undefined;
@@ -16,11 +17,83 @@ const createCustomQuestion = (): EventCustomQuestion => ({
   required: false,
 });
 
+// 선택지마다 영속 key를 생성. options는 string[]라 콘텐츠/인덱스 key는 stateful IMEInput과 결합 시
+// 삭제·재배치에서 인스턴스가 잘못 재사용돼 IME draft가 다른 행으로 샐 수 있다.
+const createOptionKey = () => `optk_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+
+interface ChoiceOptionsEditorProps {
+  options: string[];
+  inputStyle: CSSProperties;
+  rowStyle: CSSProperties;
+  deleteButtonStyle: CSSProperties;
+  addButtonStyle: CSSProperties;
+  onChangeOption: (optionIndex: number, next: string) => void;
+  onAddOption: () => void;
+  onRemoveOption: (optionIndex: number) => void;
+}
+
+// 선택지 행을 별도 컴포넌트로 분리해 옵션과 1:1로 정렬되는 안정 key를 자체 state로 소유한다.
+// key는 마운트 시 lazy 생성하고 추가/삭제 핸들러에서만 갱신 → render는 key를 읽기만 한다(pure render).
+function ChoiceOptionsEditor({
+  options,
+  inputStyle,
+  rowStyle,
+  deleteButtonStyle,
+  addButtonStyle,
+  onChangeOption,
+  onAddOption,
+  onRemoveOption,
+}: ChoiceOptionsEditorProps) {
+  const [keys, setKeys] = useState<string[]>(() => options.map(() => createOptionKey()));
+
+  // 외부에서 옵션 길이가 바뀐 경우(질문 타입 전환·되돌리기 등) 안전망. render 중 상태 조정은
+  // React 권장 패턴이며 ref/전역 변이가 없다. 일반 추가·삭제는 아래 핸들러가 정렬을 직접 유지한다.
+  if (keys.length !== options.length) {
+    setKeys(prev => {
+      const next = prev.slice(0, options.length);
+      while (next.length < options.length) next.push(createOptionKey());
+      return next;
+    });
+    return null;
+  }
+
+  const handleAdd = () => {
+    setKeys(prev => [...prev, createOptionKey()]);
+    onAddOption();
+  };
+  const handleRemove = (optionIndex: number) => {
+    setKeys(prev => prev.filter((_, i) => i !== optionIndex));
+    onRemoveOption(optionIndex);
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {options.map((option, optionIndex) => (
+        <div key={keys[optionIndex]} style={rowStyle}>
+          <IMEInput
+            style={{ ...inputStyle, flex: 1, padding: "8px 10px" }}
+            value={option}
+            onChange={event => onChangeOption(optionIndex, event.currentTarget.value)}
+            placeholder="선택지 이름"
+          />
+          <button type="button" aria-label="선택지 삭제" onClick={() => handleRemove(optionIndex)} style={deleteButtonStyle}>
+            <X size={15} />
+          </button>
+        </div>
+      ))}
+      <button type="button" aria-label="선택지 추가" onClick={handleAdd} style={{ ...addButtonStyle, alignSelf: "center" }}>
+        <Plus size={17} />
+      </button>
+    </div>
+  );
+}
+
 export function EventFormConfigEditor({ value, onChange }: EventFormConfigEditorProps) {
-  const config = mergeEventFormConfig(value);
+  // 편집 중에는 빈 label/옵션을 보존(정제 보류). 최종 정제는 저장 시점(AdminPostCreate)에서 수행.
+  const config = mergeEventFormConfig(value, { preserveDrafts: true });
 
   const updateConfig = (patch: Partial<EventFormConfig>) => {
-    onChange(cleanEventFormConfig({ ...config, ...patch }));
+    onChange(mergeEventFormConfig({ ...config, ...patch }, { preserveDrafts: true }));
   };
 
   const updateQuestion = (id: string, patch: Partial<EventCustomQuestion>) => {
@@ -132,7 +205,7 @@ export function EventFormConfigEditor({ value, onChange }: EventFormConfigEditor
 
       <div style={groupStyle}>
         <p style={titleStyle}>신청서 안내</p>
-        <textarea
+        <IMETextarea
           style={{ ...inputStyle, minHeight: 78, resize: "vertical" }}
           value={config.intro}
           onChange={event => updateConfig({ intro: event.currentTarget.value })}
@@ -143,11 +216,11 @@ export function EventFormConfigEditor({ value, onChange }: EventFormConfigEditor
       <div style={groupStyle}>
         <p style={titleStyle}>1. 참가자 기본 정보</p>
         <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 10 }}>
-          <input style={inputStyle} value={config.companyTechLabel} onChange={event => updateConfig({ companyTechLabel: event.currentTarget.value })} placeholder="기업명/기술분야 질문" />
-          <input style={inputStyle} value={config.nameLabel} onChange={event => updateConfig({ nameLabel: event.currentTarget.value })} placeholder="성함 질문" />
-          <input style={inputStyle} value={config.positionLabel} onChange={event => updateConfig({ positionLabel: event.currentTarget.value })} placeholder="직책 질문" />
-          <input style={inputStyle} value={config.emailLabel} onChange={event => updateConfig({ emailLabel: event.currentTarget.value })} placeholder="이메일 질문" />
-          <input style={inputStyle} value={config.phoneLabel} onChange={event => updateConfig({ phoneLabel: event.currentTarget.value })} placeholder="연락처 질문" />
+          <IMEInput style={inputStyle} value={config.companyTechLabel} onChange={event => updateConfig({ companyTechLabel: event.currentTarget.value })} placeholder="기업명/기술분야 질문" />
+          <IMEInput style={inputStyle} value={config.nameLabel} onChange={event => updateConfig({ nameLabel: event.currentTarget.value })} placeholder="성함 질문" />
+          <IMEInput style={inputStyle} value={config.positionLabel} onChange={event => updateConfig({ positionLabel: event.currentTarget.value })} placeholder="직책 질문" />
+          <IMEInput style={inputStyle} value={config.emailLabel} onChange={event => updateConfig({ emailLabel: event.currentTarget.value })} placeholder="이메일 질문" />
+          <IMEInput style={inputStyle} value={config.phoneLabel} onChange={event => updateConfig({ phoneLabel: event.currentTarget.value })} placeholder="연락처 질문" />
         </div>
       </div>
 
@@ -166,7 +239,7 @@ export function EventFormConfigEditor({ value, onChange }: EventFormConfigEditor
                 <X size={15} />
               </button>
               <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 10 }}>
-                <input style={inputStyle} value={question.category ?? ""} onChange={event => updateQuestion(question.id, { category: event.currentTarget.value })} placeholder="카테고리 (예: 참여 목적)" />
+                <IMEInput style={inputStyle} value={question.category ?? ""} onChange={event => updateQuestion(question.id, { category: event.currentTarget.value })} placeholder="카테고리 (예: 참여 목적)" />
                 <select style={inputStyle} value={question.type} onChange={event => updateQuestion(question.id, { type: event.currentTarget.value as EventCustomQuestion["type"] })}>
                   <option value="short_text">짧은 답변</option>
                   <option value="long_text">긴 답변</option>
@@ -174,26 +247,18 @@ export function EventFormConfigEditor({ value, onChange }: EventFormConfigEditor
                   <option value="multi_choice">복수 선택</option>
                 </select>
               </div>
-              <input style={inputStyle} value={question.label} onChange={event => updateQuestion(question.id, { label: event.currentTarget.value })} placeholder="질문 문구" />
+              <IMEInput style={inputStyle} value={question.label} onChange={event => updateQuestion(question.id, { label: event.currentTarget.value })} placeholder="질문 문구" />
               {(question.type === "single_choice" || question.type === "multi_choice") && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {(question.options ?? []).map((option, optionIndex) => (
-                    <div key={optionIndex} style={rowStyle}>
-                      <input
-                        style={{ ...inputStyle, flex: 1, padding: "8px 10px" }}
-                        value={option}
-                        onChange={event => updateQuestionOption(question.id, optionIndex, event.currentTarget.value)}
-                        placeholder="선택지 이름"
-                      />
-                      <button type="button" aria-label="선택지 삭제" onClick={() => removeQuestionOption(question.id, optionIndex)} style={deleteButtonStyle}>
-                        <X size={15} />
-                      </button>
-                    </div>
-                  ))}
-                  <button type="button" aria-label="선택지 추가" onClick={() => addQuestionOption(question.id)} style={{ ...addButtonStyle, alignSelf: "center" }}>
-                    <Plus size={17} />
-                  </button>
-                </div>
+                <ChoiceOptionsEditor
+                  options={question.options ?? []}
+                  inputStyle={inputStyle}
+                  rowStyle={rowStyle}
+                  deleteButtonStyle={deleteButtonStyle}
+                  addButtonStyle={addButtonStyle}
+                  onChangeOption={(optionIndex, next) => updateQuestionOption(question.id, optionIndex, next)}
+                  onAddOption={() => addQuestionOption(question.id)}
+                  onRemoveOption={optionIndex => removeQuestionOption(question.id, optionIndex)}
+                />
               )}
               <label style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--color-text-primary)", fontSize: 13, fontWeight: 700 }}>
                 <input type="checkbox" checked={question.required} onChange={event => updateQuestion(question.id, { required: event.currentTarget.checked })} />
@@ -209,9 +274,9 @@ export function EventFormConfigEditor({ value, onChange }: EventFormConfigEditor
 
       <div style={groupStyle}>
         <p style={titleStyle}>개인정보 동의 및 완료 안내</p>
-        <textarea style={{ ...inputStyle, minHeight: 68, resize: "vertical" }} value={config.privacyConsentLabel} onChange={event => updateConfig({ privacyConsentLabel: event.currentTarget.value })} placeholder="개인정보 동의 문구" />
-        <input style={inputStyle} value={config.completionTitle} onChange={event => updateConfig({ completionTitle: event.currentTarget.value })} placeholder="완료 제목" />
-        <textarea style={{ ...inputStyle, minHeight: 68, resize: "vertical" }} value={config.completionMessage} onChange={event => updateConfig({ completionMessage: event.currentTarget.value })} placeholder="완료 안내" />
+        <IMETextarea style={{ ...inputStyle, minHeight: 68, resize: "vertical" }} value={config.privacyConsentLabel} onChange={event => updateConfig({ privacyConsentLabel: event.currentTarget.value })} placeholder="개인정보 동의 문구" />
+        <IMEInput style={inputStyle} value={config.completionTitle} onChange={event => updateConfig({ completionTitle: event.currentTarget.value })} placeholder="완료 제목" />
+        <IMETextarea style={{ ...inputStyle, minHeight: 68, resize: "vertical" }} value={config.completionMessage} onChange={event => updateConfig({ completionMessage: event.currentTarget.value })} placeholder="완료 안내" />
       </div>
 
       <div style={{ display: "flex", justifyContent: "flex-end" }}>
