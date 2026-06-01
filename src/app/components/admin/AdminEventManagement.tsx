@@ -229,44 +229,28 @@ export function AdminEventManagement() {
         </div>
 
         <div style={{ color: textMain, background: labelBg, border: `1px solid ${labelBorder}`, padding: "12px 16px", borderRadius: 10, display: "grid", gap: 10 }}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            <div>
-              <strong style={{ fontSize: 12 }}>직책</strong>
-              <p style={{ margin: "5px 0 0", color: textMuted, fontSize: 13, lineHeight: 1.5 }}>{application.position || "없음"}</p>
-            </div>
-            <div>
-              <strong style={{ fontSize: 12 }}>관심 분야</strong>
-              <p style={{ margin: "5px 0 0", color: textMuted, fontSize: 13, lineHeight: 1.5 }}>{application.interests.join(", ") || "없음"}</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            <div>
-              <strong style={{ fontSize: 12 }}>기대하는 부분</strong>
-              <p style={{ margin: "5px 0 0", color: textMuted, fontSize: 13, lineHeight: 1.5 }}>{application.expectation || "없음"}</p>
-            </div>
-            <div>
-              <strong style={{ fontSize: 12 }}>사전 질문</strong>
-              <p style={{ margin: "5px 0 0", color: textMuted, fontSize: 13, lineHeight: 1.5 }}>{application.speaker_question || "없음"}</p>
-            </div>
+          <div>
+            <strong style={{ fontSize: 12 }}>직책</strong>
+            <p style={{ margin: "5px 0 0", color: textMuted, fontSize: 13, lineHeight: 1.5 }}>{application.position || "없음"}</p>
           </div>
           {(eventConfig.customQuestions.length > 0 || unknownAnswers.length > 0) && (
             <div style={{ display: "grid", gap: 8 }}>
-              <strong style={{ fontSize: 12 }}>추가 질문 답변</strong>
-            {eventConfig.customQuestions.map(question => {
-              const answer = answers[question.id];
-              return (
-                <div key={question.id}>
-                  <strong style={{ fontSize: 12 }}>{question.label}</strong>
-                  <p style={{ margin: "5px 0 0", color: textMuted, fontSize: 13, lineHeight: 1.5 }}>{answer || "응답 없음"}</p>
+              {eventConfig.customQuestions.map(question => {
+                const answer = answers[question.id];
+                const text = Array.isArray(answer) ? answer.join(", ") : answer;
+                return (
+                  <div key={question.id}>
+                    <strong style={{ fontSize: 12 }}>{question.category ? `${question.category} · ` : ""}{question.label}</strong>
+                    <p style={{ margin: "5px 0 0", color: textMuted, fontSize: 13, lineHeight: 1.5 }}>{text || "응답 없음"}</p>
+                  </div>
+                );
+              })}
+              {unknownAnswers.map(([questionId, answer]) => (
+                <div key={questionId}>
+                  <strong style={{ fontSize: 12 }}>삭제된 질문</strong>
+                  <p style={{ margin: "5px 0 0", color: textMuted, fontSize: 13, lineHeight: 1.5 }}>{Array.isArray(answer) ? answer.join(", ") : String(answer)}</p>
                 </div>
-              );
-            })}
-            {unknownAnswers.map(([questionId, answer]) => (
-              <div key={questionId}>
-                <strong style={{ fontSize: 12 }}>삭제된 질문</strong>
-                <p style={{ margin: "5px 0 0", color: textMuted, fontSize: 13, lineHeight: 1.5 }}>{String(answer)}</p>
-              </div>
-            ))}
+              ))}
             </div>
           )}
         </div>
