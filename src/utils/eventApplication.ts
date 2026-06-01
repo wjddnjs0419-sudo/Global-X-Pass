@@ -65,16 +65,26 @@ const normalizeCompletionMessage = (message: string) =>
     ? DEFAULT_EVENT_FORM_CONFIG.completionMessage
     : message;
 
+const seedLegacyQuestions = (config: Required<EventFormConfig>): EventCustomQuestion[] => [
+  { id: "legacy_expectation", label: config.expectationLabel, category: "참여 목적", type: "long_text", required: true },
+  { id: "legacy_interests", label: config.interestsLabel, category: "관심 분야", type: "multi_choice", options: config.interestOptions, required: true },
+  { id: "legacy_speaker", label: config.speakerQuestionLabel, category: "사전 질문", type: "long_text", required: false },
+];
+
 export const mergeEventFormConfig = (config?: EventFormConfig | null): Required<EventFormConfig> => {
-  const merged = {
+  const base = {
     ...DEFAULT_EVENT_FORM_CONFIG,
     ...(config ?? {}),
     interestOptions:
       config?.interestOptions && config.interestOptions.length > 0
         ? config.interestOptions
         : DEFAULT_EVENT_FORM_CONFIG.interestOptions,
-    customQuestions: normalizeEventCustomQuestions(config?.customQuestions),
   };
+
+  const normalized = normalizeEventCustomQuestions(config?.customQuestions);
+  const customQuestions = normalized.length > 0 ? normalized : normalizeEventCustomQuestions(seedLegacyQuestions(base));
+
+  const merged = { ...base, customQuestions };
 
   return {
     ...merged,
