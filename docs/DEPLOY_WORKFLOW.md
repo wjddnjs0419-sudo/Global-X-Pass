@@ -8,13 +8,13 @@
 |---|---|---|---|
 | **로컬** | Docker `127.0.0.1:54321` (ref `Global_X_Pass`) | `npm run dev` | 자유 수정·파괴 |
 | **staging** | 클라우드 `bgnkxavrwdwtbgvdmbvr` (ap-northeast-1) | `npm run preview:staging` | 머지 전 QA |
-| **프로덕션** | 클라우드 `yzbjvkifwinumytehxgf` | netlify(GitHub `main` 자동 빌드) | 라이브, 100사 |
+| **프로덕션** | 클라우드 `yzbjvkifwinumytehxgf` | netlify(**수동 배포** — GitHub 자동빌드 연동 안 됨) | 라이브, 100사 |
 
 스키마(82 마이그)·코드는 3단 동일. **데이터·env 키·런타임 엣지(Edge Functions 로컬 미serve 등)는 다름.**
 
 ## 배포는 2개 트랙 (독립!)
 
-1. **프론트 코드** → `git push origin main` → netlify 자동 빌드(대시보드 env = 프로덕션 URL).
+1. **프론트 코드** → `npm run build` 후 **netlify 수동 배포**(대시보드 드래그드롭 또는 netlify CLI). ⚠️ GitHub `main` push 자동빌드 연동 **안 됨** — push만으론 라이브 미반영. `git push`는 코드 백업/히스토리용.
 2. **DB 스키마(마이그)** → 수동, `npm run db:push:*`. 자동 아님.
 
 ⚠️ **새 컬럼/정책 쓰는 코드를 push했는데 마이그를 프로덕션에 안 올리면 라이브가 깨진다. 마이그 먼저(또는 동시).**
@@ -45,8 +45,11 @@ npx playwright test       # webServer 자동 기동, staging 대상 QA
 # (a) DB 먼저 — 가드가 ref 일치 + CONFIRM_PROD 강제(오발사 방지)
 export SUPABASE_DB_URL_PROD="postgresql://postgres.yzbjvkifwinumytehxgf:<pw>@<host>:6543/postgres"
 CONFIRM_PROD=yes npm run db:push:prod
-# (b) 코드 — push하면 netlify 자동 배포
-git push origin main
+# (b) 코드 — 빌드 후 netlify 수동 배포 (자동빌드 연동 없음)
+npm run build                      # dist/ 생성. 로컬 빌드라 .env.production.local(prod URL) 로드
+#   검증: grep supabase.co dist/assets/*.js  → prod 백엔드 가리키는지 확인
+#   → netlify 대시보드 Deploys에 dist/ 드래그드롭, 또는: npx netlify deploy --prod --dir=dist
+git push origin main              # 코드 백업·히스토리용 (자동배포 아님, 라이브 무관)
 ```
 
 ## 안전 가드 (`scripts/check-deploy-target.mjs`)
