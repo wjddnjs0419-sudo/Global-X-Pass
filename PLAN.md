@@ -6,13 +6,25 @@
 (없음)
 
 ## In Progress
-(없음)
+
+### 무기한 MFA 우회 옵션 추가 + "안 함"→"해제" 라벨 변경 (다음 세션, 계획승인됨)
+**목표**: MFA 우회 토글에 만료기한 없는 무기한 우회 추가. 기존 "안 함" 라벨은 "해제"로 변경.
+**구조**: `is_active` 단일 진실원천. 무기한 = `enabled=true` + `expires_at=NULL`. 현재 "expires_at 필수" 로직 3곳을 "NULL이면 무기한"으로 변경.
+- **A. DB(신규 마이그)** `is_admin_mfa_bypassed()`: `expires_at IS NOT NULL AND expires_at > now()` → `(expires_at IS NULL OR expires_at > now())`
+- **B. EF `toggle-admin-mfa-bypass`**: `duration_days=-1`(무기한) 허용. `-1`→`enabled=true,expires_at=NULL` / `0`→해제 / `1·3·7`→기존. 순수함수 `resolveBypassMutation(days,now)` 추출→테스트
+- **C. EF `get-admin-mfa-bypass-state`**: `isActive = enabled && (expires_at===null || expires_at>now)`. 순수함수 `computeBypassActive(enabled,expires_at,now)` 추출→테스트
+- **D. 패널 `AdminMfaBypassPanel.tsx`**: 옵션 `{value:0,label:"해제"}`(기존 "안 함" 텍스트 변경), `{value:-1,label:"무기한"}` 추가. 활성+NULL이면 "무기한(만료 없음)" 표시
+- **E. 배너 `AdminMfaBypassBanner.tsx`**: `expires_at` NULL이면 "만료: 무기한"
+- **F. useAdmin/adminGate**: 변경 불필요(확인됨). 만료 타이머는 expires_at 없으면 early-return(useAdmin.ts:265), refocus·fail-closed는 is_active 기반
+- **TDD**: B·C 순수함수 RED→GREEN, adminGate 무기한 케이스 추가
+- **배포(3단)**: 마이그(로컬reset/staging push/prod apply) + EF 2개(로컬serve/staging/prod deploy)
+- **보안고지**: 무기한 우회=끌 때까지 전 어드민 MFA 무력화. 단 켜는 사람은 super admin+AAL2 필수(toggle EF `noBypass:true` 유지)라 설정 권한은 안 뚫림
+- **관련**: [[project_admin_mfa_bypass]]
 
 ## Done
 
-- [Done] 게시판 접근권한 토글 미반영 버그 수정 (2026-06-02) — `interpretCategoryUpdate` 순수함수 추출(error/0행/1행/null 구분), `saveMeta`·`updateAccessLevel` 에 `.select("id")` + try/finally, 0행시 에러토스트·낙관갱신 차단. Codex FAIL 0, validate 105 tests. 상세 RESULT.md.
-
-- [Done] UX layout/action 자동 추적 제거 + 아키텍처 인박스 UX 이슈 필터링 (2026-06-02) — `installUxHealthChecks()` 해제, `uxHealth.ts` 삭제, `LiveArchitectureMap`에서 기존 UX issue/log 숨김, 맵/문서 정리, `npm run validate` 통과.
+- [Done] 게시판 접근권한 토글 미반영 버그 수정 (2026-06-02) — 압축됨. 상세 RESULT_ARCHIVE.md.
+- [Done] UX layout/action 자동 추적 제거 + 아키텍처 인박스 UX 이슈 필터링 (2026-06-02) — 압축됨. 상세 RESULT_ARCHIVE.md.
 - [Done] 어드민 refocus 깜빡임 + 응답 테이블 ellipsis + 대시보드 차트 정렬 (2026-06-02) — 압축됨. 상세 RESULT_ARCHIVE.md.
 - [Done] 행사 신청 승인제(선별제) 전환 (2026-06-02) — 압축됨. 상세 RESULT_ARCHIVE.md.
 - [Done] 처리내역 어드민 영구삭제 버튼 (2026-06-01) — 압축됨. 상세 RESULT_ARCHIVE.md.
