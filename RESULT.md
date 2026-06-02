@@ -1,25 +1,21 @@
-# RESULT: 어드민 refocus 깜빡임 + 응답 테이블 ellipsis — 2026-06-02
+# RESULT: 게시판 접근권한 토글 미반영 버그 수정 — 2026-06-02
 
 ## 배경
-1. **어드민 새로고침 깜빡임 재발**: 어드민 화면에서 다른 탭 갔다 오면 페이지가 처음부터 재로딩. 원인 = MFA bypass 활성 세션은 탭 refocus마다 authoritative 재검증(`shouldRefocusAuthoritative`=is_active) → `silent=false` → `shouldRaiseLoading`=true → `setLoading(true)`. AdminRoute가 `loading`이면 `<Outlet>` 대신 hidden div 렌더 → 어드민 트리 전체 unmount→remount = 데이터 재fetch 깜빡임. 일반 admin(bypass 없음)은 silent라 무관 → bypass 세션만 재발.
-2. **응답 테이블 가독성**: 긴 답변이 셀을 늘려 표가 들쭉날쭉. 원본은 CSV에 보존되므로 표는 요약만.
+- 어드민 게시판관리에서 접근권한(전체공개/상세로그인/전체비공개) 토글·라벨 저장 시 초록 성공토스트가 떴지만, 새로고침하면 원래값으로 되돌아갔다(로컬·prod 공통).
+- 근본원인: `AdminBoardManagement.tsx` `saveMeta`·`updateAccessLevel` 의 supabase update에 `.select()` 가 없어 PostgREST 가 204(무-바디)를 반환 → RLS 가 0행으로 막아도 `error=null` → 성공 위장 + 낙관적 갱신만, DB 미반영 → refresh/Realtime 재조회 시 되돌아감.
 
 ## 구현
-- **`src/hooks/adminGate.ts`**: 순수함수 `shouldGateAdminRender(loading, isAdmin) = loading && !isAdmin` 추가. 초기 진입(아직 admin 미확정)에만 게이트, 이미 admin인 재검증 중엔 false(화면 유지).
-- **`src/hooks/adminGate.test.ts`**: RED→GREEN 3케이스(초기진입 게이트 / 재검증 유지 / loading 아님).
-- **`src/app/components/AdminRoute.tsx`**: `if (loading)` → `if (shouldGateAdminRender(loading, isAdmin))`. loading&&isAdmin 구간은 통과해 화면 유지, 강등은 commit 후 `!isAdmin` 분기로 Navigate 퇴출. stale MFA 분기(비라이브) 주석 추가.
-- **`src/app/components/admin/EventResponsesView.tsx`**: 표 셀을 2줄 clamp(`-webkit-line-clamp:2`)+`height:36`/`lineHeight:18px` 고정 높이+`maxWidth:240`+`title`(hover 전체보기). 선택형 막대그래프 렌더 제거(`summarizeChoiceQuestions` util/test는 보존).
-- **`src/app/components/admin/AdminDashboard.tsx`** (방문/누적 추이 차트 정렬 — 시각수정, Codex 미경유·validate 통과): (a) x축 라벨 첫=좌측정렬/마지막=우측정렬/중간=중앙 + `whiteSpace:nowrap`("오늘" 세로 줄바꿈 해결, 선 양끝과 라벨 일치). (b) SVG `preserveAspectRatio="none"` + polyline/grid `vectorEffect="non-scaling-stroke"` → 넓은 화면에서 선이 풀폭 미충족(meet 중앙축소)으로 라벨과 벌어지던 문제 해소. 축 값 숫자(일간/누적 max·0)는 none 스케일 글자 왜곡 방지 위해 HTML 오버레이로 분리.
+- **`src/utils/categoryUpdate.ts`(신규)**: 순수함수 `interpretCategoryUpdate({data,error})→{ok,errorText}` 추출. `error` 있음 / `data===null` / 0행 모두 실패로, 1행 이상만 성공으로 판정. 0행·null 시 "변경 권한이 없거나 세션이 만료되었습니다" 메시지 반환.
+- **`src/utils/categoryUpdate.test.ts`(신규)**: RED→GREEN 4케이스(에러/0행/null/1행).
+- **`AdminBoardManagement.tsx`**: `saveMeta`·`updateAccessLevel` 두 update에 `.select("id")` 추가 + `interpretCategoryUpdate` 적용. 0행이면 에러토스트, 낙관적 갱신(setCategories)은 `result.ok` 뒤에만 실행. 두 함수 모두 `try/finally` 로 감싸 `setSavingId/setToggledId(null)` 해제를 finally 로 옮겨 예외 시 loading 고착 방지.
 
 ## Verification Matrix
 | Change Type | Required Extra Checks | Result |
 |---|---|---|
-| Pure logic | 유닛 테스트 | adminGate.test 3케이스 추가, vitest 101 통과 |
-| Universal gate | `npm run validate` | 통과 (tsc, eslint 0warn, vitest 101, vite build, secret scan) |
-| Security gate | bypass 만료 시 퇴출 유지 | 강등 commit → loading 해제 → `!isAdmin` Navigate (게이트 유지) |
-| Cross-validation | Codex 재리뷰 | **FAIL 0**. F1(clamp 높이)·WARN1(stale 주석) 반영, WARN2(route 렌더 테스트=인프라 부재) 유지 결정 |
+| 성공 위장 차단 로직 | 0행/null 응답이 실패로 처리되고 낙관갱신이 억제되는지 코드 경로 | interpretCategoryUpdate + result.ok 가드로 차단 |
+| Universal gate | `npm run validate` | 통과 (tsc, eslint 0warn, vitest 105, vite build, secret scan) |
+| Codex 리뷰 | 정확성·회귀·누락 + WARN 보강 재리뷰 | FAIL 0 — 핵심수정 PASS, WARN 보강(null 테스트·try/finally) 재리뷰 전부 PASS |
 
 ## 비고
-- **보안 트레이드오프(사용자 수용)**: bypass가 백그라운드 중 만료된 경우, refocus 후 재검증 창(수백ms~few s) 동안 어드민 화면 짧게 stale 노출 후 퇴출. 즉시 가림(기존) → 깜빡임 제거 우선.
-- **수동 검증 권장**: refocus 동작은 단위테스트로 못 잡음 → `npm run dev` + bypass 켠 admin 탭 전환으로 확인 필요.
-- 미커밋 상태(amend-only 워크플로우). 그래프 제거분은 직전 세션에 이미 force-push로 라이브 반영됨; 본 깜빡임 수정·ellipsis는 배포 전.
+- 운영 원인(왜 0행이 나는가 = write 시점 세션이 admin 인가 아닐 때)은 이제 실제 에러 토스트로 드러난다. 정상 admin 토큰으로는 1행 성공·영구반영 실측 완료.
+- 같이 묶인 미커밋 변경: 직전 세션의 uxHealth 제거(`src/lib/uxHealth.ts` 삭제, `LiveArchitectureMap` 필터링) — 별도 작업.

@@ -10,6 +10,9 @@
 
 ## Done
 
+- [Done] 게시판 접근권한 토글 미반영 버그 수정 (2026-06-02) — `interpretCategoryUpdate` 순수함수 추출(error/0행/1행/null 구분), `saveMeta`·`updateAccessLevel` 에 `.select("id")` + try/finally, 0행시 에러토스트·낙관갱신 차단. Codex FAIL 0, validate 105 tests. 상세 RESULT.md.
+
+- [Done] UX layout/action 자동 추적 제거 + 아키텍처 인박스 UX 이슈 필터링 (2026-06-02) — `installUxHealthChecks()` 해제, `uxHealth.ts` 삭제, `LiveArchitectureMap`에서 기존 UX issue/log 숨김, 맵/문서 정리, `npm run validate` 통과.
 - [Done] 어드민 refocus 깜빡임 + 응답 테이블 ellipsis + 대시보드 차트 정렬 (2026-06-02) — 압축됨. 상세 RESULT_ARCHIVE.md.
 - [Done] 행사 신청 승인제(선별제) 전환 (2026-06-02) — 압축됨. 상세 RESULT_ARCHIVE.md.
 - [Done] 처리내역 어드민 영구삭제 버튼 (2026-06-01) — 압축됨. 상세 RESULT_ARCHIVE.md.
@@ -18,8 +21,6 @@
 - [Done] 로컬 로그인 복구 — 압축됨. 상세 RESULT_ARCHIVE.md.
 - [Done] 브라우저 E2E QA — 압축됨. 상세 RESULT_ARCHIVE.md.
 - [Done] 테스트/프로덕션 분리 2단계 — 압축됨. 상세 RESULT_ARCHIVE.md.
-- [Done] 로컬 Supabase 격리 — 압축됨. 상세 RESULT_ARCHIVE.md.
-- [Done] Founder's Club 신청 RLS 무한재귀 픽스 (2026-05-31) — 압축됨. 상세 RESULT_ARCHIVE.md.
 
 ## Future / 추후 수정
 

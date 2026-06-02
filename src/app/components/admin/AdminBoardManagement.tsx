@@ -3,6 +3,7 @@ import { Lock } from "lucide-react";
 import { supabase } from "../../../lib/supabaseClient";
 import { useTheme } from "../../ThemeContext";
 import type { BoardAccessLevel, PostCategory } from "../../../lib/types";
+import { interpretCategoryUpdate } from "../../../utils/categoryUpdate";
 
 type DraftMap = Record<string, { label: string; description: string }>;
 
@@ -113,37 +114,49 @@ export default function AdminBoardManagement() {
       return;
     }
     setSavingId(cat.id);
-    const { error } = await supabase
-      .from("post_categories")
-      .update({ label, description: draft.description.trim() || null })
-      .eq("id", cat.id);
-    setSavingId(null);
-    if (error) {
-      showStatus(cat.id, "error", `저장 실패: ${error.message}`);
-    } else {
-      showStatus(cat.id, "success", "저장되었습니다.");
+    try {
+      const { data, error } = await supabase
+        .from("post_categories")
+        .update({ label, description: draft.description.trim() || null })
+        .eq("id", cat.id)
+        .select("id");
+      const result = interpretCategoryUpdate({ data, error });
+      if (!result.ok) {
+        showStatus(cat.id, "error", `저장 실패: ${result.errorText}`);
+      } else {
+        showStatus(cat.id, "success", "저장되었습니다.");
+      }
+    } finally {
+      // 예외가 throw돼도 loading 상태가 고착되지 않도록 finally 에서 해제한다.
+      setSavingId(null);
     }
   };
 
   const updateAccessLevel = async (cat: PostCategory, level: BoardAccessLevel) => {
     if (cat.is_locked || cat.access_level === level) return;
     setToggledId(cat.id);
-    const { error } = await supabase
-      .from("post_categories")
-      .update({ access_level: level })
-      .eq("id", cat.id);
-    setToggledId(null);
-    if (error) {
-      showStatus(cat.id, "error", `접근 설정 변경 실패: ${error.message}`);
-    } else {
-      // 낙관적 반영: Realtime 수신 전에도 뱃지·버튼이 즉시 갱신되도록 로컬 상태를 갱신한다.
-      // is_public 은 DB 트리거(access_level <> 'private')와 동일하게 맞춘다.
-      setCategories((prev) =>
-        prev.map((c) =>
-          c.id === cat.id ? { ...c, access_level: level, is_public: level !== "private" } : c
-        )
-      );
-      showStatus(cat.id, "success", `'${getAccessMeta(level).label}'(으)로 변경했습니다.`);
+    try {
+      const { data, error } = await supabase
+        .from("post_categories")
+        .update({ access_level: level })
+        .eq("id", cat.id)
+        .select("id");
+      const result = interpretCategoryUpdate({ data, error });
+      if (!result.ok) {
+        showStatus(cat.id, "error", `접근 설정 변경 실패: ${result.errorText}`);
+      } else {
+        // 낙관적 반영: Realtime 수신 전에도 뱃지·버튼이 즉시 갱신되도록 로컬 상태를 갱신한다.
+        // is_public 은 DB 트리거(access_level <> 'private')와 동일하게 맞춘다.
+        setCategories((prev) =>
+          prev.map((c) =>
+            c.id === cat.id ? { ...c, access_level: level, is_public: level !== "private" } : c
+          )
+        );
+        showStatus(cat.id, "success", `'${getAccessMeta(level).label}'(으)로 변경했습니다.`);
+      }
+    } finally {
+      // 예외가 throw돼도 loading 상태가 고착되지 않도록 finally 에서 해제한다.
+      setToggledId(null);
     }
   };
 
