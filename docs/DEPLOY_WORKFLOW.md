@@ -10,7 +10,7 @@
 | **staging** | 클라우드 `bgnkxavrwdwtbgvdmbvr` (ap-northeast-1) | `npm run preview:staging` | 머지 전 QA |
 | **프로덕션** | 클라우드 `yzbjvkifwinumytehxgf` | netlify(**수동 배포** — GitHub 자동빌드 연동 안 됨) | 라이브, 100사 |
 
-스키마(82 마이그)·코드는 3단 동일. **데이터·env 키·런타임 엣지(Edge Functions 로컬 미serve 등)는 다름.**
+스키마(86 마이그)·코드는 3단 동일. **데이터·env 키·런타임 엣지(Edge Functions 로컬 미serve 등)는 다름.**
 
 ## 배포는 2개 트랙 (독립!)
 
@@ -33,7 +33,8 @@ npm run validate          # tsc+eslint+vitest+build+secret scan
 ### 2) staging QA
 ```bash
 # (a) staging에 마이그 적용 — DB URL은 셸 env로만(비밀)
-export SUPABASE_DB_URL_STAGING="postgresql://postgres.bgnkxavrwdwtbgvdmbvr:<pw>@<host>:6543/postgres"
+# ⚠️ pooler host = aws-1(aws-0 아님), user=postgres.<ref>, 비번 특수문자 URL인코딩(! → %21). 직접연결(db.<ref>.supabase.co)은 IPv6전용이라 이 PC서 실패.
+export SUPABASE_DB_URL_STAGING="postgresql://postgres.bgnkxavrwdwtbgvdmbvr:<pw>@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres"
 npm run db:push:staging
 # (b) staging 백엔드로 E2E
 npm run preview:staging   # 4173에 staging 빌드 서빙
