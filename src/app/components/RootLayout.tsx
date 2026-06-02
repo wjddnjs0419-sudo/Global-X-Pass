@@ -12,7 +12,6 @@ import { useIdleLogout } from "../../hooks/useIdleLogout";
 import { supabase } from "../../lib/supabaseClient";
 import { LAYERS } from "../../lib/layers";
 import { logError, guessSourceFromStack } from "../../lib/errorLogger";
-import { installUxHealthChecks } from "../../lib/uxHealth";
 
 export function RootLayout() {
   const { isDark, toggle } = useTheme();
@@ -61,8 +60,6 @@ export function RootLayout() {
       window.removeEventListener("unhandledrejection", onRejection);
     };
   }, []);
-
-  useEffect(() => installUxHealthChecks(), []);
 
   // 재방문 시 30분 이상 지났으면 자동 로그아웃
   useEffect(() => {

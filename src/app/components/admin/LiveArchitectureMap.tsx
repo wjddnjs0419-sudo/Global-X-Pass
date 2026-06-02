@@ -37,6 +37,19 @@ declare global {
 
 const initialMapData = architectureMap as ArchitectureMap;
 
+function isUxTelemetryMessage(message: string | null | undefined) {
+  if (!message) return false;
+  return message.startsWith("UX layout issue:") || message.startsWith("UX action issue:");
+}
+
+function filterOperationalIssues(issues: ErrorIssue[]) {
+  return issues.filter((issue) => !isUxTelemetryMessage(issue.message));
+}
+
+function filterOperationalLogs(logs: ErrorLog[]) {
+  return logs.filter((log) => !isUxTelemetryMessage(log.message));
+}
+
 export function LiveArchitectureMap() {
   const [mapData, setMapData] = useState<ArchitectureMap>(initialMapData);
   const [mapDiff, setMapDiff] = useState<ArchitectureMapDiff | null>(null);
@@ -706,8 +719,8 @@ export function LiveArchitectureMap() {
         setIssues([]);
         setLogs([]);
       } else {
-        setIssues((issuesInvoke.data?.data ?? []) as ErrorIssue[]);
-        setLogs((logsInvoke.data?.data ?? []) as ErrorLog[]);
+        setIssues(filterOperationalIssues((issuesInvoke.data?.data ?? []) as ErrorIssue[]));
+        setLogs(filterOperationalLogs((logsInvoke.data?.data ?? []) as ErrorLog[]));
       }
       setLoading(false);
     }
@@ -732,7 +745,7 @@ export function LiveArchitectureMap() {
             const next = payload.new as ErrorIssue;
             setIssues((prev) => {
               const rest = prev.filter((issue) => issue.fingerprint !== next.fingerprint);
-              if (!VISIBLE_ISSUE_STATUSES.includes(next.status)) return rest;
+              if (!VISIBLE_ISSUE_STATUSES.includes(next.status) || isUxTelemetryMessage(next.message)) return rest;
               return [next, ...rest].sort((a, b) => new Date(b.last_seen_at).getTime() - new Date(a.last_seen_at).getTime()).slice(0, 300);
             });
           },
@@ -765,6 +778,7 @@ export function LiveArchitectureMap() {
           (payload) => {
             const next = payload.new as ErrorLog;
             if (new Date(next.created_at).getTime() < new Date(since).getTime()) return;
+            if (isUxTelemetryMessage(next.message)) return;
             setLogs((prev) => [next, ...prev].slice(0, 500));
           },
         )
