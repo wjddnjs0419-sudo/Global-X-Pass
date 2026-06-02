@@ -15,7 +15,8 @@
       "Bash(cp /tmp/gxp-smoke.mjs ./.gxp-smoke.mjs)",
       "Bash(rm -f ./.gxp-smoke.mjs)",
       "Bash(awk '/^## Done/{f=1;next} /^## Future/{f=0} f && /^- \\\\[Done\\\\]/{c++} END{print \"상단 Done 섹션:\", c, \"개\"}' PLAN.md)",
-      "Bash(awk '/^## Future/{f=1} f && /^- \\\\[Done\\\\]/{c++} END{print c, \"개 \\(구조 오류\\)\"}' PLAN.md)"
+      "Bash(awk '/^## Future/{f=1} f && /^- \\\\[Done\\\\]/{c++} END{print c, \"개 \\(구조 오류\\)\"}' PLAN.md)",
+      "Bash(grep -rln 'FUNCTION public.__TRACKED_VAR__' supabase/migrations/)"
     ],
     "additionalDirectories": [
       "/tmp",

@@ -11,9 +11,15 @@ import { useBoardCategoryLabels } from "../BoardCategoriesContext";
 
 interface HeaderSectionProps {
   isDark?: boolean;
+  isAdminOverride?: boolean;
 }
 
-export function HeaderSection({ isDark = false }: HeaderSectionProps) {
+type HeaderSectionInnerProps = {
+  isDark?: boolean;
+  isAdmin: boolean;
+};
+
+function HeaderSectionInner({ isDark = false, isAdmin }: HeaderSectionInnerProps) {
   const [scrolled, setScrolled] = useState(false);
   const [openMenu, setOpenMenu] = useState<MenuKey | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -23,7 +29,6 @@ export function HeaderSection({ isDark = false }: HeaderSectionProps) {
   const sidebarRef = useRef<HTMLElement | null>(null);
   const sidebarCloseButtonRef = useRef<HTMLButtonElement | null>(null);
   const prevSidebarOpenRef = useRef(false);
-  const { isAdmin } = useAdmin();
   const { isDark: themeDark, toggle: toggleTheme } = useTheme();
 
   const navigate = useNavigate();
@@ -354,4 +359,16 @@ export function HeaderSection({ isDark = false }: HeaderSectionProps) {
       `}</style>
     </>
   );
+}
+
+function HeaderSectionWithAdmin(props: HeaderSectionProps) {
+  const { isAdmin } = useAdmin();
+  return <HeaderSectionInner isDark={props.isDark} isAdmin={isAdmin} />;
+}
+
+export function HeaderSection({ isDark = false, isAdminOverride }: HeaderSectionProps) {
+  if (typeof isAdminOverride === "boolean") {
+    return <HeaderSectionInner isDark={isDark} isAdmin={isAdminOverride} />;
+  }
+  return <HeaderSectionWithAdmin isDark={isDark} />;
 }

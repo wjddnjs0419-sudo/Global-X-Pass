@@ -16,7 +16,7 @@ Save tokens: **MUST** use **Grep-first**. Skip full reads at startup.
 `grep -nE "^##|^###" docs/AGENT_RULES.md docs/AGENT_ANTI_PATTERNS.md RESULT.md PLAN.md`
 
 ## 💡 Quick Shortcuts
--   **`ㅎㅇ`**: Run full Bootstrap above.
+-   **`ㅎㅇ`**: Treat as a mandatory bootstrap command, not a greeting. On an exact `ㅎㅇ` message, run the full Bootstrap above before any other response, and start the first reply with the bootstrap summary only.
 -   **`종료`**: Run `npm run diet` (compact docs), verify docs, check Supabase sync, prep git commit/push.
 
 ## ⚠️ Core Reminder
@@ -24,6 +24,7 @@ Save tokens: **MUST** use **Grep-first**. Skip full reads at startup.
 -   **Plan Before Code**: Propose plan, get approval before edits.
 -   **Validate**: Run `npm run validate` post-change.
 -   **No Hardcoding**: Follow No-Hardcode mandate in `docs/AGENT_RULES.md`.
+-   **`ㅎㅇ` Priority**: If the user's message is exactly `ㅎㅇ`, do not reply with a greeting, small talk, or a scope question. Execute bootstrap first and reply with the context summary.
 
 ---
 *See `RESULT_ARCHIVE.md` for old sessions.*

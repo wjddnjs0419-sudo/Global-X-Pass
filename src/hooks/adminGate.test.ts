@@ -6,6 +6,7 @@ import {
   withRetry,
   shouldRaiseLoading,
   shouldRefocusAuthoritative,
+  shouldGateAdminRender,
   type AdminGateDeps,
   type AdminGateSnapshot,
   type CommitGuard,
@@ -442,5 +443,24 @@ describe("evaluateAdminGate + withRetry — OTP 직후 일시 probe 실패 회�
     if (d.kind !== "commit") return;
     expect(d.snapshot.mfaRequired).toBe(false);
     expect(d.snapshot.mfaEnrolled).toBe(true);
+  });
+});
+
+describe("shouldGateAdminRender — 재검증 중 화면 유지 vs 초기 게이트", () => {
+  // 초기 진입(아직 admin 확정 전): 옛 스냅샷 없음 → hidden 게이트로 라우팅 보류.
+  it("loading + 아직 admin 아님 → 게이트(true)", () => {
+    expect(shouldGateAdminRender(true, false)).toBe(true);
+  });
+
+  // bypass refocus 등 authoritative 재검증: 이미 admin 이면 화면 유지(unmount/깜빡임 방지).
+  // 강등은 커밋 후 isAdmin=false 가 되어 다음 렌더에서 Navigate 로 퇴출되므로 여기선 통과시킨다.
+  it("loading + 이미 admin → 게이트 안 함(false, 화면 유지)", () => {
+    expect(shouldGateAdminRender(true, true)).toBe(false);
+  });
+
+  // 검증 완료: loading=false 면 게이트 불필요(이후 isAdmin 분기가 라우팅).
+  it("loading 아님 → 게이트 안 함(false)", () => {
+    expect(shouldGateAdminRender(false, true)).toBe(false);
+    expect(shouldGateAdminRender(false, false)).toBe(false);
   });
 });

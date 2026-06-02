@@ -1,11 +1,11 @@
 import { useState, useEffect, lazy, Suspense } from "react";
-import { Navigate, useLocation, useNavigate } from "react-router";
+import { useLocation, useNavigate, useOutletContext } from "react-router";
 import { useTheme } from "../ThemeContext";
 import { supabase } from "../../lib/supabaseClient";
-import { useAdmin } from "../../hooks/useAdmin";
 import { LAYERS } from "../../lib/layers";
 import type { Post } from "../../lib/types";
 
+import type { AdminRouteContext } from "../components/AdminRoute";
 import { HeaderSection } from "../components/HeaderSection";
 import { NotificationBell } from "../components/admin/NotificationBell";
 import { AdminSidebar } from "../components/admin/AdminSidebar";
@@ -41,7 +41,7 @@ const getStoredAdminTab = (): TabId => {
 
 export default function AdminPage() {
   const { isDark } = useTheme();
-  const { isAdmin, loading: adminLoading, mfaRequired, mfaEnrolled, isSuperAdmin, mfaBypass, refreshBypassState } = useAdmin();
+  const { isAdmin, isSuperAdmin, mfaBypass, refreshBypassState } = useOutletContext<AdminRouteContext>();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -150,25 +150,10 @@ export default function AdminPage() {
     setDashRefreshKey(k => k + 1);
   };
 
-  if (adminLoading) {
-    return (
-      <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: "var(--color-bg-surface)" }}>
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, height: "72px", background: "var(--color-admin-header-backdrop)", zIndex: LAYERS.headerBackdrop }} />
-        <HeaderSection isDark={isDark} />
-        <div style={{ marginTop: "72px", padding: "clamp(24px, 5vw, 40px) clamp(18px, 4vw, 44px)" }}>
-          <SkFallback rows={5} />
-        </div>
-      </div>
-    );
-  }
-  if (!isAdmin) return <Navigate to="/" replace />;
-  if (!mfaEnrolled) { sessionStorage.setItem("mfa_setup_required", "true"); return <Navigate to="/mypage" replace />; }
-  if (mfaRequired) return <Navigate to="/login" replace />;
-
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: "var(--color-bg-surface)" }}>
       <div style={{ position: "fixed", top: 0, left: 0, right: 0, height: "72px", background: "var(--color-admin-header-backdrop)", zIndex: LAYERS.headerBackdrop }} />
-      <HeaderSection isDark={isDark} />
+      <HeaderSection isDark={isDark} isAdminOverride={isAdmin} />
       <NotificationBell isDark={isDark} />
 
       <div className="flex flex-col xl:flex-row" style={{ marginTop: "72px", minHeight: "calc(100vh - 72px)" }}>

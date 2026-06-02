@@ -124,7 +124,8 @@
   --text-event-application-title: 24px;
   --text-event-application-heading: 22px;
   --text-event-application-admin-title: 15px;
-  --text-event-application-label: 13px;
+  --text-event-application-category: 12px;
+  --text-event-application-label: 17px;
   --text-event-application-body: var(--text-body-sm);
   --leading-event-application-title: 1.35;
   --leading-event-application-body: 1.65;

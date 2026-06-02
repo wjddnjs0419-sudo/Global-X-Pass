@@ -8,8 +8,9 @@ import type { EventApplication, Post } from "../../../lib/types";
 import { EVENT_APPLICATION_STATUS, getAdminActionStatuses, isDeletableApplicationStatus, mergeEventFormConfig } from "../../../utils/eventApplication";
 import { formatEventDate } from "../../../utils/scheduleFields";
 import { AppPagination } from "../AppPagination";
+import { EventResponsesView } from "./EventResponsesView";
 
-type SubTab = "overview" | "participants" | "history";
+type SubTab = "overview" | "participants" | "responses" | "history";
 type HistoryStatusFilter = "all" | "rejected" | "cancelled_by_user" | "cancelled_by_admin";
 
 const PAGE_SIZE = 10;
@@ -42,6 +43,11 @@ export function AdminEventManagement() {
   const eventFilteredApplications = useMemo(
     () => applications.filter(application => selectedEventId === "all" || application.post_id === selectedEventId),
     [applications, selectedEventId]
+  );
+
+  const selectedEvent = useMemo(
+    () => (selectedEventId === "all" ? null : eventById.get(selectedEventId) ?? null),
+    [selectedEventId, eventById]
   );
 
   const participantApplications = useMemo(
@@ -329,6 +335,7 @@ export function AdminEventManagement() {
         {([
           ["overview", "행사 현황"],
           ["participants", `참가자 관리 ${participantApplications.length ? `(${participantApplications.length})` : ""}`],
+          ["responses", "응답"],
           ["history", "처리 내역"],
         ] as [SubTab, string][]).map(([tab, label]) => (
           <button key={tab} type="button" onClick={() => setSubTab(tab)} style={tabStyle(subTab === tab)}>
@@ -386,6 +393,10 @@ export function AdminEventManagement() {
             </>
           )}
         </div>
+      )}
+
+      {subTab === "responses" && (
+        <EventResponsesView event={selectedEvent} applications={eventFilteredApplications} />
       )}
 
       {subTab === "history" && (

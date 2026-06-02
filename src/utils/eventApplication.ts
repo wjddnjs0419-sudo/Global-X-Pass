@@ -238,7 +238,7 @@ export const isEventApplicationOpen = (
 
 type AnswerMap = Record<string, string | string[]>;
 
-const isAnswered = (value: string | string[] | undefined): boolean =>
+export const isAnswered = (value: string | string[] | undefined): boolean =>
   Array.isArray(value) ? value.length > 0 : Boolean(value?.trim());
 
 const isUnanswerableChoice = (question: EventCustomQuestion): boolean =>

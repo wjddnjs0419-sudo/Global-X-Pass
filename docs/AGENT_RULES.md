@@ -102,7 +102,7 @@
 ## AI Agent Workflow Mandates (CRITICAL)
 모든 AI 에이전트 필수 준수:
 0. **Session Bootstrap:** 모든 새 chat/session 시작 시, 라우터(`GEMINI.md` or `CLAUDE.md`), `PLAN.md`, `RESULT.md` 읽기 필수 → 답변/계획/편집 전. 현재 컨텍스트, 최근 완료, 대기 계획, 알려진 리스크 간단 요약 후 진행. 오래된 세션 이력 필요 시에만 `RESULT_ARCHIVE.md` 참조.
-1. **`ㅎㅇ` Shortcut:** 사용자 시작 메시지가 `ㅎㅇ`이면 명시 bootstrap 트리거로 처리, 새 범위 묻기/편집 제안 전 Rule 0 완료 필수.
+1. **`ㅎㅇ` Shortcut:** 사용자 시작 메시지가 정확히 `ㅎㅇ`이면 이를 **일반 인사로 해석 금지**, 새 세션 bootstrap 명령으로만 처리. 새 범위 묻기/편집 제안/잡담 응답 전 Rule 0 완료 필수. 첫 응답은 반드시 bootstrap 요약(현재 컨텍스트, 최근 완료, 대기 계획, 주요 리스크)으로 시작하고, 인사말/범용 안내로 시작하면 안 됨.
 2. **Korean Only:** 모든 커뮤니케이션(설명, 계획, 보고) 한국어.
 3. **Plan Before Code:** 상세 계획(편집 파일, 변경 내용) 제안 후 명시 승인(`진행해`, `승인` 등) 받기 필수 → 그 후 코드 수정.
 4. **Validate Verification:** 변경 후 `npm run validate` 실행으로 type/lint/production build 확인 후 보고.

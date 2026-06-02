@@ -85,6 +85,15 @@ export function shouldRaiseLoading(silent: boolean): boolean {
   return !silent;
 }
 
+// AdminRoute 가 loading 동안 어드민 트리를 hidden 게이트로 가려야 하는지. 초기 진입(아직 admin
+// 미확정)에만 가려 옛 스냅샷 라우팅을 막고, 이미 admin 인 상태의 authoritative 재검증(bypass
+// refocus 등)에는 화면을 유지해 unmount/재fetch 깜빡임을 없앤다. 강등은 커밋 후 isAdmin=false 가
+// 되어 다음 렌더에서 Navigate 로 퇴출되므로 보안 게이트는 유지된다(완화: 만료 직후 재검증 창 동안
+// 짧은 stale 노출).
+export function shouldGateAdminRender(loading: boolean, isAdmin: boolean): boolean {
+  return loading && !isAdmin;
+}
+
 // 권한을 "상승"시키는 auth 이벤트. 동일 사용자라도 authoritative(fail-closed) 재평가한다.
 // SIGNED_IN 은 Supabase 가 탭 refocus/세션 재확립에도 빈번히 발화 → 제외(silent 유지, Codex #9).
 // OTP 검증(MFA_CHALLENGE_VERIFIED)만 명시적 권한 상승이라 authoritative.

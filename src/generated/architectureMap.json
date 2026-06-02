@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-31T11:42:35.494Z",
+  "generatedAt": "2026-06-02T04:16:53.735Z",
   "roots": [
     "src",
     "supabase/functions"
@@ -268,11 +268,11 @@
       "cluster": "components",
       "label": "AdminRoute.tsx",
       "sub": "src/app/components/AdminRoute.tsx",
-      "path": "src/app/components/AdminRoute.tsx:2",
+      "path": "src/app/components/AdminRoute.tsx:3",
       "role": "UI를 구성하는 재사용 컴포넌트입니다.",
       "plain": "src/app/components/AdminRoute.tsx 파일이 앱의 한 부분을 담당합니다.",
       "notes": [
-        "line:2, first exported symbol or module entry",
+        "line:3, first exported symbol or module entry",
         "cluster:components"
       ],
       "tag": [
@@ -521,11 +521,11 @@
       "cluster": "components",
       "label": "HeaderSection.tsx",
       "sub": "src/app/components/HeaderSection.tsx",
-      "path": "src/app/components/HeaderSection.tsx:14",
+      "path": "src/app/components/HeaderSection.tsx:367",
       "role": "UI를 구성하는 재사용 컴포넌트입니다.",
       "plain": "src/app/components/HeaderSection.tsx 파일이 앱의 한 부분을 담당합니다.",
       "notes": [
-        "line:14, first exported symbol or module entry",
+        "line:367, first exported symbol or module entry",
         "cluster:components"
       ],
       "tag": [
@@ -1010,11 +1010,11 @@
       "cluster": "admin",
       "label": "AdminDashboard.tsx",
       "sub": "DEAD, zero importers",
-      "path": "src/app/components/admin/AdminDashboard.tsx:11",
+      "path": "src/app/components/admin/AdminDashboard.tsx:20",
       "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
       "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
       "notes": [
-        "line:11, first exported symbol or module entry",
+        "line:20, first exported symbol or module entry",
         "cluster:admin"
       ],
       "tag": [
@@ -1030,11 +1030,11 @@
       "cluster": "admin",
       "label": "AdminEventManagement.tsx",
       "sub": "DEAD, zero importers",
-      "path": "src/app/components/admin/AdminEventManagement.tsx:15",
+      "path": "src/app/components/admin/AdminEventManagement.tsx:16",
       "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
       "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
       "notes": [
-        "line:15, first exported symbol or module entry",
+        "line:16, first exported symbol or module entry",
         "cluster:admin"
       ],
       "tag": [
@@ -1336,11 +1336,31 @@
       "cluster": "admin",
       "label": "EventFormConfigEditor.tsx",
       "sub": "src/app/components/admin/EventFormConfigEditor.tsx",
-      "path": "src/app/components/admin/EventFormConfigEditor.tsx:17",
+      "path": "src/app/components/admin/EventFormConfigEditor.tsx:89",
       "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
       "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
       "notes": [
-        "line:17, first exported symbol or module entry",
+        "line:89, first exported symbol or module entry",
+        "cluster:admin"
+      ],
+      "tag": [
+        "overview",
+        "all",
+        "admin"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
+      "id": "src-app-components-admin-eventresponsesview",
+      "cluster": "admin",
+      "label": "EventResponsesView.tsx",
+      "sub": "src/app/components/admin/EventResponsesView.tsx",
+      "path": "src/app/components/admin/EventResponsesView.tsx:19",
+      "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
+      "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
+      "notes": [
+        "line:19, first exported symbol or module entry",
         "cluster:admin"
       ],
       "tag": [
@@ -1439,11 +1459,11 @@
       "cluster": "admin",
       "label": "NotificationBell.tsx",
       "sub": "src/app/components/admin/NotificationBell.tsx",
-      "path": "src/app/components/admin/NotificationBell.tsx:14",
+      "path": "src/app/components/admin/NotificationBell.tsx:15",
       "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
       "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
       "notes": [
-        "line:14, first exported symbol or module entry",
+        "line:15, first exported symbol or module entry",
         "cluster:admin"
       ],
       "tag": [
@@ -2247,6 +2267,25 @@
       "dead": true
     },
     {
+      "id": "src-app-components-ui-ime-input",
+      "cluster": "components",
+      "label": "ime-input.tsx",
+      "sub": "src/app/components/ui/ime-input.tsx",
+      "path": "src/app/components/ui/ime-input.tsx:16",
+      "role": "UI를 구성하는 재사용 컴포넌트입니다.",
+      "plain": "src/app/components/ui/ime-input.tsx 파일이 앱의 한 부분을 담당합니다.",
+      "notes": [
+        "line:16, first exported symbol or module entry",
+        "cluster:components"
+      ],
+      "tag": [
+        "overview",
+        "all"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
       "id": "src-app-components-ui-input-otp",
       "cluster": "components",
       "label": "input-otp.tsx",
@@ -3016,11 +3055,11 @@
       "cluster": "pages",
       "label": "EventApplicationPage.tsx",
       "sub": "DEAD, zero importers",
-      "path": "src/app/pages/EventApplicationPage.tsx:62",
+      "path": "src/app/pages/EventApplicationPage.tsx:57",
       "role": "사용자가 직접 방문하는 페이지 단위 화면입니다.",
       "plain": "사이트 방문자가 실제로 보는 한 화면입니다.",
       "notes": [
-        "line:62, first exported symbol or module entry",
+        "line:57, first exported symbol or module entry",
         "cluster:pages"
       ],
       "tag": [
@@ -3949,13 +3988,13 @@
       "dead": false
     },
     {
-      "id": "event-utils",
+      "id": "src-utils-eventapplication-test",
       "cluster": "utils",
-      "label": "eventApplication.ts",
-      "sub": "src/utils/eventApplication.ts",
-      "path": "src/utils/eventApplication.ts:1",
+      "label": "eventApplication.test.ts",
+      "sub": "DEAD, zero importers",
+      "path": "src/utils/eventApplication.test.ts:1",
       "role": "도메인 값을 계산하거나 변환하는 순수 보조 모듈입니다.",
-      "plain": "src/utils/eventApplication.ts 파일이 앱의 한 부분을 담당합니다.",
+      "plain": "src/utils/eventApplication.test.ts 파일이 앱의 한 부분을 담당합니다.",
       "notes": [
         "line:1, first exported symbol or module entry",
         "cluster:utils"
@@ -3964,6 +4003,64 @@
         "overview",
         "all",
         "events"
+      ],
+      "critical": false,
+      "dead": true
+    },
+    {
+      "id": "event-utils",
+      "cluster": "utils",
+      "label": "eventApplication.ts",
+      "sub": "src/utils/eventApplication.ts",
+      "path": "src/utils/eventApplication.ts:2",
+      "role": "도메인 값을 계산하거나 변환하는 순수 보조 모듈입니다.",
+      "plain": "src/utils/eventApplication.ts 파일이 앱의 한 부분을 담당합니다.",
+      "notes": [
+        "line:2, first exported symbol or module entry",
+        "cluster:utils"
+      ],
+      "tag": [
+        "overview",
+        "all",
+        "events"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
+      "id": "src-utils-eventresponseexport-test",
+      "cluster": "utils",
+      "label": "eventResponseExport.test.ts",
+      "sub": "DEAD, zero importers",
+      "path": "src/utils/eventResponseExport.test.ts:1",
+      "role": "도메인 값을 계산하거나 변환하는 순수 보조 모듈입니다.",
+      "plain": "src/utils/eventResponseExport.test.ts 파일이 앱의 한 부분을 담당합니다.",
+      "notes": [
+        "line:1, first exported symbol or module entry",
+        "cluster:utils"
+      ],
+      "tag": [
+        "overview",
+        "all"
+      ],
+      "critical": false,
+      "dead": true
+    },
+    {
+      "id": "src-utils-eventresponseexport",
+      "cluster": "utils",
+      "label": "eventResponseExport.ts",
+      "sub": "src/utils/eventResponseExport.ts",
+      "path": "src/utils/eventResponseExport.ts:7",
+      "role": "도메인 값을 계산하거나 변환하는 순수 보조 모듈입니다.",
+      "plain": "src/utils/eventResponseExport.ts 파일이 앱의 한 부분을 담당합니다.",
+      "notes": [
+        "line:7, first exported symbol or module entry",
+        "cluster:utils"
+      ],
+      "tag": [
+        "overview",
+        "all"
       ],
       "critical": false,
       "dead": false
@@ -4893,6 +4990,17 @@
         "all",
         "overview",
         "auth",
+        "admin"
+      ]
+    },
+    {
+      "from": "admin-route",
+      "to": "src-hooks-admingate",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
         "admin"
       ]
     },
@@ -6529,6 +6637,16 @@
     },
     {
       "from": "src-app-components-admin-admindashboard",
+      "to": "src-lib-uxtelemetry",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-admindashboard",
       "to": "src-app-boardcategoriescontext",
       "kind": "normal",
       "label": "import",
@@ -6616,6 +6734,17 @@
       "tag": [
         "all",
         "overview"
+      ]
+    },
+    {
+      "from": "admin-events-mgmt",
+      "to": "src-app-components-admin-eventresponsesview",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
       ]
     },
     {
@@ -7316,6 +7445,56 @@
       ]
     },
     {
+      "from": "src-app-components-admin-eventformconfigeditor",
+      "to": "src-app-components-ui-ime-input",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-eventresponsesview",
+      "to": "src-app-components-ui-button",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-eventresponsesview",
+      "to": "types",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-eventresponsesview",
+      "to": "event-utils",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-eventresponsesview",
+      "to": "src-utils-eventresponseexport",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
       "from": "src-app-components-admin-externalnewsdrafteditor",
       "to": "theme-ctx",
       "kind": "normal",
@@ -7577,6 +7756,16 @@
     {
       "from": "src-app-components-admin-notificationbell",
       "to": "src-lib-layers",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-app-components-admin-notificationbell",
+      "to": "src-lib-uxtelemetry",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -8484,17 +8673,6 @@
     },
     {
       "from": "admin-page",
-      "to": "use-admin",
-      "kind": "normal",
-      "label": "import",
-      "tag": [
-        "all",
-        "overview",
-        "admin"
-      ]
-    },
-    {
-      "from": "admin-page",
       "to": "src-lib-layers",
       "kind": "normal",
       "label": "import",
@@ -8511,6 +8689,17 @@
       "tag": [
         "all",
         "overview"
+      ]
+    },
+    {
+      "from": "admin-page",
+      "to": "admin-route",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
       ]
     },
     {
@@ -8870,6 +9059,16 @@
     {
       "from": "event-apply",
       "to": "src-app-components-ui-button",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "event-apply",
+      "to": "src-app-components-ui-ime-input",
       "kind": "normal",
       "label": "import",
       "tag": [
@@ -10923,7 +11122,68 @@
       ]
     },
     {
+      "from": "src-utils-eventapplication-test",
+      "to": "event-utils",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "events"
+      ]
+    },
+    {
       "from": "event-utils",
+      "to": "types",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "event-utils",
+      "to": "types",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-utils-eventresponseexport-test",
+      "to": "src-utils-eventresponseexport",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-utils-eventresponseexport-test",
+      "to": "types",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-utils-eventresponseexport",
+      "to": "event-utils",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-utils-eventresponseexport",
       "to": "types",
       "kind": "normal",
       "label": "import",

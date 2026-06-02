@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "../../../lib/supabaseClient";
 import { LAYERS } from "../../../lib/layers";
+import { logSupabaseFailure } from "../../../lib/uxTelemetry";
 
 type ActivityLogRow = {
   id: string;
@@ -17,7 +18,18 @@ export function NotificationBell({ isDark }: { isDark: boolean }) {
   const [logs, setLogs] = useState<ActivityLogRow[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
+  const [hasLoadedLogs, setHasLoadedLogs] = useState(false);
   const isOpenRef = useRef(isOpen);
+
+  const mergeLogs = useCallback((incoming: ActivityLogRow[]) => {
+    setLogs((prev) => {
+      const deduped = new Map<string, ActivityLogRow>();
+      [...incoming, ...prev].forEach((log) => deduped.set(log.id, log));
+      return Array.from(deduped.values())
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 30);
+    });
+  }, []);
 
   useEffect(() => {
     isOpenRef.current = isOpen;
@@ -25,19 +37,13 @@ export function NotificationBell({ isDark }: { isDark: boolean }) {
   }, [isOpen]);
 
   useEffect(() => {
-    const fetchLogs = async () => {
-      const { data } = await supabase.from('activity_logs').select('*').order('created_at', { ascending: false }).limit(30);
-      if (data) setLogs(data as ActivityLogRow[]);
-    };
-    fetchLogs();
-
     const channel = supabase
       .channel('realtime-activity-logs')
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'activity_logs' },
         (payload) => {
-          setLogs((prev) => [payload.new as ActivityLogRow, ...prev].slice(0, 30));
+          mergeLogs([payload.new as ActivityLogRow]);
           if (!isOpenRef.current) {
             setUnreadCount((prev) => prev + 1);
           }
@@ -46,7 +52,37 @@ export function NotificationBell({ isDark }: { isDark: boolean }) {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [mergeLogs]);
+
+  useEffect(() => {
+    if (!isOpen || hasLoadedLogs) return;
+
+    let cancelled = false;
+    const fetchLogs = async () => {
+      const { data, error } = await supabase
+        .from('activity_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(30);
+
+      if (error) {
+        logSupabaseFailure("admin-page", "activity_logs.initial_fetch", error, {
+          severity: "low",
+          context: { component: "NotificationBell" },
+        });
+        return;
+      }
+
+      if (cancelled || !data) return;
+      mergeLogs(data as ActivityLogRow[]);
+      setHasLoadedLogs(true);
+    };
+
+    void fetchLogs();
+    return () => {
+      cancelled = true;
+    };
+  }, [hasLoadedLogs, isOpen, mergeLogs]);
 
   const formatTimeAgo = (dateStr: string) => {
     const diff = Math.floor((new Date().getTime() - new Date(dateStr).getTime()) / 1000);

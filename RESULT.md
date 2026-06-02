@@ -1,29 +1,25 @@
-# RESULT: 처리내역 어드민 영구삭제 버튼 — 2026-06-01
+# RESULT: 어드민 refocus 깜빡임 + 응답 테이블 ellipsis — 2026-06-02
 
 ## 배경
-행사 관리 "처리 내역(history)" 탭(거절/사용자취소/관리자취소 = terminal 신청)에 어드민이 행을 **영구 삭제**할 수 있는 버튼이 없었다. 기존 다른 관리탭(FoundersClub/OfficeHour/News)의 Trash2 삭제 패턴을 처리내역 카드에 도입했다. TDD로 진행.
+1. **어드민 새로고침 깜빡임 재발**: 어드민 화면에서 다른 탭 갔다 오면 페이지가 처음부터 재로딩. 원인 = MFA bypass 활성 세션은 탭 refocus마다 authoritative 재검증(`shouldRefocusAuthoritative`=is_active) → `silent=false` → `shouldRaiseLoading`=true → `setLoading(true)`. AdminRoute가 `loading`이면 `<Outlet>` 대신 hidden div 렌더 → 어드민 트리 전체 unmount→remount = 데이터 재fetch 깜빡임. 일반 admin(bypass 없음)은 silent라 무관 → bypass 세션만 재발.
+2. **응답 테이블 가독성**: 긴 답변이 셀을 늘려 표가 들쭉날쭉. 원본은 CSV에 보존되므로 표는 요약만.
 
 ## 구현
-- **`src/utils/eventApplication.ts`**
-  - 순수함수 `isDeletableApplicationStatus(status)` 추가 — terminal(`rejected`/`cancelled_by_user`/`cancelled_by_admin`)만 `true`. RLS `event_applications_delete_own_terminal`의 terminal 집합과 일치.
-- **`src/utils/eventApplication.test.ts`**: 5상태 RED→GREEN(terminal 3=true, pending/accepted=false).
-- **`src/app/components/admin/AdminEventManagement.tsx`**
-  - `Trash2` import.
-  - `handleDelete(application)`: `isDeletableApplicationStatus` 가드 → `window.confirm` → `supabase.from("event_applications").delete().eq("id", id)` → 성공 시 `fetchData()`. 기존 `updatingId` 재사용.
-  - `renderDeleteButton`(빨간 Trash2 버튼, `deleteBg`/`deleteBorder`), `renderActionRow`/`renderApplicationCard`에 `deletable` 플래그 추가.
-  - **처리내역(history) 렌더에서만** `deletable=true` → 참가자(pending/accepted) 탭엔 삭제 버튼 미노출.
+- **`src/hooks/adminGate.ts`**: 순수함수 `shouldGateAdminRender(loading, isAdmin) = loading && !isAdmin` 추가. 초기 진입(아직 admin 미확정)에만 게이트, 이미 admin인 재검증 중엔 false(화면 유지).
+- **`src/hooks/adminGate.test.ts`**: RED→GREEN 3케이스(초기진입 게이트 / 재검증 유지 / loading 아님).
+- **`src/app/components/AdminRoute.tsx`**: `if (loading)` → `if (shouldGateAdminRender(loading, isAdmin))`. loading&&isAdmin 구간은 통과해 화면 유지, 강등은 commit 후 `!isAdmin` 분기로 Navigate 퇴출. stale MFA 분기(비라이브) 주석 추가.
+- **`src/app/components/admin/EventResponsesView.tsx`**: 표 셀을 2줄 clamp(`-webkit-line-clamp:2`)+`height:36`/`lineHeight:18px` 고정 높이+`maxWidth:240`+`title`(hover 전체보기). 선택형 막대그래프 렌더 제거(`summarizeChoiceQuestions` util/test는 보존).
+- **`src/app/components/admin/AdminDashboard.tsx`** (방문/누적 추이 차트 정렬 — 시각수정, Codex 미경유·validate 통과): (a) x축 라벨 첫=좌측정렬/마지막=우측정렬/중간=중앙 + `whiteSpace:nowrap`("오늘" 세로 줄바꿈 해결, 선 양끝과 라벨 일치). (b) SVG `preserveAspectRatio="none"` + polyline/grid `vectorEffect="non-scaling-stroke"` → 넓은 화면에서 선이 풀폭 미충족(meet 중앙축소)으로 라벨과 벌어지던 문제 해소. 축 값 숫자(일간/누적 max·0)는 none 스케일 글자 왜곡 방지 위해 HTML 오버레이로 분리.
 
 ## Verification Matrix
 | Change Type | Required Extra Checks | Result |
 |---|---|---|
-| Pure logic | 유닛 테스트 | `eventApplication.test.ts` 5케이스 추가, vitest 40 통과 |
-| Universal gate | `npm run validate` | 통과 (tsc, eslint 0warn, vitest 83, vite build, frontend secret scan) |
-| DB/RLS | 권한 확인 | DB변경 0 — admin은 `event_applications_delete_own_terminal`로 DELETE 기존 허용 |
-| Cross-validation | Codex 재리뷰 | 삭제기능 PASS. F1·W1~W3 처리 아래 참조 |
+| Pure logic | 유닛 테스트 | adminGate.test 3케이스 추가, vitest 101 통과 |
+| Universal gate | `npm run validate` | 통과 (tsc, eslint 0warn, vitest 101, vite build, secret scan) |
+| Security gate | bypass 만료 시 퇴출 유지 | 강등 commit → loading 해제 → `!isAdmin` Navigate (게이트 유지) |
+| Cross-validation | Codex 재리뷰 | **FAIL 0**. F1(clamp 높이)·WARN1(stale 주석) 반영, WARN2(route 렌더 테스트=인프라 부재) 유지 결정 |
 
 ## 비고
-- **Codex F1**(처리내역에 `getAdminActionStatuses` 복원버튼 노출) = 내 변경 아님, 승인제 전환 작업의 의도 전이표(`rejected→[pending,accepted]`). 사용자가 **유지** 확정(처리내역이 유일 복원 경로).
-- **W1**(eventApplication.ts normalize/merge 변경) = 직전 "동적질문 FAIL 4건" 미커밋분, 본 작업 무관.
-- **W2**(UI 경로 테스트 부재) = 컴포넌트 테스트 인프라 부재, 순수 가드만 유닛 보강.
-- **W3**(delete 영향 행수 미확인) = RLS상 admin 항상 통과 + fetchData 갱신으로 무해, 사용자 **미반영** 결정.
-- 변경 2파일 + 테스트 미커밋. 직전 동적질문 4파일과 함께 퍼블리싱 전 커밋 필요.
+- **보안 트레이드오프(사용자 수용)**: bypass가 백그라운드 중 만료된 경우, refocus 후 재검증 창(수백ms~few s) 동안 어드민 화면 짧게 stale 노출 후 퇴출. 즉시 가림(기존) → 깜빡임 제거 우선.
+- **수동 검증 권장**: refocus 동작은 단위테스트로 못 잡음 → `npm run dev` + bypass 켠 admin 탭 전환으로 확인 필요.
+- 미커밋 상태(amend-only 워크플로우). 그래프 제거분은 직전 세션에 이미 force-push로 라이브 반영됨; 본 깜빡임 수정·ellipsis는 배포 전.

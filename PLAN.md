@@ -6,28 +6,20 @@
 (없음)
 
 ## In Progress
-- [ ] 행사 신청 선착순 → **승인제(선별제)** 전환 — 스펙: `docs/superpowers/specs/2026-06-01-event-approval-flow-design.md`. **DB 변경 0**(트리거가 이미 accepted에서만 정원 가드, RPC/헬퍼 그대로). 모델: 정원=확정(accepted) 기준, pending 무제한·정원 미점유, 거절/취소 시 여석 복구. 작업 4건(TDD):
-  1. `src/utils/eventApplication.ts` — 순수함수 `getAdminActionStatuses(current): EventApplication["status"][]` 추가. 전이표: pending→[accepted,rejected,cancelled_by_admin] / accepted→[pending,rejected,cancelled_by_admin] / rejected→[pending,accepted] / cancelled_by_admin→[pending,accepted] / cancelled_by_user→[pending,accepted].
-  2. `src/utils/eventApplication.test.ts` — `getAdminActionStatuses` 5상태 RED→GREEN 단위테스트.
-  3. `src/app/pages/EventApplicationPage.tsx` — insert `status:"accepted"`→`"pending"`(L179); 제출후 `setAcceptedCount(prev=>prev+1)` 제거(L198, pending은 정원 미점유); 완료카드(L293-294) pending 분기 추가 → 제목 "신청이 접수되었습니다." / 설명 "관리자 승인 후 확정 안내를 등록된 이메일로 보내드리겠습니다." (accepted=config문구, cancelled=기존 유지). *normalize가 config 문구를 "확정"으로 되돌리므로 pending은 상태기준 분기 필수.*
-  4. `src/app/components/admin/AdminEventManagement.tsx` — (a) `participantApplications` memo created_at **오름차순(먼저 신청 순)** 재정렬(L47-50, fetch는 desc) + 카드 순번표시(seq=(page-1)*PAGE_SIZE+idx+1); (b) 참가자/이력 카드 action을 `getAdminActionStatuses(application.status)`로 렌더(L346·L359 하드코딩 배열 제거); (c) `countsByEvent`에 pending 추가(L60-69) → overview 요약 "확정/대기/정원" 표시(L322-330).
-  - 마무리: `npm run validate` → Codex 재리뷰 FAIL 0 → 문서갱신. 기존 prod 신청 3건 전부 accepted(이미 승인됨), 데이터 마이그 불필요.
-- [ ] 관리자 대시보드 성능 개선 — `useAdmin` 중복 권한 게이트 제거, `AdminDashboard` 트래픽/Top 5 조회를 서버 집계 중심으로 전환, 필요 시 `NotificationBell` 초기 로딩 지연으로 `/admin` 첫 진입 체감 속도 개선
+(없음)
 
 ## Done
 
-- [Done] 처리내역 어드민 영구삭제 버튼 (2026-06-01) — `isDeletableApplicationStatus` 순수함수(terminal만, RLS와 일치) + 5 tests, `AdminEventManagement` history 탭에만 Trash2 삭제(window.confirm 가드 + `delete().eq("id")`). DB변경 0(admin DELETE 기존 RLS 허용). validate 83 통과. Codex F1(처리내역 복원버튼)=승인제 의도설계로 유지 확정·W3 미반영. 상세 RESULT.md. (미커밋)
-- [Done] 행사 신청서 동적 질문 — Codex FAIL 4건 수정 (2026-06-01) — `mergeEventFormConfig` legacy prepend 회귀픽스, `findMissingRequiredAnswer` 빈 choice 데드락 제외, options dedupe, AdminEventManagement legacy 컬럼 fallback, EventApplicationPage "선택지 없음" 안내. validate 69 통과 + Codex 재리뷰 FAIL 0. 상세 RESULT.md. (미커밋)
-- [Done] 관리자 대시보드 전체화면 차트 붕괴 수정 (2026-06-01) — `AdminDashboard` 2열 grid item과 Top 5 텍스트 row에 Tailwind `min-w-0` 구조 클래스 적용으로 긴 제목이 차트 컬럼을 밀어내지 않게 보정. `npm run validate` 통과.
-- [Done] 로컬 로그인 복구 — Auth seed NULL 토큰 보정 (2026-06-01) — `supabase/seed.sql`에 `auth.users` 토큰 컬럼+비밀번호 보정 추가, `npm run db:reset` 후 `/auth/v1/token` 로컬 관리자 로그인 성공 및 `npm run validate` 통과.
-- [Done] 브라우저 E2E QA — Codex 이관 (2026-06-01) — 미커밋 대규모 업데이트(RLS 성능/보안 + 대시보드 + useAdmin 게이트) 실브라우저 실동작 검증 완료. tests/qa 11스펙/9파일 + QA env(MFA TOTP 주입). 정적·DB레벨 PASS 위 headed 사람눈 확인까지 종료.
-- [Done] 테스트/프로덕션 분리 2단계 — 클라우드 staging 신설 (2026-05-31) — staging 프로젝트(`bgnkxavrwdwtbgvdmbvr`) 생성+마이그 82개 이관+webServer 자가완결 QA. Codex FAIL 0. 상세 RESULT.md.
-- [Done] 로컬 Supabase 격리 — 테스트/프로덕션 분리 1단계 (2026-05-31) — Docker 로컬 스택+env 분리+seed+빌드가드. Codex FAIL 0. 상세 RESULT.md.
-- [Done] Founder's Club 신청 RLS 무한재귀 픽스 (2026-05-31) — INSERT 자기참조 서브쿼리 제거 및 트리거 위임. 상세 RESULT.md.
-- [Done] 미커밋 대규모 업데이트 검증 — 정적 + DB레벨 (2026-05-30) — validate 통과 및 라이브 RLS/트리거 대조 완료. 상세 RESULT.md.
-- [Done] useAdmin 권한 게이트 동시성/fail-closed 하드닝 (2026-05-30) — 순수함수 추출 + Vitest 43개 테스트 도입. 상세 RESULT.md.
-- [Done] 사이트 성능/보안 감사 — RLS·select*·인증게이트 (2026-05-30) — RLS InitPlan 캐싱 및 정책 통합으로 성능 경고 해소. 상세 RESULT.md.
-- [Done] Edge 로딩/페이지 이동 최적화 — 옵션 1+2+3 (2026-05-29) — manualChunks 분할 및 Suspense 도입으로 첫 페인트 40% 절감. 상세 RESULT.md.
+- [Done] 어드민 refocus 깜빡임 + 응답 테이블 ellipsis + 대시보드 차트 정렬 (2026-06-02) — 압축됨. 상세 RESULT_ARCHIVE.md.
+- [Done] 행사 신청 승인제(선별제) 전환 (2026-06-02) — 압축됨. 상세 RESULT_ARCHIVE.md.
+- [Done] 처리내역 어드민 영구삭제 버튼 (2026-06-01) — 압축됨. 상세 RESULT_ARCHIVE.md.
+- [Done] 행사 신청서 동적 질문 — 압축됨. 상세 RESULT_ARCHIVE.md.
+- [Done] 관리자 대시보드 전체화면 차트 붕괴 수정 (2026-06-01) — 압축됨. 상세 RESULT_ARCHIVE.md.
+- [Done] 로컬 로그인 복구 — 압축됨. 상세 RESULT_ARCHIVE.md.
+- [Done] 브라우저 E2E QA — 압축됨. 상세 RESULT_ARCHIVE.md.
+- [Done] 테스트/프로덕션 분리 2단계 — 압축됨. 상세 RESULT_ARCHIVE.md.
+- [Done] 로컬 Supabase 격리 — 압축됨. 상세 RESULT_ARCHIVE.md.
+- [Done] Founder's Club 신청 RLS 무한재귀 픽스 (2026-05-31) — 압축됨. 상세 RESULT_ARCHIVE.md.
 
 ## Future / 추후 수정
 
