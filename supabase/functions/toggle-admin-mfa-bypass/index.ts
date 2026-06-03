@@ -3,12 +3,13 @@ import { corsHeaders } from "../_shared/cors.ts";
 import { requireVerifiedAdmin } from "../_shared/adminAuth.ts";
 import { isSuperAdminUid } from "../_shared/superAdmin.ts";
 import { captureEfError } from "../_shared/errorLogger.ts";
+import { resolveBypassMutation } from "./resolveBypassMutation.ts";
 
 // MFA 우회 토글 변경.
 // - super admin(SUPER_ADMIN_UIDS)만 호출 가능
 // - AAL2 강제(이 EF는 절대 우회되면 안 됨 — bypass 자체를 바꾸는 권한이므로)
-// - duration_days: 0=즉시 해제, 1/3/7=해당 일수만큼 활성
-const ALLOWED_DAYS = new Set([0, 1, 3, 7]);
+// - duration_days: -1=무기한, 0=해제, 1/3/7=해당 일수만큼 활성
+const ALLOWED_DAYS = new Set([-1, 0, 1, 3, 7]);
 
 function json(body: unknown, status: number, headers: HeadersInit) {
   return new Response(JSON.stringify(body), {
@@ -52,7 +53,7 @@ Deno.serve(async (req: Request) => {
       !Number.isInteger(rawDuration) ||
       !ALLOWED_DAYS.has(rawDuration)
     ) {
-      return json({ error: "duration_days는 0, 1, 3, 7 중 정수여야 합니다." }, 400, cors);
+      return json({ error: "duration_days는 -1, 0, 1, 3, 7 중 정수여야 합니다." }, 400, cors);
     }
     const durationDays = rawDuration;
 
@@ -67,10 +68,7 @@ Deno.serve(async (req: Request) => {
     });
 
     const now = new Date();
-    const enabled = durationDays > 0;
-    const expiresAt = enabled
-      ? new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000).toISOString()
-      : now.toISOString(); // 0이면 즉시 만료
+    const { enabled, expiresAt, enabledAt } = resolveBypassMutation(durationDays, now);
 
     const { data, error } = await adminClient
       .from("admin_mfa_bypass")
@@ -78,7 +76,7 @@ Deno.serve(async (req: Request) => {
         enabled,
         expires_at: expiresAt,
         enabled_by: adminCheck.user.id,
-        enabled_at: enabled ? now.toISOString() : null,
+        enabled_at: enabledAt,
         reason: enabled ? reason : null,
         updated_at: now.toISOString(),
       })

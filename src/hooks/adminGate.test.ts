@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  buildBypassState,
   evaluateAdminGate,
   shouldCommitGate,
   shouldCheckSilently,
@@ -45,6 +46,36 @@ function makeDeps(over: Partial<AdminGateDeps> = {}): AdminGateDeps {
   };
 }
 
+// 우회 활성(RPC 권위) + best-effort EF 상세를 배너용 state 로 합성. RPC=true 인데 EF 가
+// 실패해 detail 이 null 이어도 우회는 ON 으로 유지돼야 한다(이게 EF 콜드스타트 로그인 루프
+// 회귀 방어의 핵심). is_active 는 항상 RPC 값이 권위.
+describe("buildBypassState", () => {
+  it("RPC active=true + EF 실패(detail=null) → 우회 ON 최소 상태 유지", () => {
+    const s = buildBypassState(true, null);
+    expect(s).not.toBeNull();
+    expect(s!.is_active).toBe(true);
+    expect(s!.enabled).toBe(true);
+    expect(s!.enabled_by_email).toBeNull();
+  });
+
+  it("RPC active=true + EF 상세 있음 → 상세 머지, is_active 는 RPC 권위", () => {
+    const s = buildBypassState(true, { ...activeBypass, is_active: false });
+    expect(s!.is_active).toBe(true);
+    expect(s!.enabled_by_email).toBe("a@b.com");
+    expect(s!.reason).toBe("event");
+  });
+
+  it("RPC active=false + detail 없음 → null(우회 없음)", () => {
+    expect(buildBypassState(false, null)).toBeNull();
+  });
+
+  it("RPC active=false + stale detail(is_active=true) → is_active 는 RPC 권위로 false", () => {
+    const s = buildBypassState(false, activeBypass);
+    expect(s).not.toBeNull();
+    expect(s!.is_active).toBe(false);
+  });
+});
+
 describe("evaluateAdminGate — 기존 동작 보존", () => {
   it("비-admin role 이면 admin/슈퍼/우회 전부 해제 커밋", async () => {
     const d = await evaluateAdminGate(makeDeps({ fetchRole: async () => ({ ok: true, role: "user" }) }), {
@@ -60,18 +91,39 @@ describe("evaluateAdminGate — 기존 동작 보존", () => {
     expect(d.snapshot.mfaEnrolled).toBe(false);
   });
 
-  it("admin + bypass 활성 → MFA 스킵, mfaRequired=false / aal1", async () => {
+  it("일반 admin(슈퍼 아님) + bypass 활성 → MFA 스킵, mfaRequired=false / aal1", async () => {
     const d = await evaluateAdminGate(
-      makeDeps({ fetchBypass: async () => ({ ok: true, isSuperAdmin: true, state: activeBypass }) }),
+      makeDeps({ fetchBypass: async () => ({ ok: true, isSuperAdmin: false, state: activeBypass }) }),
+      { silent: false, prev: prevAdmin },
+    );
+    expect(d.kind).toBe("commit");
+    if (d.kind !== "commit") return;
+    expect(d.snapshot.isAdmin).toBe(true);
+    expect(d.snapshot.isSuperAdmin).toBe(false);
+    expect(d.snapshot.mfaBypass).toEqual(activeBypass);
+    expect(d.snapshot.mfaRequired).toBe(false);
+    expect(d.snapshot.mfaEnrolled).toBe(true);
+    expect(d.snapshot.aal).toBe("aal1");
+  });
+
+  // 영구락 차단: 우회가 활성이어도 슈퍼어드민은 MFA를 강제해야 AAL2에 도달해 토글(noBypass)을
+  // 다시 끌 수 있다. 우회가 슈퍼어드민의 MFA까지 무력화하면(축④) AAL1로 admin 진입 → 토글 403 → 영구락.
+  it("슈퍼어드민 + bypass 활성 → 우회 무력화, 실제 MFA 게이트 적용(스킵 안 함)", async () => {
+    const d = await evaluateAdminGate(
+      makeDeps({
+        fetchBypass: async () => ({ ok: true, isSuperAdmin: true, state: activeBypass }),
+        fetchAal: async () => ({ ok: true, currentLevel: "aal1", nextLevel: "aal2" }),
+        fetchFactors: async () => ({ ok: true, hasVerifiedTotpFactor: false }),
+      }),
       { silent: false, prev: prevAdmin },
     );
     expect(d.kind).toBe("commit");
     if (d.kind !== "commit") return;
     expect(d.snapshot.isAdmin).toBe(true);
     expect(d.snapshot.isSuperAdmin).toBe(true);
-    expect(d.snapshot.mfaBypass).toEqual(activeBypass);
-    expect(d.snapshot.mfaRequired).toBe(false);
-    expect(d.snapshot.mfaEnrolled).toBe(true);
+    expect(d.snapshot.mfaBypass).toEqual(activeBypass); // 배너 표시용으로 상태는 유지
+    expect(d.snapshot.mfaRequired).toBe(true);          // OTP 강제(스킵 안 함)
+    expect(d.snapshot.mfaEnrolled).toBe(false);         // factor 없음 → 등록 강제 → /mypage
     expect(d.snapshot.aal).toBe("aal1");
   });
 

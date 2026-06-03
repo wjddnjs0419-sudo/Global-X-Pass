@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { isSuperAdminUid } from "../_shared/superAdmin.ts";
 import { captureEfError } from "../_shared/errorLogger.ts";
+import { computeBypassActive } from "./computeBypassActive.ts";
 
 // 현재 MFA 우회 상태 + caller가 super admin인지 응답.
 // 프론트 토글 UI 노출 여부 + 활성 배너 렌더에 사용.
@@ -75,9 +76,10 @@ Deno.serve(async (req: Request) => {
       throw stateError;
     }
 
-    const now = Date.now();
-    const isActive = Boolean(
-      state?.enabled && state.expires_at && new Date(state.expires_at).getTime() > now,
+    const isActive = computeBypassActive(
+      state?.enabled ?? false,
+      state?.expires_at ?? null,
+      Date.now(),
     );
 
     let enabledByEmail: string | null = null;

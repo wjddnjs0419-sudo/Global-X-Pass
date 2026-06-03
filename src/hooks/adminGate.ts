@@ -50,6 +50,35 @@ export type CommitGuard = {
   authoritativeInFlight: number; // 아직 끝나지 않은 fail-closed 검사 수(자기 포함)
 };
 
+// 우회 활성(RPC) + EF 상세를 합성한 배너용 state 의 기본 골격. is_active/enabled 는 호출부가
+// RPC 권위값으로 덮어쓰고, 상세 필드는 EF 가 채운다(실패 시 null 로 남아도 게이트는 무관).
+const EMPTY_BYPASS_DETAIL: AdminMfaBypassState = {
+  enabled: false,
+  is_active: false,
+  expires_at: null,
+  enabled_at: null,
+  enabled_by: null,
+  enabled_by_email: null,
+  reason: null,
+  updated_at: null,
+};
+
+// RPC(is_admin_mfa_bypassed) 권위값 active 와 best-effort EF 상세 detail 을 배너용 state 로 합성.
+// RPC=true 인데 EF 가 실패(detail=null)해도 우회는 ON 으로 유지된다 — EF 콜드스타트/race 가
+// 일반 admin 우회를 깨 로그인 루프를 만들던 회귀의 방어선. is_active 는 항상 RPC 권위.
+export function buildBypassState(
+  active: boolean,
+  detail: AdminMfaBypassState | null,
+): AdminMfaBypassState | null {
+  if (!active && !detail) return null;
+  return {
+    ...EMPTY_BYPASS_DETAIL,
+    ...(detail ?? {}),
+    is_active: active,
+    enabled: detail?.enabled ?? active,
+  };
+}
+
 const defaultSleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
 // ok 플래그를 가진 비동기 조회를 bounded 재시도. fail-closed 경로(특히 OTP 검증 직후)에서
@@ -172,7 +201,10 @@ export async function evaluateAdminGate(
     } else {
       next.isSuperAdmin = bypass.isSuperAdmin;
       next.mfaBypass = bypass.state;
-      bypassActive = Boolean(bypass.state?.is_active);
+      // 슈퍼어드민은 우회가 활성이어도 MFA를 무력화하지 않는다(축④). 우회가 슈퍼어드민의 OTP까지
+      // 건너뛰면 AAL1로 admin 진입 → 토글(noBypass=AAL2 필수)을 못 써 무기한 우회 영구락이 된다.
+      // 상태(mfaBypass)는 배너 표시용으로 유지하되, MFA 게이트는 실제 AAL/factor 로 강제한다.
+      bypassActive = Boolean(bypass.state?.is_active) && !bypass.isSuperAdmin;
     }
   } else {
     next.mfaBypass = null;

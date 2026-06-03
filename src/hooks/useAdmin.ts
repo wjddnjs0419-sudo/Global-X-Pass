@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { getTotpFactorSnapshot } from "../utils/mfa";
+import { isSuperAdminClient } from "../utils/superAdminClient";
 import {
+  buildBypassState,
   evaluateAdminGate,
   shouldCommitGate,
   shouldCheckSilently,
@@ -46,7 +48,6 @@ const EMPTY_SNAPSHOT: AdminGateSnapshot = {
   mfaEnrolled: false,
   aal: "aal1",
 };
-
 export function useAdmin(): UseAdminResult {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -128,13 +129,26 @@ export function useAdmin(): UseAdminResult {
             fetchBypass: () =>
               withRetry(async () => {
                 try {
-                  const { data, error } = await supabase.functions.invoke("get-admin-mfa-bypass-state");
-                  if (error || !data) return { ok: false, isSuperAdmin: false, state: null };
-                  return {
-                    ok: true,
-                    isSuperAdmin: Boolean(data.is_super_admin),
-                    state: (data.bypass ?? null) as AdminMfaBypassState | null,
-                  };
+                  // 우회 활성 여부는 RPC(is_admin_mfa_bypassed)가 권위 — 경량 DB 함수라 EF 콜드스타트
+                  // 없이 안정적이고 만료를 서버에서 반영한다. RPC 실패만 ok:false(fail-closed 트리거).
+                  const { data: active, error: rpcError } = await supabase.rpc("is_admin_mfa_bypassed");
+                  if (rpcError) return { ok: false, isSuperAdmin: false, state: null };
+                  // super 판정은 클라 user.id 로 직접(EF 불필요). 게이트가 EF 실패에 묶여 일반 admin
+                  // 우회가 깨지는 로그인 루프를 차단한다([[superAdminClient]]).
+                  const superAdmin = isSuperAdminClient(
+                    userId,
+                    import.meta.env.VITE_SUPER_ADMIN_UIDS as string | undefined,
+                  );
+                  // 배너 상세(enabled_by 등)는 best-effort EF. 실패해도 게이트(active+super)는 무관 —
+                  // 배너만 빈약해지고 다음 성공 조회가 복원한다.
+                  let detail: AdminMfaBypassState | null = null;
+                  try {
+                    const { data: stateData } = await supabase.functions.invoke("get-admin-mfa-bypass-state");
+                    detail = (stateData?.bypass ?? null) as AdminMfaBypassState | null;
+                  } catch { /* best-effort: 상세 없이도 게이트는 RPC+super 로 결정 */ }
+                  // is_active 는 RPC 권위. detail 없어도 active=true 면 우회 ON 유지(로그인 루프 방어).
+                  const state = buildBypassState(active === true, detail);
+                  return { ok: true, isSuperAdmin: superAdmin, state };
                 } catch {
                   return { ok: false, isSuperAdmin: false, state: null };
                 }

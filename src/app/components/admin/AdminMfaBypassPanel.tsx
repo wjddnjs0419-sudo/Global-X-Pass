@@ -8,10 +8,11 @@ type AdminMfaBypassPanelProps = {
   onChanged: () => Promise<void> | void;
 };
 
-type DurationOption = 0 | 1 | 3 | 7;
+type DurationOption = -1 | 0 | 1 | 3 | 7;
 
 const DURATION_OPTIONS: { value: DurationOption; label: string }[] = [
-  { value: 0, label: "안 함" },
+  { value: 0, label: "해제" },
+  { value: -1, label: "무기한" },
   { value: 1, label: "1일" },
   { value: 3, label: "3일" },
   { value: 7, label: "7일" },
@@ -102,7 +103,7 @@ export function AdminMfaBypassPanel({ isSuperAdmin, bypass, onChanged }: AdminMf
 
       {bypass && (
         <div style={{ fontSize: 12, color: "var(--color-text-muted)", display: "flex", flexDirection: "column", gap: 2 }}>
-          <span>현재 만료: {formatExpiresAt(bypass.expires_at)}</span>
+          <span>현재 만료: {bypass.is_active && !bypass.expires_at ? "무기한 (만료 없음)" : formatExpiresAt(bypass.expires_at)}</span>
           <span>활성화 시각: {formatExpiresAt(bypass.enabled_at)}</span>
           {bypass.enabled_by_email && <span>활성화한 super admin: {bypass.enabled_by_email}</span>}
           {bypass.reason && <span>사유: {bypass.reason}</span>}

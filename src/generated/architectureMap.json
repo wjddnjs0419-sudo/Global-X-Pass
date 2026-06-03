@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-02T05:33:53.991Z",
+  "generatedAt": "2026-06-03T15:51:31.456Z",
   "roots": [
     "src",
     "supabase/functions"
@@ -1133,11 +1133,11 @@
       "cluster": "admin",
       "label": "AdminMfaBypassPanel.tsx",
       "sub": "src/app/components/admin/AdminMfaBypassPanel.tsx",
-      "path": "src/app/components/admin/AdminMfaBypassPanel.tsx:33",
+      "path": "src/app/components/admin/AdminMfaBypassPanel.tsx:34",
       "role": "관리자 대시보드의 특정 운영 기능을 담당합니다.",
       "plain": "운영자가 데이터를 확인하고 처리하는 관리자 화면의 일부입니다.",
       "notes": [
-        "line:33, first exported symbol or module entry",
+        "line:34, first exported symbol or module entry",
         "cluster:admin"
       ],
       "tag": [
@@ -3173,11 +3173,11 @@
       "cluster": "pages",
       "label": "LoginPage.tsx",
       "sub": "DEAD, zero importers",
-      "path": "src/app/pages/LoginPage.tsx:10",
+      "path": "src/app/pages/LoginPage.tsx:12",
       "role": "사용자가 직접 방문하는 페이지 단위 화면입니다.",
       "plain": "사이트 방문자가 실제로 보는 한 화면입니다.",
       "notes": [
-        "line:10, first exported symbol or module entry",
+        "line:12, first exported symbol or module entry",
         "cluster:pages"
       ],
       "tag": [
@@ -3606,11 +3606,11 @@
       "cluster": "hooks",
       "label": "useAdmin.ts",
       "sub": "src/hooks/useAdmin.ts",
-      "path": "src/hooks/useAdmin.ts:17",
+      "path": "src/hooks/useAdmin.ts:19",
       "role": "컴포넌트에서 재사용하는 상태와 부수효과 로직입니다.",
       "plain": "src/hooks/useAdmin.ts 파일이 앱의 한 부분을 담당합니다.",
       "notes": [
-        "line:17, first exported symbol or module entry",
+        "line:19, first exported symbol or module entry",
         "cluster:hooks"
       ],
       "tag": [
@@ -4203,6 +4203,44 @@
       "dead": false
     },
     {
+      "id": "src-utils-resolveeffectivebypass-test",
+      "cluster": "utils",
+      "label": "resolveEffectiveBypass.test.ts",
+      "sub": "DEAD, zero importers",
+      "path": "src/utils/resolveEffectiveBypass.test.ts:1",
+      "role": "도메인 값을 계산하거나 변환하는 순수 보조 모듈입니다.",
+      "plain": "src/utils/resolveEffectiveBypass.test.ts 파일이 앱의 한 부분을 담당합니다.",
+      "notes": [
+        "line:1, first exported symbol or module entry",
+        "cluster:utils"
+      ],
+      "tag": [
+        "overview",
+        "all"
+      ],
+      "critical": false,
+      "dead": true
+    },
+    {
+      "id": "src-utils-resolveeffectivebypass",
+      "cluster": "utils",
+      "label": "resolveEffectiveBypass.ts",
+      "sub": "src/utils/resolveEffectiveBypass.ts",
+      "path": "src/utils/resolveEffectiveBypass.ts:1",
+      "role": "도메인 값을 계산하거나 변환하는 순수 보조 모듈입니다.",
+      "plain": "src/utils/resolveEffectiveBypass.ts 파일이 앱의 한 부분을 담당합니다.",
+      "notes": [
+        "line:1, first exported symbol or module entry",
+        "cluster:utils"
+      ],
+      "tag": [
+        "overview",
+        "all"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
       "id": "src-utils-schedulefields",
       "cluster": "utils",
       "label": "scheduleFields.ts",
@@ -4217,6 +4255,46 @@
       "tag": [
         "overview",
         "all"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
+      "id": "src-utils-superadminclient-test",
+      "cluster": "utils",
+      "label": "superAdminClient.test.ts",
+      "sub": "DEAD, zero importers",
+      "path": "src/utils/superAdminClient.test.ts:1",
+      "role": "도메인 값을 계산하거나 변환하는 순수 보조 모듈입니다.",
+      "plain": "src/utils/superAdminClient.test.ts 파일이 앱의 한 부분을 담당합니다.",
+      "notes": [
+        "line:1, first exported symbol or module entry",
+        "cluster:utils"
+      ],
+      "tag": [
+        "overview",
+        "all",
+        "admin"
+      ],
+      "critical": false,
+      "dead": true
+    },
+    {
+      "id": "src-utils-superadminclient",
+      "cluster": "utils",
+      "label": "superAdminClient.ts",
+      "sub": "src/utils/superAdminClient.ts",
+      "path": "src/utils/superAdminClient.ts:1",
+      "role": "도메인 값을 계산하거나 변환하는 순수 보조 모듈입니다.",
+      "plain": "src/utils/superAdminClient.ts 파일이 앱의 한 부분을 담당합니다.",
+      "notes": [
+        "line:1, first exported symbol or module entry",
+        "cluster:utils"
+      ],
+      "tag": [
+        "overview",
+        "all",
+        "admin"
       ],
       "critical": false,
       "dead": false
@@ -4360,11 +4438,11 @@
       "cluster": "edge",
       "label": "cors.ts",
       "sub": "supabase/functions/_shared/cors.ts",
-      "path": "supabase/functions/_shared/cors.ts:10",
+      "path": "supabase/functions/_shared/cors.ts:12",
       "role": "Supabase Edge Function 런타임에서 서버 권한 작업을 처리합니다.",
       "plain": "브라우저가 직접 할 수 없는 민감한 서버 작업을 대신 수행하는 파일입니다.",
       "notes": [
-        "line:10, first exported symbol or module entry",
+        "line:12, first exported symbol or module entry",
         "cluster:edge"
       ],
       "tag": [
@@ -4653,6 +4731,46 @@
       "dead": true
     },
     {
+      "id": "supabase-functions-get-admin-mfa-bypass-state-computebypassactive-test",
+      "cluster": "edge",
+      "label": "computeBypassActive.test.ts",
+      "sub": "DEAD, zero importers",
+      "path": "supabase/functions/get-admin-mfa-bypass-state/computeBypassActive.test.ts:1",
+      "role": "Supabase Edge Function 런타임에서 서버 권한 작업을 처리합니다.",
+      "plain": "브라우저가 직접 할 수 없는 민감한 서버 작업을 대신 수행하는 파일입니다.",
+      "notes": [
+        "line:1, first exported symbol or module entry",
+        "cluster:edge"
+      ],
+      "tag": [
+        "overview",
+        "all",
+        "admin"
+      ],
+      "critical": false,
+      "dead": true
+    },
+    {
+      "id": "supabase-functions-get-admin-mfa-bypass-state-computebypassactive",
+      "cluster": "edge",
+      "label": "computeBypassActive.ts",
+      "sub": "supabase/functions/get-admin-mfa-bypass-state/computeBypassActive.ts",
+      "path": "supabase/functions/get-admin-mfa-bypass-state/computeBypassActive.ts:1",
+      "role": "Supabase Edge Function 런타임에서 서버 권한 작업을 처리합니다.",
+      "plain": "브라우저가 직접 할 수 없는 민감한 서버 작업을 대신 수행하는 파일입니다.",
+      "notes": [
+        "line:1, first exported symbol or module entry",
+        "cluster:edge"
+      ],
+      "tag": [
+        "overview",
+        "all",
+        "admin"
+      ],
+      "critical": false,
+      "dead": false
+    },
+    {
       "id": "supabase-functions-get-admin-mfa-bypass-state",
       "cluster": "edge",
       "label": "get-admin-mfa-bypass-state/index.ts",
@@ -4808,6 +4926,46 @@
       ],
       "critical": false,
       "dead": true
+    },
+    {
+      "id": "supabase-functions-toggle-admin-mfa-bypass-resolvebypassmutation-test",
+      "cluster": "edge",
+      "label": "resolveBypassMutation.test.ts",
+      "sub": "DEAD, zero importers",
+      "path": "supabase/functions/toggle-admin-mfa-bypass/resolveBypassMutation.test.ts:1",
+      "role": "Supabase Edge Function 런타임에서 서버 권한 작업을 처리합니다.",
+      "plain": "브라우저가 직접 할 수 없는 민감한 서버 작업을 대신 수행하는 파일입니다.",
+      "notes": [
+        "line:1, first exported symbol or module entry",
+        "cluster:edge"
+      ],
+      "tag": [
+        "overview",
+        "all",
+        "admin"
+      ],
+      "critical": false,
+      "dead": true
+    },
+    {
+      "id": "supabase-functions-toggle-admin-mfa-bypass-resolvebypassmutation",
+      "cluster": "edge",
+      "label": "resolveBypassMutation.ts",
+      "sub": "supabase/functions/toggle-admin-mfa-bypass/resolveBypassMutation.ts",
+      "path": "supabase/functions/toggle-admin-mfa-bypass/resolveBypassMutation.ts:1",
+      "role": "Supabase Edge Function 런타임에서 서버 권한 작업을 처리합니다.",
+      "plain": "브라우저가 직접 할 수 없는 민감한 서버 작업을 대신 수행하는 파일입니다.",
+      "notes": [
+        "line:1, first exported symbol or module entry",
+        "cluster:edge"
+      ],
+      "tag": [
+        "overview",
+        "all",
+        "admin"
+      ],
+      "critical": false,
+      "dead": false
     },
     {
       "id": "supabase-functions-trigger-company-news-crawl",
@@ -9838,6 +9996,26 @@
       ]
     },
     {
+      "from": "login-page",
+      "to": "src-utils-resolveeffectivebypass",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "login-page",
+      "to": "src-utils-superadminclient",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
       "from": "src-app-pages-mediapage",
       "to": "page-shell",
       "kind": "normal",
@@ -10940,6 +11118,17 @@
     },
     {
       "from": "use-admin",
+      "to": "src-utils-superadminclient",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
+      ]
+    },
+    {
+      "from": "use-admin",
       "to": "src-hooks-admingate",
       "kind": "normal",
       "label": "import",
@@ -11313,6 +11502,27 @@
       ]
     },
     {
+      "from": "src-utils-resolveeffectivebypass-test",
+      "to": "src-utils-resolveeffectivebypass",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview"
+      ]
+    },
+    {
+      "from": "src-utils-superadminclient-test",
+      "to": "src-utils-superadminclient",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
+      ]
+    },
+    {
       "from": "src-utils-thumbnail-editor",
       "to": "supabase-client",
       "kind": "normal",
@@ -11675,6 +11885,17 @@
       ]
     },
     {
+      "from": "supabase-functions-get-admin-mfa-bypass-state-computebypassactive-test",
+      "to": "supabase-functions-get-admin-mfa-bypass-state-computebypassactive",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
+      ]
+    },
+    {
       "from": "supabase-functions-get-admin-mfa-bypass-state",
       "to": "supabase-functions-shared-cors",
       "kind": "normal",
@@ -11703,6 +11924,17 @@
       "tag": [
         "all",
         "overview"
+      ]
+    },
+    {
+      "from": "supabase-functions-get-admin-mfa-bypass-state",
+      "to": "supabase-functions-get-admin-mfa-bypass-state-computebypassactive",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
       ]
     },
     {
@@ -11916,6 +12148,28 @@
       "tag": [
         "all",
         "overview"
+      ]
+    },
+    {
+      "from": "supabase-functions-toggle-admin-mfa-bypass",
+      "to": "supabase-functions-toggle-admin-mfa-bypass-resolvebypassmutation",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
+      ]
+    },
+    {
+      "from": "supabase-functions-toggle-admin-mfa-bypass-resolvebypassmutation-test",
+      "to": "supabase-functions-toggle-admin-mfa-bypass-resolvebypassmutation",
+      "kind": "normal",
+      "label": "import",
+      "tag": [
+        "all",
+        "overview",
+        "admin"
       ]
     },
     {

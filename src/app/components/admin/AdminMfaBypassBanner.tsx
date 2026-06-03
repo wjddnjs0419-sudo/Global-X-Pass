@@ -44,7 +44,7 @@ export function AdminMfaBypassBanner({ bypass, isSuperAdmin }: AdminMfaBypassBan
     >
       <span aria-hidden>⚠</span>
       <span>MFA 우회 활성중</span>
-      <span style={{ fontWeight: 500 }}>— 만료: {formatExpiresAt(bypass.expires_at)}</span>
+      <span style={{ fontWeight: 500 }}>— 만료: {bypass.expires_at ? formatExpiresAt(bypass.expires_at) : "무기한"}</span>
       {bypass.enabled_by_email && (
         <span style={{ fontWeight: 500 }}>(활성화: {bypass.enabled_by_email})</span>
       )}
