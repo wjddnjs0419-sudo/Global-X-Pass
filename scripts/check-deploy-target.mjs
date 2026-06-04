@@ -1,14 +1,13 @@
 #!/usr/bin/env node
-// 마이그레이션 배포 가드: 타깃(staging|prod)별 DB URL을 검증해 오발사를 막는다.
+// 마이그레이션 배포 가드: 타깃(prod)별 DB URL을 검증해 오발사를 막는다.
 // 안전 규칙: ① DB URL은 셸 env로만(비밀, 미커밋) ② URL의 ref가 타깃과 일치해야 함
 // ③ 프로덕션은 CONFIRM_PROD=yes 명시 필요. CLI는 현재 프로덕션에 link돼 있어 가드 없이는 위험.
+// staging 환경은 제거됨(2026-06-04) — 이제 local(Docker)→prod 2단. 자세한 경위는 docs/DEPLOY_WORKFLOW.md.
 import { pathToFileURL } from "node:url";
 
-export const STAGING_REF = "bgnkxavrwdwtbgvdmbvr";
 export const PROD_REF = "yzbjvkifwinumytehxgf";
 
 const TARGETS = {
-  staging: { ref: STAGING_REF, envName: "SUPABASE_DB_URL_STAGING", confirm: false },
   prod: { ref: PROD_REF, envName: "SUPABASE_DB_URL_PROD", confirm: true },
 };
 
@@ -37,7 +36,7 @@ function extractProjectRef(rawUrl) {
 export function resolveDeployTarget({ target, env }) {
   const cfg = TARGETS[target];
   if (!cfg) {
-    throw new Error(`알 수 없는 배포 타깃: ${target} (staging|prod 중 하나)`);
+    throw new Error(`알 수 없는 배포 타깃: ${target} (prod 만 지원)`);
   }
   const dbUrl = env[cfg.envName];
   if (!dbUrl || !dbUrl.trim()) {
@@ -55,7 +54,7 @@ export function resolveDeployTarget({ target, env }) {
   return { dbUrl: dbUrl.trim(), ref: cfg.ref, label: target };
 }
 
-// CLI: node check-deploy-target.mjs <staging|prod> → 통과 시 dbUrl을 stdout으로, 실패 시 exit 1.
+// CLI: node check-deploy-target.mjs prod → 통과 시 dbUrl을 stdout으로, 실패 시 exit 1.
 // 호출부(npm 스크립트)가 stdout을 supabase db push --db-url 인자로 사용한다.
 // pathToFileURL: 경로에 공백("Global X Pass")이 있어도 percent-encoding이 import.meta.url과 일치하도록.
 const invokedDirectly = !!process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;

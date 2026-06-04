@@ -10,6 +10,7 @@
 
 ## Done
 
+- [Done] staging 환경 완전 제거 → local→prod 2단 (2026-06-04) — EF 23중 2개뿐 껍데기라 제거. 상세 RESULT.md.
 - [Done] 무기한 MFA 우회 — 압축됨. 상세 RESULT_ARCHIVE.md.
 - [Done] 슈퍼어드민 무기한 우회 영구락 수정 (2026-06-03) — 압축됨. 상세 RESULT_ARCHIVE.md.
 - [Done] 무기한 MFA 우회 옵션 + "안 함"→"해제" 라벨 (2026-06-03) — 압축됨. 상세 RESULT_ARCHIVE.md.
@@ -19,7 +20,6 @@
 - [Done] 행사 신청 승인제(선별제) 전환 (2026-06-02) — 압축됨. 상세 RESULT_ARCHIVE.md.
 - [Done] 처리내역 어드민 영구삭제 버튼 (2026-06-01) — 압축됨. 상세 RESULT_ARCHIVE.md.
 - [Done] 행사 신청서 동적 질문 — 압축됨. 상세 RESULT_ARCHIVE.md.
-- [Done] 관리자 대시보드 전체화면 차트 붕괴 수정 (2026-06-01) — 압축됨. 상세 RESULT_ARCHIVE.md.
 
 ## Future / 추후 수정
 

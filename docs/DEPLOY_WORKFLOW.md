@@ -1,21 +1,21 @@
-# DEPLOY_WORKFLOW.md — 로컬 → staging → 프로덕션
+# DEPLOY_WORKFLOW.md — 로컬 → 프로덕션
 
-> 3단 환경 분리(테스트/프로덕션 격리)의 캐논 배포 절차. 사람·AI 공용. 세션마다 재설명 불필요.
+> 2단 환경 분리(테스트/프로덕션 격리)의 캐논 배포 절차. 사람·AI 공용. 세션마다 재설명 불필요.
+> staging(클라우드 `bgnkxavrwdwtbgvdmbvr`)은 **2026-06-04 제거**됨 — EF 23개 중 2개만 배포된 껍데기라 유지비>실익. super admin 게이트는 local=prod 동일하고, staging 고유 실익(EF 콜드스타트 race)은 prod 직배포로 우회해 옴.
 
-## 환경 3단
+## 환경 2단
 
 | 단계 | Supabase | 프론트 | 용도 |
 |---|---|---|---|
-| **로컬** | Docker `127.0.0.1:54321` (ref `Global_X_Pass`) | `npm run dev` | 자유 수정·파괴 |
-| **staging** | 클라우드 `bgnkxavrwdwtbgvdmbvr` (ap-northeast-1) | `npm run preview:staging` | 머지 전 QA |
+| **로컬** | Docker `127.0.0.1:54321` (ref `Global_X_Pass`) | `npm run dev` | 자유 수정·파괴, 모든 EF 자동 serve |
 | **프로덕션** | 클라우드 `yzbjvkifwinumytehxgf` | netlify(**수동 배포** — GitHub 자동빌드 연동 안 됨) | 라이브, 100사 |
 
-스키마(86 마이그)·코드는 3단 동일. **데이터·env 키·런타임 엣지(Edge Functions 로컬 미serve 등)는 다름.**
+스키마(86 마이그)·코드는 동일. **데이터·env 키·런타임 엣지는 다름.** 로컬 Docker는 `supabase/functions/`의 모든 EF를 자동 제공하므로 EF 동작도 로컬서 검증 가능.
 
 ## 배포는 2개 트랙 (독립!)
 
 1. **프론트 코드** → `npm run build` 후 **netlify 수동 배포**(대시보드 드래그드롭 또는 netlify CLI). ⚠️ GitHub `main` push 자동빌드 연동 **안 됨** — push만으론 라이브 미반영. `git push`는 코드 백업/히스토리용.
-2. **DB 스키마(마이그)** → 수동, `npm run db:push:*`. 자동 아님.
+2. **DB 스키마(마이그)** → 수동, `npm run db:push:prod`. 자동 아님.
 
 ⚠️ **새 컬럼/정책 쓰는 코드를 push했는데 마이그를 프로덕션에 안 올리면 라이브가 깨진다. 마이그 먼저(또는 동시).**
 
@@ -23,25 +23,15 @@
 
 ### 1) 로컬 개발·검증
 ```bash
-npm run db:start          # Docker 로컬 스택
+npm run db:start          # Docker 로컬 스택 (모든 EF 자동 serve)
 npm run dev               # 코드 수정
 # DB 변경 시: supabase/migrations/ 에 새 .sql 추가
-npm run db:reset          # 82+신규 마이그 from-scratch 재생 검증
+npm run db:reset          # 86 마이그 from-scratch 재생 검증
 npm run validate          # tsc+eslint+vitest+build+secret scan
+# E2E QA(선택): npx playwright test  # webServer가 npm run preview(4173, local DB) 자동 기동
 ```
 
-### 2) staging QA
-```bash
-# (a) staging에 마이그 적용 — DB URL은 셸 env로만(비밀)
-# ⚠️ pooler host = aws-1(aws-0 아님), user=postgres.<ref>, 비번 특수문자 URL인코딩(! → %21). 직접연결(db.<ref>.supabase.co)은 IPv6전용이라 이 PC서 실패.
-export SUPABASE_DB_URL_STAGING="postgresql://postgres.bgnkxavrwdwtbgvdmbvr:<pw>@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres"
-npm run db:push:staging
-# (b) staging 백엔드로 E2E
-npm run preview:staging   # 4173에 staging 빌드 서빙
-npx playwright test       # webServer 자동 기동, staging 대상 QA
-```
-
-### 3) 프로덕션 배포 (네가 직접)
+### 2) 프로덕션 배포 (네가 직접)
 ```bash
 # (a) DB 먼저 — 가드가 ref 일치 + CONFIRM_PROD 강제(오발사 방지)
 export SUPABASE_DB_URL_PROD="postgresql://postgres.yzbjvkifwinumytehxgf:<pw>@<host>:6543/postgres"
@@ -55,13 +45,13 @@ git push origin main              # 코드 백업·히스토리용 (자동배포
 
 ## 안전 가드 (`scripts/check-deploy-target.mjs`)
 
-`db:push:staging` / `db:push:prod`가 호출. 순수함수 `resolveDeployTarget`이 검증, 실패 시 push 미실행:
-- DB URL은 셸 env로만(`SUPABASE_DB_URL_STAGING` / `_PROD`). 커밋 금지.
-- URL의 ref가 타깃과 **불일치하면 차단**(staging 명령에 프로덕션 URL 등 오발사 방지).
+`db:push:prod`가 호출. 순수함수 `resolveDeployTarget`이 검증, 실패 시 push 미실행:
+- DB URL은 셸 env로만(`SUPABASE_DB_URL_PROD`). 커밋 금지.
+- URL의 ref가 타깃과 **불일치하면 차단**(prod 명령에 다른 프로젝트 URL 등 오발사 방지).
 - 프로덕션은 `CONFIRM_PROD=yes` 명시 필수.
-- 테스트: `node --test scripts/tests/checkDeployTarget.test.mjs` (7케이스).
+- 테스트: `node --test scripts/tests/checkDeployTarget.test.mjs`.
 
-⚠️ supabase CLI는 현재 **프로덕션에 link**됨(`supabase/.temp/project-ref` = `yzbjvkifwinumytehxgf`). 그래서 `db:push:*`는 link 대신 `--db-url`로 명시 타깃을 친다.
+⚠️ supabase CLI는 현재 **프로덕션에 link**됨(`supabase/.temp/project-ref` = `yzbjvkifwinumytehxgf`). 그래서 `db:push:prod`는 link 대신 `--db-url`로 명시 타깃을 친다.
 
 ## 관련 메모리
 [[project_local_supabase_isolation]] · [[project_supabase_migration_sync]]

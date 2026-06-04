@@ -1,41 +1,33 @@
-# RESULT: 무기한 MFA 우회 — 일반 admin 로그인 루프 근본수정 (EF 의존 제거) — 2026-06-04
+# RESULT: staging 환경 완전 제거 — local→prod 2단 분리 — 2026-06-04
 
 ## 배경
-- 무기한 우회 영구락 수정(2026-06-03) 배포 후, **무기한 우회 ON + 일반 admin(과거 MFA factor 등록자)** 로그인 시 `/admin`이 아니라 `/login`으로 튕기는 **간헐 루프** 발생("지금은 또 괜찮네" = 간헐성).
-- 근본원인(코드 추적 + prod EF 로그 실측): 로그인/게이트가 `get-admin-mfa-bypass-state` **EF 호출에 의존**. prod EF 로그는 전부 200이나 **로그인 직후 5~7개 동시 폭주 + 콜드스타트 최대 1.2s** → 클라가 한 번 헛발(invoke 실패/지연)하면 `fetchBypass.ok=false` → fail-closed → `bypassActive=false`. factor 보유 admin은 우회로 OTP를 안 거쳐 `currentLevel=aal1/nextLevel=aal2` → `mfaRequired=true` → [AdminRoute.tsx:33](src/app/components/AdminRoute.tsx#L33)가 `/login`으로. EF만 성공하면 안 생김 → 간헐.
+- staging(`npm run dev:staging`/`preview:staging`)에서 super admin(admin@test.com) 로그인 시 **MFA 토글 없이 마이페이지만 뜨고 /admin 이동 불가** 증상.
+- 근본원인(코드추적+staging 실측): super admin은 `adminGate.ts:207` `bypassActive = is_active && !isSuperAdmin`로 우회 ON이어도 MFA 강제(영구락 방지 설계) → factor 없으면 mfaEnrolled=false → /mypage. 그런데 MyPage가 role을 `decrypt-own-profile` **EF**로 가져오는데 **staging엔 그 EF 미배포(404)** → `profile=null` → `profile?.role==="admin"` false → MFA 등록 섹션 통째 미렌더 → 데드락.
+- 실측: staging EF = **2개**(toggle/get-state)뿐, prod = **23개** → **21개 누락**. staging은 사실상 껍데기. "prod 동일 환경"이라는 staging 본래 가치를 못 살리고, super 게이트는 어차피 local=prod 동일. 유지비(EF21+secret+마이그+이중배포)>실익 → **B안: staging 제거** 결정.
 
-## 구현 (TDD)
-- **A. `src/utils/superAdminClient.ts`** (신규): `parseSuperAdminUids`+`isSuperAdminClient(userId, raw)`. 서버 `_shared/superAdmin.ts` 미러. super 판정을 EF 없이 클라(`VITE_SUPER_ADMIN_UIDS` + user.id)로. 8테스트.
-- **B. `resolveEffectiveBypass.ts`**: `decideLoginBypass`에서 `stateError` 인자 제거 → `{rpcBypassed, isSuperAdmin}`. EF 안 쓰니 fail-safe 분기 불필요. 테스트 갱신.
-- **C. `LoginPage.tsx`**: admin+RPC bypassed일 때 EF 호출 삭제. super=`isSuperAdminClient(user.id, VITE_SUPER_ADMIN_UIDS)`.
-- **D. `useAdmin.ts` `fetchBypass` 재구현**: 우회 활성은 **RPC `is_admin_mfa_bypassed`가 권위**(경량 DB 함수, 콜드스타트 없음). super는 클라 판정. EF(`get-admin-mfa-bypass-state`)는 **배너 상세 best-effort**로 강등(실패해도 게이트 무관). `ok`는 RPC 기준.
-- **E. `adminGate.ts` `buildBypassState(active, detail)`** (신규 순수함수): RPC active + best-effort EF detail → 배너 state 합성. **RPC=true인데 EF 실패(detail=null)여도 우회 ON 유지** = 루프 회귀 방어선. `is_active`는 항상 RPC 권위. 4테스트.
-- **F. env**: `VITE_SUPER_ADMIN_UIDS` 추가 — 로컬·staging=`a0000000…001`, prod=`4bcae9aa…`(admin@test.com). 서버 `SUPER_ADMIN_UIDS`와 동일해야 함.
-- `evaluateAdminGate` 코어(레이스가드 47테스트)·`AdminRoute`는 미변경. fetchBypass 데이터 소스만 교체(최소침습).
+## 구현
+- **scripts/check-deploy-target.mjs**: `STAGING_REF`·`TARGETS.staging` 제거, prod 전용. 에러 "prod 만 지원". ref검증·CONFIRM_PROD·extractProjectRef 보안가드 전부 유지.
+- **scripts/tests/checkDeployTarget.test.mjs**: staging 케이스 제거, prod 전용 **13테스트** 재작성. 보안 우회 케이스(query/fragment/host) 전부 prod로 이전 + "staging 타깃→'알 수 없는 배포 타깃' throw" 검증 추가. TDD RED→GREEN.
+- **package.json**: `dev:staging`·`prebuild:staging`·`build:staging`·`preview:staging`·`db:push:staging` 5개 제거, local `preview`(`npm run build && vite preview --port 4173`) 추가(playwright용).
+- **playwright.config.ts**: webServer `preview:staging`→`preview`(local Docker DB). 주석에 `db:start` 선행조건 명시.
+- **.env.staging**: 삭제.
+- **.github/workflows/qa-dispatch.yml**: 삭제(staging 백엔드 의존). tests/qa/*.spec.ts는 보존(로컬 수동 실행 가능).
+- **docs/DEPLOY_WORKFLOW.md**: 3단→2단(local→prod) 재작성.
+- **원격 staging 프로젝트(bgnkxavrwdwtbgvdmbvr)**: 대시보드에서 사용자가 수동 삭제 완료.
 
 ## Verification Matrix
 | Change Type | Required Extra Checks | Result |
 |---|---|---|
-| 순수함수 분기 | super 판정(UID 매칭/빈값 fail-safe), bypass 합성(RPC권위·EF실패시 ON 유지) | superAdminClient 8 + buildBypassState 4 통과 |
-| 게이트 회귀 | bypass OFF의 aal1→mfaRequired 보존, super 억제 양축(LoginPage·adminGate) | adminGate 51테스트 통과 |
-| Universal gate | `npm run validate` | 통과 (tsc, eslint 0warn, vitest **134**, vite build, secret scan) |
-| Codex 리뷰 | 정확성·회귀·보안·일관성·테스트 | **FAIL 0** / PASS×2(정확성·일관성) / WARN×3 |
-| prod 빌드 검증 | dist에 prod 백엔드 + super UID 박힘, 로컬/staging UID 오염 0 | PASS (`4bcae9aa` in LoginPage·index, `a0000000` 없음) |
-
-## Codex WARN 처리 (FAIL 0)
-- **SECURITY**(UUID 번들 노출): 서버 경계(toggle AAL2+`isSuperAdminUid` 재검증) 유지 → 권한상승 아님. **수용**.
-- **REGRESSION**(VITE↔서버 UID drift): 주석으로 동일 유지 강조. 서버 secret을 클라서 못 봐 런타임 패리티 불가 → **수용·문서화**. drift 시 super가 일반으로 분류돼 영구락 재발 가능 = 배포 시 UID 일치 필수.
-- **TEST**(RPC=true+EF실패→ON 유지 미검증): `buildBypassState` 추출+4테스트로 **해소**.
-
-## 배포 (2026-06-04)
-- ✅ **프론트만** netlify 수동 배포(`npm run build`→`dist` 드래그드롭). 이번 변경은 EF/마이그 미변경 → DB·EF 배포 불필요.
-- VITE_SUPER_ADMIN_UIDS는 `.env.production.local`로 빌드 시 주입(드래그드롭 방식이라 netlify env 설정 불필요).
+| 배포 가드 축소(staging→prod전용) | 보안가드(ref검증/CONFIRM_PROD) 회귀 없음, cfg 없으면 throw | check-deploy-target 13테스트 통과 |
+| 끊긴 참조(cross-file) | STAGING_REF/preview:staging/build:staging/db:push:staging 잔여 0 | grep 0 (테스트 throw-검증 케이스만 의도적) |
+| 스크립트 체인 | `npm run preview`→build(prebuild가드 로컬통과)→vite preview 4173, playwright webServer·baseURL 매칭 | 정합 |
+| Universal gate | `npm run validate` | 통과 (tsc, eslint 0warn, vitest, vite build, secret scan) |
+| 코드 리뷰 | 내장 /code-review high (Codex는 환경문제로 불가→내장 대체) | **FAIL 0** (`[]`) |
 
 ## 교훈
-- **게이트를 EF 콜드스타트에 묶지 말 것**: 보안 게이트의 크리티컬 패스가 무거운 EF(콜드스타트 1.2s+동시폭주)에 의존하면, 서버가 200이어도 클라 race로 fail-closed가 간헐 발생. 권위 소스는 경량 RPC로, 무거운 조회는 best-effort 강등. super 판정처럼 클라가 user.id로 직접 할 수 있는 건 서버 왕복 제거.
-- 영구락 수정(슈퍼)과 동일한 4축 게이트인데, 슈퍼는 살리고 **일반 admin이 EF race에 희생**되던 사각. 단위테스트가 EF 성공만 가정해 가려졌고, prod EF 로그(전부 200) + 코드 추적으로 클라측 race를 특정.
+- **원격 staging은 EF/secret/마이그를 prod와 계속 싱크해야 의미**가 있다. 2개만 배포된 껍데기 staging은 MyPage 같은 EF 의존 화면이 죄다 404로 깨져 오히려 디버깅 노이즈. local Docker는 모든 EF를 자동 serve하므로 EF 동작 검증엔 local이 우월하고, super admin 게이트처럼 순수 클라 로직은 local=prod 동일.
+- staging 고유 실익(EF 콜드스타트 race)은 이전에도 prod 직배포로 우회해 와서 실사용<유지비였음 → 제거가 합리적.
 
-## 비고 (⚠️ 미완·후속)
-- **런타임 실측 미수행**: 사용자가 staging Playwright 실측 생략하고 prod 직접 배포 선택. 배포 후 일반 admin 1회 확인 권고함.
-- staging `admin_mfa_bypass` 검증용 **무기한 ON** 유지. 끄기: `UPDATE public.admin_mfa_bypass SET enabled=false, expires_at=NULL WHERE id=true;`
-- 후속(사용자 "나중에"): 패널 403→"MFA 인증 필요" 에러메시지 개선. VITE↔서버 UID 패리티 자동 체크(CI).
+## 비고
+- Codex 리뷰는 `gpt-5.4 미지원`+토큰 stale로 2회 실패 → 사용자 승인 하에 내장 `/code-review`로 대체(FAIL 0).
+- QA(playwright) 실행 시 `npm run db:start` 선행 필요(webServer가 local Docker 백엔드 기동). 주석 명시함.

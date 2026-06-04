@@ -2,18 +2,13 @@ import test from "node:test";
 import assert from "node:assert";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { resolveDeployTarget, STAGING_REF, PROD_REF } from "../check-deploy-target.mjs";
+import { resolveDeployTarget, PROD_REF } from "../check-deploy-target.mjs";
 
 const modulePath = fileURLToPath(new URL("../check-deploy-target.mjs", import.meta.url));
 
-const stagingUrl = `postgresql://postgres.${STAGING_REF}:pw@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres`;
 const prodUrl = `postgresql://postgres.${PROD_REF}:pw@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres`;
-
-test("staging: 올바른 URL이면 dbUrl/ref 반환", () => {
-  const r = resolveDeployTarget({ target: "staging", env: { SUPABASE_DB_URL_STAGING: stagingUrl } });
-  assert.strictEqual(r.ref, STAGING_REF);
-  assert.strictEqual(r.dbUrl, stagingUrl);
-});
+// staging 제거 후 ref 불일치 검증용 — prod 가 아닌 임의의 정상-형태 ref.
+const otherUrl = `postgresql://postgres.someotherref000:pw@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres`;
 
 test("prod: CONFIRM_PROD=yes + 일치 URL이면 반환", () => {
   const r = resolveDeployTarget({
@@ -24,12 +19,19 @@ test("prod: CONFIRM_PROD=yes + 일치 URL이면 반환", () => {
   assert.strictEqual(r.dbUrl, prodUrl);
 });
 
+test("staging 타깃은 제거됨 → '알 수 없는 타깃'으로 throw (이제 prod 만 지원)", () => {
+  assert.throws(
+    () => resolveDeployTarget({ target: "staging", env: { SUPABASE_DB_URL_STAGING: prodUrl } }),
+    /알 수 없는 배포 타깃/,
+  );
+});
+
 test("알 수 없는 타깃은 throw", () => {
   assert.throws(() => resolveDeployTarget({ target: "local", env: {} }), /타깃/);
 });
 
-test("staging: env 미설정이면 throw", () => {
-  assert.throws(() => resolveDeployTarget({ target: "staging", env: {} }), /SUPABASE_DB_URL_STAGING/);
+test("prod: env 미설정이면 throw", () => {
+  assert.throws(() => resolveDeployTarget({ target: "prod", env: { CONFIRM_PROD: "yes" } }), /SUPABASE_DB_URL_PROD/);
 });
 
 test("prod: CONFIRM_PROD 없으면 throw (오발사 방지)", () => {
@@ -39,28 +41,25 @@ test("prod: CONFIRM_PROD 없으면 throw (오발사 방지)", () => {
   );
 });
 
-test("staging 명령에 프로덕션 URL이 들어오면 throw (ref 불일치)", () => {
-  assert.throws(
-    () => resolveDeployTarget({ target: "staging", env: { SUPABASE_DB_URL_STAGING: prodUrl } }),
-    /ref/i,
-  );
-});
-
-test("prod 명령에 staging URL이 들어오면 throw (ref 불일치)", () => {
+test("prod 명령에 다른 프로젝트 URL이 들어오면 throw (ref 불일치)", () => {
   assert.throws(
     () =>
       resolveDeployTarget({
         target: "prod",
-        env: { SUPABASE_DB_URL_PROD: stagingUrl, CONFIRM_PROD: "yes" },
+        env: { SUPABASE_DB_URL_PROD: otherUrl, CONFIRM_PROD: "yes" },
       }),
     /ref/i,
   );
 });
 
 test("ref가 query에만 숨은 임의 호스트 URL은 throw (.includes 우회 차단)", () => {
-  const evil = `postgresql://user:pw@evil.invalid:6543/postgres?note=${STAGING_REF}`;
+  const evil = `postgresql://user:pw@evil.invalid:6543/postgres?note=${PROD_REF}`;
   assert.throws(
-    () => resolveDeployTarget({ target: "staging", env: { SUPABASE_DB_URL_STAGING: evil } }),
+    () =>
+      resolveDeployTarget({
+        target: "prod",
+        env: { SUPABASE_DB_URL_PROD: evil, CONFIRM_PROD: "yes" },
+      }),
     /ref/i,
   );
 });
@@ -78,15 +77,22 @@ test("ref가 fragment에만 숨은 임의 호스트 URL은 throw", () => {
 });
 
 test("direct 연결 URL(db.<ref>.supabase.co)도 통과", () => {
-  const direct = `postgresql://postgres:pw@db.${STAGING_REF}.supabase.co:5432/postgres`;
-  const r = resolveDeployTarget({ target: "staging", env: { SUPABASE_DB_URL_STAGING: direct } });
-  assert.strictEqual(r.ref, STAGING_REF);
+  const direct = `postgresql://postgres:pw@db.${PROD_REF}.supabase.co:5432/postgres`;
+  const r = resolveDeployTarget({
+    target: "prod",
+    env: { SUPABASE_DB_URL_PROD: direct, CONFIRM_PROD: "yes" },
+  });
+  assert.strictEqual(r.ref, PROD_REF);
 });
 
 test("pooler username ref가 맞아도 호스트가 supabase pooler 아니면 throw (호스트 우회 차단)", () => {
-  const evilHost = `postgresql://postgres.${STAGING_REF}:pw@evil.invalid:6543/postgres`;
+  const evilHost = `postgresql://postgres.${PROD_REF}:pw@evil.invalid:6543/postgres`;
   assert.throws(
-    () => resolveDeployTarget({ target: "staging", env: { SUPABASE_DB_URL_STAGING: evilHost } }),
+    () =>
+      resolveDeployTarget({
+        target: "prod",
+        env: { SUPABASE_DB_URL_PROD: evilHost, CONFIRM_PROD: "yes" },
+      }),
     /ref/i,
   );
 });
@@ -104,8 +110,8 @@ test("argv[1] 없는 import 컨텍스트(node -e)에서도 모듈 로드가 깨�
 
 test("whitespace-only env는 throw", () => {
   assert.throws(
-    () => resolveDeployTarget({ target: "staging", env: { SUPABASE_DB_URL_STAGING: "  \n\t " } }),
-    /SUPABASE_DB_URL_STAGING/,
+    () => resolveDeployTarget({ target: "prod", env: { SUPABASE_DB_URL_PROD: "  \n\t ", CONFIRM_PROD: "yes" } }),
+    /SUPABASE_DB_URL_PROD/,
   );
 });
 
