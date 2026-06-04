@@ -1,3 +1,17 @@
+# RESULT: GitHub QA local-runner 복원 + Visible QA 사전 가드 — 2026-06-04
+
+## 배경
+- `staging 제거`와 `QA GitHub 표면 제거`를 혼동해 아키텍처 앱 QA GitHub 실행/조회 흐름까지 제거됐던 상태. 실제 의도는 `GitHub QA도 local backend 기준 실행`.
+- 목표: QA GitHub 표면 복원 + 백엔드를 runner 내부 local Supabase로 전환, 로컬 Visible QA에 `db:start` preflight 유지.
+
+## 구현
+- 아키텍처 앱 QA 표면 복원(LiveArchitectureMap/opsPipeline/ArchitectureInboxPanel), Electron QA 브리지(preload/main IPC + qa-dispatch.yml), QA workflow 복원(runner `supabase start`→env 주입 Playwright), `check-build-target.mjs`에 `ALLOW_LOCAL_BUILD_IN_CI=1` 예외, 로컬 Visible QA preflight 유지, 문서 정정.
+
+## 교훈
+- `staging 제거`와 `QA GitHub 표면 제거`는 별개. QA 실행 위치와 QA 백엔드 대상을 분리해 판단. 로컬 Visible QA=디버그 편의, GitHub QA=재현 runner 경로.
+
+---
+
 # RESULT: staging 환경 완전 제거 — local→prod 2단 분리 — 2026-06-04
 
 ## 배경
