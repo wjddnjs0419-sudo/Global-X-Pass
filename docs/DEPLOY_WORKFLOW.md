@@ -12,6 +12,11 @@
 
 스키마(86 마이그)·코드는 동일. **데이터·env 키·런타임 엣지는 다름.** 로컬 Docker는 `supabase/functions/`의 모든 EF를 자동 제공하므로 EF 동작도 로컬서 검증 가능.
 
+> **⚠️ 로컬 제약 — prod 전용 secret 의존 EF는 로컬서 동작 불가.**
+> `supabase/functions/.env`에 없는 secret을 쓰는 EF는 로컬(127.0.0.1)에서 실패한다(분리의 정상 동작, 버그 아님).
+> 대표: **회사뉴스 크롤**(`trigger-company-news-crawl`) — `GITHUB_PAT`로 GitHub Actions(`company-news-crawl.yml`)를 디스패치하는데 PAT는 prod secret 전용. 로컬엔 없어 `dispatched:false` 또는 non-2xx.
+> 분리 전엔 로컬 앱이 prod Supabase에 직결돼 prod의 PAT로 동작했으나, 분리 후 로컬 EF가 실행되며 깨진 것. **로컬서 굳이 돌리려면** `functions/.env`에 `GITHUB_PAT` 추가 + edge runtime 재기동이 필요하나, 디스패치 시 **실제 크롤이 prod 데이터에 실행**되니 권장 안 함 → prod 앱에서 확인할 것.
+
 ## 배포는 2개 트랙 (독립!)
 
 1. **프론트 코드** → `npm run build` 후 **netlify 수동 배포**(대시보드 드래그드롭 또는 netlify CLI). ⚠️ GitHub `main` push 자동빌드 연동 **안 됨** — push만으론 라이브 미반영. `git push`는 코드 백업/히스토리용.
