@@ -4,11 +4,11 @@ import { supabase } from "../../../lib/supabaseClient";
 import { useTheme } from "../../ThemeContext";
 import { AppPagination } from "../AppPagination";
 import { SearchInput } from "../SearchInput";
-import { COMPANY_NEWS_CRAWL_DEFAULT_OPTIONS } from "./architecture/constants";
+import { COMPANY_NEWS_CRAWL_DEFAULT_OPTIONS } from "./companyNewsCrawl";
 import { getFilterTabStyle } from "../contentListStyles";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
-import type { CompanyNewsCrawlOptions, CompanyNewsTriggerResult } from "./architecture/types";
+import type { CompanyNewsCrawlOptions, CompanyNewsTriggerResult } from "./companyNewsCrawl";
 import type { Article } from "../../../lib/types";
 import { useDebouncedValue } from "../../../hooks/useDebounce";
 
