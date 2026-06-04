@@ -60,12 +60,12 @@
 - **Program Confirmation UI:** 이벤트/1:1 컨설팅/Founder's Club 공개 확인 화면은 `ProgramConfirmationCard` 재사용. 녹색 체크 아이콘, 카드 내 추가 status badge 금지, 후속 안내는 contact-phone 아닌 이메일 기반.
 - **Live Architecture Map:** 개인 로컬 앱 `/architecture.html`의 실시간 맵 데이터는 `scripts/generate-architecture-map.mjs` + `src/generated/architectureMap.json`으로 생성. `npm run map:dev`로 실행, 운영 웹 라우트 노출 금지. 구조 변경 시 생성기 우선 갱신, 중요 파일은 JSDoc 태그(`@role`, `@plain`, `@notes`, `@critical`, `@cluster`, `@tag`)로 보강. 런타임 에러 위치는 `src/lib/errorLogger.ts`의 `NodeId`와 맵 노드 ID 일치 시 배지 표시.
 - **Architecture Deadcode Semantics:** 아키텍처 맵 `DEAD 코드`는 삭제 승인 아님 - 생성기가 찾은 incoming reference 0개라는 정적 힌트. 삭제 전 nested `import()`, `architecture.html` 같은 별도 Vite entry, `supabase.functions.invoke("...")` 문자열 호출, 외부 배포/cron 호출, 문서상 보존 의도를 별도 검색으로 확인 필수.
-- **Architecture Alerts & Ops:** 아키텍처 앱 `Alerts` 탭은 `QA`+`블로그 동기화`를 분리 메일형 인박스로, `Ops` 탭은 수동 실행 버튼만. 인박스 read/hidden 상태는 앱 로컬만 관리, GitHub Actions 원본 run/`blog_import_runs` 원본 기록 삭제/수정 금지.
-- **Architecture QA Alerts:** 아키텍처 앱 QA Alerts 조회/수동 실행은 GitHub workflow runs/jobs API + `workflow_dispatch` 사용. GitHub 토큰은 앱 내 연결 UI 입력 → Electron `userData` 로컬 저장. 환경 변수 `GXP_GITHUB_TOKEN`, `GITHUB_TOKEN`, `GH_TOKEN`은 fallback. QA 수동 실행 workflow = `qa-dispatch.yml`, ref = `main`. cron 자동 실행 금지, Ops 탭에서 `smoke | admin-auth | admin-post-cud | admin-program-mgmt | all` 중 명시 선택.
+- **Architecture Alerts & Ops:** 아키텍처 앱 `Alerts` 탭은 앱 이슈+`QA`+블로그 동기화 신호를 분리 메일형 인박스로, `Ops` 탭은 수동 실행 버튼만. 인박스 read/hidden 상태는 앱 로컬만 관리, GitHub Actions 원본 run/`blog_import_runs` 원본 기록 삭제·수정 금지.
+- **Architecture QA Alerts:** 아키텍처 앱 QA Alerts 조회/수동 실행은 GitHub workflow runs/jobs API + `workflow_dispatch` 사용. GitHub 토큰은 앱 내 연결 UI 입력 → Electron `userData` 로컬 저장. 환경 변수 `GXP_GITHUB_TOKEN`, `GITHUB_TOKEN`, `GH_TOKEN`은 fallback. QA 수동 실행 workflow = `qa-dispatch.yml`, ref = `main`. 이 workflow는 staging이 아니라 **GitHub runner 안에서 local Supabase stack을 기동한 뒤** 그 백엔드로 Playwright를 실행한다. `로컬 화면 실행`은 현재 Mac의 headed 디버그 경로이며, 실행 전 `npm run db:start` 선행 필요.
 - **Architecture Manual Blog Sync:** 아키텍처 앱 수동 블로그 동기화 버튼은 GitHub Actions API 직접 호출 금지, `sync-naver-blog` Edge Function만 호출. admin+AAL2 검증, `blog_import_runs` 실행 기록, `GITHUB_PAT` 기반 workflow_dispatch/fallback 정책을 기존 관리자 화면과 동일 보존.
 - **Architecture AI Blog Drafting:** 아키텍처 앱 `Ops` 탭 AI 블로그 초안 생성/수정은 renderer에서 Gemini/Supabase 시크릿 직접 다루지 말고 Electron preload/main IPC 뒤에서 실행. 결과는 앱 세션 내 표시·복사 중심, `blog_import_runs` 같은 영속 실행 로그 테이블 신규 생성 금지. 초안 수정도 기존 `aiStyleAnalyzer`의 제목/본문/해시태그 검증 규칙 재사용.
 - **UX Observability:** 중요 Supabase/RPC/Storage 실패를 `setError`/`console.error`로만 처리 금지, `src/lib/uxTelemetry.ts`의 `logSupabaseFailure()` 또는 `logActionFailure()`로 함께 기록.
-- **QA Secrets Boundary:** Playwright/진단 스크립트/QA 문서에 QA 계정/비밀번호/MFA 시크릿 하드코딩 금지. 자동 QA 자격 증명은 로컬 셸 환경 변수 또는 GitHub Actions Secrets(`QA_ADMIN_EMAIL`, `QA_ADMIN_PASSWORD`, `QA_ADMIN_MFA_SECRET`, 필요 시 `QA_USER_EMAIL`, `QA_USER_PASSWORD`)로만 주입.
+- **QA Secrets Boundary:** Playwright/진단 스크립트/QA 문서에 QA 계정/비밀번호/MFA 시크릿 하드코딩 금지. 자동 QA 자격 증명은 로컬 셸 환경 변수, `.env.qa`, 또는 GitHub Actions Secrets(`QA_ADMIN_EMAIL`, `QA_ADMIN_PASSWORD`, `QA_ADMIN_MFA_SECRET`, 필요 시 `QA_USER_EMAIL`, `QA_USER_PASSWORD`)로만 주입.
 - **QA CUD Data Boundary:** 운영 사이트 대상 CUD QA는 `QA_E2E_<runId>_...` prefix 필수, 테스트가 생성한 row/storage object만 수정·삭제. TOTP 값은 어떤 로그에도 출력 금지.
 - **Documentation Canon:** 루트 가이드 문서 lean 유지. `GEMINI.md` (or `CLAUDE.md`) = 정식 프로젝트 라우터, 임시 실행 상태는 `PLAN.md` / `RESULT.md`.
 - **Blog Import Convention:** Around X 블로그 이관 = RSS로 후보 발견 + `PostView.naver`의 `se-main-container` 본문 파싱 반자동 manifest 방식. 뉴스레터는 `Around X-뉴스레터` 게시판 기준 `news` + `뉴스레터` 고정 태그, 행사 아카이브는 manifest에서 글별 수동 태그, 썸네일은 1차에서 네이버 원본 이미지 URL. 중복 감지는 본문 앞 `GXP_BLOG_IMPORT_META` HTML comment의 `sourceUrl`로 처리.
@@ -101,7 +101,7 @@
 
 ## AI Agent Workflow Mandates (CRITICAL)
 모든 AI 에이전트 필수 준수:
-0. **Session Bootstrap:** 모든 새 chat/session 시작 시, 라우터(`GEMINI.md` or `CLAUDE.md`), `PLAN.md`, `RESULT.md` 읽기 필수 → 답변/계획/편집 전. 현재 컨텍스트, 최근 완료, 대기 계획, 알려진 리스크 간단 요약 후 진행. 오래된 세션 이력 필요 시에만 `RESULT_ARCHIVE.md` 참조.
+0. **Session Bootstrap:** 모든 새 chat/session 시작 시, 라우터(`GEMINI.md` or `CLAUDE.md`), `PLAN.md`, `RESULT.md` 읽기 필수 → 답변/계획/편집 전. 현재 컨텍스트, 최근 완료, 대기 계획, 알려진 리스크 간단 요약 후 진행. 오래된 세션 이력 필요 시에만 `RESULT_ARCHIVE.md` 참조. **Codex는 프로젝트 루트에서 `npm run codex:bootstrap` 를 먼저 실행해 이 요약을 수집하는 것을 기본 경로로 사용.**
 1. **`ㅎㅇ` Shortcut:** 사용자 시작 메시지가 정확히 `ㅎㅇ`이면 이를 **일반 인사로 해석 금지**, 새 세션 bootstrap 명령으로만 처리. 새 범위 묻기/편집 제안/잡담 응답 전 Rule 0 완료 필수. 첫 응답은 반드시 bootstrap 요약(현재 컨텍스트, 최근 완료, 대기 계획, 주요 리스크)으로 시작하고, 인사말/범용 안내로 시작하면 안 됨.
 2. **Korean Only:** 모든 커뮤니케이션(설명, 계획, 보고) 한국어.
 3. **Plan Before Code:** 상세 계획(편집 파일, 변경 내용) 제안 후 명시 승인(`진행해`, `승인` 등) 받기 필수 → 그 후 코드 수정.

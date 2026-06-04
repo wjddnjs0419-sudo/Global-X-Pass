@@ -1,33 +1,26 @@
-# RESULT: staging 환경 완전 제거 — local→prod 2단 분리 — 2026-06-04
+# RESULT: GitHub QA local-runner 복원 + Visible QA 사전 가드 — 2026-06-04
 
 ## 배경
-- staging(`npm run dev:staging`/`preview:staging`)에서 super admin(admin@test.com) 로그인 시 **MFA 토글 없이 마이페이지만 뜨고 /admin 이동 불가** 증상.
-- 근본원인(코드추적+staging 실측): super admin은 `adminGate.ts:207` `bypassActive = is_active && !isSuperAdmin`로 우회 ON이어도 MFA 강제(영구락 방지 설계) → factor 없으면 mfaEnrolled=false → /mypage. 그런데 MyPage가 role을 `decrypt-own-profile` **EF**로 가져오는데 **staging엔 그 EF 미배포(404)** → `profile=null` → `profile?.role==="admin"` false → MFA 등록 섹션 통째 미렌더 → 데드락.
-- 실측: staging EF = **2개**(toggle/get-state)뿐, prod = **23개** → **21개 누락**. staging은 사실상 껍데기. "prod 동일 환경"이라는 staging 본래 가치를 못 살리고, super 게이트는 어차피 local=prod 동일. 유지비(EF21+secret+마이그+이중배포)>실익 → **B안: staging 제거** 결정.
+- 제가 `staging 제거`와 `QA GitHub 표면 제거`를 혼동해 아키텍처 앱의 QA GitHub 실행/조회 흐름까지 걷어낸 상태가 됐다.
+- 실제 의도는 `GitHub QA도 staging이 아니라 local backend 기준으로 돌린다`는 것이었고, 동시에 로컬 Visible QA에는 `db:start` 선행조건을 실패 전에 차단하는 가드가 필요했다.
+- 목표는 **QA GitHub 표면을 복원하되 백엔드를 runner 내부 local Supabase로 전환**하고, **현재 Mac에서 돌리는 Visible QA에는 로컬 스택 preflight를 유지**하는 것이었다.
 
 ## 구현
-- **scripts/check-deploy-target.mjs**: `STAGING_REF`·`TARGETS.staging` 제거, prod 전용. 에러 "prod 만 지원". ref검증·CONFIRM_PROD·extractProjectRef 보안가드 전부 유지.
-- **scripts/tests/checkDeployTarget.test.mjs**: staging 케이스 제거, prod 전용 **13테스트** 재작성. 보안 우회 케이스(query/fragment/host) 전부 prod로 이전 + "staging 타깃→'알 수 없는 배포 타깃' throw" 검증 추가. TDD RED→GREEN.
-- **package.json**: `dev:staging`·`prebuild:staging`·`build:staging`·`preview:staging`·`db:push:staging` 5개 제거, local `preview`(`npm run build && vite preview --port 4173`) 추가(playwright용).
-- **playwright.config.ts**: webServer `preview:staging`→`preview`(local Docker DB). 주석에 `db:start` 선행조건 명시.
-- **.env.staging**: 삭제.
-- **.github/workflows/qa-dispatch.yml**: 삭제(staging 백엔드 의존). tests/qa/*.spec.ts는 보존(로컬 수동 실행 가능).
-- **docs/DEPLOY_WORKFLOW.md**: 3단→2단(local→prod) 재작성.
-- **원격 staging 프로젝트(bgnkxavrwdwtbgvdmbvr)**: 대시보드에서 사용자가 수동 삭제 완료.
+- **아키텍처 앱 QA 표면 복원**: `LiveArchitectureMap`, `opsPipeline`, `ArchitectureInboxPanel`에서 QA GitHub run 조회, dispatch, Inbox QA 항목, workflow 링크를 다시 연결했다. QA 탭은 `GitHub 실행`과 `로컬 화면 실행`을 함께 제공하고, 문구는 `GitHub = runner local Supabase`, `로컬 = 현재 Mac headed 디버그`로 분리했다.
+- **Electron QA 브리지 복원**: `electron/preload.cjs`, `electron/main.cjs`에 `readQaRuns`/`triggerQaRun` IPC와 `qa-dispatch.yml` GitHub API 경로를 다시 붙였다. GitHub token 저장 검증도 QA workflow 조회 기준으로 복원했다.
+- **QA GitHub workflow 복원**: `.github/workflows/qa-dispatch.yml`을 다시 추가했다. 이제 workflow는 staging secret을 쓰지 않고, GitHub runner에서 `supabase start`를 통해 local stack을 부팅한 뒤 `supabase status -o env` 결과를 `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY`로 주입해 Playwright preview를 실행한다.
+- **CI local build 예외 추가**: `scripts/check-build-target.mjs`에 `ALLOW_LOCAL_BUILD_IN_CI=1` 우회 경로를 추가해, 일반 CI/Netlify 가드는 유지하면서도 QA runner의 local Supabase preview 빌드는 허용했다.
+- **로컬 Visible QA 사전 가드 유지**: `runVisibleQaSuite()`의 `supabase status` preflight, `npm run db:start` 복구 안내, `.env.qa` 힌트 정정은 그대로 유지했다. 따라서 로컬 디버그 QA는 스택 미기동 시 Playwright를 시작하지 않고 먼저 막는다.
+- **문서 정정**: `docs/AGENT_RULES.md`, `docs/CODEX_QA.md`, `PLAN.md`를 모두 “GitHub QA 제거”가 아니라 “GitHub QA local-runner 복원 + Visible QA preflight” 기준으로 정정했다.
 
 ## Verification Matrix
 | Change Type | Required Extra Checks | Result |
 |---|---|---|
-| 배포 가드 축소(staging→prod전용) | 보안가드(ref검증/CONFIRM_PROD) 회귀 없음, cfg 없으면 throw | check-deploy-target 13테스트 통과 |
-| 끊긴 참조(cross-file) | STAGING_REF/preview:staging/build:staging/db:push:staging 잔여 0 | grep 0 (테스트 throw-검증 케이스만 의도적) |
-| 스크립트 체인 | `npm run preview`→build(prebuild가드 로컬통과)→vite preview 4173, playwright webServer·baseURL 매칭 | 정합 |
-| Universal gate | `npm run validate` | 통과 (tsc, eslint 0warn, vitest, vite build, secret scan) |
-| 코드 리뷰 | 내장 /code-review high (Codex는 환경문제로 불가→내장 대체) | **FAIL 0** (`[]`) |
+| 아키텍처 앱 QA UI/IPC 복원 | preload/main/renderer 타입 정합, QA 버튼/인박스/props 연결 확인 | `npm run validate` 통과 |
+| QA GitHub workflow 복원 | workflow 문법/runner local env 주입 확인 | `ruby -e 'require \"yaml\"; YAML.load_file(\".github/workflows/qa-dispatch.yml\")'` 통과 |
+| 아키텍처 앱 전용 변경 | Electron/architecture 전용 번들 빌드 확인 | `npm run map:build` 통과 |
+| Universal gate | 타입/린트/프로덕션 빌드 확인 | `npm run validate` 통과 |
 
 ## 교훈
-- **원격 staging은 EF/secret/마이그를 prod와 계속 싱크해야 의미**가 있다. 2개만 배포된 껍데기 staging은 MyPage 같은 EF 의존 화면이 죄다 404로 깨져 오히려 디버깅 노이즈. local Docker는 모든 EF를 자동 serve하므로 EF 동작 검증엔 local이 우월하고, super admin 게이트처럼 순수 클라 로직은 local=prod 동일.
-- staging 고유 실익(EF 콜드스타트 race)은 이전에도 prod 직배포로 우회해 와서 실사용<유지비였음 → 제거가 합리적.
-
-## 비고
-- Codex 리뷰는 `gpt-5.4 미지원`+토큰 stale로 2회 실패 → 사용자 승인 하에 내장 `/code-review`로 대체(FAIL 0).
-- QA(playwright) 실행 시 `npm run db:start` 선행 필요(webServer가 local Docker 백엔드 기동). 주석 명시함.
+- `staging 제거`와 `QA GitHub 표면 제거`를 같은 작업으로 취급하면 운영 표면을 과삭제하게 된다. QA 실행 위치와 QA 백엔드 대상을 분리해 판단해야 한다.
+- 로컬 Visible QA는 디버그 편의 경로이고, GitHub QA는 재현 가능한 runner 경로다. 둘 중 하나를 정리할 때 다른 하나의 역할까지 지우지 말아야 한다.

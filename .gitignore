@@ -7,6 +7,11 @@ playwright-report
 test-results
 .qa-debug-runs
 /architecture-*.js
+# 아키텍처 맵(본인 전용 electron 도구) — git 추적 제외. 메인 웹앱 빌드 무관.
+src/architecture/
+src/app/components/admin/architecture/
+src/app/components/admin/LiveArchitectureMap.tsx
+src/generated/architectureMap.json
 # 모든 .env류 기본 차단(.env.production/.env.deploy 등 비밀 누수 방지). 공유용 예시만 allowlist.
 .env
 .env.*

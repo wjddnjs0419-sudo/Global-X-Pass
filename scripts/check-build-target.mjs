@@ -5,6 +5,7 @@ import { readFileSync, existsSync } from "node:fs";
 
 const isCI = process.env.CI === "true" || process.env.NETLIFY === "true";
 if (!isCI) process.exit(0); // 로컬 빌드는 무조건 통과
+if (process.env.ALLOW_LOCAL_BUILD_IN_CI === "1") process.exit(0); // GitHub QA runner의 local stack preview 허용
 
 // URL 소스: 환경변수 우선, 없으면 루트 .env 파일에서 파싱
 let url = process.env.VITE_SUPABASE_URL;

@@ -3,6 +3,7 @@
 > **CRITICAL:** Doc track past mistake, build fail, architecture pitfall. Stop recur. AI agent MUST review before change.
 
 ## 🚫 Anti-Patterns & Lessons Learned
+- [2026-06-04] **Staging Removal ≠ QA Surface Removal:** staging 백엔드 제거를 QA GitHub 실행 표면 삭제로 확대 해석 금지. 먼저 “QA가 어디서 실행되는가(GitHub runner vs 현재 Mac)”와 “어느 백엔드를 향하는가(local stack vs deployed target)”를 분리해 판단.
 - [2026-05-28] **Undefined CSS Token Theme Drift:** 인라인 스타일에서 `var(--color-brand-strong)` 같은 **미정의** CSS 변수 금지. `theme.css`에 없는 토큰은 fallback 없으면 빈 값→라이트 모드 버튼 배경 투명+흰 글자, 선택 토글 강조 테두리 사라짐. primary 강조엔 실재 변수(`--color-accent-blue`, `--color-accent-blue-soft-bg`, `--color-accent-blue-hover`, `--color-on-primary`)만 쓰고, 새 토큰 필요시 `theme.css`의 `:root`와 `html:not(.dark)` 양쪽에 라이트/다크 값 함께 정의.
 - [2026-05-27] **UI Cleanup Overdelete:** UI 수정 후 찌꺼기 제거할 때 현재 의도된 기능 진입점까지 삭제 금지. 옛 state/handler/중복 UI/낡은 저장 경로는 제거하되, 관리자 수정 버튼처럼 현재 UX 필요 affordance는 새 표준 경로로 재연결해 보존.
 - [2026-05-22] **Company News Broad Keyword Intake:** 기업 뉴스 크롤러에서 회사명 없는 광범위 키워드(`AI`, `스타트업`, `투자` 등) 결과 그대로 저장 금지. 회사명/강한 키워드 관련도 점수와 `matched_terms` 계산해 기준 미달 기사 저장 전 제외.

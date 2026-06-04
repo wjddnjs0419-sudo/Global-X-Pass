@@ -509,6 +509,57 @@ function shellQuote(value) {
   return `'${String(value).replace(/'/g, "'\\''")}'`;
 }
 
+function runLoginShellCommand(command, { timeout = 15000 } = {}) {
+  return new Promise((resolve, reject) => {
+    execFile(
+      "/bin/zsh",
+      ["-l", "-c", command],
+      { cwd: projectRoot, timeout, maxBuffer: 1024 * 1024 },
+      (error, stdout = "", stderr = "") => {
+        if (error) {
+          error.stdout = stdout;
+          error.stderr = stderr;
+          reject(error);
+          return;
+        }
+        resolve({ stdout, stderr });
+      },
+    );
+  });
+}
+
+async function checkLocalSupabaseReady() {
+  try {
+    await runLoginShellCommand("supabase status");
+    return { ok: true };
+  } catch (error) {
+    const stderr = String(error?.stderr || "").trim();
+    const stdout = String(error?.stdout || "").trim();
+    const detail = stderr || stdout || String(error?.message || "");
+    return {
+      ok: false,
+      reason: detail.includes("command not found")
+        ? "Supabase CLI를 찾지 못했습니다. 먼저 CLI를 사용할 수 있는 셸에서 `npm run db:start`가 동작하는지 확인해 주세요."
+        : "로컬 Supabase가 실행 중이 아닙니다. 먼저 `npm run db:start`를 실행한 뒤 다시 시도해 주세요.",
+    };
+  }
+}
+
+function buildVisibleQaBlockedCommand(reason) {
+  return [
+    "show_local_qa_blocked() {",
+    "  printf '\\n▶ Local Visible QA blocked\\n\\n';",
+    `  printf '%s\\n\\n' ${shellQuote(reason)};`,
+    "  printf '다음 명령으로 로컬 Supabase를 먼저 실행하세요.\\n';",
+    "  printf '  npm run db:start\\n';",
+    "  printf '\\n로컬 스택이 올라온 뒤 다시 \"로컬 화면 실행\"을 눌러 주세요.\\n';",
+    "};",
+    "show_local_qa_blocked;",
+    "printf '\\nPress Enter to close this terminal...';",
+    "read qa_close_prompt;",
+  ].join(" ");
+}
+
 function buildVisibleQaCommand(suiteInput) {
   const suite = normalizeQaSuite(suiteInput);
   const specs = QA_VISIBLE_SPECS_BY_SUITE[suite] ?? [];
@@ -538,7 +589,7 @@ function buildVisibleQaCommand(suiteInput) {
     "  done;",
     "  if [ \"$missing\" -eq 1 ]; then",
     "    printf '\\nLocal Visible QA runs on this Mac, so it cannot read GitHub Secrets back from Actions.\\n';",
-    "    printf 'Tip for next time: cp .env.qa.example .env.qa && edit .env.qa\\n';",
+    "    printf 'Tip for next time: create .env.qa and export the QA_* values there.\\n';",
     "    printf '\\nEnter QA credentials for this run. Leave any value blank to abort.\\n';",
     "    if [ -z \"${QA_ADMIN_EMAIL:-}\" ]; then printf 'QA admin email: '; IFS= read -r QA_ADMIN_EMAIL; export QA_ADMIN_EMAIL; fi;",
     "    if [ -z \"${QA_ADMIN_PASSWORD:-}\" ]; then printf 'QA admin password: '; stty -echo; IFS= read -r QA_ADMIN_PASSWORD; stty echo; printf '\\n'; export QA_ADMIN_PASSWORD; fi;",
@@ -620,6 +671,15 @@ async function openNativeTerminal(command) {
 
 async function runVisibleQaSuite(suiteInput) {
   const suite = normalizeQaSuite(suiteInput);
+  const supabaseStatus = await checkLocalSupabaseReady();
+  if (!supabaseStatus.ok) {
+    await openNativeTerminal(buildVisibleQaBlockedCommand(supabaseStatus.reason));
+    return {
+      ok: false,
+      error: supabaseStatus.reason,
+      statusCode: 412,
+    };
+  }
   await openNativeTerminal(buildVisibleQaCommand(suite));
   return {
     ok: true,
@@ -760,9 +820,9 @@ function createWindow() {
     }
   });
 
-  ipcMain.handle("qa:read-runs", async () => {
+  ipcMain.handle("company-news:read-runs", async () => {
     try {
-      return await readQaWorkflowRuns();
+      return await readCompanyNewsWorkflowRuns();
     } catch (err) {
       return {
         ok: false,
@@ -773,9 +833,9 @@ function createWindow() {
     }
   });
 
-  ipcMain.handle("company-news:read-runs", async () => {
+  ipcMain.handle("qa:read-runs", async () => {
     try {
-      return await readCompanyNewsWorkflowRuns();
+      return await readQaWorkflowRuns();
     } catch (err) {
       return {
         ok: false,

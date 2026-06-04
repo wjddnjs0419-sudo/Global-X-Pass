@@ -1,5 +1,5 @@
 # Global X Pass - Codex QA Automation Guide
-> **⚠️ 주의 (Security Warning):** QA 자격·MFA 시크릿 평문 금지. 로컬 셸 env 또는 GitHub Actions Secrets만 사용.
+> **⚠️ 주의 (Security Warning):** QA 자격·MFA 시크릿 평문 금지. 로컬 셸 env, `.env.qa`, 또는 GitHub Actions Secrets만 사용.
 
 ## 1. QA Persona (역할 부여)
 - **Role:** 10년차 시니어 프론트엔드 QA 엔지니어
@@ -22,7 +22,7 @@
 - 로컬/CI env: `QA_ADMIN_EMAIL`, `QA_ADMIN_PASSWORD`, `QA_ADMIN_MFA_SECRET`
 - MFA 인증 (필수): Node.js `otplib`(또는 동급) 사용, `QA_ADMIN_MFA_SECRET` 기반 6자리 TOTP 실시간 생성 주입.
 - OTP 자동화: MFA 입력 화면 시 인증 앱 읽지 말고 `QA_ADMIN_MFA_SECRET`로 현 시점 TOTP 계산 입력. 값은 실 관리자 등록 MFA 시크릿과 항상 일치 필수.
-- GitHub Actions: 동일 이름(`QA_ADMIN_EMAIL`, `QA_ADMIN_PASSWORD`, `QA_ADMIN_MFA_SECRET`) Secrets 등록, Playwright 워크플로우 주입.
+- GitHub Actions: 동일 이름(`QA_ADMIN_EMAIL`, `QA_ADMIN_PASSWORD`, `QA_ADMIN_MFA_SECRET`) Secrets 등록, Playwright workflow에 주입.
 
 ## 2-1. Admin Login Automation Fallback (관리자 로그인 자동화 우회 절차)
 관리자 로그인 QA: MFA OTP 단계 전 로그인 폼 입력 실제 브라우저 반영 여부 먼저 확인. 본 프로젝트는 로그인 입력란이 일반 `fill/type`에 즉시 반응 안 한 사례 있음, 아래 순서 기본 절차로 사용.
@@ -63,11 +63,13 @@ QA 시작 시 아래 번호/항목명 선택 진행. 요청 간단하면 번호�
    - 대상: 아키텍처 앱 `Ops` 탭 또는 GitHub Actions `qa-dispatch.yml`
    - 선택값: `smoke`, `admin-auth`, `auth-negative`, `admin-post-cud`, `admin-program-mgmt`, `user-event-application`, `user-consulting-booking`, `user-founders-club`, `user-flows`, `all`
    - 핵심: 운영자 필요 suite만 직접 실행. cron 자동 실행 미사용.
-   - 실행 모드: `GitHub 실행 기록`은 Actions 실제 CI runner 기준 수행, 기본 Playwright `trace`·실패 시 `screenshot` 아티팩트 남김. `video`는 기본 비활성, 필요 시 opt-in. QA 아티팩트 보관 현재 `3일`. `로컬 화면 실행`은 Mac iTerm/Terminal에서 `--headed` Playwright 실행해 Chromium 진행 화면 직접 노출하는 디버그용.
+   - 실행 모드: `GitHub 실행`은 Actions runner가 **local Supabase stack을 부팅한 뒤** 그 로컬 백엔드에 against 하여 Playwright를 수행한다. staging 백엔드는 사용하지 않는다. `로컬 화면 실행`은 현재 Mac iTerm/Terminal에서 `--headed` Playwright를 띄워 Chromium 진행 화면을 직접 노출하는 디버그용이다.
+   - 선행조건: `GitHub 실행`은 runner가 스스로 Supabase를 띄운다. `로컬 화면 실행`은 `npm run db:start`로 로컬 Supabase를 먼저 기동해야 하며, 아키텍처 앱은 실행 전에 이 상태를 확인하고 미기동이면 Playwright를 시작하지 않고 안내를 띄운다.
+   - 외부 타깃 smoke: 배포 환경 확인이 꼭 필요하면 아키텍처 앱 GitHub/local 기본경로 대신 터미널에서 `PW_BASE_URL=... npx playwright test ...`로 수동 override 한다.
    - 커버리지: `smoke`는 홈/헤더 드롭다운/로그인 진입·관리자 작성 폼 전환 빠른 확인. `admin-auth`는 정상 관리자 로그인/MFA/로그아웃. `auth-negative`는 잘못된 비밀번호/OTP·비관리자 `/admin` 접근 차단. `admin-post-cud`는 관리자 게시물 CUD·공개 게시판 반영. `admin-program-mgmt`는 컨설팅/Founder's Club 관리 CUD·공개 페이지 반영. `user-event-application`, `user-consulting-booking`, `user-founders-club`는 일반 유저 신청/예약 플로우 각 독립 검증. `user-flows`는 세 유저 suite 묶음. 릴리스 전 광범위 회귀는 `all` 기준 판단.
    - 런타임 감시: QA suite는 `pageerror`, `console.error`, 주요 `document/script/xhr/fetch` request 실패·5xx 응답 감시, 화면 shell만 뜨는 false positive 축소. 이미지 등 주변 리소스 실패는 기본 실패 조건 제외.
    - 로컬 Visible 준비: 아키텍처 앱 `Ops` 탭 `Visible QA 계정` 영역에 `QA_ADMIN_EMAIL`, `QA_ADMIN_PASSWORD`, `QA_ADMIN_MFA_SECRET` 저장 시 관리자 계정 이후 자동 주입. 일반 유저 suite는 `QA_USER_EMAIL`, `QA_USER_PASSWORD` 추가 필요, `.env.qa` 또는 shell env 함께 넣거나 터미널 prompt에서 직접 입력. GitHub Secrets 값은 보안상 로컬 재조회 불가.
-   - 실행 비용: `smoke`, `admin-auth`, `auth-negative`는 가벼움. `admin-post-cud`, `admin-program-mgmt`는 관리자 CUD 데이터 정리 포함 중간 비용. `user-*` suite는 관리자 준비 + 유저 행동 + cleanup 포함, 가장 무거움. 첫 GitHub 실행은 Playwright browser cache 비어 느림 가능, 이후 동일 revision은 빨라짐.
+   - 실행 비용: `smoke`, `admin-auth`, `auth-negative`는 가벼움. `admin-post-cud`, `admin-program-mgmt`는 관리자 CUD 데이터 정리 포함 중간 비용. `user-*` suite는 관리자 준비 + 유저 행동 + cleanup 포함, 가장 무거움. 첫 GitHub 실행은 Playwright browser cache가 비어 느릴 수 있다.
    - 데이터 안전: CUD suite는 `QA_E2E_<runId>_...` prefix 데이터만 생성·정리 필수.
 
 ## 4. Execution Rule (실행 규칙)

@@ -10,7 +10,9 @@
 
 ## Done
 
-- [Done] staging 환경 완전 제거 → local→prod 2단 (2026-06-04) — EF 23중 2개뿐 껍데기라 제거. 상세 RESULT.md.
+- [Done] GitHub QA local-runner 복원 + Visible QA 사전 가드 (2026-06-04) — QA GitHub 표면 복원, runner 내부 local Supabase workflow 재구성, 로컬 Visible preflight 추가. 상세 RESULT.md.
+- [Done] Codex 세션 부트스트랩 즉시 실행 엔트리 추가 (2026-06-04) — `npm run codex:bootstrap` + AGENTS/규칙 문서 연결. 상세 RESULT.md.
+- [Done] staging 환경 완전 제거 → local→prod 2단 (2026-06-04) — 압축됨. 상세 RESULT_ARCHIVE.md.
 - [Done] 무기한 MFA 우회 — 압축됨. 상세 RESULT_ARCHIVE.md.
 - [Done] 슈퍼어드민 무기한 우회 영구락 수정 (2026-06-03) — 압축됨. 상세 RESULT_ARCHIVE.md.
 - [Done] 무기한 MFA 우회 옵션 + "안 함"→"해제" 라벨 (2026-06-03) — 압축됨. 상세 RESULT_ARCHIVE.md.
@@ -18,8 +20,6 @@
 - [Done] UX layout/action 자동 추적 제거 + 아키텍처 인박스 UX 이슈 필터링 (2026-06-02) — 압축됨. 상세 RESULT_ARCHIVE.md.
 - [Done] 어드민 refocus 깜빡임 + 응답 테이블 ellipsis + 대시보드 차트 정렬 (2026-06-02) — 압축됨. 상세 RESULT_ARCHIVE.md.
 - [Done] 행사 신청 승인제(선별제) 전환 (2026-06-02) — 압축됨. 상세 RESULT_ARCHIVE.md.
-- [Done] 처리내역 어드민 영구삭제 버튼 (2026-06-01) — 압축됨. 상세 RESULT_ARCHIVE.md.
-- [Done] 행사 신청서 동적 질문 — 압축됨. 상세 RESULT_ARCHIVE.md.
 
 ## Future / 추후 수정
 
