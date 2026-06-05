@@ -5,8 +5,8 @@
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
-    "codex:bootstrap": "node scripts/codex-bootstrap.mjs",
     "diet": "node scripts/compact-docs.mjs",
+    "claude:bootstrap": "node scripts/claude-bootstrap.mjs",
     "prebuild": "node scripts/check-build-target.mjs",
     "build": "vite build",
     "dev": "vite",

@@ -10,7 +10,7 @@
 
 ## Done
 
-- [Done] 프로젝트 이관 핸드오프 정비 (2026-06-04) — env.example 3종·README·START_HERE·ONBOARDING 보강, 2커밋 푸시. 상세 RESULT.md.
+- [Done] 프로젝트 이관 핸드오프 정비 (2026-06-04) — 압축됨. 상세 RESULT_ARCHIVE.md.
 - [Done] GitHub QA local-runner 복원 + Visible QA 사전 가드 (2026-06-04) — 압축됨. 상세 RESULT_ARCHIVE.md.
 - [Done] Codex 세션 부트스트랩 즉시 실행 엔트리 추가 (2026-06-04) — 압축됨. 상세 RESULT_ARCHIVE.md.
 - [Done] staging 환경 완전 제거 → local→prod 2단 (2026-06-04) — 압축됨. 상세 RESULT_ARCHIVE.md.

@@ -1,11 +1,11 @@
 # AGENTS.md
 
-File guide Codex (Codex.ai/code) for repo.
+File guide Claude Code for repo.
 
-## Codex Startup
+## Claude Startup
 
-- 새 Codex chat/session 시작 직후, 답변 전에 프로젝트 루트에서 `npm run codex:bootstrap` 실행.
-- 사용자 첫 메시지가 정확히 `ㅎㅇ`이면 일반 인사 금지, `npm run codex:bootstrap` 재실행 후 그 요약으로 첫 응답 시작.
+- 새 chat/session 시작 직후, 답변 전에 프로젝트 루트에서 `npm run claude:bootstrap` 실행.
+- 사용자 첫 메시지가 정확히 `ㅎㅇ`이면 일반 인사 금지, `npm run claude:bootstrap` 재실행 후 그 요약으로 첫 응답 시작.
 - 부트스트랩 출력의 기본 골격은 `현재 컨텍스트 / 최근 완료 / 대기 계획 / 주요 리스크` 유지.
 
 ## Mandatory Workflow
@@ -19,7 +19,7 @@ Codex 전용 추가 규칙:
 ## Commands
 
 ```bash
-npm run codex:bootstrap # Codex session bootstrap summary
+npm run claude:bootstrap # Claude session bootstrap summary
 npm run dev      # Start dev server (Vite, default port 5173 or 5174 if occupied)
 npm run build    # Production build → dist/
 npm run validate # Typecheck + lint + production build verification
