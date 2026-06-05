@@ -6,10 +6,11 @@
 (없음)
 
 ## In Progress
-(없음)
+- 카드뉴스 슬라이더 **시각 확인 대기** (빈 공간/흰 띠) + 추가 수정 예정 → 다음 세션에서 마무리 후 **최종 DEPLOY** 예정 (2026-06-05).
 
 ## Done
 
+- [Done] insight 카드뉴스 슬라이더(PDF 좌우 스와이프) + 상세/어드민 연결 (2026-06-05) — 압축됨. 상세 RESULT_ARCHIVE.md.
 - [Done] 프로젝트 이관 핸드오프 정비 (2026-06-04) — 압축됨. 상세 RESULT_ARCHIVE.md.
 - [Done] GitHub QA local-runner 복원 + Visible QA 사전 가드 (2026-06-04) — 압축됨. 상세 RESULT_ARCHIVE.md.
 - [Done] Codex 세션 부트스트랩 즉시 실행 엔트리 추가 (2026-06-04) — 압축됨. 상세 RESULT_ARCHIVE.md.
@@ -19,7 +20,6 @@
 - [Done] 무기한 MFA 우회 옵션 + "안 함"→"해제" 라벨 (2026-06-03) — 압축됨. 상세 RESULT_ARCHIVE.md.
 - [Done] 게시판 접근권한 토글 미반영 버그 수정 (2026-06-02) — 압축됨. 상세 RESULT_ARCHIVE.md.
 - [Done] UX layout/action 자동 추적 제거 + 아키텍처 인박스 UX 이슈 필터링 (2026-06-02) — 압축됨. 상세 RESULT_ARCHIVE.md.
-- [Done] 어드민 refocus 깜빡임 + 응답 테이블 ellipsis + 대시보드 차트 정렬 (2026-06-02) — 압축됨. 상세 RESULT_ARCHIVE.md.
 
 ## Future / 추후 수정
 

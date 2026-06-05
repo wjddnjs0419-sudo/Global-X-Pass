@@ -91,6 +91,12 @@ export function isImage(url: string): boolean {
   return false;
 }
 
+export function isPdf(url: string): boolean {
+  const fileName = getFileNameFromUrl(url);
+  if (fileName.toLowerCase().endsWith(".pdf")) return true;
+  return url.split("?")[0].toLowerCase().endsWith(".pdf");
+}
+
 export function isBrowserSafeImageFile(file: File): boolean {
   return file.type.startsWith("image/") && file.type !== "image/svg+xml";
 }

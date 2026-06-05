@@ -1,0 +1,175 @@
+/* CardNewsSlider — insight PDF 카드뉴스 슬라이더 전용 스타일
+ * 프로젝트 테마 변수(var(--color-*))를 사용해 다크모드와 일관성을 유지한다.
+ * Swiper 내부 클래스(.swiper-button-*, .swiper-pagination-*)는 inline으로
+ * 타깃할 수 없어 여기서 오버라이드한다. */
+
+.card-news-slider {
+  /* 카테고리별 강조색 — 화살표/인디케이터에 사용. 기본은 NCF 액센트 */
+  --cns-accent: var(--color-accent-ncf, #2f6df6);
+  --cns-radius: 14px;
+
+  position: relative;
+  width: 100%;
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.card-news-slider--report {
+  --cns-accent: var(--color-accent-ncf, #2f6df6);
+}
+.card-news-slider--issue-paper {
+  --cns-accent: var(--color-accent-tech, #0fa3a3);
+}
+.card-news-slider--trend-report {
+  --cns-accent: var(--color-accent-ceo, #7c5cff);
+}
+
+/* 흰 카드 프레임(배경/그림자/테두리) 없이 PDF 슬라이드만 보이게 한다.
+   swiper 루트·wrapper·slide·react-pdf Page·canvas까지 전부 투명 처리. */
+.card-news-slider__swiper,
+.card-news-slider__swiper .swiper-wrapper,
+.card-news-slider__slide,
+.card-news-slider__page,
+.card-news-slider__page canvas,
+.card-news-slider .react-pdf__Page,
+.card-news-slider .react-pdf__Page__canvas {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 0 !important;
+}
+
+.card-news-slider__swiper {
+  width: 100%;
+  overflow: hidden;
+}
+
+.card-news-slider__slide {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  line-height: 0; /* 인라인 캔버스 하단의 baseline 여백 제거 */
+}
+
+/* react-pdf가 그리는 canvas — 슬라이드 너비에 꽉 차게 */
+.card-news-slider__page,
+.card-news-slider__page canvas {
+  display: block;
+  width: 100% !important;
+  height: auto !important;
+  max-width: 100%;
+}
+
+/* 레이지 윈도우 밖 페이지 placeholder (정사각 비율 유지) */
+.card-news-slider__placeholder {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background: var(--color-skeleton-bg, #eceff3);
+}
+
+/* ── 로딩 스켈레톤 ───────────────────────────────────────── */
+.card-news-slider__skeleton {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: var(--cns-radius);
+  background: var(--color-skeleton-bg, #eceff3);
+  overflow: hidden;
+}
+
+.card-news-slider__skeleton-shimmer {
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--color-glass-border, rgba(255, 255, 255, 0.35)) 50%,
+    transparent 100%
+  );
+  animation: card-news-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes card-news-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ── 에러 + 재시도 ───────────────────────────────────────── */
+.card-news-slider__error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  padding: 24px;
+  border-radius: var(--cns-radius);
+  background: var(--color-surface-card, #ffffff);
+  border: 1px solid var(--color-border-soft, #e3e7ee);
+  text-align: center;
+}
+
+.card-news-slider__error-text {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-primary, #1a1f29);
+}
+
+.card-news-slider__retry {
+  padding: 9px 20px;
+  border: none;
+  border-radius: 999px;
+  background: var(--cns-accent);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: opacity 0.16s ease;
+}
+.card-news-slider__retry:hover {
+  opacity: 0.85;
+}
+
+/* ── Swiper 화살표 버튼 오버레이 ─────────────────────────── */
+.card-news-slider__swiper .swiper-button-prev,
+.card-news-slider__swiper .swiper-button-next {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: var(--color-scrim, rgba(0, 0, 0, 0.45));
+  color: #ffffff;
+  backdrop-filter: blur(6px);
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+.card-news-slider__swiper .swiper-button-prev:hover,
+.card-news-slider__swiper .swiper-button-next:hover {
+  transform: scale(1.06);
+}
+.card-news-slider__swiper .swiper-button-prev::after,
+.card-news-slider__swiper .swiper-button-next::after {
+  font-size: 16px;
+  font-weight: 800;
+}
+.card-news-slider__swiper .swiper-button-disabled {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ── 페이지 인디케이터 (현재 / 전체) ─────────────────────── */
+.card-news-slider__swiper .swiper-pagination-fraction {
+  left: 50%;
+  bottom: 12px;
+  width: auto;
+  transform: translateX(-50%);
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--color-scrim, rgba(0, 0, 0, 0.45));
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  backdrop-filter: blur(6px);
+}

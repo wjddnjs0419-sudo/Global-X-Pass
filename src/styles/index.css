@@ -19,7 +19,7 @@
   font-size: 16px !important;
   line-height: 1.8 !important;
   /* 핵심 수정: !important를 제거하여 각 페이지(FAQ 등)에서 높이를 개별 조절할 수 있게 합니다. */
-  min-height: 400px; 
+   min-height: 400px; 
 }
 
 /* 💡 Tailwind CSS 초기화(Reset)로부터 에디터 서식 보호 */
@@ -372,6 +372,12 @@
 .naver-se-content .ql-editor {
   min-height: 0 !important;
   white-space: normal !important;
+}
+
+/* 카드뉴스 상세 본문: 짧은 텍스트에도 .ql-editor 기본 min-height(400px)로
+   큰 빈 공간이 생겨 카드뉴스가 밀리는 것을 막는다. */
+.card-news-body .ql-editor {
+  min-height: 0 !important;
 }
 
 /* SE 빈 단락 숨김 (whitespace / &nbsp; 전용 줄) */

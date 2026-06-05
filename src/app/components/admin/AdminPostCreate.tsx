@@ -1200,38 +1200,8 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
           <div style={{ display: "grid", gridTemplateColumns: isMediaWideType ? "minmax(0, 1fr)" : "minmax(0, 0.9fr) minmax(0, 1.1fr)", gap: 16, marginTop: 20 }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: 18, background: panelBg, border: `1px solid ${labelBorder}`, borderRadius: 14 }}>
               <div>
-                <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: textMain }}>표지 이미지</p>
-                <p style={{ margin: "6px 0 0", fontSize: 12, color: textMuted, lineHeight: 1.5 }}>목록과 홈은 세로형 540:675로 표시되고, 아래에서 썸네일 범위를 직접 지정할 수 있습니다.</p>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: textMuted }}>상세 좌측 표지 비율</p>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {([
-                    { value: "540/675", label: "세로형 540:675" },
-                    { value: "1/1", label: "정사각형 1:1" },
-                  ] as const).map((option) => {
-                    const isSelected = mediaDetailCoverAspect === option.value;
-                    return (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => setMediaDetailCoverAspect(option.value)}
-                        style={{
-                          padding: "8px 12px",
-                          borderRadius: 10,
-                          border: `1px solid ${isSelected ? labelBorder : border}`,
-                          background: isSelected ? selectedBg : inputBg,
-                          color: isSelected ? textMain : textMuted,
-                          fontSize: 12,
-                          fontWeight: isSelected ? 800 : 700,
-                          cursor: "pointer",
-                        }}
-                      >
-                        {option.label}
-                      </button>
-                    );
-                  })}
-                </div>
+                <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: textMain }}>목록 썸네일 이미지</p>
+                <p style={{ margin: "6px 0 0", fontSize: 12, color: textMuted, lineHeight: 1.5 }}>인사이트 목록·홈에 노출되는 세로형 540:675 썸네일입니다. 아래에서 표시 범위를 지정할 수 있습니다. (상세 페이지는 첨부한 PDF가 카드뉴스 슬라이더로 표시됩니다.)</p>
               </div>
               {existingMediaCoverUrl && (
                 <div style={{ display: "flex", gap: 12, alignItems: "center", padding: 12, background: inputBg, border: `1px solid ${border}`, borderRadius: 12 }}>
@@ -1261,7 +1231,7 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
               )}
               <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 112, padding: "22px 18px", background: "var(--color-surface-card)", border: `2px dashed ${labelBorder}`, borderRadius: 14, cursor: "pointer", color: textMain, gap: 8 }}>
                 <input type="file" accept="image/*" onChange={handleMediaCoverChange} style={{ display: "none" }} />
-                <span style={{ fontWeight: 800, color: textMain }}>+ 표지 이미지 선택</span>
+                <span style={{ fontWeight: 800, color: textMain }}>+ 목록 썸네일 이미지 선택</span>
                 <span style={{ fontSize: 12, color: textMuted, textAlign: "center" }}>정사각형 원본도 목록에서는 아래 crop 범위 기준으로 표시됩니다.</span>
               </label>
               {renderMediaListThumbnailPicker()}

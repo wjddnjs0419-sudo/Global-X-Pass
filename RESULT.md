@@ -1,24 +1,27 @@
-# RESULT: 프로젝트 이관 핸드오프 정비 — 2026-06-04
+# RESULT: insight 카드뉴스 슬라이더(PDF 좌우 스와이프) — 2026-06-05
 
 ## 배경
-- 목표: 새 컴퓨터에서 `git clone` + 비밀 env 1회 복붙만으로 로컬+prod 동작하도록 이관 경로 정비.
-- 인수자가 **코딩 문외한**이라는 제약 추가 → 설치는 전임자가 해주되, 유지보수 흐름을 비개발자도 이해하게 별도 문서 필요.
-- 한계: 비밀키(특히 prod와 동일한 `ENCRYPTION_SECRET_KEY`)는 git 불가 → "clone 한 방"은 구조상 불가, "clone + 비밀 복붙"으로 목표 하향.
+- 목표: insight 마켓/테크/CEO(=report/issue-paper/trend-report) 게시물의 PDF를 인스타처럼 좌우 스와이프 카드뉴스로 표시.
+- 기존 파일 최소 수정 + 신규 컴포넌트 추가 원칙.
 
 ## 구현
-- **env 템플릿 3종 신규**: `.env.example`(로컬 dev — 로컬 기본값은 실값, 진짜 비밀은 placeholder), `.env.production.local.example`(prod — 전부 placeholder), `supabase/functions/.env.example`(로컬 EF). `.gitignore`에 `!.env.production.local.example` allowlist 추가.
-- **보안 검증**: 로컬 `ENCRYPTION_SECRET_KEY`가 prod와 **동일한 실비밀**임을 확인 → 템플릿에 placeholder 처리, 추적 문서에 키 흔적 0 확인.
-- **README.md 신규**: 저장소 진입점. 비개발자→START_HERE, 개발자→ONBOARDING 분기 + 문서 지도.
-- **START_HERE.md 신규**: 코딩 입문자용. 도구 비유표, 로컬vs프로덕션 큰그림, 유지보수 4단계, 🚨 빨간줄 4개, 작업표, Claude Code 첫 문장.
-- **ONBOARDING.md §4 보강**: §4-0 환경비교표(맥 실측 버전 기준 Windows 설치 목록), §4-4 Windows 함정(WSL2 Docker, npm script-shell=bash), §4-5 트러블슈팅 5종, §4-1 임의키 prod 재사용 경고, §4-2 배포순서(마이그→코드)+Windows 안내, db:start→db:reset로 seed 확정.
+- **패키지**: react-pdf 10.4.1 + swiper 12.2.0 설치(peer dep 충돌 없음). pdfjs-dist 5.4.296은 react-pdf 번들 사용(별도 설치 X). worker = `new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url)`.
+- **신규 `src/app/components/insight/CardNewsSlider.tsx` + `.css`**: Document/Page 렌더 + Swiper(Navigation/Pagination(fraction)/Keyboard/A11y), 레이지(현재±1만 렌더), 스켈레톤·에러+재시도. props `category`=실제 MediaCategoryId. usage 주석 포함.
+- **상세 연결 `PortraitMediaPostView`**: 카드뉴스(포트레이트 + PDF 첨부)면 좌측 표지 슬롯 대신 **본문 단일 컬럼에 크게(680px)** 슬라이더. 비카드뉴스는 기존 2단 유지. `isPdf` 헬퍼 추가(utils/file.ts). PDF 판별 = model.files(이미지 제외 첨부)에서 .pdf.
+- **어드민 `AdminPostCreate`**: "상세 좌측 표지 비율(540:675/1:1)" 컨트롤 제거 + 섹션을 "목록 썸네일 이미지"로 리라벨. 업로드+목록 썸네일 편집기는 **유지**(목록 썸네일이 표지 이미지를 소스로 크롭하므로 업로드 제거 불가).
+- **vite.config manualChunks**: pdf/swiper 전용 **지연 청크** 분리(vendor 88kB 유지, pdf 459kB·swiper 103kB는 카드뉴스 진입 시에만 로드).
+- **레이아웃 다듬기**: 본문을 슬라이더 위로 이동 / 흰 카드 프레임(배경·그림자·테두리) 제거→transparent / autoHeight 재측정(onRenderSuccess→updateAutoHeight) / 본문 `.ql-editor` 전역 min-height(400px) → `.card-news-body .ql-editor {min-height:0!important}`(index.css)로 빈 공간 제거.
 
 ## Verification Matrix
-| Change Type | Required Extra Checks | Result |
+| Change | Checks | Result |
 |---|---|---|
-| env 템플릿 + gitignore | 예시 추적가능·실비밀 차단·비밀누수 0 | `git check-ignore` + grep 통과 |
-| 문서 정합 | cp 경로·앵커·명령어 사실성 | Codex 리뷰 FAIL 0 (WARN 3=커밋시 해소) |
-| 비밀 스캔 | 프론트 번들 secret 유출 | `npm run check:frontend-secrets` 통과 |
+| 컴포넌트/연결 | tsc·eslint·vitest(134)·build | 통과 |
+| 청크 분리 | pdf/swiper 지연, vendor 정상 | 통과 |
+| min-height 오버라이드 | 빌드 CSS에 `.card-news-body .ql-editor{min-height:0!important}` 확인 | 통과 |
+| 실제 화면(빈 공간/흰 띠) | 시각 확인 | **미확정 — 사용자 확인 대기** |
 
 ## 교훈
-- 로컬·prod env는 환경 키(URL/ANON/SERVICE_ROLE/SUPER_ADMIN_UID)는 다르고 `ENCRYPTION_SECRET_KEY`만 동일해야 함 — 이 하나가 어긋나면 prod PII 복호 영구 불능. 임의키 prod 재사용이 가장 위험한 인수 실수.
-- 이관 매뉴얼은 실제 시뮬레이션(빈 Windows 셋업)으로 구멍을 찾아야 함 — Docker WSL2, npm=cmd.exe bash 문법, 첫 이미지 풀 지연, 빈 암호화키 크래시는 책상 위 점검으론 안 보임.
+- `vite build`가 변경 직후 `html-inline-proxy` 오류로 간헐 실패 → `node_modules/.vite`+`dist` 삭제 후 재빌드로 해소(OneDrive 파일 잠금 추정).
+- Tailwind v4 임의 변형(`[&_.ql-editor]:min-h-0`)은 dev JIT가 HMR 중 즉시 생성 못 해 dev 화면 미반영 가능 → **정적 CSS 규칙**으로 작성해야 안정적.
+- 카드뉴스 위 흰 띠는 PDF 첫 페이지 자체의 상단 마진(파일 내부) → CSS로 제거 불가.
+- 카드뉴스 미표시 시 점검: tags가 report/issue-paper/trend-report 인지 **+** PDF 첨부 존재 여부(둘 다여야 슬라이더 렌더).

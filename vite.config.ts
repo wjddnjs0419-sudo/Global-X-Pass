@@ -92,6 +92,8 @@ export default defineConfig({
           ) return 'react-vendor'
           if (id.includes('/react-dnd') || id.includes('/dnd-core')) return 'dnd'
           if (id.includes('/react-slick') || id.includes('/slick-carousel')) return 'slick'
+          if (id.includes('/pdfjs-dist/') || id.includes('/react-pdf/')) return 'pdf'
+          if (id.includes('/swiper/')) return 'swiper'
           if (id.includes('/lucide-react/') || id.includes('/react-day-picker/') || id.includes('/react-hook-form/')) return 'ui'
           return 'vendor'
         },
