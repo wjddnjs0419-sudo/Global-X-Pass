@@ -6,7 +6,7 @@
 (없음)
 
 ## In Progress
-- **배포 진행 중** (2026-06-05): HWP/HWPX 첨부 + 다운로드 수정 + 카드뉴스. validate·prod build 통과(dist=prod 백엔드 확인). 잔여 2단계 = ① prod DB push(`.env.deploy.local`의 `SUPABASE_DB_URL_PROD` 비어 있어 사용자 입력 필요) ② netlify 수동 배포(dist/ 드래그드롭 또는 CLI). 코드 커밋 완료.
+- **배포 마무리 중** (2026-06-05): HWP/HWPX 첨부 + 다운로드 수정 + 카드뉴스. ✅ 코드 커밋(`44a49480`) ✅ prod DB push 완료(HWPX 버킷 마이그 적용, "up to date" 확인) ✅ prod build(dist=prod 백엔드). **잔여 1단계 = netlify에 dist/ 드래그드롭(사용자)** + 선택: `git push origin main`.
 
 ## Done
 

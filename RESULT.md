@@ -23,7 +23,7 @@
 | 업로드 MIME | 로컬 업로드 후 객체 Content-Type=`application/x-hwp` | 통과(실측) |
 | 다운로드 | `?download` GET 시 `Content-Disposition: attachment; filename=<원본.hwp>` | 통과(실측) |
 | 로컬 버킷 MIME 확장 | docker psql로 `UPDATE storage.buckets` 직접 적용 | 통과(로컬만) |
-| prod 버킷 MIME 확장 | 마이그레이션 SQL 작성 | **prod push 대기(배포 시)** |
+| prod 버킷 MIME 확장 | `db:push:prod` 적용 후 "up to date" 확인 | 통과(prod 적용 완료) |
 
 ## 교훈
 - HWP/HWPX는 OS 등록 MIME이 없어 브라우저 `file.type`이 빈 문자열·`application/haansoft-hwp` 등으로 제각각 → **업로드 시 정규 MIME으로 `new File()` 재래핑**해야 공개 버킷 MIME 검증 통과.
