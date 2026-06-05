@@ -24,11 +24,12 @@ const AdminBlogQueueManagement    = lazy(() => import('../components/admin/Admin
 const AdminCompanyNewsManagement  = lazy(() => import('../components/admin/AdminCompanyNewsManagement'));
 const AdminExternalNewsManagement = lazy(() => import('../components/admin/AdminExternalNewsManagement'));
 const AdminBoardManagement        = lazy(() => import('../components/admin/AdminBoardManagement'));
+const AdminCompaniesManagement    = lazy(() => import('../components/admin/AdminCompaniesManagement'));
 
-type TabId = "dashboard" | "users" | "create" | "manage" | "boards" | "events" | "consulting" | "office-hours" | "founders" | "blog-queue" | "company-news" | "external-news";
+type TabId = "dashboard" | "users" | "create" | "manage" | "boards" | "companies" | "events" | "consulting" | "office-hours" | "founders" | "blog-queue" | "company-news" | "external-news";
 
 const ADMIN_ACTIVE_TAB_KEY = "gxp_admin_active_tab";
-const ADMIN_TABS: TabId[] = ["dashboard", "users", "create", "manage", "boards", "events", "consulting", "office-hours", "founders", "blog-queue", "company-news", "external-news"];
+const ADMIN_TABS: TabId[] = ["dashboard", "users", "create", "manage", "boards", "companies", "events", "consulting", "office-hours", "founders", "blog-queue", "company-news", "external-news"];
 
 const getStoredAdminTab = (): TabId => {
   if (typeof window === "undefined") return "dashboard";
@@ -258,6 +259,18 @@ export default function AdminPage() {
               </div>
             }>
               <AdminOfficeHourManagement />
+            </Suspense>
+          )}
+
+          {activeTab === "companies" && (
+            <Suspense fallback={
+              <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+                <div style={{ height: 33, width: 150, borderRadius: 8, background: skColor, animation: "pulse 1.5s ease-in-out infinite" }} />
+                <div style={{ height: 46, width: "100%", borderRadius: 12, background: skColor, animation: "pulse 1.5s ease-in-out infinite" }} />
+                <SkFallback rows={6} h={82} r={16} gap={12} />
+              </div>
+            }>
+              <AdminCompaniesManagement />
             </Suspense>
           )}
 
