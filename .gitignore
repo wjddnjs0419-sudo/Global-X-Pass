@@ -17,6 +17,7 @@ src/generated/architectureMap.json
 .env.*
 !.env.example
 !.env.production.local.example
+!.env.deploy.local.example
 .DS_Store
 *.local
 homepage_system_reference.md

@@ -37,10 +37,21 @@ npm run validate          # tsc+eslint+vitest+build+secret scan
 ```
 
 ### 2) 프로덕션 배포 (네가 직접)
+
+**(a) DB 마이그 — 2경로 중 택1 (DB 비밀번호는 비밀번호 매니저에 보관, 대시보드서 재열람 불가)**
+
 ```bash
-# (a) DB 먼저 — 가드가 ref 일치 + CONFIRM_PROD 강제(오발사 방지)
-export SUPABASE_DB_URL_PROD="postgresql://postgres.yzbjvkifwinumytehxgf:<pw>@<host>:6543/postgres"
-CONFIRM_PROD=yes npm run db:push:prod
+# [방법 A · 권장] CLI link — 호스트 주소 몰라도 됨, DB 비밀번호만 있으면 됨
+supabase login                                      # 브라우저 인증(1회)
+supabase link --project-ref yzbjvkifwinumytehxgf    # DB 비밀번호 1회 입력(프롬프트)
+supabase db push                                    # prod 적용. 이후 이 한 줄만 반복
+
+# [방법 B] 접속 URL을 .env.deploy.local 에 1회 저장 → npm 한 줄
+#   cp .env.deploy.local.example .env.deploy.local  (값 채우기: Session pooler URL + CONFIRM_PROD=yes)
+npm run db:push:prod   # --env-file-if-exists 로 .env.deploy.local 자동 로드, ref 가드 검증
+```
+
+```bash
 # (b) 코드 — 빌드 후 netlify 수동 배포 (자동빌드 연동 없음)
 npm run build                      # dist/ 생성. 로컬 빌드라 .env.production.local(prod URL) 로드
 #   검증: grep supabase.co dist/assets/*.js  → prod 백엔드 가리키는지 확인
