@@ -46,7 +46,11 @@ async function createBucket() {
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         'application/vnd.ms-powerpoint',
         'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        'application/x-hwp'
+        'application/x-hwp',
+        'application/haansoft-hwp',
+        'application/vnd.hancom.hwp',
+        'application/hwp+zip',
+        'application/vnd.hancom.hwpx'
       ]
     });
     if (updateError) console.error("Error updating bucket:", updateError);
@@ -66,7 +70,11 @@ async function createBucket() {
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         'application/vnd.ms-powerpoint',
         'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        'application/x-hwp'
+        'application/x-hwp',
+        'application/haansoft-hwp',
+        'application/vnd.hancom.hwp',
+        'application/hwp+zip',
+        'application/vnd.hancom.hwpx'
       ]
     });
     if (createError) console.error("Error creating bucket:", createError);

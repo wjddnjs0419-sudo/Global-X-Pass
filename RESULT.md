@@ -1,27 +1,33 @@
-# RESULT: insight 카드뉴스 슬라이더(PDF 좌우 스와이프) — 2026-06-05
+# RESULT: HWP/HWPX 첨부 지원 — 2026-06-05
 
 ## 배경
-- 목표: insight 마켓/테크/CEO(=report/issue-paper/trend-report) 게시물의 PDF를 인스타처럼 좌우 스와이프 카드뉴스로 표시.
-- 기존 파일 최소 수정 + 신규 컴포넌트 추가 원칙.
+- 목표: 게시물 첨부파일에 한글(HWP) + 최신 HWPX 포맷 업로드 가능하게.
+- 증상: `.hwp`는 이미 프론트 허용목록·accept·버킷 MIME에 등록돼 **선택은 되나 업로드가 실패**.
+- 근본 원인: 문서 업로드 지점(`AdminPostCreate` uploadFile)이 `upload(fileName, f)`에 **contentType 미지정** → HWP는 브라우저 `file.type`이 빈 문자열이라 `application/octet-stream`으로 올라가고, documents 버킷 `allowed_mime_types`(`application/x-hwp`만)가 이를 거부.
 
 ## 구현
-- **패키지**: react-pdf 10.4.1 + swiper 12.2.0 설치(peer dep 충돌 없음). pdfjs-dist 5.4.296은 react-pdf 번들 사용(별도 설치 X). worker = `new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url)`.
-- **신규 `src/app/components/insight/CardNewsSlider.tsx` + `.css`**: Document/Page 렌더 + Swiper(Navigation/Pagination(fraction)/Keyboard/A11y), 레이지(현재±1만 렌더), 스켈레톤·에러+재시도. props `category`=실제 MediaCategoryId. usage 주석 포함.
-- **상세 연결 `PortraitMediaPostView`**: 카드뉴스(포트레이트 + PDF 첨부)면 좌측 표지 슬롯 대신 **본문 단일 컬럼에 크게(680px)** 슬라이더. 비카드뉴스는 기존 2단 유지. `isPdf` 헬퍼 추가(utils/file.ts). PDF 판별 = model.files(이미지 제외 첨부)에서 .pdf.
-- **어드민 `AdminPostCreate`**: "상세 좌측 표지 비율(540:675/1:1)" 컨트롤 제거 + 섹션을 "목록 썸네일 이미지"로 리라벨. 업로드+목록 썸네일 편집기는 **유지**(목록 썸네일이 표지 이미지를 소스로 크롭하므로 업로드 제거 불가).
-- **vite.config manualChunks**: pdf/swiper 전용 **지연 청크** 분리(vendor 88kB 유지, pdf 459kB·swiper 103kB는 카드뉴스 진입 시에만 로드).
-- **레이아웃 다듬기**: 본문을 슬라이더 위로 이동 / 흰 카드 프레임(배경·그림자·테두리) 제거→transparent / autoHeight 재측정(onRenderSuccess→updateAutoHeight) / 본문 `.ql-editor` 전역 min-height(400px) → `.card-news-body .ql-editor {min-height:0!important}`(index.css)로 빈 공간 제거.
+- **`src/utils/file.ts`**:
+  - `DOCUMENT_EXTENSIONS`·`DOCUMENT_UPLOAD_ACCEPT`에 `.hwpx` 추가.
+  - `ALLOWED_DOCUMENT_MIME_TYPES`에 HWP/HWPX 변종 추가(`application/haansoft-hwp`, `application/vnd.hancom.hwp`, `application/hwp+zip`, `application/vnd.hancom.hwpx`).
+  - 신규 `DOCUMENT_EXTENSION_MIME`(확장자→정규 MIME) + `getDocumentContentType(file)` 헬퍼: 확장자 기준 정규 MIME 우선, 없으면 `file.type`, 그래도 없으면 octet-stream.
+  - 신규 `getDownloadUrl(url)` 헬퍼: 공개 URL에 `?download=<원본파일명>` 부착(다운로드 시 확장자·파일명 보존).
+- **`src/app/components/admin/AdminPostCreate.tsx`**: 업로드 시 문서를 **정규 MIME으로 `new File([f], f.name, { type })` 재래핑** 후 업로드. (supabase-js가 Blob의 contentType 옵션을 무시하고 `File.type`을 쓰는 함정 회피.)
+- **`src/app/components/content/AttachmentPopover.tsx`** · **`src/app/pages/ResourcesPage.tsx`**: 다운로드 링크/트리거를 `getDownloadUrl(url)` 사용으로 변경(+`download` 속성은 동일출처 폴백).
+- **신규 마이그레이션 `supabase/migrations/20260605120000_documents_bucket_hwpx.sql`**: documents 버킷 `allowed_mime_types`에 HWP/HWPX 변종 추가(`ON CONFLICT DO UPDATE`).
+- **`scripts/create_bucket.mjs`**: 동일 MIME 변종 추가(생성/갱신 스크립트 일관성).
 
 ## Verification Matrix
 | Change | Checks | Result |
 |---|---|---|
-| 컴포넌트/연결 | tsc·eslint·vitest(134)·build | 통과 |
-| 청크 분리 | pdf/swiper 지연, vendor 정상 | 통과 |
-| min-height 오버라이드 | 빌드 CSS에 `.card-news-body .ql-editor{min-height:0!important}` 확인 | 통과 |
-| 실제 화면(빈 공간/흰 띠) | 시각 확인 | **미확정 — 사용자 확인 대기** |
+| 전체 코드 | `tsc --noEmit` | 통과 |
+| 업로드 MIME | 로컬 업로드 후 객체 Content-Type=`application/x-hwp` | 통과(실측) |
+| 다운로드 | `?download` GET 시 `Content-Disposition: attachment; filename=<원본.hwp>` | 통과(실측) |
+| 로컬 버킷 MIME 확장 | docker psql로 `UPDATE storage.buckets` 직접 적용 | 통과(로컬만) |
+| prod 버킷 MIME 확장 | 마이그레이션 SQL 작성 | **prod push 대기(배포 시)** |
 
 ## 교훈
-- `vite build`가 변경 직후 `html-inline-proxy` 오류로 간헐 실패 → `node_modules/.vite`+`dist` 삭제 후 재빌드로 해소(OneDrive 파일 잠금 추정).
-- Tailwind v4 임의 변형(`[&_.ql-editor]:min-h-0`)은 dev JIT가 HMR 중 즉시 생성 못 해 dev 화면 미반영 가능 → **정적 CSS 규칙**으로 작성해야 안정적.
-- 카드뉴스 위 흰 띠는 PDF 첫 페이지 자체의 상단 마진(파일 내부) → CSS로 제거 불가.
-- 카드뉴스 미표시 시 점검: tags가 report/issue-paper/trend-report 인지 **+** PDF 첨부 존재 여부(둘 다여야 슬라이더 렌더).
+- HWP/HWPX는 OS 등록 MIME이 없어 브라우저 `file.type`이 빈 문자열·`application/haansoft-hwp` 등으로 제각각 → **업로드 시 정규 MIME으로 `new File()` 재래핑**해야 공개 버킷 MIME 검증 통과.
+- **supabase-js 함정**: `storage.upload(path, File, { contentType })`에서 body가 `File`/`Blob`이면 **contentType 옵션을 무시**하고 내부 FormData가 `File.type`을 멀티파트 MIME으로 전송. → 옵션이 아니라 **File 자체의 type을 바꿔야** 함.
+- **다운로드 함정**: `<a download>`/`link.download`은 **교차 출처(Supabase 도메인)에서 무시**되어 객체 키(확장자 없음)로 저장됨 → HWP가 "다른 형식"으로 보임. **Supabase `?download=<파일명>` 쿼리**로 서버가 `Content-Disposition: attachment`를 내려야 확장자 보존.
+- 클라 `accept`/허용목록은 우회 가능 → **버킷 `allowed_mime_types`가 최종 방어선**. 둘을 같은 MIME 집합으로 맞춰야 함.
+- 배포 시 documents 버킷 정책 갱신을 위해 `db:push:prod` 필수(코드만 배포하면 prod에선 HWPX가 여전히 버킷에서 거부됨). 로컬은 이번 세션에 직접 `UPDATE`로 패치 완료.

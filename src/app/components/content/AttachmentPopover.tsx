@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { getFileNameFromUrl } from "../../../utils/file";
+import { getDownloadUrl, getFileNameFromUrl } from "../../../utils/file";
 
 type AttachmentPopoverProps = {
   files: string[];
@@ -43,7 +43,8 @@ export function AttachmentPopover({ files }: AttachmentPopoverProps) {
     return (
       <div ref={rootRef} className="relative inline-flex" style={{ maxWidth: "min(88vw, 300px)" }}>
         <a
-          href={files[0]}
+          href={getDownloadUrl(files[0])}
+          download={firstFileName}
           target="_blank"
           rel="noreferrer"
           title={firstFileName}
@@ -130,7 +131,8 @@ export function AttachmentPopover({ files }: AttachmentPopoverProps) {
               {files.map((url, idx) => (
                 <a
                   key={`${url}-${idx}`}
-                  href={url}
+                  href={getDownloadUrl(url)}
+                  download={getFileNameFromUrl(url, "첨부파일")}
                   target="_blank"
                   rel="noreferrer"
                   title={getFileNameFromUrl(url, "첨부파일")}

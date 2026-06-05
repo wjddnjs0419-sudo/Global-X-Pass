@@ -6,11 +6,12 @@
 (없음)
 
 ## In Progress
-- 카드뉴스 슬라이더 **시각 확인 대기** (빈 공간/흰 띠) + 추가 수정 예정 → 다음 세션에서 마무리 후 **최종 DEPLOY** 예정 (2026-06-05).
+- **배포 진행 중** (2026-06-05): HWP/HWPX 첨부 + 다운로드 수정 + 카드뉴스. validate·prod build 통과(dist=prod 백엔드 확인). 잔여 2단계 = ① prod DB push(`.env.deploy.local`의 `SUPABASE_DB_URL_PROD` 비어 있어 사용자 입력 필요) ② netlify 수동 배포(dist/ 드래그드롭 또는 CLI). 코드 커밋 완료.
 
 ## Done
 
-- [Done] insight 카드뉴스 슬라이더(PDF 좌우 스와이프) + 상세/어드민 연결 (2026-06-05) — 압축됨. 상세 RESULT_ARCHIVE.md.
+- [Done] HWP/HWPX 첨부 지원 — 업로드 contentType 명시 + 버킷 MIME 확장 (2026-06-05) — 상세 RESULT.md.
+- [Done] insight 카드뉴스 슬라이더(PDF 좌우 스와이프) + 상세/어드민 연결 + 시각 확인 (2026-06-05) — 압축됨. 상세 RESULT_ARCHIVE.md.
 - [Done] 프로젝트 이관 핸드오프 정비 (2026-06-04) — 압축됨. 상세 RESULT_ARCHIVE.md.
 - [Done] GitHub QA local-runner 복원 + Visible QA 사전 가드 (2026-06-04) — 압축됨. 상세 RESULT_ARCHIVE.md.
 - [Done] Codex 세션 부트스트랩 즉시 실행 엔트리 추가 (2026-06-04) — 압축됨. 상세 RESULT_ARCHIVE.md.

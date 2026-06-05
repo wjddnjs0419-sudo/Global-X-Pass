@@ -8,6 +8,7 @@ import {
   containsDocumentFile,
   DOCUMENT_UPLOAD_ACCEPT,
   encodeFilename,
+  getDocumentContentType,
   getFileNameFromUrl,
   isAllowedDocumentFile,
   isAllowedUploadFile,
@@ -524,7 +525,17 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
         const safeName = encodeFilename(f.name);
         const fileName = `${Date.now()}---${Math.random().toString(36).substr(2, 9)}---${safeName}`;
 
-        const { error: upError } = await supabase.storage.from(targetBucket).upload(fileName, f);
+        // supabase-js는 File/Blob 업로드 시 contentType 옵션을 무시하고 File.type을 멀티파트 MIME으로
+        // 사용한다. HWP는 file.type이 비거나 application/haansoft-hwp라 버킷 검증에서 거부되므로,
+        // 문서는 정규 MIME(.hwp→application/x-hwp 등)으로 File을 다시 감싸 업로드한다.
+        let body: Blob = f;
+        let uploadOptions: { contentType: string } | undefined;
+        if (!isImageFile) {
+          const docType = getDocumentContentType(f);
+          body = new File([f], f.name, { type: docType });
+          uploadOptions = { contentType: docType };
+        }
+        const { error: upError } = await supabase.storage.from(targetBucket).upload(fileName, body, uploadOptions);
         if (upError) throw new Error(`파일 업로드 실패 (${f.name}): ${upError.message}`);
 
         const publicUrl = supabase.storage.from(targetBucket).getPublicUrl(fileName).data.publicUrl;

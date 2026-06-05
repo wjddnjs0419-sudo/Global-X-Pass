@@ -5,7 +5,7 @@ import { BoardAccessGate } from "../components/BoardAccessGate";
 import { useBoardCategoryLabel, useBoardCategoryDescription } from "../BoardCategoriesContext";
 import { fetchPublicPostPreviews } from "../../utils/publicPostPreviews";
 import { LoadingSpinner, ErrorMessage } from "../components/LoadingSpinner";
-import { getFileNameFromUrl } from "../../utils/file";
+import { getDownloadUrl, getFileNameFromUrl } from "../../utils/file";
 import { LAYERS } from "../../lib/layers";
 import { AppPagination } from "../components/AppPagination";
 import type { Post } from "../../lib/types";
@@ -38,7 +38,7 @@ export function ResourcesPage() {
 
   const triggerDownload = (url: string) => {
     const link = document.createElement('a');
-    link.href = url;
+    link.href = getDownloadUrl(url);
     link.target = '_blank';
     link.download = getFileNameFromUrl(url);
     document.body.appendChild(link);

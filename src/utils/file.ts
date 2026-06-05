@@ -10,6 +10,7 @@ const DOCUMENT_EXTENSIONS = [
   ".ppt",
   ".pptx",
   ".hwp",
+  ".hwpx",
 ];
 
 export const ALLOWED_DOCUMENT_MIME_TYPES = [
@@ -23,7 +24,26 @@ export const ALLOWED_DOCUMENT_MIME_TYPES = [
   "application/vnd.ms-powerpoint",
   "application/vnd.openxmlformats-officedocument.presentationml.presentation",
   "application/x-hwp",
+  "application/haansoft-hwp",
+  "application/vnd.hancom.hwp",
+  "application/hwp+zip",
+  "application/vnd.hancom.hwpx",
 ];
+
+// 확장자 → 정규 MIME. HWP/HWPX는 브라우저가 file.type을 빈 문자열/octet-stream으로
+// 주는 경우가 많아 업로드 시 contentType를 명시해야 버킷 MIME 검증을 통과한다.
+const DOCUMENT_EXTENSION_MIME: Record<string, string> = {
+  ".pdf": "application/pdf",
+  ".zip": "application/zip",
+  ".doc": "application/msword",
+  ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ".xls": "application/vnd.ms-excel",
+  ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  ".ppt": "application/vnd.ms-powerpoint",
+  ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  ".hwp": "application/x-hwp",
+  ".hwpx": "application/hwp+zip",
+};
 
 export const DOCUMENT_UPLOAD_ACCEPT = [
   "image/jpeg",
@@ -43,6 +63,7 @@ export const DOCUMENT_UPLOAD_ACCEPT = [
   ".ppt",
   ".pptx",
   ".hwp",
+  ".hwpx",
 ].join(",");
 
 export const PUBLIC_DOCUMENT_UPLOAD_WARNING =
@@ -83,6 +104,17 @@ export function getFileNameFromUrl(url: string, fallback = ""): string {
   }
 }
 
+// 첨부파일 다운로드용 URL. Supabase 공개 URL에 `?download=<원본파일명>`을 붙이면
+// 스토리지가 Content-Disposition: attachment; filename=<원본.ext>로 응답한다.
+// (download HTML 속성은 교차 출처에서 무시되므로 확장자 보존에는 이 쿼리가 필요)
+export function getDownloadUrl(url: string): string {
+  if (!url) return url;
+  const name = getFileNameFromUrl(url);
+  if (!name) return url;
+  const sep = url.includes("?") ? "&" : "?";
+  return `${url}${sep}download=${encodeURIComponent(name)}`;
+}
+
 export function isImage(url: string): boolean {
   const fileName = getFileNameFromUrl(url);
   if (IMAGE_EXTENSIONS.test(fileName)) return true;
@@ -115,4 +147,14 @@ export function isAllowedUploadFile(file: File): boolean {
 
 export function containsDocumentFile(files: File[]): boolean {
   return files.some((file) => isAllowedDocumentFile(file));
+}
+
+// 문서 버킷 업로드용 Content-Type. 확장자 기준 정규 MIME을 우선 사용하고,
+// (HWP/HWPX는 file.type이 비거나 octet-stream인 경우가 많아 신뢰 불가)
+// 매핑이 없으면 브라우저가 준 file.type, 그래도 없으면 octet-stream으로 폴백한다.
+export function getDocumentContentType(file: File): string {
+  const lowerName = file.name.toLowerCase();
+  const ext = Object.keys(DOCUMENT_EXTENSION_MIME).find((e) => lowerName.endsWith(e));
+  if (ext) return DOCUMENT_EXTENSION_MIME[ext];
+  return file.type || "application/octet-stream";
 }
