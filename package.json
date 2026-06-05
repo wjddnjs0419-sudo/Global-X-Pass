@@ -15,7 +15,7 @@
     "db:stop": "supabase stop",
     "db:status": "supabase status",
     "db:reset": "supabase db reset",
-    "db:push:prod": "url=$(node scripts/check-deploy-target.mjs prod) && supabase db push --db-url \"$url\"",
+    "db:push:prod": "url=$(node --env-file-if-exists=.env.deploy.local scripts/check-deploy-target.mjs prod) && supabase db push --db-url \"$url\"",
     "map:dev": "vite --config vite.architecture.config.ts --host 127.0.0.1",
     "map:build": "vite build --config vite.architecture.config.ts",
     "app:dev": "GXP_ARCHITECTURE_APP_DEV=1 electron electron/main.cjs",
