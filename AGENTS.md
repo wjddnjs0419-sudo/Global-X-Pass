@@ -7,6 +7,14 @@ File guide Claude Code for repo.
 - 새 chat/session 시작 직후, 답변 전에 프로젝트 루트에서 `npm run claude:bootstrap` 실행.
 - 사용자 첫 메시지가 정확히 `ㅎㅇ`이면 일반 인사 금지, `npm run claude:bootstrap` 재실행 후 그 요약으로 첫 응답 시작.
 - 부트스트랩 출력의 기본 골격은 `현재 컨텍스트 / 최근 완료 / 대기 계획 / 주요 리스크` 유지.
+- 부트스트랩 `0. Git Sync` state 항상 먼저 확인 — `behind-only` 일 때만 `git pull --ff-only`.
+
+## 멀티 환경 동기화 (맥 ↔ 윈도우)
+
+- **작업 전 동기화 확인**: 부트스트랩 `0. Git Sync` state(5종: `in-sync`·`behind-only`·`ahead-only`·`diverged`·`unknown`) 기준 — `in-sync` 면 그대로 작업, `behind-only` 면 `git pull --ff-only`, `ahead-only` 는 푸시 대기(정상), `diverged` 는 rebase/merge 수동 해결, `unknown` 은 수동 `git status` 확인. state 와 별개로 미커밋 변경분 있으면 pull 전 정리. 무조건 pull 아님.
+- **lock은 윈도우만 관리**: `package-lock.json` 은 윈도우에서만 커밋. 맥은 `npm install` 후 lock 변경분 커밋 금지(`git checkout -- package-lock.json`). OS별 네이티브 바이너리로 lock 갈라져 pull 충돌 유발.
+- **의존성 변경 handoff**: 맥에서 `package.json` 의존성 변경 시 윈도우에서 `npm install` 로 lock 재생성·커밋해 정본화.
+- **node_modules 비추적**: 각 머신 자체 `npm install`.
 
 ## Mandatory Workflow
 

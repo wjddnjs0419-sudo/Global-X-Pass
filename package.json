@@ -6,6 +6,7 @@
   "main": "electron/main.cjs",
   "scripts": {
     "diet": "node scripts/compact-docs.mjs",
+    "sync": "node scripts/sync.mjs",
     "claude:bootstrap": "node scripts/claude-bootstrap.mjs",
     "prebuild": "node scripts/check-build-target.mjs",
     "build": "vite build",
