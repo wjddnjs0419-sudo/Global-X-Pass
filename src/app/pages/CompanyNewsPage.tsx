@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { ExternalLink } from "lucide-react";
 import { PageShell } from "../components/PageShell";
+import { BoardAccessGate } from "../components/BoardAccessGate";
 import { supabase } from "../../lib/supabaseClient";
 import { LoadingSpinner, ErrorMessage } from "../components/LoadingSpinner";
 import { AppPagination } from "../components/AppPagination";
 import { Badge } from "../components/ui/badge";
+import { useBoardCategoryLabel, useBoardCategoryDescription } from "../BoardCategoriesContext";
 import type { Article } from "../../lib/types";
 
 const PAGE_SIZE = 10;
@@ -19,6 +21,8 @@ function formatArticleDate(iso: string): string {
 }
 
 export function CompanyNewsPage() {
+  const boardTitle = useBoardCategoryLabel("company-news", "기업 뉴스");
+  const boardSubtitle = useBoardCategoryDescription("company-news", "참여기업의 최신 기사들을 확인해보세요.");
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -50,7 +54,8 @@ export function CompanyNewsPage() {
   );
 
   return (
-    <PageShell title="기업 뉴스" subtitle="참여기업의 최신 기사들을 확인해보세요." accentColor={ACCENT}>
+    <BoardAccessGate category="company-news">
+    <PageShell title={boardTitle} subtitle={boardSubtitle} accentColor={ACCENT}>
       <div className="max-w-[980px] mx-auto pb-[100px]">
         {loading ? (
           <LoadingSpinner />
@@ -131,5 +136,6 @@ export function CompanyNewsPage() {
         )}
       </div>
     </PageShell>
+    </BoardAccessGate>
   );
 }

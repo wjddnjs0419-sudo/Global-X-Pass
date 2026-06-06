@@ -23,6 +23,7 @@ import {
 } from "../../utils/scheduleFields";
 import { logSupabaseFailure } from "../../lib/uxTelemetry";
 import { useAuthGate } from "../../hooks/useAuthGate";
+import { useBoardCategoryLabel, useBoardCategoryDescription } from "../BoardCategoriesContext";
 
 const EMPTY_REGISTER_FORM = {
   theme: "",
@@ -63,6 +64,8 @@ interface SessionWithCount extends FoundersClubSession {
 
 export function FoundersClubPage() {
   const { isDark } = useTheme();
+  const boardTitle = useBoardCategoryLabel("founders-club", "Founder's Club");
+  const boardSubtitle = useBoardCategoryDescription("founders-club", "동료 창업자와 함께하는 주제별 소그룹 피어 러닝");
   const { requireAuth } = useAuthGate();
   const [sessions, setSessions] = useState<SessionWithCount[]>([]);
   const [loading, setLoading] = useState(true);
@@ -357,7 +360,7 @@ export function FoundersClubPage() {
 
   return (
     <BoardAccessGate category="founders-club">
-    <PageShell title="Founder's Club" subtitle="동료 창업자와 함께하는 주제별 소그룹 피어 러닝" accentColor="var(--color-accent-purple)">
+    <PageShell title={boardTitle} subtitle={boardSubtitle} accentColor="var(--color-accent-purple)">
       <div style={{ maxWidth: 900, margin: "0 auto", paddingBottom: 80 }}>
         {canHost && (
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 20, padding: "16px 20px", background: "var(--color-surface-card)", border: "1px solid var(--color-border-soft)", borderRadius: 16 }}>

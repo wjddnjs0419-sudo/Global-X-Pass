@@ -6,6 +6,7 @@ import { supabase } from "../../lib/supabaseClient";
 import { ImmersionPanel } from "../components/ImmersionPanel";
 import { OfficeHourPanel } from "../components/OfficeHourPanel";
 import { getFilterTabStyle } from "../components/contentListStyles";
+import { useBoardCategoryLabel, useBoardCategoryDescription } from "../BoardCategoriesContext";
 
 type ConsultingMode = "immersion" | "office";
 
@@ -16,6 +17,8 @@ const MODE_TABS: { id: ConsultingMode; label: string }[] = [
 
 export function ConsultingPage() {
   const { isDark } = useTheme();
+  const boardTitle = useBoardCategoryLabel("consulting", "1:1 컨설팅");
+  const boardSubtitle = useBoardCategoryDescription("consulting", "전문가와 직접 예약하는 온라인 이머젼, 월별로 매칭되는 오피스아워 중 선택하세요");
   const [mode, setMode] = useState<ConsultingMode>("immersion");
   const [userId, setUserId] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -32,8 +35,8 @@ export function ConsultingPage() {
   return (
     <BoardAccessGate category="consulting">
     <PageShell
-      title="1:1 컨설팅 지원"
-      subtitle="전문가와 직접 예약하는 온라인 이머젼, 월별로 매칭되는 오피스아워 중 선택하세요"
+      title={boardTitle}
+      subtitle={boardSubtitle}
       accentColor="var(--color-accent-blue)"
     >
       <div style={{ maxWidth: 1000, margin: "0 auto", paddingBottom: 80 }}>

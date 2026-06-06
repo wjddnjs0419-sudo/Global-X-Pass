@@ -12,12 +12,15 @@ import type { Company } from "../../lib/types";
 import { AppPagination } from "../components/AppPagination";
 import { useTheme } from "../ThemeContext";
 import { useAuthGate } from "../../hooks/useAuthGate";
+import { useBoardCategoryLabel, useBoardCategoryDescription } from "../BoardCategoriesContext";
 
 const PAGE_SIZE = 20;
 
 
 export function CompaniesPage() {
   const { isDark } = useTheme();
+  const boardTitle = useBoardCategoryLabel("companies", "참여 기업");
+  const boardSubtitle = useBoardCategoryDescription("companies", "Google for Startups 프로그램에 참여한 기업들을 만나보세요.");
   const { isAuthed, requireAuth, redirectToLogin } = useAuthGate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -93,8 +96,8 @@ export function CompaniesPage() {
   return (
     <BoardAccessGate category="companies">
     <PageShell
-      title="참여 기업"
-      subtitle="Google for Startups 프로그램에 참여한 기업들을 만나보세요."
+      title={boardTitle}
+      subtitle={boardSubtitle}
     >
       <div className="max-w-[1100px] mx-auto pb-[100px]">
         {/* 검색창 */}
