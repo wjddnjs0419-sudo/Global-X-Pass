@@ -6,10 +6,12 @@
 (없음)
 
 ## In Progress
-- **게시판 이름/설명 미반영 버그 수정 — 배포 대기** (2026-06-06): nav `category` 연동 + 4개 페이지 제목/부제 DB화 + company-news 게시판화(신규 행) + BoardAccessGate 래핑. ✅ 코드 수정·validate 통과 ✅ Codex FAIL 0 ✅ 로컬 DB INSERT. **잔여 = `npm run db:push:prod`(company-news 행) + netlify dist/ 드래그드롭(사용자)** + 선택 `git push`. 상세 RESULT.md. (코드 미커밋 — Codex 리뷰 범위 유지.)
-- **HWP/HWPX 배포 마무리** (2026-06-05): ✅ 코드 커밋(`44a49480`) ✅ prod DB push 완료 ✅ prod build. **잔여 = netlify dist/ 드래그드롭(사용자)**.
+(없음)
 
 ## Done
+
+- [Done] 게시판 이름/설명 미반영 버그 수정 (2026-06-06) — nav category 연동 + 4페이지 제목/부제 DB화 + company-news 게시판화 + BoardAccessGate. ✅ 코드 커밋(`4e17c734`) ✅ Codex FAIL 0 ✅ prod DB push(company-news 행 확인) ✅ netlify 배포 완료. 상세 RESULT.md.
+- [Done] HWP/HWPX 배포 마무리 (2026-06-05) — ✅ 코드 커밋(`44a49480`) ✅ prod DB ✅ netlify 배포 완료.
 
 - [Done] HWP/HWPX 첨부 지원 — 업로드 contentType 명시 + 버킷 MIME 확장 (2026-06-05) — 상세 RESULT_ARCHIVE.md.
 - [Done] insight 카드뉴스 슬라이더(PDF 좌우 스와이프) + 상세/어드민 연결 + 시각 확인 (2026-06-05) — 압축됨. 상세 RESULT_ARCHIVE.md.

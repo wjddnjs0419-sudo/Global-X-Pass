@@ -29,7 +29,7 @@
 - `kind='page'` 특수 페이지는 게시판 목록엔 없어도 `post_categories` 행이 있어야 라벨/설명 편집 가능. 행 없는 정적 페이지(company-news)는 articles 등 별도 소스라 "게시판화"하려면 메타 행을 신규 INSERT.
 - 게시판을 access_level 편집 대상에 넣으면(특수 페이지 포함) 페이지를 `BoardAccessGate` 로 감싸야 토글이 실제 게이팅됨. 안 그러면 어드민 UI 와 실제 동작이 어긋남(설정은 바뀌나 차단 안 됨).
 
-## 잔여(사용자/배포)
-1. `npm run db:push:prod` — prod 에 company-news 행 INSERT(미적용 시 prod 어드민에 기업뉴스 미노출).
-2. prod build + netlify dist/ 드래그드롭.
-3. 선택: `git push origin main`.
+## 배포(완료 2026-06-07)
+1. ✅ prod DB — company-news 행 prod 확인(`post_categories` id='company-news', kind='page', access_level='public', sort_order 130).
+2. ✅ netlify dist/ 드래그드롭 배포 완료(사용자).
+3. ✅ 코드 커밋·푸시 완료(`4e17c734`). → 잔여 없음.
