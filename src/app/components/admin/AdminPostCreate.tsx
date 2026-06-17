@@ -387,7 +387,8 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
         if (!user) { alert("로그인이 필요합니다."); return; }
         const safeName = encodeFilename(file.name);
         const fileName = `${Date.now()}---editor---${Math.random().toString(36).substr(2, 9)}---${safeName}`;
-        const { error: upError } = await supabase.storage.from('images').upload(fileName, file);
+        // 유니크 파일명 → 내용 불변, 1년 캐시로 재방문 egress 절감
+        const { error: upError } = await supabase.storage.from('images').upload(fileName, file, { cacheControl: '31536000' });
         if (upError) throw upError;
         const url = supabase.storage.from('images').getPublicUrl(fileName).data.publicUrl;
         const quill = quillRef.current?.getEditor();
@@ -529,11 +530,12 @@ export function AdminPostCreate({ editingPost, onSaved, onCancelled }: AdminPost
         // 사용한다. HWP는 file.type이 비거나 application/haansoft-hwp라 버킷 검증에서 거부되므로,
         // 문서는 정규 MIME(.hwp→application/x-hwp 등)으로 File을 다시 감싸 업로드한다.
         let body: Blob = f;
-        let uploadOptions: { contentType: string } | undefined;
+        // 유니크 파일명 → 내용 불변, 1년 캐시로 재방문 egress 절감
+        const uploadOptions: { contentType?: string; cacheControl: string } = { cacheControl: '31536000' };
         if (!isImageFile) {
           const docType = getDocumentContentType(f);
           body = new File([f], f.name, { type: docType });
-          uploadOptions = { contentType: docType };
+          uploadOptions.contentType = docType;
         }
         const { error: upError } = await supabase.storage.from(targetBucket).upload(fileName, body, uploadOptions);
         if (upError) throw new Error(`파일 업로드 실패 (${f.name}): ${upError.message}`);

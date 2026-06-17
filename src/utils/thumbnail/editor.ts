@@ -7,7 +7,8 @@ export async function uploadThumbnailIfDataUrl(url: string | null): Promise<stri
   const blob = await response.blob();
   const ext = blob.type === "image/jpeg" ? "jpg" : "png";
   const fileName = `thumbnails/${Date.now()}-${Math.random().toString(36).slice(2, 9)}.${ext}`;
-  const { error } = await supabase.storage.from("images").upload(fileName, blob, { contentType: blob.type });
+  // 파일명이 유니크(타임스탬프+랜덤)라 내용 불변 → 1년 캐시로 재방문 egress 절감
+  const { error } = await supabase.storage.from("images").upload(fileName, blob, { contentType: blob.type, cacheControl: "31536000" });
   if (error) throw error;
   return supabase.storage.from("images").getPublicUrl(fileName).data.publicUrl;
 }

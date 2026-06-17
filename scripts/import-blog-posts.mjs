@@ -286,6 +286,8 @@ async function mirrorImageToSupabase(imageUrl, supabase) {
     const ext = getImageExtension(imageUrl, ct);
     const storagePath = `blog-import/${hash}.${ext}`;
 
+    // cacheControl 장기캐시 의도적 미적용: upsert:true 라 같은 경로를 덮어쓸 수 있어
+    // 1년 캐시 시 구버전이 박힌다. 또한 개발/임포트용 스크립트라 런타임 egress 와 무관.
     const { error } = await supabase.storage.from("images").upload(storagePath, buffer, {
       contentType: ct.split(";")[0].trim(),
       upsert: true,

@@ -70,7 +70,8 @@ async function uploadConsultantProfileDataUrl(dataUrl: string) {
   const blob = await response.blob();
   const safeName = encodeFilename("consultant-profile.jpg");
   const fileName = `${Date.now()}---consultant-profile---${Math.random().toString(36).substr(2, 9)}---${safeName}`;
-  const { error } = await supabase.storage.from("images").upload(fileName, blob, { contentType: "image/jpeg" });
+  // 유니크 파일명 → 내용 불변, 1년 캐시로 재방문 egress 절감
+  const { error } = await supabase.storage.from("images").upload(fileName, blob, { contentType: "image/jpeg", cacheControl: "31536000" });
   if (error) throw error;
   return supabase.storage.from("images").getPublicUrl(fileName).data.publicUrl;
 }

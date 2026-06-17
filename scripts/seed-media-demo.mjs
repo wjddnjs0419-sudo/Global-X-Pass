@@ -70,6 +70,8 @@ async function uploadCoverImages() {
     const sourceFile = coverSourceFiles[key];
     const bytes = readFileSync(path.join(ROOT, "src", "imports", sourceFile));
     const storagePath = `media-demo/${targetName}`;
+    // cacheControl 장기캐시 의도적 미적용: 고정 경로 + upsert:true 라 덮어쓰기 가능,
+    // 1년 캐시 시 구버전이 박힌다. 시드용 스크립트라 런타임 egress 와도 무관.
     const { error } = await supabase.storage
       .from("images")
       .upload(storagePath, bytes, { contentType: "image/png", upsert: true });
