@@ -10,6 +10,7 @@
 
 ## Done
 
+- [Done] 1:1 컨설팅 개선 (2026-08-13) — 온라인 이머전 synthetic 전체 필터 + 오피스아워 is_visible 관리·DB 우회 신청 차단. Local migration replay/RLS 직접 INSERT/본인·admin 조인 검증 및 validate 통과. 상세 RESULT.md.
 - [Done] 게시판 이름/설명 미반영 버그 수정 (2026-06-06) — nav category 연동 + 4페이지 제목/부제 DB화 + company-news 게시판화 + BoardAccessGate. ✅ 코드 커밋(`4e17c734`) ✅ Codex FAIL 0 ✅ prod DB push(company-news 행 확인) ✅ netlify 배포 완료. 상세 RESULT.md.
 - [Done] HWP/HWPX 배포 마무리 (2026-06-05) — ✅ 코드 커밋(`44a49480`) ✅ prod DB ✅ netlify 배포 완료.
 
@@ -19,11 +20,6 @@
 - [Done] GitHub QA local-runner 복원 + Visible QA 사전 가드 (2026-06-04) — 압축됨. 상세 RESULT_ARCHIVE.md.
 - [Done] Codex 세션 부트스트랩 즉시 실행 엔트리 추가 (2026-06-04) — 압축됨. 상세 RESULT_ARCHIVE.md.
 - [Done] staging 환경 완전 제거 → local→prod 2단 (2026-06-04) — 압축됨. 상세 RESULT_ARCHIVE.md.
-- [Done] 무기한 MFA 우회 — 압축됨. 상세 RESULT_ARCHIVE.md.
-- [Done] 슈퍼어드민 무기한 우회 영구락 수정 (2026-06-03) — 압축됨. 상세 RESULT_ARCHIVE.md.
-- [Done] 무기한 MFA 우회 옵션 + "안 함"→"해제" 라벨 (2026-06-03) — 압축됨. 상세 RESULT_ARCHIVE.md.
-- [Done] 게시판 접근권한 토글 미반영 버그 수정 (2026-06-02) — 압축됨. 상세 RESULT_ARCHIVE.md.
-- [Done] UX layout/action 자동 추적 제거 + 아키텍처 인박스 UX 이슈 필터링 (2026-06-02) — 압축됨. 상세 RESULT_ARCHIVE.md.
 
 ## Future / 추후 수정
 

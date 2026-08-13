@@ -248,6 +248,8 @@ export interface OfficeHourMonth {
   period_month: string;
   capacity: number;
   is_open: boolean;
+  /** 사용자 화면 노출 여부. false여도 기존 신청 데이터는 유지된다. */
+  is_visible: boolean;
   display_order: number;
   created_at: string;
 }
