@@ -1,3 +1,28 @@
+# RESULT: Around X 브랜드 포지셔닝 및 SEO 수정 — 2026-08-13
+
+## 배경
+- 기존 staged SEO 변경이 Around X 전체를 `구글플레이 창구 프로그램 8기 공식 포털`로 한정하고 있었음.
+- 사업 범위를 구글플레이(앱·게임), 르노코리아(모빌리티), 핀탄티에리(조선·해양)와의 글로벌 기업 협업 프로그램으로 반영.
+
+## 구현
+- **`index.html`**: title을 `Around X - 넥스트챌린지`로 변경. description, OG, Twitter, WebSite JSON-LD `alternateName`/`description`을 Around X 전체 액셀러레이팅 프로그램 설명으로 전환. canonical, robots, 미리보기 이미지와 metadata 구조는 유지. keyword meta는 기존 제거 상태를 유지.
+- **`src/app/content/aroundXBrandInfo.ts`**: About 영역은 기존 Around X 브랜드 소개 문구를 유지.
+- **`src/app/components/HeroSection.tsx`**: 창구 상세 데이터 의존을 제거하고 Around X 글로벌 협업 프로그램 정보로 교체. 담당자 확정 소개 문구를 Hero에 정확히 반영하며, `글로벌기업(구글플레이, 르노코리아, 핀탄티에리)과` 표기를 사용. 창구 전용 상세 페이지 데이터는 변경하지 않음.
+- **`src/app/components/AboutSection.tsx`**: 기존 staged `aria-label` 접근성 개선 유지.
+
+## Verification Matrix
+| Change | Checks | Result |
+|---|---|---|
+| SEO metadata | title, description, OG/Twitter, JSON-LD, canonical/robots 정적 코드 확인 | 통과 |
+| 브랜드 콘텐츠 | Hero 확정 소개 문구 및 About 기존 브랜드 소개 문구 확인 | 통과 |
+| 코드 품질 | `npm run validate` (tsc, ESLint 경고 0, Vitest 143, Vite build, secret scan) | 통과 |
+| Visible UI QA | 데스크톱/모바일 인앱 브라우저 점검 | 미실행 — 현재 세션에 사용 가능한 인앱 브라우저 없음 |
+
+## 미실행 항목
+- 인앱 브라우저 연결 후 Hero 확장 패널과 About 문단을 desktop/mobile viewport에서 시각 확인 필요.
+
+---
+
 # RESULT: 게시판 이름/설명 수정 미반영 버그 수정 — 2026-06-06
 
 ## 배경

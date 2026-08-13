@@ -45,6 +45,7 @@ export function AboutSection() {
 
   return (
     <section
+      aria-label="Around X 소개"
       style={{
         position: "relative",
         width: "100vw",

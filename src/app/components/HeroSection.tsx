@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router";
-import { CHANGGU_PROGRAM_INFO, type ChangguProgramDescriptionSegment } from "../content/changguProgramInfo";
 import { useLanguage } from "../LanguageContext";
 
 function StarField() {
@@ -140,7 +139,7 @@ const nodeData = [
     id: "3", index: 2,
     label: { ko: "최신게시물", en: "Latest Posts" },
     icon: <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>,
-    card: { badge: { ko: "UPDATES", en: "UPDATES" }, badgeSub: { ko: "New", en: "New" }, title: { ko: "커뮤니티 소식", en: "Community News" }, desc: { ko: "창구 프로그램 동문 기업들의\n최신 근황과 자유로운 소통 공간입니다.", en: "A space for the latest updates\nand free communication among alumni companies." }, href: "#community-section" },
+    card: { badge: { ko: "UPDATES", en: "UPDATES" }, badgeSub: { ko: "New", en: "New" }, title: { ko: "커뮤니티 소식", en: "Community News" }, desc: { ko: "Around X 참여기업의 최신 근황과\n자유로운 소통 공간입니다.", en: "A space for the latest updates\nand open communication among Around X companies." }, href: "#community-section" },
   },
   {
     id: "4", index: 3,
@@ -156,21 +155,15 @@ const nodeData = [
   },
 ];
 
-function ChangguProgramHeroDescription({ segments }: { segments: ChangguProgramDescriptionSegment[] }) {
-  return (
-    <>
-      {segments.map((segment, index) =>
-        segment.emphasis ? (
-          <strong key={`${segment.text}-${index}`} className="text-white">
-            {segment.text}
-          </strong>
-        ) : (
-          segment.text
-        ),
-      )}
-    </>
-  );
-}
+const heroProgramInfo = {
+  label: { ko: "PROGRAM INFO", en: "PROGRAM INFO" },
+  title: { ko: ["Around X", "글로벌 협업 프로그램"], en: ["Around X", "Global Collaboration Program"] },
+  description: {
+    ko: "중소벤처기업부, 창업진흥원, 글로벌기업(구글플레이, 르노코리아, 핀탄티에리)과 넥스트챌린지가 공동 운영하는 대한민국 대표 스타트업 액셀러레이팅 프로그램입니다.\n\n잠재력 있는 기업을 발굴하여 글로벌 성공 스토리를 함께\n만들어가는 데 기여하겠습니다.",
+    en: "Around X is a leading Korean startup acceleration program jointly operated by the Ministry of SMEs and Startups, KISED, global companies (Google Play, Renault Korea, and Fincantieri), and Next Challenge.\n\nWe contribute to discovering high-potential companies and creating global success stories together.",
+  },
+  hint: { ko: "중앙 코어를 클릭해 Around X 프로그램 정보 보기", en: "Click the central core to view Around X program information" },
+} as const;
 
 export function HeroSection() {
   const navigate = useNavigate();
@@ -292,8 +285,9 @@ export function HeroSection() {
         }
       `}</style>
 
-      <div
+      <section
         onClick={handleBgClick}
+        aria-label="Around X 글로벌 기업 협업 프로그램"
         className="relative w-[100vw] max-w-full h-[95dvh] max-md:min-h-[700px] md:min-h-[900px] overflow-hidden flex items-center justify-center font-['Pretendard',-apple-system,sans-serif] left-1/2 -translate-x-1/2"
         style={{
           background: "radial-gradient(circle at 20% 30%, rgba(40,20,80,0.4) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(20,40,80,0.3) 0%, transparent 50%), radial-gradient(circle at center, #16223a 0%, #0c1221 60%, #000 100%)"
@@ -305,7 +299,7 @@ export function HeroSection() {
           <div className="brand-orbit z-[2]" style={{ width: `${INNER_ORBIT}px`, height: `${INNER_ORBIT}px` }} />
           <div className="brand-orbit z-[2] opacity-15" style={{ width: `${OUTER_ORBIT}px`, height: `${OUTER_ORBIT}px`, animationDirection: "reverse", animationDuration: "25s" }} />
 
-          <div className="core-ring relative z-[100] cursor-pointer rounded-full border-[1.5px] border-[rgba(255,255,255,0.18)] backdrop-blur-[8px]" role="button" tabIndex={0} onClick={handleCoreClick} onKeyDown={(e) => { if(e.key === 'Enter' || e.key === ' ') handleCoreClick(e); }} style={{ width: `${CORE}px`, height: `${CORE}px`, background: "radial-gradient(circle at 35% 35%, rgba(66,133,244,0.25), rgba(10,15,30,0.8))" }} />
+          <div className="core-ring relative z-[100] cursor-pointer rounded-full border-[1.5px] border-[rgba(255,255,255,0.18)] backdrop-blur-[8px]" role="button" tabIndex={0} aria-label="Around X 프로그램 정보 보기" onClick={handleCoreClick} onKeyDown={(e) => { if(e.key === 'Enter' || e.key === ' ') handleCoreClick(e); }} style={{ width: `${CORE}px`, height: `${CORE}px`, background: "radial-gradient(circle at 35% 35%, rgba(66,133,244,0.25), rgba(10,15,30,0.8))" }} />
 
           <div className="absolute border border-dashed border-[rgba(255,255,255,0.13)] rounded-full pointer-events-none" style={{ width: `${INNER_ORBIT}px`, height: `${INNER_ORBIT}px` }} />
           <div className="orbit-light-inner" style={{ width: `${INNER_ORBIT}px`, height: `${INNER_ORBIT}px` }} />
@@ -341,27 +335,27 @@ export function HeroSection() {
 
         <div onClick={(e) => e.stopPropagation()} className={`absolute transition-all duration-[1200ms] ease-[cubic-bezier(0.19,1,0.22,1)] z-20 ${expanded ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'} max-lg:left-1/2 max-lg:-translate-x-1/2 max-lg:text-center max-md:w-[90%] md:max-lg:w-[70%] ${expanded ? 'max-lg:bottom-[36px]' : 'max-lg:-bottom-[300px]'} lg:top-1/2 lg:-translate-y-1/2 lg:w-[400px] lg:text-left ${expanded ? 'lg:right-[8%]' : 'lg:-right-[520px]'}`}>
           <div className="text-[#4285F4] font-extrabold tracking-[2px] mb-[12px]" style={{ fontSize: `${Math.max(11, 13 * scale)}px` }}>
-            {CHANGGU_PROGRAM_INFO.label[infoLang]}
+            {heroProgramInfo.label[infoLang]}
           </div>
-          <h2 className="text-white font-extrabold m-0 mb-[20px] tracking-[-1.5px] leading-[1.2]" style={{ fontSize: `${Math.max(24, 42 * scale)}px` }}>
-            {CHANGGU_PROGRAM_INFO.title[infoLang].map((line, index) => (
+          <h1 className="text-white font-extrabold m-0 mb-[20px] tracking-[-1.5px] leading-[1.2]" style={{ fontSize: `${Math.max(24, 42 * scale)}px` }}>
+            {heroProgramInfo.title[infoLang].map((line, index) => (
               <span key={line}>
                 {line}
-                {index < CHANGGU_PROGRAM_INFO.title[infoLang].length - 1 && <br />}
+                {index < heroProgramInfo.title[infoLang].length - 1 && <br />}
               </span>
             ))}
-          </h2>
-          <p className="text-[rgba(255,255,255,0.8)] leading-[1.8] break-keep m-0" style={{ fontSize: `${Math.max(14, 17 * scale)}px` }}>
-            <ChangguProgramHeroDescription segments={CHANGGU_PROGRAM_INFO.description[infoLang]} />
+          </h1>
+          <p className="m-0 leading-[1.8] break-keep whitespace-pre-line" style={{ color: "rgba(255, 255, 255, 0.86)", fontSize: `${Math.max(14, 17 * scale)}px` }}>
+            {heroProgramInfo.description[infoLang]}
           </p>
         </div>
 
         {!expanded && (
           <div className="absolute left-1/2 -translate-x-1/2 text-[rgba(255,255,255,0.35)] tracking-[0.05em] whitespace-nowrap z-[5] font-medium max-md:bottom-[28px] md:bottom-[40px]" style={{ fontSize: `${Math.max(11, 13 * scale)}px` }}>
-            {CHANGGU_PROGRAM_INFO.hint[infoLang]}
+            {heroProgramInfo.hint[infoLang]}
           </div>
         )}
-      </div>
+      </section>
     </>
   );
 }
@@ -380,9 +374,9 @@ function CardContent({ node, scale, onNavigate }: { node: typeof nodeData[0]; sc
           {node.card.badgeSub[isEn ? "en" : "ko"]}
         </small>
       </div>
-      <h5 className="m-0 text-white font-extrabold leading-[1.3]" style={{ fontSize: `${Math.max(17, 21 * scale)}px` }}>
+      <h3 className="m-0 text-white font-extrabold leading-[1.3]" style={{ fontSize: `${Math.max(17, 21 * scale)}px` }}>
         {node.card.title[isEn ? "en" : "ko"]}
-      </h5>
+      </h3>
       <p className="m-0 text-[rgba(255,255,255,0.85)] leading-[1.65] break-keep whitespace-pre-line" style={{ fontSize: `${Math.max(13, 15 * scale)}px` }}>
         {node.card.desc[isEn ? "en" : "ko"]}
       </p>
