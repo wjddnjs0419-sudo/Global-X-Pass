@@ -36,6 +36,8 @@ export function OfficeHourApplyModal({ month, userId, isDark, onClose, onApplied
         alert("관리자 계정은 오피스아워를 신청할 수 없습니다.");
       } else if (/full/i.test(error.message)) {
         alert("해당 월 모집 정원이 마감되었습니다. 다른 달을 선택해주세요.");
+      } else if (/not visible/i.test(error.message)) {
+        alert("해당 월은 현재 신청을 받지 않습니다.");
       } else if (/closed/i.test(error.message)) {
         alert("해당 월은 모집이 마감되었습니다.");
       } else {

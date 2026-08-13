@@ -185,9 +185,10 @@ export function AdminOfficeHourManagement() {
 function MonthCapacityRow({ month, used, onSaved }: { month: OfficeHourMonth; used: number; onSaved: () => void }) {
   const [capacity, setCapacity] = useState(String(month.capacity));
   const [isOpen, setIsOpen] = useState(month.is_open);
+  const [isVisible, setIsVisible] = useState(month.is_visible);
   const [saving, setSaving] = useState(false);
 
-  const dirty = Number(capacity) !== month.capacity || isOpen !== month.is_open;
+  const dirty = Number(capacity) !== month.capacity || isOpen !== month.is_open || isVisible !== month.is_visible;
 
   const save = async () => {
     const cap = Number(capacity);
@@ -195,7 +196,7 @@ function MonthCapacityRow({ month, used, onSaved }: { month: OfficeHourMonth; us
     setSaving(true);
     const { error } = await supabase
       .from("office_hour_months")
-      .update({ capacity: cap, is_open: isOpen })
+      .update({ capacity: cap, is_open: isOpen, is_visible: isVisible })
       .eq("id", month.id);
     setSaving(false);
     if (error) return alert("저장 실패: " + error.message);
@@ -213,6 +214,10 @@ function MonthCapacityRow({ month, used, onSaved }: { month: OfficeHourMonth; us
       <label style={{ display: "flex", alignItems: "center", gap: 6, color: textMuted, fontSize: 13, cursor: "pointer" }}>
         <input type="checkbox" checked={isOpen} onChange={e => setIsOpen(e.target.checked)} />
         모집 중
+      </label>
+      <label style={{ display: "flex", alignItems: "center", gap: 6, color: textMuted, fontSize: 13, cursor: "pointer" }}>
+        <input type="checkbox" checked={isVisible} onChange={e => setIsVisible(e.target.checked)} />
+        사용자 노출
       </label>
       <button
         onClick={save}

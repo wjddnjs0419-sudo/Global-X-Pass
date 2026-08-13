@@ -29,7 +29,7 @@ export function OfficeHourPanel({ userId, isAdmin = false }: Props) {
     setError(null);
     try {
       const [monthsRes, countsRes] = await Promise.all([
-        supabase.from("office_hour_months").select("*").order("display_order"),
+        supabase.from("office_hour_months").select("*").eq("is_visible", true).order("display_order"),
         supabase.rpc("office_hour_month_counts"),
       ]);
 

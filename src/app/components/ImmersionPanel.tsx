@@ -12,13 +12,15 @@ import {
   DEFAULT_CONSULTING_CATEGORIES,
 } from "../constants/consultingCategories";
 
+const ALL_CATEGORY_ID = "__all__";
+
 /** 온라인 이머젼 — 전문가 목록을 보여주고 사용자가 직접 슬롯을 예약하는 기존 방식. */
 export function ImmersionPanel() {
   const { isDark } = useTheme();
   const { isAuthed, requireAuth } = useAuthGate();
   const [categories, setCategories] = useState<ConsultingCategory[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<string>(ALL_CATEGORY_ID);
   const [consultants, setConsultants] = useState<Consultant[]>([]);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<Consultant | null>(null);
@@ -53,26 +55,26 @@ export function ImmersionPanel() {
     };
   }, []);
 
-  // 카테고리 변경 시 activeTab 유효성 유지
+  // DB 카테고리와 별개인 전체 탭은 항상 유효하다.
   useEffect(() => {
-    if (categories.length === 0) return;
     setActiveTab(prev =>
-      categories.some(c => c.id === prev) ? prev : categories[0].id
+      prev === ALL_CATEGORY_ID || categories.some(c => c.id === prev) ? prev : ALL_CATEGORY_ID
     );
   }, [categories]);
 
   // 전문가 fetch — isMounted로 Race Condition 방지
   useEffect(() => {
-    if (!activeTab) return;
     let isMounted = true;
     setLoading(true);
     setError(null);
 
-    supabase
+    const query = supabase
       .from("consultants")
       .select("*")
-      .eq("category", activeTab)
-      .eq("is_active", true)
+      .eq("is_active", true);
+    const filteredQuery = activeTab === ALL_CATEGORY_ID ? query : query.eq("category", activeTab);
+
+    filteredQuery
       .order("display_order")
       .then(({ data, error: err }) => {
         if (!isMounted) return;
@@ -95,15 +97,23 @@ export function ImmersionPanel() {
           ? [0, 1, 2].map(i => (
               <div key={i} style={{ width: 110, height: 40, borderRadius: 12, background: "var(--color-skeleton-bg)", animation: "pulse 1.5s ease-in-out infinite" }} />
             ))
-          : categories.map(cat => (
+          : <>
               <button
-                key={cat.id}
-                onClick={() => setActiveTab(cat.id)}
-                style={getFilterTabStyle(isDark, activeTab === cat.id)}
+                onClick={() => setActiveTab(ALL_CATEGORY_ID)}
+                style={getFilterTabStyle(isDark, activeTab === ALL_CATEGORY_ID)}
               >
-                {cat.label}
+                전체
               </button>
-            ))
+              {categories.map(cat => (
+                <button
+                  key={cat.id}
+                  onClick={() => setActiveTab(cat.id)}
+                  style={getFilterTabStyle(isDark, activeTab === cat.id)}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </>
         }
       </div>
 
