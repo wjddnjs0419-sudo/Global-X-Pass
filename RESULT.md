@@ -1,3 +1,36 @@
+# RESULT: Around X Renault · Fincantieri 프로그램 정식 오픈 — 2026-08-13
+
+## 배경
+- `/around-x/renault`, `/around-x/fincantieri`가 명시 라우트 없이 `WildcardRoute`의 `comingSoon` 메뉴 경로 판별에 의존해 공통 Coming Soon 페이지를 표시했다.
+- 사용자가 제공한 원본 로고는 저장소에는 없고 Downloads에 Renault PNG와 Fincantieri SVG로 존재했다.
+
+## 구현
+- **`src/app/pages/AroundXRenaultProgramPage.tsx`**, **`src/app/pages/AroundXFincantieriProgramPage.tsx`**: 기존 `PageShell`을 사용해 각각의 확정 한국어 제목·부제·핵심 소개·상세 설명을 렌더한다. PageShell 제목은 브랜드명(르노코리아/핀칸티에리)만 표시한다.
+- **`src/app/components/ProgramIntroSection.tsx`**: 두 소개 페이지가 공유하는 원본 비율 로고, 핵심 소개, 상세 설명 레이아웃만 제공한다. Changgu 소개 영역과 같은 `useTheme()` 기반 본문 색상, 14–18px 크기, 1.85 줄간격, 로고/섹션 `clamp()` 여백을 사용한다. 헤더→로고 상단 간격은 Changgu의 바깥 timeline section `44–76px`와 내부 intro `20–44px`를 합산해 동일하게 맞췄으며, 로고의 별도 배경·테두리·본문 중복 프로그램명은 두지 않는다.
+- **`src/imports/renault-logo.png`**, **`src/imports/fincantieri-logo.svg`**: 사용자 제공 원본을 파일명만 정리해 추가했다. 로고 형태·색상은 수정하지 않았다.
+- **`src/app/routes.tsx`**: Changgu와 동일한 `AROUND_X_ROUTES` + `toChildRoutePath` 패턴으로 Renault/Fincantieri 명시 라우트를 WildcardRoute 앞에 추가했다.
+- **`src/app/navigation/mainMenu.ts`**: Renault/Fincantieri 두 항목의 `comingSoon`만 제거했다. 공통 Coming Soon 시스템과 Changgu/Companies 메뉴는 변경하지 않았다.
+- **`src/app/navigation/mainMenu.test.ts`**: 두 메뉴가 정식 페이지 상태여서 `comingSoon`이 아님을 보장하는 회귀 테스트를 추가했다. RED 단계에서 두 항목이 `true`여서 실패한 뒤, 메뉴 설정 변경 후 GREEN을 확인했다.
+- Renault/Fincantieri 양쪽 상세 설명의 **“글로벌 진출 액셀러레이팅 프로그램”**을 `<strong>`으로 강조했다. Changgu와 동일하게 light mode `#0D1117`, dark mode `#ffffff`, 굵기 `850`을 적용했다. 소개 간 단락 여백은 `clamp(14px, 3vw, 16px)`로 조정해 작은 화면에서 과도하게 벌어지지 않도록 했다.
+
+## 다국어 결정
+- 기존 Changgu 페이지는 PageShell 제목·부제를 한국어로 고정한다. 담당자 확정 영문 마케팅 문구가 없어 Renault/Fincantieri도 같은 최소 패턴을 따랐으며, 임의 번역은 추가하지 않았다.
+
+## Verification Matrix
+| Change | Checks | Result |
+|---|---|---|
+| 메뉴 정식 오픈 상태 | `npm test -- src/app/navigation/mainMenu.test.ts` | RED: Renault/Fincantieri 2건이 `comingSoon: true`로 실패 → GREEN: 6/6 통과 |
+| 전체 프런트엔드 | `npm run validate` | TypeScript, ESLint, Vitest **145/145**, Vite production build, frontend secret scan 통과 |
+| 직접 URL 응답 | Vite dev server `curl` | Renault/Fincantieri/Changgu 각 HTTP 200 |
+| Coming Soon 범위 | `rg comingSoon` + diff | 공통 `WildcardRoute` 로직 유지, Renault/Fincantieri 메뉴에서는 제거 |
+| UI cleanup | 변경 diff 검토 | 불필요 state/handler/fallback 없음; Changgu timeline 미변경 |
+| 브라우저 시각 QA | `agent-browser`, 인앱 Browser 연결 | 현재 세션에서 자동 브라우저 CLI와 연결 가능한 브라우저가 없어 미수행 |
+
+## 배포 상태
+- 사용자 지시대로 DB 변경, deploy, commit, push 모두 실행하지 않았다.
+
+---
+
 # RESULT: 게시판 이름/설명 수정 미반영 버그 수정 — 2026-06-06
 
 ## 배경

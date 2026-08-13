@@ -68,8 +68,8 @@ const MAIN_MENU_BY_KEY: Record<MenuKey, MainMenu> = {
     label: "Around X",
     items: [
       { label: { ko: "창구 프로그램", en: "Changgu Program" }, path: AROUND_X_ROUTES.changguProgram },
-      { label: { ko: "르노", en: "Renault" }, path: AROUND_X_ROUTES.renault, comingSoon: true },
-      { label: { ko: "핀칸티에리", en: "Fincantieri" }, path: AROUND_X_ROUTES.fincantieri, comingSoon: true },
+      { label: { ko: "르노", en: "Renault" }, path: AROUND_X_ROUTES.renault },
+      { label: { ko: "핀칸티에리", en: "Fincantieri" }, path: AROUND_X_ROUTES.fincantieri },
       { label: { ko: "참여 기업", en: "Companies" }, path: "/companies", category: "companies" },
     ],
   },

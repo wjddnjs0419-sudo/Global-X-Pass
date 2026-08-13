@@ -30,6 +30,8 @@ const CompaniesPage = lazy(() => import("./pages/CompaniesPage").then(m => ({ de
 const PrivacyPolicyPage = lazy(() => import("./pages/PrivacyPolicyPage").then(m => ({ default: m.PrivacyPolicyPage })));
 const TermsOfUsePage = lazy(() => import("./pages/TermsOfUsePage").then(m => ({ default: m.TermsOfUsePage })));
 const AroundXChangguProgramPage = lazy(() => import("./pages/AroundXChangguProgramPage").then(m => ({ default: m.AroundXChangguProgramPage })));
+const AroundXRenaultProgramPage = lazy(() => import("./pages/AroundXRenaultProgramPage").then(m => ({ default: m.AroundXRenaultProgramPage })));
+const AroundXFincantieriProgramPage = lazy(() => import("./pages/AroundXFincantieriProgramPage").then(m => ({ default: m.AroundXFincantieriProgramPage })));
 
 const toChildRoutePath = (path: string) => path.replace(/^\//, "");
 
@@ -60,6 +62,8 @@ export const router = createBrowserRouter([
       { path: "consulting", Component: ConsultingPage },
       { path: "founders-club", Component: FoundersClubPage },
       { path: toChildRoutePath(AROUND_X_ROUTES.changguProgram), Component: AroundXChangguProgramPage },
+      { path: toChildRoutePath(AROUND_X_ROUTES.renault), Component: AroundXRenaultProgramPage },
+      { path: toChildRoutePath(AROUND_X_ROUTES.fincantieri), Component: AroundXFincantieriProgramPage },
       { path: "privacy-policy", Component: PrivacyPolicyPage },
       { path: "terms-of-use", Component: TermsOfUsePage },
       { path: "post/:id", Component: PostDetailPage },

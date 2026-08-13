@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DESKTOP_MAIN_MENUS } from "./mainMenu";
+import { AROUND_X_ROUTES, DESKTOP_MAIN_MENUS } from "./mainMenu";
 
 const allItems = DESKTOP_MAIN_MENUS.flatMap((m) => m.items);
 const byPath = (path: string) => allItems.find((it) => it.path === path);
@@ -17,4 +17,15 @@ describe("mainMenu 게시판 라벨 DB 연동", () => {
     expect(item, `${path} 메뉴 항목이 존재해야 한다`).toBeDefined();
     expect(item?.category).toBe(category);
   });
+});
+
+describe("Around X 정식 프로그램 메뉴", () => {
+  it.each([AROUND_X_ROUTES.renault, AROUND_X_ROUTES.fincantieri])(
+    "%s는 정식 프로그램 페이지로 열려 있어 Coming Soon이 아니다",
+    (path) => {
+      const item = byPath(path);
+      expect(item, `${path} 메뉴 항목이 존재해야 한다`).toBeDefined();
+      expect(item?.comingSoon).not.toBe(true);
+    },
+  );
 });
