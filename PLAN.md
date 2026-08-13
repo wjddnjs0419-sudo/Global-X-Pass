@@ -10,6 +10,8 @@
 
 ## Done
 
+- [Done] Around X 브랜드 포지셔닝 및 SEO 수정 (2026-08-13) — 창구 8기 단일 포커스 메타데이터·Hero를 Around X 전체 프로그램으로 전환, 담당자 확정 소개 문구와 3개 산업 분야 반영, 기술 SEO 유지. `npm run validate` 통과; 인앱 브라우저 미연결로 visible QA는 미실행. 상세 RESULT.md.
+
 - [Done] Around X Renault·Fincantieri 프로그램 정식 오픈 (2026-08-13) — 전용 소개 페이지 + 명시 라우트 + 메뉴 Coming Soon 해제 + 제공 원본 로고 적용. `npm run validate`(145 tests/type/lint/build/secret) 통과. 브라우저 자동 검증은 세션 내 브라우저 미가용으로 수행 불가. DB/deploy/commit/push 미실행. 상세 RESULT.md.
 
 - [Done] 1:1 컨설팅 개선 (2026-08-13) — 온라인 이머전 synthetic 전체 필터 + 오피스아워 is_visible 관리·DB 우회 신청 차단. Local migration replay/RLS 직접 INSERT/본인·admin 조인 검증 및 validate 통과. 상세 RESULT.md.
@@ -21,7 +23,6 @@
 - [Done] 프로젝트 이관 핸드오프 정비 (2026-06-04) — 압축됨. 상세 RESULT_ARCHIVE.md.
 - [Done] GitHub QA local-runner 복원 + Visible QA 사전 가드 (2026-06-04) — 압축됨. 상세 RESULT_ARCHIVE.md.
 - [Done] Codex 세션 부트스트랩 즉시 실행 엔트리 추가 (2026-06-04) — 압축됨. 상세 RESULT_ARCHIVE.md.
-- [Done] staging 환경 완전 제거 → local→prod 2단 (2026-06-04) — 압축됨. 상세 RESULT_ARCHIVE.md.
 
 ## Future / 추후 수정
 
