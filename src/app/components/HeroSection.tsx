@@ -159,7 +159,7 @@ const heroProgramInfo = {
   label: { ko: "PROGRAM INFO", en: "PROGRAM INFO" },
   title: { ko: ["Around X", "글로벌 협업 프로그램"], en: ["Around X", "Global Collaboration Program"] },
   description: {
-    ko: "중소벤처기업부, 창업진흥원, 글로벌기업(구글플레이, 르노코리아, 핀탄티에리)과 넥스트챌린지가 공동 운영하는 대한민국 대표 스타트업 액셀러레이팅 프로그램입니다.\n\n잠재력 있는 기업을 발굴하여 글로벌 성공 스토리를 함께\n만들어가는 데 기여하겠습니다.",
+    ko: "중소벤처기업부, 창업진흥원, 글로벌기업(구글플레이, 르노코리아, 핀칸티에리)과 넥스트챌린지가 공동 운영하는 대한민국 대표 스타트업 액셀러레이팅 프로그램입니다.\n\n잠재력 있는 기업을 발굴하여 글로벌 성공 스토리를 함께\n만들어가는 데 기여하겠습니다.",
     en: "Around X is a leading Korean startup acceleration program jointly operated by the Ministry of SMEs and Startups, KISED, global companies (Google Play, Renault Korea, and Fincantieri), and Next Challenge.\n\nWe contribute to discovering high-potential companies and creating global success stories together.",
   },
   hint: { ko: "중앙 코어를 클릭해 Around X 프로그램 정보 보기", en: "Click the central core to view Around X program information" },
